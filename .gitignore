@@ -1,0 +1,54 @@
+# 依赖
+node_modules/
+
+# 构建产物
+dist/
+dist-ssr/
+*.local
+
+# 日志
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# 编辑器
+.idea
+*.iml
+.vscode/*
+!.vscode/extensions.json
+
+# 系统
+.DS_Store
+Thumbs.db
+
+# env
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+
+# Tauri 生成物
+src-tauri/target/
+src-tauri/gen/
+src-tauri/icons/icon.png
+app-icon.png
+
+# 测试与覆盖率
+coverage/
+playwright-report/
+test-results/
+
+# 本地联调运行时(PID/日志)
+.dev/
+
+# agent
+.reasonix
+
+# 开发迭代
+.ui-shots
+tmp
+template_images

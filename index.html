@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="高速稳定的网络加速服务" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236558F5' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M13 2 3 14h9l-1 8 10-12h-9z'/%3E%3C/svg%3E"
+    />
+    <title>NanoCloud</title>
+    <script>
+      // 防闪烁(FOUC):渲染前读取持久化主题并写入 data-theme
+      ;(function () {
+        try {
+          var raw = localStorage.getItem('app:theme')
+          var theme = raw ? JSON.parse(raw).value : null
+          if (!theme || theme === 'system') {
+            var dark = window.matchMedia('(prefers-color-scheme: dark)').matches
+            theme = theme === 'system' ? (dark ? 'dark' : 'light') : dark ? 'dark' : 'light'
+          }
+          document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light')
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'light')
+        }
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -47,6 +47,7 @@
 | 文档 | 内容 |
 |---|---|
 | [frontend/README.md](frontend/README.md) | 前端：技术选型、架构、目录结构、工程化、里程碑 |
+| [frontend/progress.md](frontend/progress.md) | 前端：开发进度追踪（已完成 / 未完成 / 前置条件） |
 | [frontend/design-system.md](frontend/design-system.md) | 前端：设计令牌、暗色模式、响应式与移动端适配、组件规范 |
 | [frontend/pages.md](frontend/pages.md) | 前端：路由表与逐页组件拆解（对照截图） |
 | [frontend/data-layer.md](frontend/data-layer.md) | 前端：HTTP 封装、状态管理、i18n、深链接一键导入 |
@@ -55,6 +56,7 @@
 | [backend/data-model.md](backend/data-model.md) | 后端：数据库表结构、索引、Redis Key 设计 |
 | [backend/core-flows.md](backend/core-flows.md) | 后端：注册登录、下单支付、佣金、订阅下发等核心流程 |
 | [backend/deploy.md](backend/deploy.md) | 后端：配置、Docker 部署、运维 |
+| [backend/progress.md](backend/progress.md) | 后端：开发进度追踪（已完成 / 未完成 / 前置条件） |
 | [api/README.md](api/README.md) | 接口契约：通用约定、错误码、全量端点定义 |
 
 ## 5. 全局约定

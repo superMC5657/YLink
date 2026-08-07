@@ -1,0 +1,19 @@
+-- 0001_init.down.sql
+DROP TABLE IF EXISTS agent_applies;
+DROP TABLE IF EXISTS audit_logs;
+DROP TABLE IF EXISTS settings;
+DROP TABLE IF EXISTS traffic_logs;
+DROP TABLE IF EXISTS ticket_messages;
+DROP TABLE IF EXISTS tickets;
+DROP TABLE IF EXISTS knowledges;
+DROP TABLE IF EXISTS notices;
+DROP TABLE IF EXISTS servers;
+DROP TABLE IF EXISTS server_groups;
+DROP TABLE IF EXISTS commission_logs;
+DROP TABLE IF EXISTS invite_codes;
+DROP TABLE IF EXISTS coupon_usages;
+DROP TABLE IF EXISTS coupons;
+DROP TABLE IF EXISTS payments;
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS plans;
+DROP TABLE IF EXISTS users;

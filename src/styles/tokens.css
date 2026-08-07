@@ -1,0 +1,161 @@
+/* ============================================================
+ * 设计令牌 · 浅色主题(默认)
+ * 规范见 docs/frontend/design-system.md §2-4
+ * ============================================================ */
+:root {
+  /* 主色 */
+  --c-primary: #6558f5;
+  --c-primary-hover: #7a6ef7;
+  --c-primary-soft: #eae7ff;
+  --c-primary-text: #4b3ed6;
+
+  /* 中性 */
+  --c-bg-app: #f5f6fb;
+  --c-bg-card: #ffffff;
+  --c-bg-hover: #f2f3fa;
+  --c-border: #ebecf4;
+  --c-text: #1f2430;
+  --c-text-sub: #8a8fa3;
+  --c-text-inverse: #ffffff;
+
+  /* 语义 */
+  --c-success: #5ba829;
+  --c-success-bg: #ddf3c6;
+  --c-warning: #d98e04;
+  --c-warning-bg: #fcefce;
+  --c-danger: #e5484d;
+  --c-danger-bg: #fde3e4;
+  --c-marketing: #e33d5b;
+  --c-olive: #7c9a3d;
+  --c-pink: #c2487b;
+  --c-amber-icon: #f5a524;
+
+  /* 形状/阴影/动效 */
+  --r-card: 16px;
+  --r-control: 10px;
+  --r-pill: 999px;
+  --s-card: 0 8px 24px rgba(23, 25, 66, 0.06);
+  --s-card-hover: 0 12px 32px rgba(23, 25, 66, 0.1);
+  --s-pop: 0 16px 48px rgba(23, 25, 66, 0.16);
+  --t-fast: 0.15s ease;
+  --t-base: 0.22s ease;
+
+  /* 字体 */
+  --font-ui: 'Inter', 'HarmonyOS Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-num: 'DIN Alternate', 'Bahnschrift', Inter, sans-serif;
+}
+
+/* ============================================================
+ * 设计令牌 · 暗色主题
+ * ============================================================ */
+[data-theme='dark'] {
+  --c-primary: #7c72ff;
+  --c-primary-hover: #8f86ff;
+  --c-primary-soft: rgba(124, 114, 255, 0.16);
+  --c-primary-text: #a79dff;
+
+  --c-bg-app: #0f1117;
+  --c-bg-card: #171b26;
+  --c-bg-hover: #1e2331;
+  --c-border: rgba(255, 255, 255, 0.07);
+  --c-text: #e8eaf2;
+  --c-text-sub: #9ba1b7;
+
+  --c-success: #7bd88f;
+  --c-success-bg: rgba(123, 216, 143, 0.14);
+  --c-warning: #f0b24a;
+  --c-warning-bg: rgba(240, 178, 74, 0.14);
+  --c-danger: #f16a6e;
+  --c-danger-bg: rgba(241, 106, 110, 0.14);
+  --c-marketing: #ff6b88;
+  --c-olive: #9dbe5f;
+  --c-pink: #e57ba6;
+  --c-amber-icon: #f5a524;
+
+  --s-card: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --s-card-hover: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --s-pop: 0 16px 48px rgba(0, 0, 0, 0.55);
+}
+
+/* ============================================================
+ * 基础样式
+ * ============================================================ */
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--c-text);
+  background-color: var(--c-bg-app);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition:
+    background-color var(--t-base),
+    color var(--t-base);
+  touch-action: manipulation;
+}
+
+/* 数字展示字体 */
+.num {
+  font-family: var(--font-num);
+  font-feature-settings: 'tnum';
+}
+
+/* 卡片 hover 上浮(可选类) */
+.card-hoverable {
+  transition:
+    transform var(--t-base),
+    box-shadow var(--t-base);
+}
+.card-hoverable:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--s-card-hover);
+}
+
+/* 滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--c-border);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--c-text-sub);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 路由过渡 */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+/* 尊重减弱动效偏好 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

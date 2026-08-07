@@ -1,0 +1,87 @@
+<script setup lang="ts">
+/**
+ * 桌面侧边栏:240px / 折叠 72px,分组菜单,激活项胶囊高亮。
+ * 规范见 docs/frontend/pages.md §2.1。
+ */
+import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useAppStore } from '@/stores/app'
+import { NAV_GROUPS } from '@/router/nav'
+import { useConfigStore } from '@/stores/config'
+
+const app = useAppStore()
+const config = useConfigStore()
+const route = useRoute()
+const router = useRouter()
+
+const collapsed = computed(() => app.sidebarCollapsed)
+
+function isActive(path: string): boolean {
+  if (path === '/dashboard') return route.path === '/dashboard'
+  return route.path.startsWith(path)
+}
+
+function go(path: string) {
+  router.push(path)
+}
+</script>
+
+<template>
+  <aside
+    class="flex h-full shrink-0 flex-col border-r border-[var(--c-border)] bg-[var(--c-bg-card)] transition-[width] duration-300"
+    :style="{ width: collapsed ? '72px' : '240px' }"
+  >
+    <!-- Logo 区 -->
+    <div class="flex h-16 shrink-0 items-center gap-3 px-5" :class="collapsed ? 'justify-center px-0' : ''">
+      <span
+        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white"
+        style="background: linear-gradient(135deg, #6558f5, #8b5cf6)"
+      >
+        <AppIcon name="zap" :size="20" />
+      </span>
+      <span v-if="!collapsed" class="truncate text-16 font-700 text-[var(--c-text)]">
+        {{ config.siteName }}
+      </span>
+    </div>
+
+    <!-- 分组菜单 -->
+    <nav class="flex-1 overflow-y-auto px-3 py-2">
+      <div v-for="group in NAV_GROUPS" :key="group.label" class="mb-4">
+        <div
+          v-if="!collapsed"
+          class="mb-1.5 px-3 text-11 uppercase tracking-wider text-[var(--c-text-sub)] opacity-70"
+        >
+          {{ group.label }}
+        </div>
+        <div class="space-y-1">
+          <button
+            v-for="item in group.items"
+            :key="item.path"
+            class="group flex h-10 w-full cursor-pointer items-center gap-3 rounded-[var(--r-pill)] px-3 text-14 transition-all duration-[var(--t-fast)]"
+            :class="
+              isActive(item.path)
+                ? 'bg-[var(--c-primary-soft)] text-[var(--c-primary-text)] font-500'
+                : 'text-[var(--c-text-sub)] hover:bg-[var(--c-bg-hover)] hover:text-[var(--c-text)]'
+            "
+            :title="collapsed ? item.name : undefined"
+            @click="go(item.path)"
+          >
+            <AppIcon :name="item.icon" :size="19" class="shrink-0" />
+            <span v-if="!collapsed" class="truncate">{{ item.name }}</span>
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- 底部折叠按钮 -->
+    <div class="shrink-0 border-t border-[var(--c-border)] p-3">
+      <button
+        class="flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-[var(--r-pill)] text-[var(--c-text-sub)] transition-colors hover:bg-[var(--c-bg-hover)]"
+        @click="app.toggleSidebar"
+      >
+        <AppIcon :name="collapsed ? 'chevron-right' : 'chevron-down'" :size="18" />
+        <span v-if="!collapsed" class="text-13">收起</span>
+      </button>
+    </div>
+  </aside>
+</template>

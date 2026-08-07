@@ -1,0 +1,51 @@
+# NanoCloud API 配置（敏感项只经环境变量注入，见 docs/backend/deploy.md）
+app:
+  name: nanocloud-api
+  env: development            # development / production
+  addr: ":8080"
+  base_url: "http://localhost:8080"   # 用于拼接订阅链接/支付回调地址
+
+database:
+  dsn: "root:root@tcp(127.0.0.1:3306)/nanocloud?charset=utf8mb4&parseTime=true&loc=Local"
+  max_open: 50
+  max_idle: 10
+
+redis:
+  addr: "127.0.0.1:6379"
+  password: ""
+  db: 0
+
+jwt:
+  secret: "dev-only-secret-please-override-0123456789abcdef"   # >= 32 字节；生产经 JWT_SECRET
+  access_ttl: 2h
+  refresh_ttl: 336h          # 14d
+
+smtp:
+  host: "smtp.qq.com"
+  port: 465
+  username: "${SMTP_USER}"
+  password: "${SMTP_PASS}"
+  from_name: "NanoCloud"
+
+payment:
+  epay:                      # 易支付（彩虹兼容）
+    gateway: "https://pay.example.com"
+    pid: "${EPAY_PID}"
+    key: "${EPAY_KEY}"
+    methods: ["alipay", "wxpay"]
+
+cors:
+  allow_origins: ["http://localhost:5173", "http://localhost:1420"]
+
+log:
+  level: info
+  dir: ./logs
+
+# 站点运营规则（settings 表初始化同款）
+site:
+  site_name: "NanoCloud"
+  invite_commission_rate: 40        # 普通用户佣金比例 %
+  agent_commission_rate: 50         # 代理商佣金比例 %
+  agent_required_valid_invites: 50  # 代理申请有效邀请数阈值
+  commission_confirm_days: 3        # 佣金确认期（天）
+  order_expire_minutes: 30          # 订单超时关闭（分钟）

@@ -24,9 +24,12 @@ const applyBtn = computed(() => {
   const s = status.value
   if (!s) return { disabled: true, text: t('agent.apply'), type: 'primary' as const }
   if (s.is_agent) return { disabled: true, text: t('agent.approved'), type: 'success' as const }
-  if (s.apply_status === 'pending') return { disabled: true, text: t('agent.applying'), type: 'warning' as const }
-  if (s.apply_status === 'rejected') return { disabled: false, text: t('agent.apply'), type: 'primary' as const }
-  if (!s.qualified) return { disabled: true, text: t('agent.notQualified'), type: 'neutral' as const }
+  if (s.apply_status === 'pending')
+    return { disabled: true, text: t('agent.applying'), type: 'warning' as const }
+  if (s.apply_status === 'rejected')
+    return { disabled: false, text: t('agent.apply'), type: 'primary' as const }
+  if (!s.qualified)
+    return { disabled: true, text: t('agent.notQualified'), type: 'neutral' as const }
   return { disabled: false, text: t('agent.apply'), type: 'primary' as const }
 })
 
@@ -63,18 +66,28 @@ onMounted(() => {
           <p class="mt-2 text-13 text-[var(--c-text-sub)]">{{ t('agent.agentDesc') }}</p>
 
           <div class="mt-3 flex flex-wrap items-center justify-center gap-2">
-            <StatusBadge v-if="status?.is_agent" type="success">{{ t('agent.approved') }}</StatusBadge>
-            <StatusBadge v-if="status?.apply_status === 'pending'" type="warning">{{ t('agent.applying') }}</StatusBadge>
+            <StatusBadge v-if="status?.is_agent" type="success">{{
+              t('agent.approved')
+            }}</StatusBadge>
+            <StatusBadge v-if="status?.apply_status === 'pending'" type="warning">{{
+              t('agent.applying')
+            }}</StatusBadge>
           </div>
 
-          <div class="mt-6 w-full rounded-xl p-4 text-left" style="background-color: var(--c-bg-hover)">
+          <div
+            class="mt-6 w-full rounded-xl p-4 text-left"
+            style="background-color: var(--c-bg-hover)"
+          >
             <div class="flex justify-between text-13">
               <span class="text-[var(--c-text-sub)]">{{ t('invite.registeredUsers') }}</span>
               <span class="num font-600 text-[var(--c-text)]">
                 {{ status?.valid_invites ?? 0 }} / {{ status?.required_valid_invites ?? 0 }}
               </span>
             </div>
-            <div class="mt-2 h-2 w-full overflow-hidden rounded-full" style="background-color: var(--c-border)">
+            <div
+              class="mt-2 h-2 w-full overflow-hidden rounded-full"
+              style="background-color: var(--c-border)"
+            >
               <div
                 class="h-full rounded-full transition-all duration-500"
                 :style="{
@@ -88,10 +101,17 @@ onMounted(() => {
           <button
             class="mt-6 h-11 w-full rounded-[var(--r-pill)] text-14 font-500 transition-all active:scale-98"
             :class="{
-              'bg-[var(--c-bg-hover)] text-[var(--c-text-sub)] cursor-not-allowed': applyBtn.disabled,
+              'bg-[var(--c-bg-hover)] text-[var(--c-text-sub)] cursor-not-allowed':
+                applyBtn.disabled,
               'btn-primary': !applyBtn.disabled,
             }"
-            :style="applyBtn.type === 'warning' ? { backgroundColor: 'var(--c-warning-bg)', color: 'var(--c-warning)' } : applyBtn.type === 'success' ? { backgroundColor: 'var(--c-success-bg)', color: 'var(--c-success)' } : {}"
+            :style="
+              applyBtn.type === 'warning'
+                ? { backgroundColor: 'var(--c-warning-bg)', color: 'var(--c-warning)' }
+                : applyBtn.type === 'success'
+                  ? { backgroundColor: 'var(--c-success-bg)', color: 'var(--c-success)' }
+                  : {}
+            "
             :disabled="applyBtn.disabled"
             @click="onApply"
           >
@@ -106,10 +126,18 @@ onMounted(() => {
         <div class="card-base p-5 md:p-6">
           <h3 class="mb-4 text-16 font-600 text-[var(--c-text)]">{{ t('agent.conditions') }}</h3>
           <div class="space-y-3">
-            <div v-for="(cond, i) in status?.conditions ?? []" :key="i" class="flex items-start gap-3">
+            <div
+              v-for="(cond, i) in status?.conditions ?? []"
+              :key="i"
+              class="flex items-start gap-3"
+            >
               <span
                 class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
-                :style="cond.met ? { backgroundColor: 'var(--c-success-bg)', color: 'var(--c-success)' } : { backgroundColor: 'var(--c-bg-hover)', color: 'var(--c-text-sub)' }"
+                :style="
+                  cond.met
+                    ? { backgroundColor: 'var(--c-success-bg)', color: 'var(--c-success)' }
+                    : { backgroundColor: 'var(--c-bg-hover)', color: 'var(--c-text-sub)' }
+                "
               >
                 <AppIcon :name="cond.met ? 'check' : 'close'" :size="14" :stroke-width="2.5" />
               </span>
@@ -129,7 +157,10 @@ onMounted(() => {
               class="flex items-center gap-3 rounded-xl p-3.5"
               style="background-color: var(--c-bg-hover)"
             >
-              <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style="background: var(--c-primary-soft); color: var(--c-primary-text)">
+              <span
+                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                style="background: var(--c-primary-soft); color: var(--c-primary-text)"
+              >
                 <AppIcon name="award" :size="17" />
               </span>
               <span class="text-13 font-500 text-[var(--c-text)]">{{ b }}</span>
@@ -141,8 +172,15 @@ onMounted(() => {
         <div class="card-base p-5 md:p-6">
           <h3 class="mb-4 text-16 font-600 text-[var(--c-text)]">{{ t('agent.notes') }}</h3>
           <ol class="space-y-2.5">
-            <li v-for="(n, i) in policy?.notes ?? []" :key="i" class="flex items-start gap-3 text-13 leading-6 text-[var(--c-text-sub)]">
-              <span class="num mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-11 font-600" style="background: var(--c-primary-soft); color: var(--c-primary-text)">
+            <li
+              v-for="(n, i) in policy?.notes ?? []"
+              :key="i"
+              class="flex items-start gap-3 text-13 leading-6 text-[var(--c-text-sub)]"
+            >
+              <span
+                class="num mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-11 font-600"
+                style="background: var(--c-primary-soft); color: var(--c-primary-text)"
+              >
                 {{ i + 1 }}
               </span>
               {{ n }}

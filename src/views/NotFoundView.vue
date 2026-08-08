@@ -11,10 +11,21 @@ const { t } = useI18n()
 
 <template>
   <div class="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
-    <span class="num text-8xl font-700" style="background: linear-gradient(135deg, #6558f5, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent">
+    <span
+      class="num text-8xl font-700"
+      style="
+        background: linear-gradient(135deg, #6558f5, #8b5cf6);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      "
+    >
       404
     </span>
-    <span class="flex h-16 w-16 items-center justify-center rounded-full text-[var(--c-text-sub)]" style="background-color: var(--c-bg-hover)">
+    <span
+      class="flex h-16 w-16 items-center justify-center rounded-full text-[var(--c-text-sub)]"
+      style="background-color: var(--c-bg-hover)"
+    >
       <AppIcon name="alert" :size="28" />
     </span>
     <div>

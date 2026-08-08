@@ -1,8 +1,5 @@
 import { http } from '@/utils/http'
-import type {
-  KnowledgeDetail,
-  KnowledgeListResp,
-} from '@/types/api'
+import type { KnowledgeDetail, KnowledgeListResp } from '@/types/api'
 
 export const apiKnowledge = {
   fetch: (params: { language?: string; keyword?: string } = {}) =>

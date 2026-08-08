@@ -26,7 +26,11 @@ export const CLIENT_OPTIONS: ClientOption[] = [
   { kind: 'clash', name: 'Clash', platforms: ['windows', 'macos', 'linux', 'android'] },
   { kind: 'clash-meta', name: 'Clash Meta', platforms: ['windows', 'macos', 'linux', 'android'] },
   { kind: 'clash-verge', name: 'Clash Verge', platforms: ['windows', 'macos', 'linux'] },
-  { kind: 'sing-box', name: 'sing-box', platforms: ['windows', 'macos', 'linux', 'android', 'ios'] },
+  {
+    kind: 'sing-box',
+    name: 'sing-box',
+    platforms: ['windows', 'macos', 'linux', 'android', 'ios'],
+  },
   { kind: 'shadowrocket', name: 'Shadowrocket', platforms: ['ios'] },
   { kind: 'v2rayn', name: 'v2rayN', platforms: ['windows'] },
   { kind: 'v2rayng', name: 'v2rayNG', platforms: ['android'] },
@@ -50,7 +54,11 @@ function b64encode(s: string): string {
  * @param siteName 站点名
  * @returns scheme URL;若该客户端仅支持「复制链接 + 引导」则返回 null
  */
-export function buildImportUrl(client: ClientKind, subscribeUrl: string, siteName: string): string | null {
+export function buildImportUrl(
+  client: ClientKind,
+  subscribeUrl: string,
+  siteName: string,
+): string | null {
   const enc = encodeURIComponent(subscribeUrl)
   const name = encodeURIComponent(siteName || '订阅')
   switch (client) {
@@ -79,7 +87,11 @@ export function buildImportUrl(client: ClientKind, subscribeUrl: string, siteNam
 /**
  * 一键导入统一入口:能唤起的直接唤起;不能的返回 false 由调用方展示「复制链接」兜底。
  */
-export function importToClient(client: ClientKind, subscribeUrl: string, siteName: string): boolean {
+export function importToClient(
+  client: ClientKind,
+  subscribeUrl: string,
+  siteName: string,
+): boolean {
   const url = buildImportUrl(client, subscribeUrl, siteName)
   if (!url) return false
   openExternal(url)

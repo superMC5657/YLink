@@ -20,7 +20,13 @@ type Order struct {
 
 func NewOrder(svc *service.OrderService) *Order { return &Order{svc: svc} }
 
-// Plans GET /plans
+// Plans 套餐列表
+// @Summary 套餐列表
+// @Tags 交易
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} resp.Body{data=object{list=[]model.PlanResp}}
+// @Router /plans [get]
 func (h *Order) Plans(c *gin.Context) {
 	data, err := h.svc.Plans(c.Request.Context())
 	if err != nil {
@@ -30,7 +36,16 @@ func (h *Order) Plans(c *gin.Context) {
 	resp.OK(c, gin.H{"list": data})
 }
 
-// CouponCheck POST /coupons/check
+// CouponCheck 优惠券试算
+// @Summary 优惠券试算
+// @Tags 交易
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param body body model.CouponCheckReq true "请求"
+// @Success 200 {object} resp.Body{data=model.CouponCheckResp}
+// @Failure 400 {object} resp.Body
+// @Router /coupons/check [post]
 func (h *Order) CouponCheck(c *gin.Context) {
 	var req model.CouponCheckReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -45,7 +60,16 @@ func (h *Order) CouponCheck(c *gin.Context) {
 	resp.OK(c, data)
 }
 
-// Create POST /orders（幂等：Idempotency-Key）
+// Create 创建订单（支持 Idempotency-Key）
+// @Summary 创建订单
+// @Tags 交易
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param Idempotency-Key header string false "幂等键"
+// @Param body body model.CreateOrderReq true "请求"
+// @Success 200 {object} resp.Body{data=model.OrderResp}
+// @Router /orders [post]
 func (h *Order) Create(c *gin.Context) {
 	var req model.CreateOrderReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -60,7 +84,16 @@ func (h *Order) Create(c *gin.Context) {
 	resp.OK(c, data)
 }
 
-// List GET /orders
+// List 订单列表
+// @Summary 订单列表
+// @Tags 交易
+// @Security BearerAuth
+// @Produce json
+// @Param status query int false "状态"
+// @Param page query int false "页码"
+// @Param page_size query int false "每页条数"
+// @Success 200 {object} resp.Body{data=resp.Page}
+// @Router /orders [get]
 func (h *Order) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
@@ -78,7 +111,14 @@ func (h *Order) List(c *gin.Context) {
 	resp.PageOK(c, list, total, page, pageSize)
 }
 
-// Detail GET /orders/{order_no}（兼支付轮询）
+// Detail 订单详情（兼支付轮询）
+// @Summary 订单详情
+// @Tags 交易
+// @Security BearerAuth
+// @Produce json
+// @Param order_no path string true "订单号"
+// @Success 200 {object} resp.Body{data=model.OrderDetailResp}
+// @Router /orders/{order_no} [get]
 func (h *Order) Detail(c *gin.Context) {
 	data, err := h.svc.GetOrder(c.Request.Context(), middleware.UserID(c), c.Param("order_no"))
 	if err != nil {
@@ -88,7 +128,15 @@ func (h *Order) Detail(c *gin.Context) {
 	resp.OK(c, data)
 }
 
-// Cancel POST /orders/{order_no}/cancel
+// Cancel 取消订单
+// @Summary 取消订单
+// @Tags 交易
+// @Security BearerAuth
+// @Produce json
+// @Param order_no path string true "订单号"
+// @Success 200 {object} resp.Body{data=model.OrderResp}
+// @Failure 409 {object} resp.Body
+// @Router /orders/{order_no}/cancel [post]
 func (h *Order) Cancel(c *gin.Context) {
 	data, err := h.svc.CancelOrder(c.Request.Context(), middleware.UserID(c), c.Param("order_no"))
 	if err != nil {
@@ -98,7 +146,16 @@ func (h *Order) Cancel(c *gin.Context) {
 	resp.OK(c, data)
 }
 
-// Checkout POST /orders/{order_no}/checkout
+// Checkout 收银台拉起支付
+// @Summary 收银台
+// @Tags 交易
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param order_no path string true "订单号"
+// @Param body body model.CheckoutReq true "请求"
+// @Success 200 {object} resp.Body{data=model.CheckoutResp}
+// @Router /orders/{order_no}/checkout [post]
 func (h *Order) Checkout(c *gin.Context) {
 	var req model.CheckoutReq
 	if err := c.ShouldBindJSON(&req); err != nil {

@@ -2,7 +2,7 @@
 
 > 本文档记录 `server/` 目录 Go/Gin 后端的开发状态,是 docs/backend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-07(全部里程碑 B1–B7 实现完成,内置审查修复 4 个阻断项)
+> 最后更新:2026-08-07(全部里程碑 B1–B7 实现完成;本轮补齐管理端 API/安全缺口/退款审计/cron 增强/可观测,并修复二轮审查阻断项)
 
 ---
 
@@ -97,17 +97,65 @@
 
 ### 审查修复(✅ 已修复,阻断项清零)
 
+第一轮内置审查(骨架/账户/交易/订阅初版):
+
 | 问题 | 修复 |
 |---|---|
 | 关单与支付回调竞态可能吞掉已支付订单 | 关单改用 `UpdateStatusIfPending`(WHERE status=0 条件更新) |
 | access/refresh token 可互换使用(签名同) | Claims 增加 `TokenType`,Auth 中间件与 Refresh 分别校验 |
 | Idempotency-Key 跨用户可回放 | 幂等缓存 key 加 user_id 维度 + repo 查询限定本人 |
-| 优惠券限额从未记账(超发风险) | MarkPaid 后置 `grantCoupon`(used_count+1 + coupon_usages 流水);同步补齐余额支付路径漏写的佣金 |
+| 优惠券限额从未记账(超发风险) | 初版:MarkPaid 后置记账;二轮已升级为「下单事务内原子占用」,见下方安全加固 |
 
-### 测试状态(✅)
+第二轮审查(管理端/安全改造增量):见「安全与一致性加固」表,2 个阻断项(取消竞态误释放券、cron 关单残留券)与 3 个 should-fix(佣金确认覆盖、代理审批并发、admin 自保护)均已修复。
+
+### 测试状态(✅ 已更新)
 
 - `go build ./...` / `go vet ./...` / `gofmt -l`(0 输出)全部通过
-- `go test ./...` 全绿,**29 个用例**,覆盖:错误码映射、JWT、密码、验证码限频/已注册、注册/登录锁定/刷新旋转、优惠券试算、下单幂等、续期状态机、回调幂等、epay 验签与篡改拒绝、订阅生成(3 格式)、佣金划转、代理申请、工单流转、佣金确认、关单条件更新
+- `go test ./... -count=1` 全绿,**36+ 用例**,覆盖:错误码映射、JWT、密码、验证码限频/已注册、注册/登录锁定/刷新旋转、优惠券试算/超限 12001/原子占用、下单幂等、续期状态机、回调幂等、epay 验签与篡改拒绝、订阅生成(3 格式)、佣金划转、代理申请、工单流转、佣金确认竞态、超时关单(含优惠券回退)、取消并发已支付回滚、退款佣金回滚、代理审批、bluemonday 清洗
+
+---
+
+### 管理端 API(✅ 完成,契约第 16 节全量)
+
+| 端点组 | 说明 |
+|---|---|
+| `GET /admin/stat/overview` | 用户/代理/订单/收入(总额+今日)/在售套餐统计 |
+| `GET /admin/users`、`PUT /admin/users/{id}`、`POST /admin/users/{id}/balance` | 列表/封禁与角色(禁止操作自己)/调余额(审计) |
+| `GET/POST/PUT/DELETE /admin/plans`、`/admin/servers`、`/admin/server-groups` | 套餐与节点 CRUD(写入侧 XSS 清洗) |
+| `GET /admin/orders`、`POST /admin/orders/{no}/refund` | 订单列表;退款(余额退回+优惠券回退+佣金回滚+审计,行锁) |
+| `GET/POST/PUT/DELETE /admin/coupons` | 优惠券 CRUD |
+| `POST/PUT/DELETE /admin/notices`、`/admin/knowledges` | 公告/知识库 CRUD(bluemonday 清洗) |
+| `GET /admin/tickets`、`GET /admin/tickets/{id}`、`POST /admin/tickets/{id}/reply|close` | 工单管理(客服回复→已回复) |
+| `GET /admin/agent/applies`、`POST /admin/agent/applies/{id}/approve|reject` | 代理审批(行锁防并发;通过→role=2,审计) |
+| `GET /admin/commission-logs` | 佣金日志(含用户邮箱) |
+| `POST /admin/traffic/import` | 模式 B 流量导入(audit 审计) |
+| `GET/PUT /admin/settings` | 站点配置读写(写后失效 Redis 缓存) |
+
+### 安全与一致性加固(✅ 完成)
+
+| 项 | 说明 |
+|---|---|
+| XSS 清洗 | `pkg/sanitize`:bluemonday UGCPolicy(富文本)+ StrictPolicy(纯文本);应用于公告/知识库/套餐内容与工单消息写入 |
+| 优惠券 TOCTOU 消除 | 下单事务内 `Occupy` 原子条件更新(防超发)+ `coupon_usages` 落账;取消/超时关单/退款三条路径统一 `Release`+`DeleteUsage` 回退 |
+| 取消竞态 | `UpdateStatusIfPending` 返回影响行数,0 行(并发已支付)直接 11003,不再误释放优惠券 |
+| 超时关单 | 行锁读+事务内关单,并回退优惠券占用(cron 不再残留券) |
+| 佣金确认竞态 | `UpdateStatusIfPending`(0→1),已被退款撤销的佣金不再发放 |
+| 代理审批并发 | 行锁读取申请,重复审批返回 409 |
+| 审计日志 | `audit_logs` 已接入:调余额/退款/封禁/改角色/代理审批/流量导入 |
+
+### 增强(✅ 完成)
+
+| 项 | 说明 |
+|---|---|
+| `GET /metrics` | promhttp:请求计数/延迟直方图/支付成功计数器(`payment_success_total`),回调成功打点 |
+| `GET /swagger/*` | gin-swagger,仅 development 环境;`make swagger` 重新生成 |
+| 支付回执邮件 | 在线回调与余额支付成功后异步发送(`[站点] 支付成功`),未配置 SMTP 静默跳过 |
+| agent-audit cron | 每月 1 日 03:00 复核代理有效邀请数,不达标降级 role=0 |
+
+### 测试状态(✅ 更新)
+
+- `go build ./...` / `go vet ./...` / `gofmt -l`(0 输出)全部通过
+- `go test ./... -count=1` 全绿;**36+ 用例**,新增覆盖:bluemonday 清洗、优惠券超限 12001、优惠券原子占用、超时关单(含优惠券回退)、取消并发已支付(0 行回滚)、佣金确认竞态、退款佣金回滚、代理审批
 
 ---
 
@@ -117,24 +165,19 @@
 
 | 项 | 状态 | 依赖/说明 |
 |---|---|---|
-| 管理端 API(`/api/v1/admin/*`) | 仅分组骨架(`registerAdmin` + Auth + RequireRole(1)),**端点未实现** | 二期管理后台单独评审;契约范围见 api/README.md 第 16 节 |
-| Swagger 注解与 `make swagger` | 未做(需 `swag` CLI,未纳入依赖) | 契约文档同步 PR 评审机制的前置 |
 | 流量模式 A(节点上报 `POST /node/report`) | 未实现,一期为模式 B(手工导入) | 需节点 agent 端实现与节点密钥鉴权 |
-| 代理月度复核降级(agent-audit) | 未实现(core-flows 第 9 节标注二期) | 依赖有效邀请统计已就绪,可直接在 cron 增加 |
-| 支付成功回执邮件 | 模板占位,未发送(core-flows 第 10 节标注二期) | 依赖模板 settings 与订单回调钩子 |
-| Prometheus `/metrics` 与 Grafana | 未实现(deploy.md 标注可选二期) | — |
 | 移动端深链/一键导入(前端侧) | 属于前端,后端无需改动 | 订阅端点已就绪 |
 | 订阅「重开一次」工单 | 未实现(core-flows 第 7 节标注二期可做) | — |
+| 订单超时主动查单后关闭待支付支付单 | 查单兜底已实现;查单失败/支付单长期待支付的关闭策略可二期完善 | — |
+| 工单用户侧「已回复」桌面端本地通知 | 前端轮询已具备数据(状态变化),本地通知属前端 | — |
+| Grafana 看板 | `/metrics` 已暴露,看板配置未做 | 依赖运维侧导入 dashboards |
 
 ### 一期内已知缺口(可后补)
 
 | 项 | 说明 |
 |---|---|
-| 订单退款 `1→3`(管理端 `POST /admin/orders/{no}/refund` + 佣金回滚) | 随管理端二期实现;佣金回滚逻辑(0→2 撤销、已发放从 balance 扣回)在 core-flows 第 4 节有定义 |
-| 审计日志写入 | `audit_logs` 表已建,**写入逻辑未实现**(随 admin 敏感操作一起) |
-| Markdown XSS 清洗(bluemonday) | 当前公告/知识库内容由管理端录入,写入侧清洗逻辑未实现(安全清单第 5 条) |
-| 登录失败锁定剩余秒数文案 | 已实现;锁定提示 message 精确到秒(42900) |
-| 优惠券 `IncrUsed` 在 `validateCoupon` 与 `grantCoupon` 间存在 TOCTOU | 下单时校验 vs 支付时记账为两阶段;超售窗口极窄,严格防超发需在支付事务内重校验 `total_limit`(可后补) |
+| 封禁/降级对已签发 JWT 无效 | Auth 中间件只校验 token 快照,封禁后最多 2h(access TTL)内旧 token 仍可用;严格实时生效需中间件查库或 Redis 黑名单(量级小可接受) |
+| 余额支付负余额保护 | 划转/调余额允许结果出现负值(佣金扣回场景允许为负,记账审计);如需强约束可加 CHECK 约束(二期) |
 
 ---
 

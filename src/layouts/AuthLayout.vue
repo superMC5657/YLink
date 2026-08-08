@@ -4,21 +4,18 @@
  * 规范见 docs/frontend/pages.md §2.3。
  */
 import { useConfigStore } from '@/stores/config'
-import { useAppStore } from '@/stores/app'
-import { setHttpLanguage } from '@/utils/http'
 import { useI18n } from 'vue-i18n'
+import { useLocale } from '@/composables/useLocale'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 
 const config = useConfigStore()
-const app = useAppStore()
 const { locale } = useI18n()
+const { switchLocale } = useLocale()
 
 void config.fetchConfig()
 
 function onLanguageChange(value: string) {
-  locale.value = value
-  setHttpLanguage(value)
-  app.setLanguage(value)
+  void switchLocale(value)
 }
 
 const languageOptions = [

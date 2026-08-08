@@ -72,7 +72,7 @@ func TestConfirmCommissions(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	set := NewSettingService(e.db, e.rdb, repos)
-	orders := NewOrderService(e.db, e.rdb, repos, set, &config.Config{})
+	orders := NewOrderService(e.db, e.rdb, repos, set, &config.Config{}, nil)
 	cronSvc := NewCronService(e.db, e.rdb, repos, &config.Config{}, mailer.New(config.SMTPConfig{}), orders)
 	now := time.Now()
 	// settings invite（确认期 3 天）
@@ -85,9 +85,10 @@ func TestConfirmCommissions(t *testing.T) {
 	}).AddRow(cl.ID, cl.InviteUserID, cl.FromUserID, cl.OrderNo, cl.OrderAmount, cl.Rate, cl.Amount, cl.Status, cl.ConfirmedAt, cl.CreatedAt)
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `commission_logs`")).WillReturnRows(clRows)
 
-	// 事务：锁邀请人 → 更新余额 → 更新佣金 → 提交
+	// 事务：条件更新佣金(status=0→1) → 锁邀请人 → 更新余额 → 更新佣金 confirmed_at → 提交
 	inviter := &model.User{ID: 9, Email: "inv@b.com", CommissionBalance: 0, CreatedAt: now, UpdatedAt: now}
 	e.mock.ExpectBegin()
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `commission_logs`")).WillReturnResult(sqlmock.NewResult(0, 1))
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `users`")).WillReturnRows(userRow(inviter))
 	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `users`")).WillReturnResult(sqlmock.NewResult(0, 1))
 	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `commission_logs`")).WillReturnResult(sqlmock.NewResult(0, 1))
@@ -100,7 +101,7 @@ func TestCloseExpiredOrders(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	set := NewSettingService(e.db, e.rdb, repos)
-	orders := NewOrderService(e.db, e.rdb, repos, set, &config.Config{})
+	orders := NewOrderService(e.db, e.rdb, repos, set, &config.Config{}, nil)
 	cronSvc := NewCronService(e.db, e.rdb, repos, &config.Config{}, mailer.New(config.SMTPConfig{}), orders)
 
 	now := time.Now()
@@ -108,13 +109,62 @@ func TestCloseExpiredOrders(t *testing.T) {
 	// settings order
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT `value` FROM `settings`")).
 		WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow(`{"expire_minutes":30}`))
-	// 超时待支付订单
+	// 超时待支付订单（列表）
 	o := &model.Order{ID: 1, OrderNo: "O1", UserID: 2, PlanID: 1, Period: "month", Amount: 1000, PayAmount: 1000, Status: 0, CreatedAt: old, UpdatedAt: old}
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `orders`")).WillReturnRows(orderRow(o))
-	// 条件更新：WHERE status=0（防吞已支付订单）
-	e.mock.ExpectExec("UPDATE `orders` SET `status`=2 WHERE").
-		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
+	// 事务：行锁读订单 → 状态仍待支付 → 关单 → 提交
+	e.mock.ExpectBegin()
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `orders`")).WillReturnRows(orderRow(o))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `orders` SET `status`")).
 		WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectCommit()
 
 	cronSvc.CloseExpiredOrders(context.Background())
+}
+
+func TestCloseExpiredOrdersReleasesCoupon(t *testing.T) {
+	e := newTestEnv(t)
+	repos := &repo.Repos{}
+	set := NewSettingService(e.db, e.rdb, repos)
+	orders := NewOrderService(e.db, e.rdb, repos, set, &config.Config{}, nil)
+	cronSvc := NewCronService(e.db, e.rdb, repos, &config.Config{}, mailer.New(config.SMTPConfig{}), orders)
+
+	now := time.Now()
+	old := now.Add(-time.Hour)
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT `value` FROM `settings`")).
+		WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow(`{"expire_minutes":30}`))
+	couponID := int64(9)
+	o := &model.Order{ID: 1, OrderNo: "O2", UserID: 2, PlanID: 1, Period: "month", Amount: 1000, PayAmount: 800, CouponID: &couponID, Status: 0, CreatedAt: old, UpdatedAt: old}
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `orders`")).WillReturnRows(orderRow(o))
+	// 事务：行锁读 → 关单 → 回退优惠券 used_count → 删使用流水 → 提交
+	e.mock.ExpectBegin()
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `orders`")).WillReturnRows(orderRow(o))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `orders` SET `status`")).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `coupons` SET `used_count`=used_count - 1 WHERE")).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectExec(regexp.QuoteMeta("DELETE FROM `coupon_usages`")).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectCommit()
+
+	cronSvc.CloseExpiredOrders(context.Background())
+}
+
+func TestCancelOrderConcurrentPaid(t *testing.T) {
+	e := newTestEnv(t)
+	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
+	svc := NewOrderService(e.db, e.rdb, &repo.Repos{}, set, &config.Config{}, nil)
+
+	now := time.Now()
+	couponID := int64(9)
+	o := &model.Order{ID: 1, OrderNo: "O1", UserID: 7, PlanID: 1, Period: "month", Amount: 1000, PayAmount: 800, CouponID: &couponID, Status: 0, CreatedAt: now, UpdatedAt: now}
+	// 事务：读订单 → 条件更新影响行数 0（并发已被支付完成）→ 回滚，不释放优惠券
+	e.mock.ExpectBegin()
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `orders`")).WillReturnRows(orderRow(o))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `orders` SET `status`")).
+		WillReturnResult(sqlmock.NewResult(0, 0)) // 0 行：状态已非待支付
+	e.mock.ExpectRollback()
+
+	_, err := svc.CancelOrder(context.Background(), 7, "O1")
+	assert.Equal(t, 11003, codeOf(err))
 }

@@ -57,23 +57,3 @@ func (TicketRepo) UpdateStatus(db *gorm.DB, id int64, status int) error {
 func (TicketRepo) UpdateLastReplyAt(db *gorm.DB, id int64, at time.Time) error {
 	return db.Model(&model.Ticket{}).Where("id = ?", id).Update("last_reply_at", at).Error
 }
-
-// ---- Repos 聚合更新 ----
-
-// Repos 聚合全部仓储，注入 service 层。
-type Repos struct {
-	User       UserRepo
-	Invite     InviteCodeRepo
-	Setting    SettingRepo
-	Notice     NoticeRepo
-	Knowledge  KnowledgeRepo
-	Plan       PlanRepo
-	Server     ServerRepo
-	Order      OrderRepo
-	Payment    PaymentRepo
-	Coupon     CouponRepo
-	Commission CommissionRepo
-	Traffic    TrafficLogRepo
-	AgentApply AgentApplyRepo
-	Ticket     TicketRepo
-}

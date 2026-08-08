@@ -94,7 +94,10 @@ onMounted(() => {
             </button>
           </div>
 
-          <div class="mb-4 flex flex-wrap items-center gap-2 rounded-xl p-3" style="background-color: var(--c-bg-hover)">
+          <div
+            class="mb-4 flex flex-wrap items-center gap-2 rounded-xl p-3"
+            style="background-color: var(--c-bg-hover)"
+          >
             <span class="text-12 text-[var(--c-text-sub)]">{{ t('invite.registerLink') }}:</span>
             <span class="num min-w-0 flex-1 truncate text-12 text-[var(--c-text)]">
               {{ invite.registerUrlPrefix }}{{ invite.codes[0]?.code ?? '------' }}
@@ -115,12 +118,21 @@ onMounted(() => {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="c in invite.codes" :key="c.code" class="transition-colors hover:bg-[var(--c-bg-hover)]">
+              <tr
+                v-for="c in invite.codes"
+                :key="c.code"
+                class="transition-colors hover:bg-[var(--c-bg-hover)]"
+              >
                 <td class="num font-600 text-[var(--c-text)]">{{ c.code }}</td>
                 <td class="num text-[var(--c-text)]">{{ c.used_count }}</td>
-                <td class="text-13 text-[var(--c-text-sub)]">{{ formatTime(c.created_at, false) }}</td>
+                <td class="text-13 text-[var(--c-text-sub)]">
+                  {{ formatTime(c.created_at, false) }}
+                </td>
                 <td>
-                  <button class="text-13 font-500 text-[var(--c-primary-text)] hover:underline" @click="copyCode(c.code)">
+                  <button
+                    class="text-13 font-500 text-[var(--c-primary-text)] hover:underline"
+                    @click="copyCode(c.code)"
+                  >
                     {{ t('common.copy') }}
                   </button>
                 </td>
@@ -130,11 +142,17 @@ onMounted(() => {
 
           <!-- 移动端卡片 -->
           <div v-else class="space-y-2">
-            <div v-for="c in invite.codes" :key="c.code" class="flex items-center justify-between rounded-xl p-3" style="background-color: var(--c-bg-hover)">
+            <div
+              v-for="c in invite.codes"
+              :key="c.code"
+              class="flex items-center justify-between rounded-xl p-3"
+              style="background-color: var(--c-bg-hover)"
+            >
               <div>
                 <div class="num text-14 font-600 text-[var(--c-text)]">{{ c.code }}</div>
                 <div class="text-12 text-[var(--c-text-sub)]">
-                  {{ t('invite.usedCount') }}:{{ c.used_count }} · {{ formatTime(c.created_at, false) }}
+                  {{ t('invite.usedCount') }}:{{ c.used_count }} ·
+                  {{ formatTime(c.created_at, false) }}
                 </div>
               </div>
               <button class="btn-ghost h-8 px-3 text-12" @click="copyCode(c.code)">
@@ -142,7 +160,11 @@ onMounted(() => {
                 {{ t('common.copy') }}
               </button>
             </div>
-            <EmptyState v-if="invite.codes.length === 0" :text="t('invite.emptyCodes')" :icon="'gift'" />
+            <EmptyState
+              v-if="invite.codes.length === 0"
+              :text="t('invite.emptyCodes')"
+              :icon="'gift'"
+            />
           </div>
 
           <p class="mt-3 text-12 text-[var(--c-text-sub)]">
@@ -152,7 +174,9 @@ onMounted(() => {
 
         <!-- 佣金记录 -->
         <div class="card-base p-5 md:p-6">
-          <h3 class="mb-4 text-16 font-600 text-[var(--c-text)]">{{ t('invite.commissionRecords') }}</h3>
+          <h3 class="mb-4 text-16 font-600 text-[var(--c-text)]">
+            {{ t('invite.commissionRecords') }}
+          </h3>
           <n-table v-if="isDesktop" :bordered="false" class="w-full">
             <thead>
               <tr>
@@ -163,26 +187,45 @@ onMounted(() => {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="r in invite.records" :key="r.order_no" class="transition-colors hover:bg-[var(--c-bg-hover)]">
+              <tr
+                v-for="r in invite.records"
+                :key="r.order_no"
+                class="transition-colors hover:bg-[var(--c-bg-hover)]"
+              >
                 <td><CopyText :text="r.order_no" :max-chars="16" /></td>
                 <td class="num font-600 text-[var(--c-pink)]">+{{ formatMoney(r.amount) }}</td>
                 <td class="num text-13 text-[var(--c-text-sub)]">{{ r.rate }}%</td>
-                <td class="text-13 text-[var(--c-text-sub)]">{{ formatTime(r.confirmed_at, false) }}</td>
+                <td class="text-13 text-[var(--c-text-sub)]">
+                  {{ formatTime(r.confirmed_at, false) }}
+                </td>
               </tr>
             </tbody>
           </n-table>
           <div v-else class="space-y-2">
-            <div v-for="r in invite.records" :key="r.order_no" class="flex items-center justify-between rounded-xl p-3" style="background-color: var(--c-bg-hover)">
+            <div
+              v-for="r in invite.records"
+              :key="r.order_no"
+              class="flex items-center justify-between rounded-xl p-3"
+              style="background-color: var(--c-bg-hover)"
+            >
               <div class="min-w-0">
-                <div class="num text-14 font-600 text-[var(--c-pink)]">+{{ formatMoney(r.amount) }}</div>
+                <div class="num text-14 font-600 text-[var(--c-pink)]">
+                  +{{ formatMoney(r.amount) }}
+                </div>
                 <div class="truncate text-12 text-[var(--c-text-sub)]">{{ r.order_no }}</div>
               </div>
               <div class="text-right">
                 <div class="text-12 text-[var(--c-text)]">{{ r.rate }}%</div>
-                <div class="text-12 text-[var(--c-text-sub)]">{{ formatTime(r.confirmed_at, false) }}</div>
+                <div class="text-12 text-[var(--c-text-sub)]">
+                  {{ formatTime(r.confirmed_at, false) }}
+                </div>
               </div>
             </div>
-            <EmptyState v-if="invite.records.length === 0" :text="t('invite.emptyRecords')" :icon="'coins'" />
+            <EmptyState
+              v-if="invite.records.length === 0"
+              :text="t('invite.emptyRecords')"
+              :icon="'coins'"
+            />
           </div>
         </div>
       </div>
@@ -243,7 +286,11 @@ onMounted(() => {
       <div class="space-y-4">
         <div>
           <div class="mb-1.5 text-13 text-[var(--c-text-sub)]">
-            {{ t('invite.transferable', { amount: formatMoney(invite.summary?.commission_balance ?? 0) }) }}
+            {{
+              t('invite.transferable', {
+                amount: formatMoney(invite.summary?.commission_balance ?? 0),
+              })
+            }}
           </div>
           <n-input-number
             v-model:value="transferAmount"
@@ -254,8 +301,15 @@ onMounted(() => {
             class="w-full"
           />
         </div>
-        <button class="btn-primary h-10 w-full text-14" :disabled="transferring" @click="onTransfer">
-          <span v-if="transferring" class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+        <button
+          class="btn-primary h-10 w-full text-14"
+          :disabled="transferring"
+          @click="onTransfer"
+        >
+          <span
+            v-if="transferring"
+            class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+          />
           {{ t('common.confirm') }}
         </button>
       </div>

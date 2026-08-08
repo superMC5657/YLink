@@ -1,4 +1,10 @@
-import { defineConfig, presetUno, presetAttributify, presetIcons, transformerDirectives } from 'unocss'
+import {
+  defineConfig,
+  presetUno,
+  presetAttributify,
+  presetIcons,
+  transformerDirectives,
+} from 'unocss'
 
 export default defineConfig({
   presets: [
@@ -23,7 +29,8 @@ export default defineConfig({
       'inline-flex items-center justify-center gap-1 rounded-[var(--r-pill)] border border-[var(--c-border)] bg-transparent text-[var(--c-text)] font-medium transition-all duration-[var(--t-base)] hover:bg-[var(--c-bg-hover)] active:scale-98 disabled:opacity-60 disabled:pointer-events-none',
     'btn-danger':
       'inline-flex items-center justify-center gap-1 rounded-[var(--r-pill)] bg-[var(--c-danger)] text-white font-medium transition-all duration-[var(--t-base)] hover:brightness-105 active:scale-98 disabled:opacity-60 disabled:pointer-events-none',
-    'num-font': 'font-family: "DIN Alternate", "Bahnschrift", Inter, sans-serif; font-feature-settings: "tnum"',
+    'num-font':
+      'font-family: "DIN Alternate", "Bahnschrift", Inter, sans-serif; font-feature-settings: "tnum"',
   },
   theme: {
     breakpoints: {

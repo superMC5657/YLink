@@ -71,10 +71,12 @@ func (OrderRepo) UpdateStatus(db *gorm.DB, orderNo string, status int) error {
 }
 
 // UpdateStatusIfPending 仅在待支付状态下更新（防关单与支付回调竞态吞单）。
-func (OrderRepo) UpdateStatusIfPending(db *gorm.DB, orderNo string, status int) error {
-	return db.Model(&model.Order{}).
+// 返回受影响行数：0 表示状态已非待支付（并发已处理）。
+func (OrderRepo) UpdateStatusIfPending(db *gorm.DB, orderNo string, status int) (int64, error) {
+	res := db.Model(&model.Order{}).
 		Where("order_no = ? AND status = ?", orderNo, model.OrderPending).
-		Update("status", status).Error
+		Update("status", status)
+	return res.RowsAffected, res.Error
 }
 
 // ListPendingBefore 指定时间前仍未支付的订单（cron 关单）。
@@ -126,6 +128,12 @@ func (PaymentRepo) ListPendingOrderNos(db *gorm.DB) ([]string, error) {
 // CouponRepo 优惠券数据访问。
 type CouponRepo struct{}
 
+func (CouponRepo) Create(db *gorm.DB, c *model.Coupon) error { return db.Create(c).Error }
+
+func (CouponRepo) Delete(db *gorm.DB, id int64) error {
+	return db.Delete(&model.Coupon{}, id).Error
+}
+
 func (CouponRepo) GetByCode(db *gorm.DB, code string) (*model.Coupon, error) {
 	var c model.Coupon
 	if err := db.Where("code = ? AND is_enable = 1", code).First(&c).Error; err != nil {
@@ -145,6 +153,29 @@ func (CouponRepo) IncrUsed(db *gorm.DB, couponID int64) error {
 		UpdateColumn("used_count", gorm.Expr("used_count + 1")).Error
 }
 
+// Occupy 原子占用优惠券：仅当未超总限量时 used_count+1（防 TOCTOU 超发）。
+// 返回 false 表示已达限量。
+func (CouponRepo) Occupy(db *gorm.DB, couponID int64) (bool, error) {
+	res := db.Model(&model.Coupon{}).
+		Where("id = ? AND (total_limit = 0 OR used_count < total_limit)", couponID).
+		UpdateColumn("used_count", gorm.Expr("used_count + 1"))
+	if res.Error != nil {
+		return false, res.Error
+	}
+	return res.RowsAffected > 0, nil
+}
+
+// Release 回退占用（取消/退款时），防止负计数。
+func (CouponRepo) Release(db *gorm.DB, couponID int64) error {
+	return db.Model(&model.Coupon{}).Where("id = ? AND used_count > 0", couponID).
+		UpdateColumn("used_count", gorm.Expr("used_count - 1")).Error
+}
+
+func (CouponRepo) DeleteUsage(db *gorm.DB, couponID, userID int64, orderNo string) error {
+	return db.Where("coupon_id = ? AND user_id = ? AND order_no = ?", couponID, userID, orderNo).
+		Delete(&model.CouponUsage{}).Error
+}
+
 func (CouponRepo) RecordUsage(db *gorm.DB, couponID, userID int64, orderNo string) error {
 	return db.Create(&model.CouponUsage{CouponID: couponID, UserID: userID, OrderNo: orderNo}).Error
 }
@@ -155,6 +186,14 @@ type CommissionRepo struct{}
 func (CommissionRepo) Create(db *gorm.DB, cl *model.CommissionLog) error { return db.Create(cl).Error }
 
 func (CommissionRepo) Save(db *gorm.DB, cl *model.CommissionLog) error { return db.Save(cl).Error }
+
+// UpdateStatusIfPending 仅在确认中（status=0）时置为已发放，防止与退款撤销竞态覆盖。
+func (CommissionRepo) UpdateStatusIfPending(db *gorm.DB, id int64) (int64, error) {
+	res := db.Model(&model.CommissionLog{}).
+		Where("id = ? AND status = ?", id, model.CommissionPending).
+		Update("status", model.CommissionGranted)
+	return res.RowsAffected, res.Error
+}
 
 func (CommissionRepo) GetByOrderNo(db *gorm.DB, orderNo string) (*model.CommissionLog, error) {
 	var cl model.CommissionLog

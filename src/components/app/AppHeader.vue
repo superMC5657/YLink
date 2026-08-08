@@ -9,7 +9,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useConfigStore } from '@/stores/config'
 import { useMessage, useDialog } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
-import { setHttpLanguage } from '@/utils/http'
+import { useLocale } from '@/composables/useLocale'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 
 const app = useAppStore()
@@ -20,7 +20,7 @@ const router = useRouter()
 const message = useMessage()
 const dialog = useDialog()
 const { t, locale } = useI18n()
-
+const { switchLocale } = useLocale()
 const emit = defineEmits<{ (e: 'toggle-drawer'): void }>()
 
 const isMobile = computed(() => window.innerWidth < 768)
@@ -34,9 +34,7 @@ const languageOptions = computed(() =>
 )
 
 function onLanguageChange(value: string) {
-  locale.value = value
-  setHttpLanguage(value)
-  app.setLanguage(value)
+  void switchLocale(value)
 }
 
 function goProfile() {
@@ -89,16 +87,14 @@ function onLogout() {
 
     <div class="flex items-center gap-2">
       <!-- 语言 -->
-      <n-dropdown
-        trigger="click"
-        :options="languageOptions"
-        @select="onLanguageChange"
-      >
+      <n-dropdown trigger="click" :options="languageOptions" @select="onLanguageChange">
         <button
           class="flex h-9 cursor-pointer items-center gap-1 rounded-[var(--r-pill)] px-3 text-13 text-[var(--c-text-sub)] transition-colors hover:bg-[var(--c-bg-hover)]"
         >
           <AppIcon name="globe" :size="16" />
-          <span class="hidden sm:inline">{{ languageOptions.find((o) => o.value === locale)?.label }}</span>
+          <span class="hidden sm:inline">{{
+            languageOptions.find((o) => o.value === locale)?.label
+          }}</span>
         </button>
       </n-dropdown>
 
@@ -115,14 +111,18 @@ function onLogout() {
         ]"
         @select="(k: string) => (k === 'logout' ? onLogout() : goProfile())"
       >
-        <button class="flex cursor-pointer items-center gap-2 rounded-[var(--r-pill)] px-2 py-1 transition-colors hover:bg-[var(--c-bg-hover)]">
+        <button
+          class="flex cursor-pointer items-center gap-2 rounded-[var(--r-pill)] px-2 py-1 transition-colors hover:bg-[var(--c-bg-hover)]"
+        >
           <span
             class="flex h-8 w-8 items-center justify-center rounded-full text-white"
             style="background: linear-gradient(135deg, #6558f5, #8b5cf6)"
           >
             <AppIcon name="user" :size="17" />
           </span>
-          <span class="hidden max-w-40 truncate text-13 text-[var(--c-text)] lg:inline">{{ userEmail }}</span>
+          <span class="hidden max-w-40 truncate text-13 text-[var(--c-text)] lg:inline">{{
+            userEmail
+          }}</span>
         </button>
       </n-dropdown>
     </div>

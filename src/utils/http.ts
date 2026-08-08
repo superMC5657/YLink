@@ -4,7 +4,7 @@
  */
 import type { ApiEnvelope, ApiError } from '@/types/api'
 import { getItem, removeItem, setItem } from '@/utils/storage'
-import { clientTag } from '@/utils/platform'
+import { clientTag, isTauri } from '@/utils/platform'
 
 export interface HttpOptions {
   query?: Record<string, string | number | boolean | null | undefined>
@@ -52,7 +52,8 @@ async function doRefresh(): Promise<boolean> {
   try {
     const tokens = readTokens()
     if (!tokens?.refreshToken) return false
-    const resp = await fetch(`${API_BASE}/auth/refresh`, {
+    const fetcher = await resolveFetcher()
+    const resp = await fetcher(`${API_BASE}/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: tokens.refreshToken }),
@@ -89,6 +90,15 @@ function redirectToLogin(): void {
 }
 
 // ---------- 请求核心 ----------
+
+/** 底层通道:Tauri 用 plugin-http(原生栈,无 CORS 限制),浏览器用 window.fetch */
+async function resolveFetcher(): Promise<typeof fetch> {
+  if (isTauri()) {
+    const { fetch: tauriFetch } = await import('@tauri-apps/plugin-http')
+    return tauriFetch as unknown as typeof fetch
+  }
+  return window.fetch
+}
 
 export class ApiErrorImpl extends Error implements ApiError {
   code: number
@@ -132,8 +142,9 @@ async function request<T>(method: string, url: string, opts: HttpOptions = {}): 
     : ''
 
   let resp: Response
+  const fetcher = await resolveFetcher()
   try {
-    resp = await fetch(API_BASE + url + queryStr, {
+    resp = await fetcher(API_BASE + url + queryStr, {
       method,
       headers,
       body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
@@ -151,7 +162,7 @@ async function request<T>(method: string, url: string, opts: HttpOptions = {}): 
     if (ok) {
       const retryTokens = readTokens()
       if (retryTokens?.accessToken) headers.Authorization = `Bearer ${retryTokens.accessToken}`
-      resp = await fetch(API_BASE + url + queryStr, {
+      resp = await fetcher(API_BASE + url + queryStr, {
         method,
         headers,
         body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,

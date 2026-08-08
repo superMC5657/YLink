@@ -1,0 +1,36 @@
+import { defineConfig, devices } from '@playwright/test'
+
+/**
+ * Playwright 配置:Mock 环境固定跑 E2E(文档 frontend/README.md §7.3 / §9)。
+ * webServer 自动拉起 dev server(Mock 开启)。
+ */
+export default defineConfig({
+  testDir: './tests/e2e',
+  fullyParallel: false,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 1 : undefined,
+  reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
+  timeout: 30_000,
+  use: {
+    baseURL: 'http://localhost:5173',
+    trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+  },
+  projects: [
+    {
+      name: 'desktop-chromium',
+      use: { ...devices['Desktop Chrome'], channel: process.env.CI ? undefined : 'chrome' },
+    },
+    {
+      name: 'mobile-chromium',
+      use: { ...devices['Pixel 5'], channel: process.env.CI ? undefined : 'chrome' },
+    },
+  ],
+  webServer: {
+    command: 'pnpm dev',
+    url: 'http://localhost:5173',
+    reuseExistingServer: !process.env.CI,
+    timeout: 60_000,
+  },
+})

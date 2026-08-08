@@ -17,7 +17,13 @@ type User struct {
 
 func NewUser(svc *service.UserService) *User { return &User{svc: svc} }
 
-// Stat GET /user/stat
+// Stat 用户信息与仪表板统计
+// @Summary 用户仪表板统计
+// @Tags 用户
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} resp.Body{data=model.UserStatResp}
+// @Router /user/stat [get]
 func (h *User) Stat(c *gin.Context) {
 	data, err := h.svc.Stat(c.Request.Context(), middleware.UserID(c))
 	if err != nil {
@@ -27,7 +33,15 @@ func (h *User) Stat(c *gin.Context) {
 	resp.OK(c, data)
 }
 
-// UpdateProfile PUT /user/profile
+// UpdateProfile 更新通知设置
+// @Summary 更新通知设置
+// @Tags 用户
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param body body model.UpdateProfileReq true "请求"
+// @Success 200 {object} resp.Body{data=model.UserProfileResp}
+// @Router /user/profile [put]
 func (h *User) UpdateProfile(c *gin.Context) {
 	var req model.UpdateProfileReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -42,7 +56,16 @@ func (h *User) UpdateProfile(c *gin.Context) {
 	resp.OK(c, data)
 }
 
-// ChangePassword POST /user/password/change
+// ChangePassword 修改密码
+// @Summary 修改密码
+// @Tags 用户
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param body body model.ChangePasswordReq true "请求"
+// @Success 200 {object} resp.Body
+// @Failure 401 {object} resp.Body
+// @Router /user/password/change [post]
 func (h *User) ChangePassword(c *gin.Context) {
 	var req model.ChangePasswordReq
 	if err := c.ShouldBindJSON(&req); err != nil {

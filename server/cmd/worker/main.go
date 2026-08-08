@@ -40,7 +40,7 @@ func main() {
 	}
 
 	repos := &repo.Repos{}
-	orders := service.NewOrderService(db, rdb, repos, service.NewSettingService(db, rdb, repos), cfg)
+	orders := service.NewOrderService(db, rdb, repos, service.NewSettingService(db, rdb, repos), cfg, mailer.New(cfg.SMTP))
 	cronSvc := service.NewCronService(db, rdb, repos, cfg, mailer.New(cfg.SMTP), orders)
 
 	c := cron.New(cron.WithSeconds())
@@ -68,6 +68,10 @@ func main() {
 	// 流量日结转（每日 01:00，模式 B 空跑）
 	c.AddFunc("0 0 1 * * *", cronSvc.WithLock("traffic-daily", func() {
 		cronSvc.TrafficDaily(ctx)
+	}))
+	// 代理商月度复核（每月 1 日 03:00）
+	c.AddFunc("0 0 3 1 * *", cronSvc.WithLock("agent-audit", func() {
+		cronSvc.AgentAudit(ctx)
 	}))
 
 	c.Start()

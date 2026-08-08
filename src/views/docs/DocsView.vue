@@ -81,9 +81,14 @@ watch(
           class="card-base card-hoverable p-5 md:p-6"
         >
           <div class="mb-3 flex items-center gap-2">
-            <span class="h-4 w-1 rounded-full" style="background: linear-gradient(180deg, #6558f5, #8b5cf6)" />
+            <span
+              class="h-4 w-1 rounded-full"
+              style="background: linear-gradient(180deg, #6558f5, #8b5cf6)"
+            />
             <h3 class="text-16 font-600 text-[var(--c-text)]">{{ group.category }}</h3>
-            <span class="ml-auto text-12 text-[var(--c-text-sub)]">{{ group.items.length }} 篇</span>
+            <span class="ml-auto text-12 text-[var(--c-text-sub)]"
+              >{{ group.items.length }} 篇</span
+            >
           </div>
 
           <div v-if="group.items.length" class="divide-y divide-[var(--c-border)]">
@@ -93,10 +98,14 @@ watch(
               class="flex w-full cursor-pointer items-center justify-between gap-3 py-3 text-left transition-colors hover:bg-[var(--c-bg-hover)]"
               @click="goDetail(item.id)"
             >
-              <span class="min-w-0 flex-1 truncate text-14 text-[var(--c-text)]">{{ item.title }}</span>
+              <span class="min-w-0 flex-1 truncate text-14 text-[var(--c-text)]">{{
+                item.title
+              }}</span>
               <span class="flex shrink-0 items-center gap-2.5">
                 <span class="text-12 text-[var(--c-text-sub)]">{{ fromNow(item.updated_at) }}</span>
-                <span class="flex items-center gap-0.5 text-13 font-500 text-[var(--c-primary-text)]">
+                <span
+                  class="flex items-center gap-0.5 text-13 font-500 text-[var(--c-primary-text)]"
+                >
                   {{ t('docs.read') }}
                   <AppIcon name="chevron-right" :size="14" />
                 </span>

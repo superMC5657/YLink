@@ -1,0 +1,1777 @@
+basePath: /api/v1
+definitions:
+  model.AdjustBalanceReq:
+    properties:
+      amount:
+        description: 元，可正可负
+        type: number
+      remark:
+        type: string
+    required:
+    - amount
+    type: object
+  model.AdminOverviewResp:
+    properties:
+      agent_count:
+        type: integer
+      completed_orders:
+        type: integer
+      order_count:
+        type: integer
+      plan_count:
+        type: integer
+      today_revenue:
+        description: 今日实收（元）
+        type: number
+      total_revenue:
+        description: 已完成订单实收合计（元）
+        type: number
+      user_count:
+        type: integer
+    type: object
+  model.AdminSettingsReq:
+    properties:
+      key:
+        type: string
+      value:
+        description: JSON 字符串
+        type: string
+    required:
+    - key
+    - value
+    type: object
+  model.AgentCondition:
+    properties:
+      met:
+        type: boolean
+      text:
+        type: string
+    type: object
+  model.AgentPolicyResp:
+    properties:
+      benefits:
+        items:
+          type: string
+        type: array
+      commission_rate:
+        type: integer
+      notes:
+        items:
+          type: string
+        type: array
+      required_valid_invites:
+        type: integer
+    type: object
+  model.AgentStatusResp:
+    properties:
+      apply_status:
+        description: none/pending/approved/rejected
+        type: string
+      conditions:
+        items:
+          $ref: '#/definitions/model.AgentCondition'
+        type: array
+      is_agent:
+        type: boolean
+      qualified:
+        type: boolean
+      required_valid_invites:
+        type: integer
+      valid_invites:
+        type: integer
+    type: object
+  model.AuthLoginReq:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  model.AuthRegisterReq:
+    properties:
+      email:
+        type: string
+      email_code:
+        type: string
+      invite_code:
+        type: string
+      password:
+        maxLength: 72
+        minLength: 8
+        type: string
+    required:
+    - email
+    - email_code
+    - password
+    type: object
+  model.CaptchaReq:
+    properties:
+      email:
+        type: string
+      type:
+        enum:
+        - register
+        - forgot
+        type: string
+    required:
+    - email
+    - type
+    type: object
+  model.CaptchaResp:
+    properties:
+      expire_in:
+        type: integer
+      resend_after:
+        type: integer
+    type: object
+  model.ChangePasswordReq:
+    properties:
+      new_password:
+        maxLength: 72
+        minLength: 8
+        type: string
+      old_password:
+        type: string
+    required:
+    - new_password
+    - old_password
+    type: object
+  model.CheckoutReq:
+    properties:
+      method:
+        type: string
+    required:
+    - method
+    type: object
+  model.CheckoutResp:
+    properties:
+      content:
+        type: string
+      expire_in:
+        type: integer
+      type:
+        type: string
+    type: object
+  model.CouponCheckReq:
+    properties:
+      code:
+        type: string
+      period:
+        enum:
+        - month
+        - quarter
+        - half_year
+        - year
+        - onetime
+        type: string
+      plan_id:
+        type: integer
+    required:
+    - code
+    - period
+    - plan_id
+    type: object
+  model.CouponCheckResp:
+    properties:
+      discount_amount:
+        type: number
+      pay_amount:
+        type: number
+      valid:
+        type: boolean
+    type: object
+  model.CreateOrderReq:
+    properties:
+      coupon_code:
+        type: string
+      period:
+        enum:
+        - month
+        - quarter
+        - half_year
+        - year
+        - onetime
+        type: string
+      plan_id:
+        type: integer
+    required:
+    - period
+    - plan_id
+    type: object
+  model.CreateTicketReq:
+    properties:
+      level:
+        enum:
+        - 0
+        - 1
+        - 2
+        type: integer
+      message:
+        type: string
+      subject:
+        maxLength: 128
+        minLength: 1
+        type: string
+    required:
+    - level
+    - message
+    - subject
+    type: object
+  model.ForgotReq:
+    properties:
+      email:
+        type: string
+      email_code:
+        type: string
+      password:
+        maxLength: 72
+        minLength: 8
+        type: string
+    required:
+    - email
+    - email_code
+    - password
+    type: object
+  model.InviteCodeItem:
+    properties:
+      code:
+        type: string
+      created_at:
+        type: string
+      used_count:
+        type: integer
+    type: object
+  model.InviteCodesResp:
+    properties:
+      limit:
+        type: integer
+      list:
+        items:
+          $ref: '#/definitions/model.InviteCodeItem'
+        type: array
+      register_url_prefix:
+        type: string
+    type: object
+  model.InviteSummaryResp:
+    properties:
+      commission_balance:
+        type: number
+      commission_rate:
+        type: integer
+      pending_commission:
+        type: number
+      registered_count:
+        type: integer
+      total_commission:
+        type: number
+    type: object
+  model.Knowledge:
+    properties:
+      body:
+        type: string
+      category:
+        type: string
+      id:
+        type: integer
+      language:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  model.KnowledgeGroup:
+    properties:
+      category:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/model.KnowledgeItem'
+        type: array
+    type: object
+  model.KnowledgeItem:
+    properties:
+      id:
+        type: integer
+      title:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  model.OrderDetailResp:
+    properties:
+      amount:
+        type: number
+      balance_used:
+        type: number
+      coupon_code:
+        type: string
+      created_at:
+        type: string
+      discount_amount:
+        type: number
+      order_no:
+        type: string
+      paid_at:
+        type: string
+      pay_amount:
+        type: number
+      pay_method:
+        type: string
+      period:
+        type: string
+      plan_name:
+        type: string
+      status:
+        type: integer
+    type: object
+  model.OrderResp:
+    properties:
+      amount:
+        type: number
+      created_at:
+        type: string
+      discount_amount:
+        type: number
+      order_no:
+        type: string
+      pay_amount:
+        type: number
+      period:
+        type: string
+      plan_name:
+        type: string
+      status:
+        type: integer
+    type: object
+  model.PaymentMethod:
+    properties:
+      code:
+        type: string
+      enabled:
+        type: boolean
+      icon:
+        type: string
+      name:
+        type: string
+    type: object
+  model.PlanPrices:
+    properties:
+      half_year:
+        type: number
+      month:
+        type: number
+      onetime:
+        type: number
+      quarter:
+        type: number
+      year:
+        type: number
+    type: object
+  model.PlanResp:
+    properties:
+      content:
+        type: string
+      device_limit:
+        type: integer
+      id:
+        type: integer
+      name:
+        type: string
+      prices:
+        $ref: '#/definitions/model.PlanPrices'
+      sort:
+        type: integer
+      speed_limit:
+        type: integer
+      traffic_gb:
+        type: integer
+    type: object
+  model.RefreshReq:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  model.RefundReq:
+    properties:
+      remark:
+        type: string
+    type: object
+  model.ReplyTicketReq:
+    properties:
+      message:
+        type: string
+    required:
+    - message
+    type: object
+  model.ServerGroupResp:
+    properties:
+      group:
+        type: string
+      servers:
+        items:
+          $ref: '#/definitions/model.ServerResp'
+        type: array
+    type: object
+  model.ServerResp:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      rate:
+        type: number
+      status:
+        type: integer
+      tags:
+        items:
+          type: string
+        type: array
+      type:
+        type: string
+    type: object
+  model.SiteConfigResp:
+    properties:
+      agent_policy:
+        $ref: '#/definitions/model.AgentPolicyResp'
+      app_downloads:
+        additionalProperties:
+          type: string
+        type: object
+      customer_service_url:
+        type: string
+      free_traffic_tips:
+        type: string
+      invite_code_required:
+        type: boolean
+      languages:
+        items:
+          type: string
+        type: array
+      payment_methods:
+        items:
+          $ref: '#/definitions/model.PaymentMethod'
+        type: array
+      register_enabled:
+        type: boolean
+      site_description:
+        type: string
+      site_logo:
+        type: string
+      site_name:
+        type: string
+      telegram:
+        $ref: '#/definitions/model.TelegramInfo'
+    type: object
+  model.TelegramInfo:
+    properties:
+      bot_url:
+        type: string
+      group_url:
+        type: string
+    type: object
+  model.TicketDetailResp:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      level:
+        type: integer
+      messages:
+        items:
+          $ref: '#/definitions/model.TicketMsgResp'
+        type: array
+      status:
+        type: integer
+      subject:
+        type: string
+    type: object
+  model.TicketListItem:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      last_reply_at:
+        type: string
+      level:
+        type: integer
+      status:
+        type: integer
+      subject:
+        type: string
+    type: object
+  model.TicketMsgResp:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      message:
+        type: string
+      sender_type:
+        type: integer
+    type: object
+  model.TokenResp:
+    properties:
+      access_token:
+        type: string
+      expires_in:
+        type: integer
+      refresh_token:
+        type: string
+      token_type:
+        type: string
+      user:
+        $ref: '#/definitions/model.UserBrief'
+    type: object
+  model.TrafficImportItem:
+    properties:
+      d:
+        type: integer
+      date:
+        description: YYYY-MM-DD
+        type: string
+      u:
+        type: integer
+      user_id:
+        type: integer
+    required:
+    - date
+    - user_id
+    type: object
+  model.TrafficImportReq:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/model.TrafficImportItem'
+        minItems: 1
+        type: array
+    required:
+    - items
+    type: object
+  model.TrafficLog:
+    properties:
+      d:
+        type: integer
+      date:
+        type: string
+      u:
+        type: integer
+    type: object
+  model.TransferReq:
+    properties:
+      amount:
+        type: number
+    required:
+    - amount
+    type: object
+  model.TransferResp:
+    properties:
+      balance:
+        type: number
+      commission_balance:
+        type: number
+    type: object
+  model.UpdateProfileReq:
+    properties:
+      remind_expire:
+        type: boolean
+      remind_traffic:
+        type: boolean
+    type: object
+  model.UserBrief:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      role:
+        type: integer
+    type: object
+  model.UserProfileResp:
+    properties:
+      remind_expire:
+        type: boolean
+      remind_traffic:
+        type: boolean
+    type: object
+  model.UserStatResp:
+    properties:
+      balance:
+        type: number
+      commission_balance:
+        type: number
+      email:
+        type: string
+      invited_count:
+        type: integer
+      is_agent:
+        type: boolean
+      open_ticket_count:
+        type: integer
+      pending_order_count:
+        type: integer
+    type: object
+  resp.Body:
+    properties:
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+    type: object
+  resp.Page:
+    properties:
+      list: {}
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total:
+        type: integer
+    type: object
+  service.SubscribePlan:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  service.SubscribeResp:
+    properties:
+      d:
+        type: integer
+      device_limit:
+        type: integer
+      expired_at:
+        type: string
+      expired_days:
+        type: integer
+      has_subscription:
+        type: boolean
+      is_expired:
+        type: boolean
+      plan:
+        $ref: '#/definitions/service.SubscribePlan'
+      remaining:
+        type: integer
+      speed_limit:
+        type: integer
+      subscribe_url:
+        type: string
+      transfer_enable:
+        type: integer
+      u:
+        type: integer
+      used_percent:
+        type: integer
+    type: object
+host: api.example.com
+info:
+  contact: {}
+  description: 代理订阅售卖系统后端 API。统一信封 {code,message,data}；鉴权 Bearer <access_token>。
+  title: NanoCloud API
+  version: "1.0"
+paths:
+  /admin/orders/{order_no}/refund:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 订单号
+        in: path
+        name: order_no
+        required: true
+        type: string
+      - description: 请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.RefundReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resp.Body'
+      security:
+      - BearerAuth: []
+      summary: 订单退款
+      tags:
+      - 管理端
+  /admin/settings:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: 请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.AdminSettingsReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resp.Body'
+      security:
+      - BearerAuth: []
+      summary: 保存站点设置
+      tags:
+      - 管理端
+  /admin/stat/overview:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.AdminOverviewResp'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 管理端仪表盘
+      tags:
+      - 管理端
+  /admin/traffic/import:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.TrafficImportReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resp.Body'
+      security:
+      - BearerAuth: []
+      summary: 流量导入
+      tags:
+      - 管理端
+  /admin/users/{id}/balance:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 用户 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.AdjustBalanceReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resp.Body'
+      security:
+      - BearerAuth: []
+      summary: 调整用户余额
+      tags:
+      - 管理端
+  /agent/apply:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  properties:
+                    apply_status:
+                      type: string
+                  type: object
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 提交代理申请
+      tags:
+      - 营销
+  /agent/status:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.AgentStatusResp'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 代理状态
+      tags:
+      - 营销
+  /auth/forgot:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.ForgotReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resp.Body'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/resp.Body'
+      summary: 找回密码
+      tags:
+      - 认证
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.AuthLoginReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.TokenResp'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/resp.Body'
+      summary: 登录
+      tags:
+      - 认证
+  /auth/logout:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resp.Body'
+      security:
+      - BearerAuth: []
+      summary: 退出登录
+      tags:
+      - 认证
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.RefreshReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.TokenResp'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/resp.Body'
+      summary: 刷新令牌
+      tags:
+      - 认证
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.AuthRegisterReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.TokenResp'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/resp.Body'
+      summary: 注册
+      tags:
+      - 认证
+  /captcha/email:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.CaptchaReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.CaptchaResp'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/resp.Body'
+      summary: 发送邮箱验证码
+      tags:
+      - 认证
+  /client/subscribe/{token}:
+    get:
+      parameters:
+      - description: 订阅 token
+        in: path
+        name: token
+        required: true
+        type: string
+      - description: clash/sing-box/v2ray
+        in: query
+        name: flag
+        type: string
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: 配置正文
+          schema:
+            type: string
+      summary: 订阅下发
+      tags:
+      - 订阅
+  /config:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.SiteConfigResp'
+              type: object
+      summary: 获取站点配置
+      tags:
+      - 站点
+  /coupons/check:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.CouponCheckReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.CouponCheckResp'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/resp.Body'
+      security:
+      - BearerAuth: []
+      summary: 优惠券试算
+      tags:
+      - 交易
+  /invite/codes:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.InviteCodesResp'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 邀请码列表
+      tags:
+      - 营销
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.InviteCodeItem'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/resp.Body'
+      security:
+      - BearerAuth: []
+      summary: 新增邀请码
+      tags:
+      - 营销
+  /invite/records:
+    get:
+      parameters:
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页条数
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/resp.Page'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 佣金发放记录
+      tags:
+      - 营销
+  /invite/summary:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.InviteSummaryResp'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 邀请总览
+      tags:
+      - 营销
+  /invite/transfer:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.TransferReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.TransferResp'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 佣金划转余额
+      tags:
+      - 营销
+  /knowledges:
+    get:
+      parameters:
+      - description: 语言
+        in: query
+        name: language
+        type: string
+      - description: 关键字
+        in: query
+        name: keyword
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  properties:
+                    groups:
+                      items:
+                        $ref: '#/definitions/model.KnowledgeGroup'
+                      type: array
+                  type: object
+              type: object
+      summary: 知识库列表
+      tags:
+      - 内容
+  /knowledges/{id}:
+    get:
+      parameters:
+      - description: 知识 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Knowledge'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/resp.Body'
+      summary: 知识库详情
+      tags:
+      - 内容
+  /notices:
+    get:
+      parameters:
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页条数
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/resp.Page'
+              type: object
+      summary: 公告列表
+      tags:
+      - 内容
+  /orders:
+    get:
+      parameters:
+      - description: 状态
+        in: query
+        name: status
+        type: integer
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页条数
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/resp.Page'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 订单列表
+      tags:
+      - 交易
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 幂等键
+        in: header
+        name: Idempotency-Key
+        type: string
+      - description: 请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateOrderReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.OrderResp'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 创建订单
+      tags:
+      - 交易
+  /orders/{order_no}:
+    get:
+      parameters:
+      - description: 订单号
+        in: path
+        name: order_no
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.OrderDetailResp'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 订单详情
+      tags:
+      - 交易
+  /orders/{order_no}/cancel:
+    post:
+      parameters:
+      - description: 订单号
+        in: path
+        name: order_no
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.OrderResp'
+              type: object
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/resp.Body'
+      security:
+      - BearerAuth: []
+      summary: 取消订单
+      tags:
+      - 交易
+  /orders/{order_no}/checkout:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 订单号
+        in: path
+        name: order_no
+        required: true
+        type: string
+      - description: 请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.CheckoutReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.CheckoutResp'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 收银台
+      tags:
+      - 交易
+  /plans:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  properties:
+                    list:
+                      items:
+                        $ref: '#/definitions/model.PlanResp'
+                      type: array
+                  type: object
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 套餐列表
+      tags:
+      - 交易
+  /servers:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  properties:
+                    groups:
+                      items:
+                        $ref: '#/definitions/model.ServerGroupResp'
+                      type: array
+                  type: object
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 节点状态列表
+      tags:
+      - 节点
+  /tickets:
+    get:
+      parameters:
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页条数
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/resp.Page'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 工单列表
+      tags:
+      - 工单
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateTicketReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.TicketListItem'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 创建工单
+      tags:
+      - 工单
+  /tickets/{id}:
+    get:
+      parameters:
+      - description: 工单 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.TicketDetailResp'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 工单详情
+      tags:
+      - 工单
+  /tickets/{id}/close:
+    post:
+      parameters:
+      - description: 工单 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.TicketListItem'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 关闭工单
+      tags:
+      - 工单
+  /tickets/{id}/reply:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 工单 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.ReplyTicketReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resp.Body'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/resp.Body'
+      security:
+      - BearerAuth: []
+      summary: 回复工单
+      tags:
+      - 工单
+  /user/password/change:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.ChangePasswordReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resp.Body'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/resp.Body'
+      security:
+      - BearerAuth: []
+      summary: 修改密码
+      tags:
+      - 用户
+  /user/profile:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: 请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateProfileReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.UserProfileResp'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 更新通知设置
+      tags:
+      - 用户
+  /user/stat:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.UserStatResp'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 用户仪表板统计
+      tags:
+      - 用户
+  /user/subscribe:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  $ref: '#/definitions/service.SubscribeResp'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 当前订阅信息
+      tags:
+      - 订阅
+  /user/subscribe/reset:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 请求
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            password:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  properties:
+                    subscribe_url:
+                      type: string
+                  type: object
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 重置订阅信息
+      tags:
+      - 订阅
+  /user/traffic-logs:
+    get:
+      parameters:
+      - description: 开始日期
+        in: query
+        name: from
+        required: true
+        type: string
+      - description: 结束日期
+        in: query
+        name: to
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/resp.Body'
+            - properties:
+                data:
+                  properties:
+                    list:
+                      items:
+                        $ref: '#/definitions/model.TrafficLog'
+                      type: array
+                  type: object
+              type: object
+      security:
+      - BearerAuth: []
+      summary: 流量明细
+      tags:
+      - 订阅
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

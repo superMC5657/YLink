@@ -6,13 +6,7 @@
 import { computed } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useI18n } from 'vue-i18n'
-import {
-  formatBytes,
-  formatExpiry,
-  formatPercent,
-  formatSpeed,
-  formatTime,
-} from '@/utils/format'
+import { formatBytes, formatExpiry, formatPercent, formatSpeed, formatTime } from '@/utils/format'
 
 const user = useUserStore()
 const { t } = useI18n()
@@ -48,7 +42,9 @@ const expireBadge = computed(() => {
           <AppIcon name="zap" :size="20" />
         </span>
         <div>
-          <div class="text-11 text-[var(--c-text-sub)]">{{ t('dashboard.currentSubscription') }}</div>
+          <div class="text-11 text-[var(--c-text-sub)]">
+            {{ t('dashboard.currentSubscription') }}
+          </div>
           <div class="text-16 font-600 text-[var(--c-text)]">
             {{ sub?.has_subscription ? sub?.plan?.name : t('dashboard.noSubscription') }}
           </div>
@@ -66,15 +62,22 @@ const expireBadge = computed(() => {
       <div class="mb-1.5 flex items-center justify-between text-13">
         <span class="text-[var(--c-text-sub)]">
           {{ t('dashboard.transferUsed') }}
-          <span class="num font-600 text-[var(--c-text)]">{{ formatBytes(sub?.u && sub?.d ? sub.u + sub.d : 0) }}</span>
+          <span class="num font-600 text-[var(--c-text)]">{{
+            formatBytes(sub?.u && sub?.d ? sub.u + sub.d : 0)
+          }}</span>
           /
-          <span class="num font-600 text-[var(--c-text)]">{{ formatBytes(sub?.transfer_enable) }}</span>
+          <span class="num font-600 text-[var(--c-text)]">{{
+            formatBytes(sub?.transfer_enable)
+          }}</span>
         </span>
         <span class="num font-600" :style="{ color: progressColor }">
           {{ t('dashboard.usedPercent', { percent: formatPercent(progress) }) }}
         </span>
       </div>
-      <div class="h-2.5 w-full overflow-hidden rounded-full" style="background-color: var(--c-bg-hover)">
+      <div
+        class="h-2.5 w-full overflow-hidden rounded-full"
+        style="background-color: var(--c-bg-hover)"
+      >
         <div
           class="h-full rounded-full transition-all duration-500"
           :style="{
@@ -87,25 +90,49 @@ const expireBadge = computed(() => {
 
     <!-- 五宫格 -->
     <div class="mt-5 grid grid-cols-5 gap-2">
-      <div class="flex flex-col items-center gap-0.5 rounded-xl py-2.5" style="background-color: var(--c-bg-hover)">
+      <div
+        class="flex flex-col items-center gap-0.5 rounded-xl py-2.5"
+        style="background-color: var(--c-bg-hover)"
+      >
         <span class="text-11 text-[var(--c-text-sub)]">{{ t('dashboard.transferRemaining') }}</span>
-        <span class="num text-13 font-600 text-[var(--c-text)]">{{ formatBytes(sub?.remaining) }}</span>
+        <span class="num text-13 font-600 text-[var(--c-text)]">{{
+          formatBytes(sub?.remaining)
+        }}</span>
       </div>
-      <div class="flex flex-col items-center gap-0.5 rounded-xl py-2.5" style="background-color: var(--c-bg-hover)">
+      <div
+        class="flex flex-col items-center gap-0.5 rounded-xl py-2.5"
+        style="background-color: var(--c-bg-hover)"
+      >
         <span class="text-11 text-[var(--c-text-sub)]">{{ t('dashboard.speedLimit') }}</span>
-        <span class="num text-13 font-600 text-[var(--c-text)]">{{ formatSpeed(sub?.speed_limit) }}</span>
+        <span class="num text-13 font-600 text-[var(--c-text)]">{{
+          formatSpeed(sub?.speed_limit)
+        }}</span>
       </div>
-      <div class="flex flex-col items-center gap-0.5 rounded-xl py-2.5" style="background-color: var(--c-bg-hover)">
+      <div
+        class="flex flex-col items-center gap-0.5 rounded-xl py-2.5"
+        style="background-color: var(--c-bg-hover)"
+      >
         <span class="text-11 text-[var(--c-text-sub)]">{{ t('dashboard.deviceLimit') }}</span>
-        <span class="num text-13 font-600 text-[var(--c-text)]">{{ sub?.device_limit ?? '-' }}</span>
+        <span class="num text-13 font-600 text-[var(--c-text)]">{{
+          sub?.device_limit ?? '-'
+        }}</span>
       </div>
-      <div class="flex flex-col items-center gap-0.5 rounded-xl py-2.5" style="background-color: var(--c-bg-hover)">
+      <div
+        class="flex flex-col items-center gap-0.5 rounded-xl py-2.5"
+        style="background-color: var(--c-bg-hover)"
+      >
         <span class="text-11 text-[var(--c-text-sub)]">{{ t('dashboard.planName') }}</span>
         <span class="text-13 font-600 text-[var(--c-text)]">{{ sub?.plan?.name ?? '-' }}</span>
       </div>
-      <div class="flex flex-col items-center gap-0.5 rounded-xl py-2.5" style="background-color: var(--c-bg-hover)">
+      <div
+        class="flex flex-col items-center gap-0.5 rounded-xl py-2.5"
+        style="background-color: var(--c-bg-hover)"
+      >
         <span class="text-11 text-[var(--c-text-sub)]">{{ t('common.expired') }}</span>
-        <span class="text-13 font-600" :style="{ color: sub?.is_expired ? 'var(--c-danger)' : 'var(--c-success)' }">
+        <span
+          class="text-13 font-600"
+          :style="{ color: sub?.is_expired ? 'var(--c-danger)' : 'var(--c-success)' }"
+        >
           {{ sub?.is_expired ? '是' : '否' }}
         </span>
       </div>

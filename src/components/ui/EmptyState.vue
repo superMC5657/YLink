@@ -21,7 +21,9 @@ withDefaults(
       <AppIcon :name="icon" :size="30" />
     </span>
     <div class="text-14 text-[var(--c-text-sub)]">{{ text }}</div>
-    <div v-if="description" class="text-12 text-[var(--c-text-sub)] opacity-70">{{ description }}</div>
+    <div v-if="description" class="text-12 text-[var(--c-text-sub)] opacity-70">
+      {{ description }}
+    </div>
     <slot />
   </div>
 </template>

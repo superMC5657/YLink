@@ -55,7 +55,7 @@ func newOrderEnv(t *testing.T) (*testEnv, *OrderService) {
 	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
 	cfg := &config.Config{}
 	cfg.App.BaseURL = "https://api.example.com"
-	svc := NewOrderService(e.db, e.rdb, &repo.Repos{}, set, cfg)
+	svc := NewOrderService(e.db, e.rdb, &repo.Repos{}, set, cfg, nil)
 	return e, svc
 }
 

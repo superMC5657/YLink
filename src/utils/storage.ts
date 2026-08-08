@@ -11,11 +11,10 @@ export interface StorageLike {
 }
 
 function detectBackend(): StorageLike {
-  // Tauri 环境使用插件 store(JSON 文件);Web 使用 localStorage
-  if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
-    // 动态加载避免 Web 打包引入 Rust 插件
-    // 一期 Web 优先,统一走 localStorage;接入 Tauri 时替换为 plugin-store 实现
-  }
+  // 一期统一 localStorage:Web 与 Tauri WebView 均可用且持久化(随 WebView 数据目录)。
+  // 文档 data-layer.md §3 提到 Tauri 用 plugin-store(JSON 文件),但其 API 为异步,
+  // 与 persistedstate 的同步 StorageLike 接口冲突;如需更高安全(如 keyring)再迁移,
+  // 届时将 getItem/setItem 改为异步并改造调用点。
   return window.localStorage
 }
 

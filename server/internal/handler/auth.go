@@ -24,7 +24,15 @@ func ctxWithIP(c *gin.Context) context.Context {
 	return context.WithValue(c.Request.Context(), "client_ip", c.ClientIP())
 }
 
-// CaptchaEmail POST /captcha/email
+// CaptchaEmail 发送邮箱验证码（免登录）
+// @Summary 发送邮箱验证码
+// @Tags 认证
+// @Accept json
+// @Produce json
+// @Param body body model.CaptchaReq true "请求"
+// @Success 200 {object} resp.Body{data=model.CaptchaResp}
+// @Failure 400 {object} resp.Body
+// @Router /captcha/email [post]
 func (h *Auth) CaptchaEmail(c *gin.Context) {
 	var req model.CaptchaReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -39,7 +47,15 @@ func (h *Auth) CaptchaEmail(c *gin.Context) {
 	resp.OKWithMessage(c, "发送成功", data)
 }
 
-// Register POST /auth/register
+// Register 注册（免登录）
+// @Summary 注册
+// @Tags 认证
+// @Accept json
+// @Produce json
+// @Param body body model.AuthRegisterReq true "请求"
+// @Success 200 {object} resp.Body{data=model.TokenResp}
+// @Failure 400 {object} resp.Body
+// @Router /auth/register [post]
 func (h *Auth) Register(c *gin.Context) {
 	var req model.AuthRegisterReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -54,7 +70,15 @@ func (h *Auth) Register(c *gin.Context) {
 	resp.OK(c, data)
 }
 
-// Login POST /auth/login
+// Login 登录（免登录）
+// @Summary 登录
+// @Tags 认证
+// @Accept json
+// @Produce json
+// @Param body body model.AuthLoginReq true "请求"
+// @Success 200 {object} resp.Body{data=model.TokenResp}
+// @Failure 401 {object} resp.Body
+// @Router /auth/login [post]
 func (h *Auth) Login(c *gin.Context) {
 	var req model.AuthLoginReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -69,7 +93,15 @@ func (h *Auth) Login(c *gin.Context) {
 	resp.OK(c, data)
 }
 
-// Refresh POST /auth/refresh
+// Refresh 刷新令牌（免登录，body 鉴权）
+// @Summary 刷新令牌
+// @Tags 认证
+// @Accept json
+// @Produce json
+// @Param body body model.RefreshReq true "请求"
+// @Success 200 {object} resp.Body{data=model.TokenResp}
+// @Failure 401 {object} resp.Body
+// @Router /auth/refresh [post]
 func (h *Auth) Refresh(c *gin.Context) {
 	var req model.RefreshReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -84,7 +116,15 @@ func (h *Auth) Refresh(c *gin.Context) {
 	resp.OK(c, data)
 }
 
-// Forgot POST /auth/forgot
+// Forgot 找回密码（免登录）
+// @Summary 找回密码
+// @Tags 认证
+// @Accept json
+// @Produce json
+// @Param body body model.ForgotReq true "请求"
+// @Success 200 {object} resp.Body
+// @Failure 400 {object} resp.Body
+// @Router /auth/forgot [post]
 func (h *Auth) Forgot(c *gin.Context) {
 	var req model.ForgotReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -98,7 +138,13 @@ func (h *Auth) Forgot(c *gin.Context) {
 	resp.OK(c, nil)
 }
 
-// Logout POST /auth/logout
+// Logout 退出登录（需鉴权）
+// @Summary 退出登录
+// @Tags 认证
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} resp.Body
+// @Router /auth/logout [post]
 func (h *Auth) Logout(c *gin.Context) {
 	if err := h.svc.Logout(c.Request.Context(), middleware.UserID(c), c.GetString("jti")); err != nil {
 		resp.Fail(c, err)

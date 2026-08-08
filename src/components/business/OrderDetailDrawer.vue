@@ -7,12 +7,7 @@ import { computed, ref, watch } from 'vue'
 import { useOrderStore } from '@/stores/order'
 import { useMessage, useDialog } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
-import {
-  formatMoney,
-  formatTime,
-  orderStatusLabel,
-  periodLabel,
-} from '@/utils/format'
+import { formatMoney, formatTime, orderStatusLabel, periodLabel } from '@/utils/format'
 import PaymentModal from './PaymentModal.vue'
 import type { Order } from '@/types/api'
 
@@ -83,7 +78,12 @@ function openPayment(method: string) {
 </script>
 
 <template>
-  <n-drawer :show="props.show" @update:show="(v: boolean) => emit('update:show', v)" :width="420" placement="right">
+  <n-drawer
+    :show="props.show"
+    :width="420"
+    placement="right"
+    @update:show="(v: boolean) => emit('update:show', v)"
+  >
     <n-drawer-content :title="t('order.detail')" closable>
       <n-spin :show="loading">
         <template v-if="detail">
@@ -107,7 +107,9 @@ function openPayment(method: string) {
             </div>
             <div v-if="detail.discount_amount > 0" class="flex justify-between text-13">
               <span class="text-[var(--c-text-sub)]">{{ t('order.discount') }}</span>
-              <span class="num text-[var(--c-marketing)]">-{{ formatMoney(detail.discount_amount) }}</span>
+              <span class="num text-[var(--c-marketing)]"
+                >-{{ formatMoney(detail.discount_amount) }}</span
+              >
             </div>
             <div v-if="detail.balance_used > 0" class="flex justify-between text-13">
               <span class="text-[var(--c-text-sub)]">{{ t('order.balanceUsed') }}</span>
@@ -115,7 +117,9 @@ function openPayment(method: string) {
             </div>
             <div class="flex justify-between text-13">
               <span class="text-[var(--c-text-sub)]">{{ t('order.payAmount') }}</span>
-              <span class="num text-16 font-700 text-[var(--c-success)]">{{ formatMoney(detail.pay_amount) }}</span>
+              <span class="num text-16 font-700 text-[var(--c-success)]">{{
+                formatMoney(detail.pay_amount)
+              }}</span>
             </div>
             <div v-if="detail.coupon_code" class="flex justify-between text-13">
               <span class="text-[var(--c-text-sub)]">{{ t('order.coupon') }}</span>
@@ -124,7 +128,15 @@ function openPayment(method: string) {
             <div class="flex justify-between text-13">
               <span class="text-[var(--c-text-sub)]">{{ t('order.payMethod') }}</span>
               <span class="text-[var(--c-text)]">
-                {{ detail.pay_method ? (detail.pay_method === 'balance' ? '余额支付' : detail.pay_method === 'epay_alipay' ? '支付宝' : '微信支付') : '-' }}
+                {{
+                  detail.pay_method
+                    ? detail.pay_method === 'balance'
+                      ? '余额支付'
+                      : detail.pay_method === 'epay_alipay'
+                        ? '支付宝'
+                        : '微信支付'
+                    : '-'
+                }}
               </span>
             </div>
             <div class="flex justify-between text-13">
@@ -150,11 +162,27 @@ function openPayment(method: string) {
                   ]"
                   :key="m.code"
                   class="flex cursor-pointer flex-col items-center gap-1 rounded-xl border py-3 transition-colors"
-                  :class="payMethod === m.code ? 'border-[var(--c-primary)] bg-[var(--c-primary-soft)]' : 'border-[var(--c-border)] hover:bg-[var(--c-bg-hover)]'"
+                  :class="
+                    payMethod === m.code
+                      ? 'border-[var(--c-primary)] bg-[var(--c-primary-soft)]'
+                      : 'border-[var(--c-border)] hover:bg-[var(--c-bg-hover)]'
+                  "
                   @click="payMethod = m.code"
                 >
-                  <AppIcon :name="m.icon" :size="18" :style="{ color: payMethod === m.code ? 'var(--c-primary)' : 'var(--c-text-sub)' }" />
-                  <span class="text-12" :style="{ color: payMethod === m.code ? 'var(--c-primary-text)' : 'var(--c-text-sub)' }">{{ m.name }}</span>
+                  <AppIcon
+                    :name="m.icon"
+                    :size="18"
+                    :style="{
+                      color: payMethod === m.code ? 'var(--c-primary)' : 'var(--c-text-sub)',
+                    }"
+                  />
+                  <span
+                    class="text-12"
+                    :style="{
+                      color: payMethod === m.code ? 'var(--c-primary-text)' : 'var(--c-text-sub)',
+                    }"
+                    >{{ m.name }}</span
+                  >
                 </button>
               </div>
             </div>

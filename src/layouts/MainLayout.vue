@@ -64,10 +64,7 @@ watch(
     <div class="flex min-w-0 flex-1 flex-col">
       <AppHeader @toggle-drawer="drawerVisible = true" />
 
-      <main
-        class="flex-1 overflow-y-auto"
-        :class="isMobile ? 'px-4 pb-24 pt-4' : 'px-6 py-6'"
-      >
+      <main class="flex-1 overflow-y-auto" :class="isMobile ? 'px-4 pb-24 pt-4' : 'px-6 py-6'">
         <div class="mx-auto w-full" :class="isDesktop ? 'max-w-[1200px]' : 'max-w-none'">
           <router-view v-slot="{ Component }">
             <transition name="fade-slide" mode="out-in">

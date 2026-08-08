@@ -9,6 +9,7 @@ import (
 
 	"nanocloud/internal/model"
 	"nanocloud/internal/pkg/errs"
+	"nanocloud/internal/pkg/sanitize"
 	"nanocloud/internal/repo"
 )
 
@@ -54,7 +55,7 @@ func (s *TicketService) Create(ctx context.Context, userID int64, req *model.Cre
 		if err := s.repos.Ticket.Create(tx, t); err != nil {
 			return err
 		}
-		msg := &model.TicketMessage{TicketID: t.ID, SenderType: 0, SenderID: userID, Message: req.Message}
+		msg := &model.TicketMessage{TicketID: t.ID, SenderType: 0, SenderID: userID, Message: sanitize.Text(req.Message)}
 		if err := s.repos.Ticket.CreateMessage(tx, msg); err != nil {
 			return err
 		}
@@ -100,7 +101,7 @@ func (s *TicketService) Reply(ctx context.Context, userID int64, id int64, messa
 	}
 	err = repo.WithTx(s.db, func(tx *gorm.DB) error {
 		now := time.Now()
-		msg := &model.TicketMessage{TicketID: id, SenderType: 0, SenderID: userID, Message: message}
+		msg := &model.TicketMessage{TicketID: id, SenderType: 0, SenderID: userID, Message: sanitize.Text(message)}
 		if err := s.repos.Ticket.CreateMessage(tx, msg); err != nil {
 			return err
 		}

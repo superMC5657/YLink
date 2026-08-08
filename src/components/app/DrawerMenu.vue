@@ -47,7 +47,12 @@ function onLogout() {
 </script>
 
 <template>
-  <n-drawer v-model:show="props.show" :width="280" placement="left">
+  <n-drawer
+    :show="props.show"
+    :width="280"
+    placement="left"
+    @update:show="(v: boolean) => emit('update:show', v)"
+  >
     <div class="flex h-full flex-col">
       <!-- Logo -->
       <div class="flex h-16 shrink-0 items-center gap-3 border-b border-[var(--c-border)] px-5">
@@ -63,7 +68,9 @@ function onLogout() {
       <!-- 菜单 -->
       <nav class="flex-1 overflow-y-auto px-3 py-3">
         <div v-for="group in NAV_GROUPS" :key="group.label" class="mb-4">
-          <div class="mb-1.5 px-3 text-11 uppercase tracking-wider text-[var(--c-text-sub)] opacity-70">
+          <div
+            class="mb-1.5 px-3 text-11 uppercase tracking-wider text-[var(--c-text-sub)] opacity-70"
+          >
             {{ group.label }}
           </div>
           <div class="space-y-1">

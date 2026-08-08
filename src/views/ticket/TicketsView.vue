@@ -28,11 +28,17 @@ const levelOptions = [
 ]
 
 function statusType(status: number) {
-  const map: Record<number, 'success' | 'warning' | 'neutral'> = { 0: 'warning', 1: 'success', 2: 'neutral' }
+  const map: Record<number, 'success' | 'warning' | 'neutral'> = {
+    0: 'warning',
+    1: 'success',
+    2: 'neutral',
+  }
   return map[status] ?? 'neutral'
 }
 
-const canCreate = computed(() => form.value.subject.trim().length > 0 && form.value.message.trim().length > 0)
+const canCreate = computed(
+  () => form.value.subject.trim().length > 0 && form.value.message.trim().length > 0,
+)
 
 async function onCreate() {
   if (creating.value || !canCreate.value) return
@@ -91,7 +97,9 @@ onMounted(() => void ticket.fetch())
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-2">
                 <span class="truncate text-14 font-500 text-[var(--c-text)]">{{ tk.subject }}</span>
-                <span class="shrink-0 text-11 text-[var(--c-text-sub)]">{{ t('ticket.level') }}:{{ ticketLevelLabel(tk.level) }}</span>
+                <span class="shrink-0 text-11 text-[var(--c-text-sub)]"
+                  >{{ t('ticket.level') }}:{{ ticketLevelLabel(tk.level) }}</span
+                >
               </div>
               <div class="mt-1 text-12 text-[var(--c-text-sub)]">
                 {{ t('ticket.lastReplyAt') }}:{{ formatTime(tk.last_reply_at) }}
@@ -99,21 +107,36 @@ onMounted(() => void ticket.fetch())
             </div>
 
             <div class="flex shrink-0 flex-col items-end gap-1.5">
-              <StatusBadge :type="statusType(tk.status)">{{ ticketStatusLabel(tk.status) }}</StatusBadge>
-              <span class="text-11 text-[var(--c-text-sub)]">{{ formatTime(tk.created_at, false) }}</span>
+              <StatusBadge :type="statusType(tk.status)">{{
+                ticketStatusLabel(tk.status)
+              }}</StatusBadge>
+              <span class="text-11 text-[var(--c-text-sub)]">{{
+                formatTime(tk.created_at, false)
+              }}</span>
             </div>
           </button>
         </div>
 
-        <EmptyState v-if="!ticket.loading && ticket.list.length === 0" :text="t('ticket.empty')" :icon="'ticket'" />
+        <EmptyState
+          v-if="!ticket.loading && ticket.list.length === 0"
+          :text="t('ticket.empty')"
+          :icon="'ticket'"
+        />
       </n-spin>
     </div>
 
     <!-- 新建工单 -->
-    <n-modal v-model:show="showCreate" preset="card" :title="t('ticket.createTitle')" class="max-w-105">
+    <n-modal
+      v-model:show="showCreate"
+      preset="card"
+      :title="t('ticket.createTitle')"
+      class="max-w-105"
+    >
       <div class="space-y-4">
         <div>
-          <label class="mb-1 block text-12 text-[var(--c-text-sub)]">{{ t('ticket.subject') }}</label>
+          <label class="mb-1 block text-12 text-[var(--c-text-sub)]">{{
+            t('ticket.subject')
+          }}</label>
           <input
             v-model="form.subject"
             type="text"
@@ -124,11 +147,18 @@ onMounted(() => void ticket.fetch())
         <div>
           <label class="mb-1 block text-12 text-[var(--c-text-sub)]">{{ t('ticket.level') }}</label>
           <n-radio-group v-model:value="form.level">
-            <n-radio-button v-for="o in levelOptions" :key="o.value" :value="o.value" :label="o.label" />
+            <n-radio-button
+              v-for="o in levelOptions"
+              :key="o.value"
+              :value="o.value"
+              :label="o.label"
+            />
           </n-radio-group>
         </div>
         <div>
-          <label class="mb-1 block text-12 text-[var(--c-text-sub)]">{{ t('ticket.messagePlaceholder') }}</label>
+          <label class="mb-1 block text-12 text-[var(--c-text-sub)]">{{
+            t('ticket.messagePlaceholder')
+          }}</label>
           <textarea
             v-model="form.message"
             rows="4"
@@ -136,7 +166,11 @@ onMounted(() => void ticket.fetch())
             class="w-full resize-none rounded-[var(--r-control)] border border-[var(--c-border)] bg-[var(--c-bg-card)] p-3 text-13 text-[var(--c-text)] outline-none transition-colors placeholder:text-[var(--c-text-sub)] focus:border-[var(--c-primary)]"
           />
         </div>
-        <button class="btn-primary h-10 w-full text-14" :disabled="!canCreate || creating" @click="onCreate">
+        <button
+          class="btn-primary h-10 w-full text-14"
+          :disabled="!canCreate || creating"
+          @click="onCreate"
+        >
           {{ t('common.submit') }}
         </button>
       </div>

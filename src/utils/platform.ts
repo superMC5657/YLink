@@ -12,10 +12,9 @@ export function isTauri(): boolean {
 export async function copyText(text: string): Promise<boolean> {
   try {
     if (isTauri()) {
-      // Tauri 分支:tauri-plugin-clipboard-manager(接入时启用)
-      // const { writeText } = await import('@tauri-apps/plugin-clipboard-manager')
-      // await writeText(text)
-      // return true
+      const { writeText } = await import('@tauri-apps/plugin-clipboard-manager')
+      await writeText(text)
+      return true
     }
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(text)
@@ -41,16 +40,29 @@ export function openExternal(url: string): void {
   if (!url) return
   const scheme = url.split(':')[0].toLowerCase()
   const allowed = new Set([
-    'https', 'http', 'mailto', 'tg', 't.me',
-    'clash', 'sing-box', 'shadowrocket', 'v2rayng', 'v2rayn',
+    'https',
+    'http',
+    'mailto',
+    'tg',
+    't.me',
+    'clash',
+    'sing-box',
+    'shadowrocket',
+    'v2rayng',
+    'v2rayn',
+    'quantumult-x',
+    'surge',
+    'loon',
   ])
   if (!allowed.has(scheme)) {
     console.warn('[platform] blocked external url scheme:', scheme)
     return
   }
   if (isTauri()) {
-    // Tauri 分支:tauri-plugin-opener(接入时启用)
-    // window.open(url, '_blank')
+    // Tauri:opener 插件打开外部 URL/自定义 scheme
+    void import('@tauri-apps/plugin-opener').then(({ openUrl }) => {
+      void openUrl(url)
+    })
     return
   }
   if (scheme === 'http' || scheme === 'https') {
@@ -67,4 +79,14 @@ export function clientTag(): string {
   if (ua.includes('windows')) return 'tauri-windows'
   if (ua.includes('mac')) return 'tauri-macos'
   return 'tauri-linux'
+}
+
+/** 深链接监听:Tauri 侧由 deep-link 插件转发到前端事件;Web 无此能力 */
+export function onDeepLink(cb: (url: string) => void): void {
+  if (!isTauri()) return
+  void import('@tauri-apps/plugin-deep-link').then(({ onOpenUrl }) => {
+    onOpenUrl((urls) => {
+      urls.forEach((u) => cb(u))
+    })
+  })
 }

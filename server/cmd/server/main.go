@@ -1,4 +1,13 @@
 // API 服务入口。
+//
+//	@title        NanoCloud API
+//	@version      1.0
+//	@description  代理订阅售卖系统后端 API。统一信封 {code,message,data}；鉴权 Bearer <access_token>。
+//	@host         api.example.com
+//	@BasePath     /api/v1
+//	@securityDefinitions.apikey BearerAuth
+//	@in            header
+//	@name          Authorization
 package main
 
 import (

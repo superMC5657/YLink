@@ -32,7 +32,10 @@ onMounted(() => {
 <template>
   <div class="card-base p-5 md:p-6">
     <div class="mb-4 flex items-center gap-2">
-      <span class="flex h-8 w-8 items-center justify-center rounded-full text-white" style="background: linear-gradient(135deg, #f5a524, #f7c948)">
+      <span
+        class="flex h-8 w-8 items-center justify-center rounded-full text-white"
+        style="background: linear-gradient(135deg, #f5a524, #f7c948)"
+      >
         <AppIcon name="bell" :size="17" />
       </span>
       <h3 class="text-16 font-600 text-[var(--c-text)]">{{ t('dashboard.notices') }}</h3>
@@ -40,11 +43,7 @@ onMounted(() => {
 
     <n-spin :show="notice.loading">
       <div class="divide-y divide-[var(--c-border)]">
-        <div
-          v-for="item in notice.list"
-          :key="item.id"
-          class="py-3.5"
-        >
+        <div v-for="item in notice.list" :key="item.id" class="py-3.5">
           <button
             class="flex w-full cursor-pointer items-center justify-between gap-3 text-left"
             @click="toggle(item.id)"
@@ -62,12 +61,23 @@ onMounted(() => {
               />
             </span>
           </button>
-          <div v-if="expandedId === item.id" class="mt-2.5 rounded-xl p-3.5" style="background-color: var(--c-bg-hover)">
+          <div
+            v-if="expandedId === item.id"
+            class="mt-2.5 rounded-xl p-3.5"
+            style="background-color: var(--c-bg-hover)"
+          >
             <!-- eslint-disable-next-line vue/no-v-html -->
-            <div class="markdown-body text-13 text-[var(--c-text)]" v-html="renderHtml(item.content)" />
+            <div
+              class="markdown-body text-13 text-[var(--c-text)]"
+              v-html="renderHtml(item.content)"
+            />
           </div>
         </div>
-        <EmptyState v-if="!notice.loading && notice.list.length === 0" :text="t('common.empty')" :icon="'bell'" />
+        <EmptyState
+          v-if="!notice.loading && notice.list.length === 0"
+          :text="t('common.empty')"
+          :icon="'bell'"
+        />
       </div>
     </n-spin>
   </div>

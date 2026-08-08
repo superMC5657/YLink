@@ -3,8 +3,13 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"gorm.io/gorm"
+
+	_ "nanocloud/docs"
 
 	"nanocloud/internal/config"
 	"nanocloud/internal/handler"
@@ -36,6 +41,7 @@ type app struct {
 	subSvc     *service.SubscribeService
 	inviteSvc  *service.InviteService
 	ticketSvc  *service.TicketService
+	adminSvc   *service.AdminService
 
 	authH    *handler.Auth
 	userH    *handler.User
@@ -45,6 +51,7 @@ type app struct {
 	subH     *handler.Subscribe
 	inviteH  *handler.Invite
 	ticketH  *handler.Ticket
+	adminH   *handler.Admin
 }
 
 // New 构建 gin 引擎（中间件链 + 分组路由）。
@@ -58,11 +65,18 @@ func New(d Deps) *gin.Engine {
 	r.Use(middleware.RequestID(), middleware.Recovery(), middleware.AccessLog())
 	r.Use(middleware.CORS(d.Cfg.CORS.AllowOrigins))
 	r.Use(middleware.GlobalLimiter(d.Redis))
+	r.Use(middleware.Metrics())
 
 	// 健康检查（不走 envelope）
 	health := handler.NewHealth(d.DB, d.Redis)
 	r.GET("/healthz", health.Liveness)
 	r.GET("/readyz", health.Readiness)
+	// Prometheus 指标（Grafana 看板数据源）
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
+	// Swagger（仅开发环境）
+	if !d.Cfg.App.IsProduction() {
+		r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	}
 
 	api := r.Group("/api/v1")
 	registerUser(api, d, a)    // 用户端 API
@@ -81,10 +95,11 @@ func newApp(d Deps) *app {
 	userSvc := service.NewUserService(d.DB, d.Redis, repos, authSvc)
 	contentSvc := service.NewContentService(d.DB, d.Redis, repos, settingSvc)
 	serverSvc := service.NewServerService(d.DB, d.Redis, repos)
-	orderSvc := service.NewOrderService(d.DB, d.Redis, repos, settingSvc, d.Cfg)
+	orderSvc := service.NewOrderService(d.DB, d.Redis, repos, settingSvc, d.Cfg, d.Mailer)
 	subSvc := service.NewSubscribeService(d.DB, d.Redis, repos, d.Cfg)
 	inviteSvc := service.NewInviteService(d.DB, d.Redis, repos, d.Cfg)
 	ticketSvc := service.NewTicketService(d.DB, d.Redis, repos)
+	adminSvc := service.NewAdminService(d.DB, d.Redis, repos, d.Cfg, settingSvc)
 	return &app{
 		repos:      repos,
 		authSvc:    authSvc,
@@ -95,6 +110,7 @@ func newApp(d Deps) *app {
 		subSvc:     subSvc,
 		inviteSvc:  inviteSvc,
 		ticketSvc:  ticketSvc,
+		adminSvc:   adminSvc,
 		authH:      handler.NewAuth(authSvc),
 		userH:      handler.NewUser(userSvc),
 		contentH:   handler.NewContent(contentSvc),
@@ -103,6 +119,7 @@ func newApp(d Deps) *app {
 		subH:       handler.NewSubscribe(subSvc),
 		inviteH:    handler.NewInvite(inviteSvc),
 		ticketH:    handler.NewTicket(ticketSvc),
+		adminH:     handler.NewAdmin(adminSvc),
 	}
 }
 
@@ -155,11 +172,62 @@ func registerUser(g *gin.RouterGroup, d Deps, a *app) {
 	authed.POST("/tickets/:id/close", a.ticketH.Close)
 }
 
-// registerAdmin 管理端 API（二期范围契约，一期先挂分组骨架）。
+// registerAdmin 管理端 API（role=admin）。
 func registerAdmin(g *gin.RouterGroup, d Deps, a *app) {
 	admin := g.Group("/admin")
 	admin.Use(middleware.Auth(d.JWT), middleware.RequireRole(1))
-	_ = admin
+
+	// 仪表盘
+	admin.GET("/stat/overview", a.adminH.Overview)
+	// 用户
+	admin.GET("/users", a.adminH.ListUsers)
+	admin.PUT("/users/:id", a.adminH.UpdateUser)
+	admin.POST("/users/:id/balance", a.adminH.AdjustBalance)
+	// 套餐
+	admin.GET("/plans", a.adminH.ListPlans)
+	admin.POST("/plans", a.adminH.CreatePlan)
+	admin.PUT("/plans/:id", a.adminH.UpdatePlan)
+	admin.DELETE("/plans/:id", a.adminH.DeletePlan)
+	// 节点
+	admin.GET("/servers", a.adminH.ListServers)
+	admin.POST("/servers", a.adminH.CreateServer)
+	admin.PUT("/servers/:id", a.adminH.UpdateServer)
+	admin.DELETE("/servers/:id", a.adminH.DeleteServer)
+	admin.GET("/server-groups", a.adminH.ListServerGroups)
+	admin.POST("/server-groups", a.adminH.CreateServerGroup)
+	admin.PUT("/server-groups/:id", a.adminH.UpdateServerGroup)
+	admin.DELETE("/server-groups/:id", a.adminH.DeleteServerGroup)
+	// 订单
+	admin.GET("/orders", a.adminH.ListOrders)
+	admin.POST("/orders/:order_no/refund", a.adminH.Refund)
+	// 优惠券
+	admin.GET("/coupons", a.adminH.ListCoupons)
+	admin.POST("/coupons", a.adminH.CreateCoupon)
+	admin.PUT("/coupons/:id", a.adminH.UpdateCoupon)
+	admin.DELETE("/coupons/:id", a.adminH.DeleteCoupon)
+	// 内容
+	admin.POST("/notices", a.adminH.CreateNotice)
+	admin.PUT("/notices/:id", a.adminH.UpdateNotice)
+	admin.DELETE("/notices/:id", a.adminH.DeleteNotice)
+	admin.POST("/knowledges", a.adminH.CreateKnowledge)
+	admin.PUT("/knowledges/:id", a.adminH.UpdateKnowledge)
+	admin.DELETE("/knowledges/:id", a.adminH.DeleteKnowledge)
+	// 工单
+	admin.GET("/tickets", a.adminH.ListTickets)
+	admin.GET("/tickets/:id", a.adminH.TicketDetail)
+	admin.POST("/tickets/:id/reply", a.adminH.ReplyTicket)
+	admin.POST("/tickets/:id/close", a.adminH.CloseTicket)
+	// 代理
+	admin.GET("/agent/applies", a.adminH.ListAgentApplies)
+	admin.POST("/agent/applies/:id/approve", a.adminH.ApproveAgent)
+	admin.POST("/agent/applies/:id/reject", a.adminH.RejectAgent)
+	// 佣金
+	admin.GET("/commission-logs", a.adminH.ListCommissions)
+	// 流量
+	admin.POST("/traffic/import", a.adminH.ImportTraffic)
+	// 设置
+	admin.GET("/settings", a.adminH.ListSettings)
+	admin.PUT("/settings", a.adminH.SaveSetting)
 }
 
 // registerClient 订阅下发端点：代理客户端直连，免登录、任意来源。

@@ -46,7 +46,12 @@ async function doCopy() {
 </script>
 
 <template>
-  <n-modal v-model:show="show" preset="card" :title="t('dashboard.oneClickImport')" class="max-w-120">
+  <n-modal
+    v-model:show="show"
+    preset="card"
+    :title="t('dashboard.oneClickImport')"
+    class="max-w-120"
+  >
     <div class="grid grid-cols-2 gap-3 md:grid-cols-3">
       <button
         v-for="opt in CLIENT_OPTIONS"
@@ -58,14 +63,22 @@ async function doCopy() {
           class="flex h-11 w-11 items-center justify-center rounded-full"
           style="background: var(--c-primary-soft); color: var(--c-primary-text)"
         >
-          <AppIcon :name="opt.kind.includes('clash') ? 'zap' : opt.kind === 'sing-box' ? 'box' : 'download'" :size="22" />
+          <AppIcon
+            :name="
+              opt.kind.includes('clash') ? 'zap' : opt.kind === 'sing-box' ? 'box' : 'download'
+            "
+            :size="22"
+          />
         </span>
         <span class="text-13 font-500 text-[var(--c-text)]">{{ opt.name }}</span>
         <span class="text-11 text-[var(--c-text-sub)]">{{ opt.platforms.join(' / ') }}</span>
       </button>
     </div>
 
-    <div class="mt-4 flex items-center justify-between rounded-xl p-3" style="background-color: var(--c-bg-hover)">
+    <div
+      class="mt-4 flex items-center justify-between rounded-xl p-3"
+      style="background-color: var(--c-bg-hover)"
+    >
       <span class="min-w-0 flex-1 truncate text-13 text-[var(--c-text-sub)]">
         {{ user.subscribe?.subscribe_url ?? '暂无订阅' }}
       </span>

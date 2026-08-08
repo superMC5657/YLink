@@ -14,9 +14,7 @@ migrate-down:
 	go run github.com/golang-migrate/migrate/v4/cmd/migrate -path migrations -database "$$DB_URL" down 1
 
 swagger:
-	swag init -g cmd/server/main.go -o docs
-
-lint:
+	swag init -g cmd/server/main.go -o docslint:
 	golangci-lint run ./...
 
 test:

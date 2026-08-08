@@ -91,7 +91,9 @@ async function onSubmit() {
 <template>
   <div>
     <h2 class="mb-1 text-20 font-700 text-[var(--c-text)]">{{ t('auth.welcomeForgot') }}</h2>
-    <p class="mb-6 text-13 text-[var(--c-text-sub)]">{{ t('auth.email') }} + {{ t('auth.emailCode') }}</p>
+    <p class="mb-6 text-13 text-[var(--c-text-sub)]">
+      {{ t('auth.email') }} + {{ t('auth.emailCode') }}
+    </p>
 
     <n-form ref="formRef" :model="form" :rules="rules" size="large" @keyup.enter="onSubmit">
       <n-form-item path="email">
@@ -127,7 +129,10 @@ async function onSubmit() {
       </n-form-item>
 
       <button class="btn-primary h-11 w-full text-15" :disabled="loading" @click="onSubmit">
-        <span v-if="loading" class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+        <span
+          v-if="loading"
+          class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+        />
         {{ t('auth.forgot') }}
       </button>
     </n-form>

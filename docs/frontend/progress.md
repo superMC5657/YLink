@@ -2,7 +2,7 @@
 
 > 本文档记录 `src/` 目录 Vue 3 用户端应用的开发状态,是 docs/frontend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-07(M1–M5 全部实现完成,构建 + Playwright 冒烟 24/24 通过)
+> 最后更新:2026-08-07(M1–M5 全部实现完成,M6 Tauri 骨架 + 工程化质量门禁就绪;lint/单测/E2E/cargo check 全绿)
 
 ---
 
@@ -72,39 +72,65 @@
 | vite-plugin-mock 按文件隔离编译,跨文件 sessions Map 不共享导致 401 | token 校验改无状态格式匹配(`Bearer mock-access-*`) |
 | 冒烟访问 `/plans` 被重定向到 dashboard | hash 路由下脚本改用 `/#/` 前缀 |
 
+### M6 桌面化(Tauri 2 骨架)(✅ 骨架完成,发布能力见第 2 节)
+
+| 项 | 说明 | 位置 |
+|---|---|---|
+| Rust 工程 | Cargo.toml(10 个插件 crate)/ build.rs / main.rs / lib.rs(插件注册 + 托盘 + 单实例) | `src-tauri/` |
+| 配置 | tauri.conf.json(1280×800 主窗、CSP、bundle targets all) | `src-tauri/tauri.conf.json` |
+| 权限 | capabilities/default.json 最小授权(核心 + 10 插件,http scope 限 https/localhost) | `src-tauri/capabilities/default.json` |
+| 图标 | `pnpm tauri icon` 从脚本生成源图产出全套(ico/icns/png/Android) | `src-tauri/icons/`、`scripts/gen-icon.py` |
+| 前端适配 | platform.ts(clipboard/opener/deep-link 动态 import)、http.ts(plugin-http 原生 fetch)、app.ts(applyTheme 同步窗口标题栏)、main.ts(深链接路由跳转) | `src/utils/*`、`src/stores/app.ts`、`src/main.ts` |
+| 验证 | `cargo check` 通过(首次编译约 5 分钟);Web 构建不受动态 import 影响 | — |
+
+### 工程化与质量门禁(✅ 完成)
+
+| 项 | 说明 | 位置 |
+|---|---|---|
+| ESLint 9 flat config | js + typescript-eslint + eslint-plugin-vue(flat/recommended)+ eslint-config-prettier,0 error 0 warning | `eslint.config.ts` |
+| Prettier 3 | 全仓格式化 + format:check | `.prettierrc.json`、`.prettierignore` |
+| Vitest 单测 | jsdom,29 用例(格式化/http 401 刷新重放/invite store/倒计时),v8 覆盖率 | `vitest.config.ts`、`src/**/__tests__/*` |
+| Playwright E2E | 正式套件 30 用例(桌面 + 移动双 project、webServer 自动起 Mock),替代原冒烟脚本 | `playwright.config.ts`、`tests/e2e/*` |
+| CI | PR/push 双 job:quality(lint→typecheck→format:check→test→build)+ e2e(失败上传报告) | `.github/workflows/ci.yml` |
+| i18n 懒加载 | 语言包按需动态 import,useLocale 统一切换 | `src/locales/index.ts`、`src/composables/useLocale.ts` |
+| 注册页强制邀请码 | 站点 `invite_code_required=true` 时校验必填 | `src/views/auth/RegisterView.vue` |
+| 离线横幅 | 顶部红色常驻横幅 + 恢复 toast | `src/components/app/ToastBridge.vue` |
+
 ### 验证状态(✅)
 
 - `pnpm typecheck`(vue-tsc --noEmit)零错误
-- `pnpm build`(vue-tsc + vite build)成功,主包 gzip ≈ 257KB
-- `node scripts/smoke.mjs`(Playwright + 系统 Chrome)**24/24 通过**:登录 → 仪表板 → 套餐 → 下单(余额支付)→ 订单 → 9 页面可达性 → 暗色切换 → 移动端 390×844 底栏导航
+- `pnpm build`(vue-tsc + vite build)成功,主包 gzip ≈ 253KB
+- `pnpm lint` 0 error 0 warning;`pnpm test` 29/29
+- `pnpm e2e`(Playwright)**30/30 通过**:登录 → 仪表板 → 套餐 → 下单(余额支付)→ 订单 → 8 页面可达性 → 暗色切换 → 移动端 390×844 底栏导航
+- `cargo check`(src-tauri)通过
 
 ---
 
 ## 2. 未完成项
 
-### M6 桌面化(Tauri 2)—— 一期未做
+### M6 桌面化(Tauri 2)—— 骨架完成,发布能力待接入
 
 | 项 | 状态 | 依赖/说明 |
 |---|---|---|
-| `src-tauri/` 工程 | 未创建(Rust 侧完全空白) | 契约见 docs/frontend/desktop-tauri.md;需 Rust ≥ 1.78 |
-| 平台插件接入 | 未接(http/store/clipboard/opener/deep-link/single-instance/autostart/notification/updater/window-state/os) | `utils/platform.ts`、`utils/storage.ts`、`utils/http.ts` 已留 Tauri 分支,接入即用 |
-| 托盘/自启/深链接/自动更新 | 未实现 | 依赖 `src-tauri/` 与 capabilities 最小授权 |
-| 三平台打包与 updater 签名 | 未配置 | 需 GitHub Actions + `TAURI_SIGNING_PRIVATE_KEY` |
+| `src-tauri/` 工程 | ✅ `Cargo.toml`/`build.rs`/`main.rs`/`lib.rs`/`tauri.conf.json`/`capabilities/default.json`/全套图标,`cargo check` 通过 | 契约见 docs/frontend/desktop-tauri.md;Rust 1.97 已满足 |
+| 插件接入(Rust) | ✅ http / store / clipboard / opener / single-instance / autostart / notification / process / window-state / os | capabilities 最小授权;http scope 限 `https://**` + localhost |
+| 平台适配层(前端) | ✅ `utils/platform.ts` 启用 Tauri 分支(clipboard/opener/deep-link 动态 import);`utils/http.ts` 走 plugin-http 原生 fetch;`stores/app.ts` applyTheme 同步窗口标题栏;`main.ts` 深链接路由跳转 | Web 端自动降级不受影响 |
+| 托盘/单实例 | ✅ 托盘菜单(显示主窗口/退出)+ single-instance 聚焦已有窗口 | lib.rs setup |
+| deep-link 注册 | ⚠️ 前端 onDeepLink 已实现,Rust 侧未注册插件、capabilities 未声明权限 | 需 Release 域名与 nanocloud:// 协议注册(desktop-tauri.md §3/§4) |
+| 自动更新 | ⚠️ tauri.conf.json 有 updater 配置(空 pubkey/示例端点),Rust 与前端未接入 | 需 `tauri signer generate` + Release 流水线(desktop-tauri.md §5) |
+| 通知触发点 | ⚠️ 插件已注册,前端未实现到期/工单回复/支付成功本地通知 | 依赖轮询钩子(可后补) |
+| 三平台打包与 updater 签名 | ❌ 未配置 | 需 GitHub Actions Release + `TAURI_SIGNING_PRIVATE_KEY` |
+| 存储适配 | ⚠️ 一期统一 localStorage(WebView 持久化);plugin-store(JSON 文件)异步 API 与 persistedstate 同步接口冲突,迁移需异步化改造 | 见 storage.ts 注释 |
 
 ### 一期内已知缺口(可后补)
 
 | 项 | 说明 |
 |---|---|
-| 单元测试 | Vitest 未引入;文档(data-layer §9)规划的 http 封装/格式化/下单金额/store 单测均未写 |
-| 组件测试与 E2E 套件 | 仅 `scripts/smoke.mjs` 冒烟脚本(非正式 Playwright 项目);按测试策略需补 `tests/e2e/*.spec.ts` 与 CI 固定 Mock 环境 |
-| ESLint / Prettier / Stylelint | `package.json` 有 `lint` 脚本但 **flat config 未配置**;`vue-tsc` 已承担类型门禁 |
+| 组件测试 | 已建 Vitest 但仅覆盖 utils/store/composables;关键组件(StatCard/PlanCard/OrderTable)渲染测试未写(测试策略 frontend/README §9) |
 | husky + lint-staged + commitlint | 未配置(Conventional Commits 约定见 docs/README §5,尚未工具化) |
-| CI 流水线 | `.github/workflows/` 未建;PR CI(lint→typecheck→test→build)与 Release 矩阵均缺 |
-| 公告/知识库语言懒加载 | i18n 语言包为整包引入,未按模块拆分懒加载 |
 | 移动端下拉刷新 / 加载更多 | pages.md §6.3 建议项,未实现(分页器在平板以上已可用) |
 | PWA | 手机端一期仅响应式 Web,未加 manifest/离线壳(desktop-tauri.md §9 标注可后补) |
-| 注册页邀请码必填联动 | `invite_code_required=true` 时表单未强制必填(契约 §4.1),Mock 环境未开该开关 |
-| 网络离线顶部横幅 | 当前为 toast 提示(ToastBridge),未做 pages.md §3.13 的顶部横幅 + 自动重试 |
+| Stylelint | 未引入(可选,ESLint + Prettier 已覆盖) |
 
 ### 二期 / 明确标注待办
 
@@ -128,14 +154,14 @@
 | 演示账号 | `2734921923@qq.com` / `Passw0rd`(Mock 仅校验该口令;任意 `Bearer mock-access-*` 视为有效) |
 | 构建 | `pnpm build`(vue-tsc 类型检查 + vite 构建,产物 `dist/` 可独立部署静态托管) |
 
-### 3.2 冒烟测试
+### 3.2 测试与质量门禁
 
 | 前置 | 说明 |
 |---|---|
-| 浏览器 | `node scripts/smoke.mjs` 默认用系统 Chrome(`channel:'chrome'`);或先 `pnpm exec playwright install chromium` 后改回默认 |
-| 依赖 | `pnpm add -D playwright`(已装) |
-| dev server | 冒烟前需 `pnpm dev` 已在 5173 端口运行 |
-| 注意 | 冒烟会创建订单/触发支付,反复运行会产生累积数据(Mock 内存态,重启 dev 即清空) |
+| 单元测试 | `pnpm test`(Vitest + jsdom,29 用例);`pnpm test:coverage` 看覆盖率 |
+| E2E | `pnpm e2e`(Playwright):webServer 自动拉起 Mock dev;本地默认系统 Chrome(`channel:'chrome'`),CI 用 `playwright install chromium`;双 project(桌面 1440 / 移动 390×844) |
+| 质量门禁 | `pnpm lint`(ESLint 0 error 0 warning)、`pnpm typecheck`、`pnpm format:check`(Prettier) |
+| 注意 | E2E 会创建订单/触发支付,反复运行产生累积数据(Mock 内存态,重启 dev 即清空) |
 
 ### 3.3 对接真实后端
 
@@ -153,7 +179,17 @@
 | 双源同步 | CSS 变量在 `tokens.css`;Naive UI overrides 在 `theme.ts`(亮/暗两套真实色值)。**改色必须两处同步**,否则 naive 组件(按钮/开关/分页)与自绘组件视觉漂移 |
 | 禁止写死颜色 | 业务代码一律用 `var(--c-*)`,保证暗色正确;naive 侧只能用 theme.ts 的 overrides 间接引用 |
 
-### 3.5 上线(生产)
+### 3.5 Tauri 桌面端
+
+| 前置 | 说明 |
+|---|---|
+| Rust 工具链 | Rust ≥ 1.77 + WebView2(Win);`pnpm tauri:dev` 开发联动,`pnpm tauri:build` 打包 |
+| 首次编译 | cargo 拉取 10+ 插件 crate,首次约 5 分钟;`cargo check` 可单独快速验证 |
+| 图标 | 改品牌后运行 `python scripts/gen-icon.py && pnpm tauri icon app-icon.png` 重新生成全套 |
+| 深链接/更新 | 发布前需注册 `nanocloud://` 协议(Rust 侧 deep-link 插件)与 `tauri signer generate` 密钥(见第 2 节) |
+| 平台适配 | Web 与 Tauri 共用一套代码,`utils/platform.ts` 自动降级;勿在 Web 端调用 Tauri 专属 API(已全部动态 import 保护) |
+
+### 3.6 上线(生产)
 
 | 前置 | 说明 |
 |---|---|
@@ -169,4 +205,4 @@
 - 视觉令牌/响应式/组件规范:以 [docs/frontend/design-system.md](design-system.md) 为准
 - 路由表与逐页拆解:以 [docs/frontend/pages.md](pages.md) 为准(16 条路由全部落地)
 - 数据层(HTTP 封装/store/i18n/深链接):以 [docs/frontend/data-layer.md](data-layer.md) 为准
-- 桌面化:以 [docs/frontend/desktop-tauri.md](desktop-tauri.md) 为准(M6 未开始,见第 2 节)
+- 桌面化:以 [docs/frontend/desktop-tauri.md](desktop-tauri.md) 为准(M6 骨架已完成,deep-link/更新/三平台打包等发布能力见第 2 节)

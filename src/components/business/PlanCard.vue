@@ -80,7 +80,11 @@ function periodLabel(p: PlanPeriod): string {
         v-for="p in periods"
         :key="p"
         class="cursor-pointer rounded-full px-3 py-1 text-12 transition-colors"
-        :class="currentPeriod === p ? 'bg-[var(--c-primary-soft)] font-600 text-[var(--c-primary-text)]' : 'bg-[var(--c-bg-hover)] text-[var(--c-text-sub)] hover:text-[var(--c-text)]'"
+        :class="
+          currentPeriod === p
+            ? 'bg-[var(--c-primary-soft)] font-600 text-[var(--c-primary-text)]'
+            : 'bg-[var(--c-bg-hover)] text-[var(--c-text-sub)] hover:text-[var(--c-text)]'
+        "
         @click="emit('period-change', plan, p)"
       >
         {{ periodLabel(p) }}
@@ -88,14 +92,19 @@ function periodLabel(p: PlanPeriod): string {
     </div>
 
     <!-- 流量/带宽 -->
-    <div class="mt-5 flex justify-center gap-6 rounded-xl py-3" style="background-color: var(--c-bg-hover)">
+    <div
+      class="mt-5 flex justify-center gap-6 rounded-xl py-3"
+      style="background-color: var(--c-bg-hover)"
+    >
       <div class="text-center">
         <div class="num text-16 font-700 text-[var(--c-text)]">{{ plan.traffic_gb }}G</div>
         <div class="text-11 text-[var(--c-text-sub)]">{{ t('plan.traffic') }}</div>
       </div>
       <div class="w-px bg-[var(--c-border)]" />
       <div class="text-center">
-        <div class="num text-16 font-700 text-[var(--c-text)]">{{ formatSpeed(plan.speed_limit) }}</div>
+        <div class="num text-16 font-700 text-[var(--c-text)]">
+          {{ formatSpeed(plan.speed_limit) }}
+        </div>
         <div class="text-11 text-[var(--c-text-sub)]">{{ t('plan.bandwidth') }}</div>
       </div>
       <div class="w-px bg-[var(--c-border)]" />
@@ -107,7 +116,10 @@ function periodLabel(p: PlanPeriod): string {
 
     <!-- 描述 -->
     <!-- eslint-disable-next-line vue/no-v-html -->
-    <div class="plan-content mt-4 flex-1 text-13 leading-6 text-[var(--c-text-sub)]" v-html="renderContent()" />
+    <div
+      class="plan-content mt-4 flex-1 text-13 leading-6 text-[var(--c-text-sub)]"
+      v-html="renderContent()"
+    />
 
     <!-- 购买 -->
     <button

@@ -199,7 +199,8 @@ export default {
     clearForm: 'Clear',
     passwordChanged: 'Password changed',
     resetSubscribe: 'Reset subscription',
-    resetSubscribeTip: 'After reset, the old subscribe link is invalid immediately; re-import on all clients.',
+    resetSubscribeTip:
+      'After reset, the old subscribe link is invalid immediately; re-import on all clients.',
     resetSubscribeBtn: 'Reset now',
     resetConfirm: 'Enter your password to confirm',
     resetSuccess: 'Subscription reset. Copy the new link and re-import.',

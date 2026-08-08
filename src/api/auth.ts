@@ -1,11 +1,5 @@
 import { http } from '@/utils/http'
-import type {
-  AuthResp,
-  ForgotReq,
-  LoginReq,
-  RefreshReq,
-  RegisterReq,
-} from '@/types/api'
+import type { AuthResp, ForgotReq, LoginReq, RefreshReq, RegisterReq } from '@/types/api'
 
 export const apiAuth = {
   login: (body: LoginReq) => http.post<AuthResp>('/auth/login', { body }),

@@ -47,13 +47,22 @@ onBeforeUnmount(() => server.stopPolling())
 
     <n-spin :show="server.loading">
       <div class="space-y-5">
-        <div v-for="group in server.groups" :key="group.group" class="card-base card-hoverable p-5 md:p-6">
+        <div
+          v-for="group in server.groups"
+          :key="group.group"
+          class="card-base card-hoverable p-5 md:p-6"
+        >
           <div class="mb-4 flex items-center gap-2">
-            <span class="flex h-8 w-8 items-center justify-center rounded-full" style="background: var(--c-primary-soft); color: var(--c-primary-text)">
+            <span
+              class="flex h-8 w-8 items-center justify-center rounded-full"
+              style="background: var(--c-primary-soft); color: var(--c-primary-text)"
+            >
               <AppIcon name="server" :size="17" />
             </span>
             <h3 class="text-16 font-600 text-[var(--c-text)]">{{ group.group }}</h3>
-            <span class="ml-auto text-12 text-[var(--c-text-sub)]">{{ group.servers.length }} 节点</span>
+            <span class="ml-auto text-12 text-[var(--c-text-sub)]"
+              >{{ group.servers.length }} 节点</span
+            >
           </div>
 
           <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -64,9 +73,9 @@ onBeforeUnmount(() => server.stopPolling())
             >
               <span class="relative flex h-2.5 w-2.5 shrink-0">
                 <span
+                  v-if="s.status === 1"
                   class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-40"
                   :style="{ backgroundColor: serverStatusMeta(s.status).color }"
-                  v-if="s.status === 1"
                 />
                 <span
                   class="relative inline-flex h-2.5 w-2.5 rounded-full"
@@ -77,10 +86,16 @@ onBeforeUnmount(() => server.stopPolling())
               <div class="min-w-0 flex-1">
                 <div class="truncate text-14 font-500 text-[var(--c-text)]">{{ s.name }}</div>
                 <div class="mt-1 flex flex-wrap items-center gap-1.5">
-                  <span class="rounded-full px-2 py-0.5 text-11" style="background: var(--c-bg-hover); color: var(--c-text-sub)">
+                  <span
+                    class="rounded-full px-2 py-0.5 text-11"
+                    style="background: var(--c-bg-hover); color: var(--c-text-sub)"
+                  >
                     {{ s.type }}
                   </span>
-                  <span class="num rounded-full px-2 py-0.5 text-11" style="background: var(--c-bg-hover); color: var(--c-text-sub)">
+                  <span
+                    class="num rounded-full px-2 py-0.5 text-11"
+                    style="background: var(--c-bg-hover); color: var(--c-text-sub)"
+                  >
                     ×{{ s.rate }}
                   </span>
                   <span
@@ -94,14 +109,21 @@ onBeforeUnmount(() => server.stopPolling())
                 </div>
               </div>
 
-              <span class="shrink-0 text-12 font-500" :style="{ color: serverStatusMeta(s.status).color }">
+              <span
+                class="shrink-0 text-12 font-500"
+                :style="{ color: serverStatusMeta(s.status).color }"
+              >
                 {{ serverStatusMeta(s.status).label }}
               </span>
             </div>
           </div>
         </div>
 
-        <EmptyState v-if="!server.loading && server.groups.length === 0" :text="t('common.empty')" :icon="'server'" />
+        <EmptyState
+          v-if="!server.loading && server.groups.length === 0"
+          :text="t('common.empty')"
+          :icon="'server'"
+        />
       </div>
     </n-spin>
   </div>

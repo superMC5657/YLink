@@ -71,7 +71,11 @@ onMounted(() => {
           @period-change="onPeriodChange"
         />
       </div>
-      <EmptyState v-if="!planStore.loading && planStore.list.length === 0" :text="t('common.empty')" :icon="'zap'" />
+      <EmptyState
+        v-if="!planStore.loading && planStore.list.length === 0"
+        :text="t('common.empty')"
+        :icon="'zap'"
+      />
     </n-spin>
 
     <OrderConfirmModal v-model:show="showConfirm" :plan="selectedPlan" />

@@ -1,0 +1,33 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "最小授权:仅放开文档约定的插件能力(见 docs/frontend/desktop-tauri.md §3)",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-set-theme",
+    "core:window:allow-show",
+    "core:window:allow-set-focus",
+    "core:window:allow-minimize",
+    "core:window:allow-close",
+    "core:window:allow-start-dragging",
+    "opener:default",
+    "clipboard-manager:allow-write-text",
+    "notification:default",
+    "autostart:allow-enable",
+    "autostart:allow-disable",
+    "autostart:allow-is-enabled",
+    "process:allow-restart",
+    "process:allow-exit",
+    "os:default",
+    "window-state:default",
+    {
+      "identifier": "http:default",
+      "allow": [{ "url": "https://**" }, { "url": "http://localhost:**" }, { "url": "http://127.0.0.1:**" }]
+    },
+    {
+      "identifier": "store:default",
+      "allow": [{ "path": "app-settings.json" }]
+    }
+  ]
+}

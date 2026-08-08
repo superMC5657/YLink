@@ -83,7 +83,10 @@ onMounted(async () => {
         <h1 class="truncate text-16 font-600 text-[var(--c-text)]">{{ detail?.subject }}</h1>
         <div class="flex items-center gap-2 text-12 text-[var(--c-text-sub)]">
           <span>{{ t('ticket.level') }}:{{ ticketLevelLabel(detail?.level ?? 0) }}</span>
-          <StatusBadge v-if="detail" :type="detail.status === 2 ? 'neutral' : detail.status === 1 ? 'success' : 'warning'">
+          <StatusBadge
+            v-if="detail"
+            :type="detail.status === 2 ? 'neutral' : detail.status === 1 ? 'success' : 'warning'"
+          >
             {{ ticketStatusLabel(detail.status) }}
           </StatusBadge>
         </div>
@@ -109,11 +112,18 @@ onMounted(async () => {
           >
             <span
               class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white"
-              :style="m.sender_type === 0 ? 'background: linear-gradient(135deg,#6558F5,#8B5CF6)' : 'background: var(--c-bg-hover); color: var(--c-text-sub)'"
+              :style="
+                m.sender_type === 0
+                  ? 'background: linear-gradient(135deg,#6558F5,#8B5CF6)'
+                  : 'background: var(--c-bg-hover); color: var(--c-text-sub)'
+              "
             >
               <AppIcon :name="m.sender_type === 0 ? 'user' : 'headset'" :size="16" />
             </span>
-            <div class="flex max-w-[75%] flex-col" :class="m.sender_type === 0 ? 'items-end' : 'items-start'">
+            <div
+              class="flex max-w-[75%] flex-col"
+              :class="m.sender_type === 0 ? 'items-end' : 'items-start'"
+            >
               <div
                 class="rounded-2xl px-4 py-2.5 text-13 leading-6 whitespace-pre-wrap"
                 :style="
@@ -124,7 +134,9 @@ onMounted(async () => {
               >
                 {{ m.message }}
               </div>
-              <span class="mt-1 text-11 text-[var(--c-text-sub)]">{{ formatTime(m.created_at) }}</span>
+              <span class="mt-1 text-11 text-[var(--c-text-sub)]">{{
+                formatTime(m.created_at)
+              }}</span>
             </div>
           </div>
         </div>
@@ -133,7 +145,11 @@ onMounted(async () => {
 
     <!-- 回复区 -->
     <div class="mt-4">
-      <div v-if="isClosed" class="mb-3 flex items-center justify-center gap-2 rounded-xl p-3 text-13" style="background: var(--c-bg-hover); color: var(--c-text-sub)">
+      <div
+        v-if="isClosed"
+        class="mb-3 flex items-center justify-center gap-2 rounded-xl p-3 text-13"
+        style="background: var(--c-bg-hover); color: var(--c-text-sub)"
+      >
         <AppIcon name="alert" :size="15" />
         {{ t('ticket.closedTip') }}
       </div>

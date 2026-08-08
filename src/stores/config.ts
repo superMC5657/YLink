@@ -18,6 +18,8 @@ export const useConfigStore = defineStore('config', {
   getters: {
     siteName: (s) => s.config?.site_name ?? import.meta.env.VITE_APP_NAME ?? 'NanoCloud',
     paymentMethods: (s) => s.config?.payment_methods ?? [],
+    registerEnabled: (s) => s.config?.register_enabled ?? true,
+    inviteCodeRequired: (s) => s.config?.invite_code_required ?? false,
   },
   actions: {
     /** 启动拉取,带 24h 本地缓存;force=true 强制刷新 */

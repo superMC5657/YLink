@@ -13,11 +13,7 @@ withDefaults(
 </script>
 
 <template>
-  <div
-    class="card-base w-full"
-    :class="hoverable ? 'card-hoverable' : ''"
-    :style="{ padding }"
-  >
+  <div class="card-base w-full" :class="hoverable ? 'card-hoverable' : ''" :style="{ padding }">
     <slot />
   </div>
 </template>

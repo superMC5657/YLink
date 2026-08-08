@@ -24,10 +24,7 @@ const md = new MarkdownIt({
   breaks: true,
   highlight: (_lang: string, str: string) => {
     // 代码高亮一期使用简单转义 + 行号容器,后续可接入 highlight.js
-    const escaped = str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
+    const escaped = str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     return `<pre class="code-block"><code>${escaped}</code></pre>`
   },
 })

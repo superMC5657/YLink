@@ -39,7 +39,9 @@ const submitting = ref(false)
 const createdOrder = ref<Awaited<ReturnType<typeof orderStore.create>> | null>(null)
 const showPayment = ref(false)
 
-const periods = computed<PlanPeriod[]>(() => (props.plan ? (Object.keys(props.plan.prices) as PlanPeriod[]) : []))
+const periods = computed<PlanPeriod[]>(() =>
+  props.plan ? (Object.keys(props.plan.prices) as PlanPeriod[]) : [],
+)
 
 const price = computed(() => props.plan?.prices[period.value] ?? 0)
 
@@ -53,7 +55,9 @@ const savePercent = computed(() => {
   return pct > 0 ? pct : null
 })
 
-const discount = computed(() => (couponChecked.value && couponResult.value ? couponResult.value.discount_amount : 0))
+const discount = computed(() =>
+  couponChecked.value && couponResult.value ? couponResult.value.discount_amount : 0,
+)
 const payAmount = computed(() => Math.max(0, +(price.value - discount.value).toFixed(2)))
 
 const balance = computed(() => userStore.balance)
@@ -152,10 +156,10 @@ async function submit() {
 <template>
   <n-modal
     :show="props.show"
-    @update:show="(v: boolean) => emit('update:show', v)"
     preset="card"
     :title="props.plan?.name"
     class="max-w-110"
+    @update:show="(v: boolean) => emit('update:show', v)"
   >
     <template v-if="props.plan">
       <!-- 1. 周期 -->
@@ -165,11 +169,25 @@ async function submit() {
           v-for="p in periods"
           :key="p"
           class="flex cursor-pointer items-center gap-1.5 rounded-full border px-4 py-2 text-13 transition-colors"
-          :class="period === p ? 'border-[var(--c-primary)] bg-[var(--c-primary-soft)] font-500 text-[var(--c-primary-text)]' : 'border-[var(--c-border)] text-[var(--c-text-sub)] hover:border-[var(--c-primary)]'"
+          :class="
+            period === p
+              ? 'border-[var(--c-primary)] bg-[var(--c-primary-soft)] font-500 text-[var(--c-primary-text)]'
+              : 'border-[var(--c-border)] text-[var(--c-text-sub)] hover:border-[var(--c-primary)]'
+          "
           @click="selectPeriod(p)"
         >
           <span>
-            {{ p === 'month' ? '月付' : p === 'quarter' ? '季付' : p === 'half_year' ? '半年付' : p === 'year' ? '年付' : '一次性' }}
+            {{
+              p === 'month'
+                ? '月付'
+                : p === 'quarter'
+                  ? '季付'
+                  : p === 'half_year'
+                    ? '半年付'
+                    : p === 'year'
+                      ? '年付'
+                      : '一次性'
+            }}
           </span>
           <span class="num">{{ formatMoney(props.plan.prices[p] ?? 0) }}</span>
           <span v-if="period === p && savePercent" class="text-11 text-[var(--c-marketing)]">
@@ -204,7 +222,9 @@ async function submit() {
           :key="m.code"
           class="flex cursor-pointer flex-col items-center gap-1 rounded-xl border py-3 transition-colors"
           :class="[
-            payMethod === m.code ? 'border-[var(--c-primary)] bg-[var(--c-primary-soft)]' : 'border-[var(--c-border)]',
+            payMethod === m.code
+              ? 'border-[var(--c-primary)] bg-[var(--c-primary-soft)]'
+              : 'border-[var(--c-border)]',
             m.disabled ? 'cursor-not-allowed opacity-50' : 'hover:bg-[var(--c-bg-hover)]',
           ]"
           :disabled="m.disabled"
@@ -215,12 +235,18 @@ async function submit() {
             :size="18"
             :style="{ color: payMethod === m.code ? 'var(--c-primary)' : 'var(--c-text-sub)' }"
           />
-          <span class="text-12" :style="{ color: payMethod === m.code ? 'var(--c-primary-text)' : 'var(--c-text-sub)' }">
+          <span
+            class="text-12"
+            :style="{ color: payMethod === m.code ? 'var(--c-primary-text)' : 'var(--c-text-sub)' }"
+          >
             {{ m.name }}
           </span>
         </button>
       </div>
-      <p v-if="payMethod === 'balance' && !balanceEnough" class="mt-1.5 text-12 text-[var(--c-danger)]">
+      <p
+        v-if="payMethod === 'balance' && !balanceEnough"
+        class="mt-1.5 text-12 text-[var(--c-danger)]"
+      >
         {{ t('plan.balanceShort', { amount: formatMoney(Math.max(0, payAmount - balance)) }) }}
       </p>
 
@@ -243,12 +269,20 @@ async function submit() {
 
       <!-- 5. 提交 -->
       <button class="btn-primary mt-5 h-11 w-full text-15" :disabled="submitting" @click="submit">
-        <span v-if="submitting" class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+        <span
+          v-if="submitting"
+          class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+        />
         {{ t('plan.submitOrder') }} · {{ formatMoney(payAmount) }}
       </button>
     </template>
 
     <!-- 收银台 -->
-    <PaymentModal v-model:show="showPayment" :order="createdOrder" :method="payMethod" @paid="emit('paid')" />
+    <PaymentModal
+      v-model:show="showPayment"
+      :order="createdOrder"
+      :method="payMethod"
+      @paid="emit('paid')"
+    />
   </n-modal>
 </template>

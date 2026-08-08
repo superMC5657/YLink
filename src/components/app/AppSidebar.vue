@@ -32,7 +32,10 @@ function go(path: string) {
     :style="{ width: collapsed ? '72px' : '240px' }"
   >
     <!-- Logo 区 -->
-    <div class="flex h-16 shrink-0 items-center gap-3 px-5" :class="collapsed ? 'justify-center px-0' : ''">
+    <div
+      class="flex h-16 shrink-0 items-center gap-3 px-5"
+      :class="collapsed ? 'justify-center px-0' : ''"
+    >
       <span
         class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white"
         style="background: linear-gradient(135deg, #6558f5, #8b5cf6)"

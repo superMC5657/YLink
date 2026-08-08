@@ -30,10 +30,16 @@ let chart: ECharts | null = null
 
 const dateRange = computed<{ from: string; to: string }>(() => {
   if (rangeKey.value === '7d') {
-    return { from: dayjs().subtract(6, 'day').format('YYYY-MM-DD'), to: dayjs().format('YYYY-MM-DD') }
+    return {
+      from: dayjs().subtract(6, 'day').format('YYYY-MM-DD'),
+      to: dayjs().format('YYYY-MM-DD'),
+    }
   }
   if (rangeKey.value === '30d') {
-    return { from: dayjs().subtract(29, 'day').format('YYYY-MM-DD'), to: dayjs().format('YYYY-MM-DD') }
+    return {
+      from: dayjs().subtract(29, 'day').format('YYYY-MM-DD'),
+      to: dayjs().format('YYYY-MM-DD'),
+    }
   }
   if (customRange.value) {
     return {
@@ -41,7 +47,10 @@ const dateRange = computed<{ from: string; to: string }>(() => {
       to: dayjs(customRange.value[1]).format('YYYY-MM-DD'),
     }
   }
-  return { from: dayjs().subtract(29, 'day').format('YYYY-MM-DD'), to: dayjs().format('YYYY-MM-DD') }
+  return {
+    from: dayjs().subtract(29, 'day').format('YYYY-MM-DD'),
+    to: dayjs().format('YYYY-MM-DD'),
+  }
 })
 
 const totalUpload = computed(() => user.trafficLogs.reduce((a, x) => a + x.u, 0))
@@ -64,9 +73,7 @@ function renderChart() {
       borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#EBECF4',
       textStyle: { color: isDark ? '#E8EAF2' : '#1F2430', fontSize: 12 },
       formatter: (params: { seriesName: string; value: number; axisValue: string }[]) => {
-        const lines = params
-          .map((p) => `${p.seriesName}: ${formatBytes(p.value)}`)
-          .join('<br/>')
+        const lines = params.map((p) => `${p.seriesName}: ${formatBytes(p.value)}`).join('<br/>')
         return `${params[0].axisValue}<br/>${lines}`
       },
     },
@@ -157,7 +164,11 @@ onBeforeUnmount(() => {
             ]"
             :key="r.key"
             class="cursor-pointer rounded-full px-3 py-1 text-12 transition-colors"
-            :class="rangeKey === r.key ? 'bg-[var(--c-primary-soft)] font-500 text-[var(--c-primary-text)]' : 'text-[var(--c-text-sub)] hover:text-[var(--c-text)]'"
+            :class="
+              rangeKey === r.key
+                ? 'bg-[var(--c-primary-soft)] font-500 text-[var(--c-primary-text)]'
+                : 'text-[var(--c-text-sub)] hover:text-[var(--c-text)]'
+            "
             @click="rangeKey = r.key as RangeKey"
           >
             {{ r.label }}
@@ -177,11 +188,15 @@ onBeforeUnmount(() => {
     <div class="mb-5 grid grid-cols-3 gap-4">
       <div class="card-base flex flex-col items-center gap-1 p-4">
         <span class="text-12 text-[var(--c-text-sub)]">{{ t('traffic.upload') }}</span>
-        <span class="num text-18 font-700 text-[var(--c-primary-text)]">{{ formatBytes(totalUpload) }}</span>
+        <span class="num text-18 font-700 text-[var(--c-primary-text)]">{{
+          formatBytes(totalUpload)
+        }}</span>
       </div>
       <div class="card-base flex flex-col items-center gap-1 p-4">
         <span class="text-12 text-[var(--c-text-sub)]">{{ t('traffic.download') }}</span>
-        <span class="num text-18 font-700 text-[var(--c-pink)]">{{ formatBytes(totalDownload) }}</span>
+        <span class="num text-18 font-700 text-[var(--c-pink)]">{{
+          formatBytes(totalDownload)
+        }}</span>
       </div>
       <div class="card-base flex flex-col items-center gap-1 p-4">
         <span class="text-12 text-[var(--c-text-sub)]">{{ t('traffic.total') }}</span>
@@ -206,7 +221,11 @@ onBeforeUnmount(() => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="x in user.trafficLogs" :key="x.date" class="transition-colors hover:bg-[var(--c-bg-hover)]">
+          <tr
+            v-for="x in user.trafficLogs"
+            :key="x.date"
+            class="transition-colors hover:bg-[var(--c-bg-hover)]"
+          >
             <td class="text-13 text-[var(--c-text)]">{{ x.date }}</td>
             <td class="num text-13 text-[var(--c-primary-text)]">{{ formatBytes(x.u) }}</td>
             <td class="num text-13 text-[var(--c-pink)]">{{ formatBytes(x.d) }}</td>
@@ -214,7 +233,11 @@ onBeforeUnmount(() => {
           </tr>
         </tbody>
       </n-table>
-      <EmptyState v-if="user.trafficLogs.length === 0" :text="t('traffic.empty')" :icon="'traffic'" />
+      <EmptyState
+        v-if="user.trafficLogs.length === 0"
+        :text="t('traffic.empty')"
+        :icon="'traffic'"
+      />
     </div>
   </div>
 </template>

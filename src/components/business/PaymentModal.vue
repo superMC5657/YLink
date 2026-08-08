@@ -124,15 +124,17 @@ onBeforeUnmount(stopPolling)
 <template>
   <n-modal
     :show="props.show"
-    @update:show="(v: boolean) => emit('update:show', v)"
     preset="card"
     :title="phase === 'paid' ? t('plan.paySuccess') : t('plan.payNow')"
     class="max-w-100"
     :mask-closable="phase !== 'paid'"
+    @update:show="(v: boolean) => emit('update:show', v)"
   >
     <!-- 加载 -->
     <div v-if="phase === 'loading'" class="flex flex-col items-center gap-4 py-10">
-      <span class="h-8 w-8 animate-spin rounded-full border-3 border-[var(--c-border)] border-t-[var(--c-primary)]" />
+      <span
+        class="h-8 w-8 animate-spin rounded-full border-3 border-[var(--c-border)] border-t-[var(--c-primary)]"
+      />
       <span class="text-13 text-[var(--c-text-sub)]">{{ t('plan.orderCreating') }}</span>
     </div>
 
@@ -142,7 +144,10 @@ onBeforeUnmount(stopPolling)
         <img :src="qrDataUrl" alt="qr" class="h-55 w-55" />
       </div>
       <p class="text-13 text-[var(--c-text-sub)]">{{ t('plan.qrcodeTip') }}</p>
-      <div class="flex items-center gap-1.5 rounded-full px-4 py-1.5" style="background-color: var(--c-bg-hover)">
+      <div
+        class="flex items-center gap-1.5 rounded-full px-4 py-1.5"
+        style="background-color: var(--c-bg-hover)"
+      >
         <AppIcon name="clock" :size="15" :style="{ color: 'var(--c-warning)' }" />
         <span class="num text-13 font-600 text-[var(--c-text)]">
           {{ Math.floor(remaining / 60) }}:{{ String(remaining % 60).padStart(2, '0') }}
@@ -152,14 +157,20 @@ onBeforeUnmount(stopPolling)
 
     <!-- 跳转 -->
     <div v-else-if="phase === 'url'" class="flex flex-col items-center gap-4 py-4">
-      <span class="flex h-16 w-16 items-center justify-center rounded-full" style="background: var(--c-primary-soft); color: var(--c-primary-text)">
+      <span
+        class="flex h-16 w-16 items-center justify-center rounded-full"
+        style="background: var(--c-primary-soft); color: var(--c-primary-text)"
+      >
         <AppIcon name="external-link" :size="28" />
       </span>
       <p class="text-14 text-[var(--c-text)]">{{ t('plan.urlTip') }}</p>
       <button class="btn-primary h-10 px-6 text-14" @click="goUrl">
         {{ t('plan.payNow') }} · {{ payMethodName }}
       </button>
-      <div class="flex items-center gap-1.5 rounded-full px-4 py-1.5" style="background-color: var(--c-bg-hover)">
+      <div
+        class="flex items-center gap-1.5 rounded-full px-4 py-1.5"
+        style="background-color: var(--c-bg-hover)"
+      >
         <AppIcon name="clock" :size="15" :style="{ color: 'var(--c-warning)' }" />
         <span class="num text-13 font-600 text-[var(--c-text)]">
           {{ Math.floor(remaining / 60) }}:{{ String(remaining % 60).padStart(2, '0') }}
@@ -169,7 +180,10 @@ onBeforeUnmount(stopPolling)
 
     <!-- 成功 -->
     <div v-else-if="phase === 'paid'" class="flex flex-col items-center gap-3 py-6 text-center">
-      <span class="flex h-18 w-18 items-center justify-center rounded-full" style="background: var(--c-success-bg); color: var(--c-success)">
+      <span
+        class="flex h-18 w-18 items-center justify-center rounded-full"
+        style="background: var(--c-success-bg); color: var(--c-success)"
+      >
         <AppIcon name="check" :size="36" :stroke-width="3" />
       </span>
       <h3 class="text-20 font-700 text-[var(--c-text)]">{{ t('plan.paySuccess') }}</h3>
@@ -181,7 +195,9 @@ onBeforeUnmount(stopPolling)
         </div>
         <div class="mt-1.5 flex justify-between text-13">
           <span class="text-[var(--c-text-sub)]">{{ t('order.payAmount') }}</span>
-          <span class="num font-600 text-[var(--c-success)]">{{ formatMoney(props.order?.pay_amount) }}</span>
+          <span class="num font-600 text-[var(--c-success)]">{{
+            formatMoney(props.order?.pay_amount)
+          }}</span>
         </div>
         <div class="mt-1.5 flex justify-between text-13">
           <span class="text-[var(--c-text-sub)]">{{ t('order.paidAt') }}</span>
@@ -195,7 +211,10 @@ onBeforeUnmount(stopPolling)
 
     <!-- 失败 -->
     <div v-else class="flex flex-col items-center gap-3 py-6">
-      <span class="flex h-16 w-16 items-center justify-center rounded-full" style="background: var(--c-danger-bg); color: var(--c-danger)">
+      <span
+        class="flex h-16 w-16 items-center justify-center rounded-full"
+        style="background: var(--c-danger-bg); color: var(--c-danger)"
+      >
         <AppIcon name="alert" :size="28" />
       </span>
       <p class="text-14 text-[var(--c-text)]">{{ t('plan.payExpired') }}</p>

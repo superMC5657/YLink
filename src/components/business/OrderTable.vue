@@ -37,16 +37,25 @@ function statusType(status: Order['status']) {
       </tr>
     </thead>
     <tbody>
-      <tr v-for="o in orders" :key="o.order_no" class="transition-colors hover:bg-[var(--c-bg-hover)]">
+      <tr
+        v-for="o in orders"
+        :key="o.order_no"
+        class="transition-colors hover:bg-[var(--c-bg-hover)]"
+      >
         <td class="text-14 font-500 text-[var(--c-text)]">{{ o.plan_name }}</td>
         <td><CopyText :text="o.order_no" :max-chars="16" /></td>
         <td class="text-13 text-[var(--c-text-sub)]">{{ periodLabel(o.period) }}</td>
         <td class="num text-14 font-600 text-[var(--c-text)]">{{ formatMoney(o.pay_amount) }}</td>
-        <td><StatusBadge :type="statusType(o.status)">{{ orderStatusLabel(o.status) }}</StatusBadge></td>
+        <td>
+          <StatusBadge :type="statusType(o.status)">{{ orderStatusLabel(o.status) }}</StatusBadge>
+        </td>
         <td class="text-13 text-[var(--c-text-sub)]">{{ formatTime(o.created_at, false) }}</td>
         <td>
           <div class="flex items-center gap-2">
-            <button class="text-13 font-500 text-[var(--c-primary-text)] hover:underline" @click="emit('view', o)">
+            <button
+              class="text-13 font-500 text-[var(--c-primary-text)] hover:underline"
+              @click="emit('view', o)"
+            >
               {{ $t('common.viewDetail') }}
             </button>
             <button

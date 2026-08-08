@@ -11,11 +11,15 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 
 	"nanocloud/internal/config"
+	"nanocloud/internal/middleware"
 	"nanocloud/internal/model"
 	"nanocloud/internal/pkg/errs"
+	"nanocloud/internal/pkg/logger"
+	"nanocloud/internal/pkg/mailer"
 	"nanocloud/internal/pkg/payment"
 	redispkg "nanocloud/internal/pkg/redis"
 	"nanocloud/internal/repo"
@@ -23,15 +27,16 @@ import (
 
 // OrderService 交易域：套餐、优惠券、下单、收银台、支付回调、开通/续期。
 type OrderService struct {
-	db    *gorm.DB
-	rdb   *redis.Client
-	repos *repo.Repos
-	set   *SettingService
-	cfg   *config.Config
+	db     *gorm.DB
+	rdb    *redis.Client
+	repos  *repo.Repos
+	set    *SettingService
+	cfg    *config.Config
+	mailer *mailer.Mailer
 }
 
-func NewOrderService(db *gorm.DB, rdb *redis.Client, repos *repo.Repos, set *SettingService, cfg *config.Config) *OrderService {
-	return &OrderService{db: db, rdb: rdb, repos: repos, set: set, cfg: cfg}
+func NewOrderService(db *gorm.DB, rdb *redis.Client, repos *repo.Repos, set *SettingService, cfg *config.Config, mail *mailer.Mailer) *OrderService {
+	return &OrderService{db: db, rdb: rdb, repos: repos, set: set, cfg: cfg, mailer: mail}
 }
 
 // ---- 套餐 ----
@@ -112,7 +117,7 @@ func (s *OrderService) CouponCheck(ctx context.Context, userID int64, req *model
 	if price == nil {
 		return nil, errs.ErrPlanPeriod
 	}
-	_, discount, err := s.validateCoupon(userID, req.Code, plan, req.Period, *price)
+	_, discount, err := s.validateCoupon(s.db, userID, req.Code, plan, req.Period, *price)
 	if err != nil {
 		return nil, err
 	}
@@ -123,9 +128,9 @@ func (s *OrderService) CouponCheck(ctx context.Context, userID int64, req *model
 	}, nil
 }
 
-// validateCoupon 校验优惠券并返回优惠金额（分）。
-func (s *OrderService) validateCoupon(userID int64, code string, plan *model.Plan, period string, amount int64) (*model.Coupon, int64, error) {
-	coupon, err := s.repos.Coupon.GetByCode(s.db, code)
+// validateCoupon 校验优惠券并返回优惠金额（分）。db 由调用方传入（下单传事务）。
+func (s *OrderService) validateCoupon(db *gorm.DB, userID int64, code string, plan *model.Plan, period string, amount int64) (*model.Coupon, int64, error) {
+	coupon, err := s.repos.Coupon.GetByCode(db, code)
 	if err != nil {
 		return nil, 0, errs.ErrCoupon
 	}
@@ -157,7 +162,7 @@ func (s *OrderService) validateCoupon(userID int64, code string, plan *model.Pla
 		return nil, 0, errs.ErrCoupon
 	}
 	if coupon.LimitPerUser > 0 {
-		n, err := s.repos.Coupon.CountUsage(s.db, coupon.ID, userID)
+		n, err := s.repos.Coupon.CountUsage(db, coupon.ID, userID)
 		if err == nil && n >= int64(coupon.LimitPerUser) {
 			return nil, 0, errs.ErrCoupon
 		}
@@ -177,7 +182,7 @@ func (s *OrderService) validateCoupon(userID int64, code string, plan *model.Pla
 
 // ---- 下单 ----
 
-// CreateOrder POST /orders（幂等键防重复建单）。
+// CreateOrder POST /orders（幂等键防重复建单；事务内原子占用优惠券防超发）。
 func (s *OrderService) CreateOrder(ctx context.Context, userID int64, idemKey string, req *model.CreateOrderReq) (*model.OrderResp, error) {
 	if idemKey != "" {
 		if existing, err := s.repos.Order.GetByIdempotencyKey(s.db, idemKey, userID); err == nil {
@@ -193,33 +198,45 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID int64, idemKey st
 		return nil, errs.ErrPlanPeriod
 	}
 	amount := *price
-	var discount int64
-	var couponID *int64
-	if req.CouponCode != "" {
-		coupon, d, err := s.validateCoupon(userID, req.CouponCode, plan, req.Period, amount)
-		if err != nil {
-			return nil, err
-		}
-		discount = d
-		couponID = &coupon.ID
-	}
-	payAmount := amount - discount
 
 	order := &model.Order{
-		OrderNo:        genOrderNo(),
-		UserID:         userID,
-		PlanID:         plan.ID,
-		Period:         req.Period,
-		Amount:         amount,
-		DiscountAmount: discount,
-		PayAmount:      payAmount,
-		CouponID:       couponID,
-		Status:         model.OrderPending,
+		OrderNo: genOrderNo(),
+		UserID:  userID,
+		PlanID:  plan.ID,
+		Period:  req.Period,
+		Amount:  amount,
+		Status:  model.OrderPending,
 	}
 	if idemKey != "" {
 		order.IdempotencyKey = &idemKey
 	}
-	if err := s.repos.Order.Create(s.db, order); err != nil {
+
+	err = repo.WithTx(s.db, func(tx *gorm.DB) error {
+		var discount int64
+		if req.CouponCode != "" {
+			coupon, d, err := s.validateCoupon(tx, userID, req.CouponCode, plan, req.Period, amount)
+			if err != nil {
+				return err
+			}
+			// 原子占用总限量（条件更新），失败即超发 → 12001
+			ok, err := s.repos.Coupon.Occupy(tx, coupon.ID)
+			if err != nil {
+				return err
+			}
+			if !ok {
+				return errs.ErrCoupon
+			}
+			if err := s.repos.Coupon.RecordUsage(tx, coupon.ID, userID, order.OrderNo); err != nil {
+				return err
+			}
+			discount = d
+			order.CouponID = &coupon.ID
+		}
+		order.DiscountAmount = discount
+		order.PayAmount = amount - discount
+		return s.repos.Order.Create(tx, order)
+	})
+	if err != nil {
 		return nil, err
 	}
 	return s.toOrderResp(s.db, order)
@@ -307,19 +324,42 @@ func (s *OrderService) GetOrder(ctx context.Context, userID int64, orderNo strin
 	return resp, nil
 }
 
-// CancelOrder POST /orders/{no}/cancel 仅待支付可取消。
+// CancelOrder POST /orders/{no}/cancel 仅待支付可取消；取消时回退优惠券占用。
 func (s *OrderService) CancelOrder(ctx context.Context, userID int64, orderNo string) (*model.OrderResp, error) {
+	err := repo.WithTx(s.db, func(tx *gorm.DB) error {
+		o, err := s.repos.Order.GetByNoAndUser(tx, orderNo, userID)
+		if err != nil {
+			return errs.ErrNotFound
+		}
+		if o.Status != model.OrderPending {
+			return errs.ErrOrderStatus
+		}
+		// 条件更新（防与支付回调竞态）：影响行数为 0 说明已被并发完成/取消
+		affected, err := s.repos.Order.UpdateStatusIfPending(tx, orderNo, model.OrderCanceled)
+		if err != nil {
+			return err
+		}
+		if affected == 0 {
+			return errs.ErrOrderStatus
+		}
+		if o.CouponID != nil {
+			if err := s.repos.Coupon.Release(tx, *o.CouponID); err != nil {
+				return err
+			}
+			if err := s.repos.Coupon.DeleteUsage(tx, *o.CouponID, userID, orderNo); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	// 读回更新后状态
 	o, err := s.repos.Order.GetByNoAndUser(s.db, orderNo, userID)
 	if err != nil {
 		return nil, errs.ErrNotFound
 	}
-	if o.Status != model.OrderPending {
-		return nil, errs.ErrOrderStatus
-	}
-	if err := s.repos.Order.UpdateStatus(s.db, orderNo, model.OrderCanceled); err != nil {
-		return nil, err
-	}
-	o.Status = model.OrderCanceled
 	return s.toOrderResp(s.db, o)
 }
 
@@ -415,14 +455,12 @@ func (s *OrderService) checkoutBalance(ctx context.Context, order *model.Order) 
 		if err := s.applySubscription(tx, locked); err != nil {
 			return err
 		}
-		if err := s.grantCommission(tx, locked); err != nil {
-			return err
-		}
-		return s.grantCoupon(tx, locked)
+		return s.grantCommission(tx, locked)
 	})
 	if err != nil {
 		return nil, err
 	}
+	s.sendReceiptMailAsync(order.OrderNo)
 	return &model.CheckoutResp{Type: "paid", Content: "", ExpireIn: 0}, nil
 }
 
@@ -433,7 +471,7 @@ func (s *OrderService) HandleNotify(ctx context.Context, method string, nr *paym
 	if nr == nil || !nr.Paid || nr.TradeNo == "" {
 		return errors.New("notify not paid")
 	}
-	return repo.WithTx(s.db, func(tx *gorm.DB) error {
+	err := repo.WithTx(s.db, func(tx *gorm.DB) error {
 		order, err := s.repos.Order.GetByNoForUpdate(tx, nr.OrderNo)
 		if err != nil {
 			return err
@@ -468,11 +506,44 @@ func (s *OrderService) HandleNotify(ctx context.Context, method string, nr *paym
 		if err := s.applySubscription(tx, order); err != nil {
 			return err
 		}
-		if err := s.grantCommission(tx, order); err != nil {
-			return err
-		}
-		return s.grantCoupon(tx, order)
+		return s.grantCommission(tx, order)
 	})
+	if err == nil {
+		middleware.PaySuccessInc(method)
+		s.sendReceiptMailAsync(nr.OrderNo)
+	}
+	return err
+}
+
+// sendReceiptMailAsync 支付成功回执邮件（异步，不阻塞主流程）。
+func (s *OrderService) sendReceiptMailAsync(orderNo string) {
+	if s.mailer == nil || s.cfg.App.Name == "" {
+		return
+	}
+	go func() {
+		o, err := s.repos.Order.GetByNo(s.db, orderNo)
+		if err != nil {
+			return
+		}
+		user, err := s.repos.User.GetByID(s.db, o.UserID)
+		if err != nil {
+			return
+		}
+		plan, err := s.repos.Plan.GetByID(s.db, o.PlanID)
+		if err != nil {
+			return
+		}
+		body := fmt.Sprintf("您的订单 <b>%s</b> 已支付成功。<br>套餐：%s（%s）<br>实付：¥%.2f",
+			o.OrderNo, plan.Name, o.Period, model.FenToYuan(o.PayAmount))
+		rendered, err := mailer.Render(mailer.Template(body), s.cfg.App.Name, nil)
+		if err != nil {
+			return
+		}
+		subject := fmt.Sprintf("[%s] 支付成功", s.cfg.App.Name)
+		if err := s.mailer.Send(user.Email, subject, rendered); err != nil {
+			logger.L().Error("send receipt mail failed", zap.String("order_no", orderNo), zap.Error(err))
+		}
+	}()
 }
 
 // applySubscription 开通/续期规则（core-flows 2.1）。
@@ -546,17 +617,6 @@ func (s *OrderService) grantCommission(tx *gorm.DB, order *model.Order) error {
 		Amount:       amount,
 		Status:       model.CommissionPending,
 	})
-}
-
-// grantCoupon 支付成功后记录优惠券使用（used_count + 使用流水），防超发/超用。
-func (s *OrderService) grantCoupon(tx *gorm.DB, order *model.Order) error {
-	if order.CouponID == nil {
-		return nil
-	}
-	if err := s.repos.Coupon.IncrUsed(tx, *order.CouponID); err != nil {
-		return err
-	}
-	return s.repos.Coupon.RecordUsage(tx, *order.CouponID, order.UserID, order.OrderNo)
 }
 
 // commissionRate 取佣金比例（代理商取 agent 比例）。

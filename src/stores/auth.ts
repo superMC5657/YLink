@@ -19,11 +19,7 @@ export const useAuthStore = defineStore('auth', {
     isLoggedIn: (s) => !!s.accessToken,
   },
   actions: {
-    applyAuth(data: {
-      access_token: string
-      refresh_token: string
-      user?: UserBrief
-    }) {
+    applyAuth(data: { access_token: string; refresh_token: string; user?: UserBrief }) {
       this.accessToken = data.access_token
       this.refreshToken = data.refresh_token
       if (data.user) this.user = data.user
@@ -33,7 +29,12 @@ export const useAuthStore = defineStore('auth', {
       const data = await apiAuth.login({ email, password })
       this.applyAuth(data)
     },
-    async register(body: { email: string; password: string; email_code: string; invite_code?: string }) {
+    async register(body: {
+      email: string
+      password: string
+      email_code: string
+      invite_code?: string
+    }) {
       const data = await apiAuth.register(body)
       this.applyAuth(data)
     },

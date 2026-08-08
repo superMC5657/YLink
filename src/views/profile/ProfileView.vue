@@ -126,18 +126,24 @@ onMounted(() => {
 
         <!-- 通知设置 -->
         <div class="card-base p-5 md:p-6">
-          <h3 class="mb-4 text-16 font-600 text-[var(--c-text)]">{{ t('profile.notifySettings') }}</h3>
+          <h3 class="mb-4 text-16 font-600 text-[var(--c-text)]">
+            {{ t('profile.notifySettings') }}
+          </h3>
           <div class="space-y-4">
             <div class="flex items-center justify-between">
               <div>
-                <div class="text-14 font-500 text-[var(--c-text)]">{{ t('profile.remindExpire') }}</div>
+                <div class="text-14 font-500 text-[var(--c-text)]">
+                  {{ t('profile.remindExpire') }}
+                </div>
                 <div class="text-12 text-[var(--c-text-sub)]">订阅到期前邮件提醒</div>
               </div>
               <n-switch v-model:value="remindExpire" @update:value="onNotifyChange" />
             </div>
             <div class="flex items-center justify-between">
               <div>
-                <div class="text-14 font-500 text-[var(--c-text)]">{{ t('profile.remindTraffic') }}</div>
+                <div class="text-14 font-500 text-[var(--c-text)]">
+                  {{ t('profile.remindTraffic') }}
+                </div>
                 <div class="text-12 text-[var(--c-text-sub)]">流量不足 20% 时邮件提醒</div>
               </div>
               <n-switch v-model:value="remindTraffic" @update:value="onNotifyChange" />
@@ -149,18 +155,34 @@ onMounted(() => {
         <div class="card-base p-5 md:p-6">
           <h3 class="mb-4 text-16 font-600 text-[var(--c-text)]">{{ t('profile.telegram') }}</h3>
           <div class="grid gap-3 sm:grid-cols-2">
-            <button class="flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--c-border)] p-3.5 transition-colors hover:border-[var(--c-primary)] hover:bg-[var(--c-bg-hover)]" @click="openGroup">
-              <span class="flex h-10 w-10 items-center justify-center rounded-full" style="background: var(--c-primary-soft); color: var(--c-primary-text)">
+            <button
+              class="flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--c-border)] p-3.5 transition-colors hover:border-[var(--c-primary)] hover:bg-[var(--c-bg-hover)]"
+              @click="openGroup"
+            >
+              <span
+                class="flex h-10 w-10 items-center justify-center rounded-full"
+                style="background: var(--c-primary-soft); color: var(--c-primary-text)"
+              >
                 <AppIcon name="users" :size="19" />
               </span>
-              <span class="text-14 font-500 text-[var(--c-text)]">{{ t('profile.joinGroup') }}</span>
+              <span class="text-14 font-500 text-[var(--c-text)]">{{
+                t('profile.joinGroup')
+              }}</span>
               <AppIcon name="external-link" :size="15" class="ml-auto text-[var(--c-text-sub)]" />
             </button>
-            <button class="flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--c-border)] p-3.5 transition-colors hover:border-[var(--c-primary)] hover:bg-[var(--c-bg-hover)]" @click="openBot">
-              <span class="flex h-10 w-10 items-center justify-center rounded-full" style="background: var(--c-success-bg); color: var(--c-success)">
+            <button
+              class="flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--c-border)] p-3.5 transition-colors hover:border-[var(--c-primary)] hover:bg-[var(--c-bg-hover)]"
+              @click="openBot"
+            >
+              <span
+                class="flex h-10 w-10 items-center justify-center rounded-full"
+                style="background: var(--c-success-bg); color: var(--c-success)"
+              >
                 <AppIcon name="send" :size="19" />
               </span>
-              <span class="text-14 font-500 text-[var(--c-text)]">{{ t('profile.contactBot') }}</span>
+              <span class="text-14 font-500 text-[var(--c-text)]">{{
+                t('profile.contactBot')
+              }}</span>
               <AppIcon name="external-link" :size="15" class="ml-auto text-[var(--c-text-sub)]" />
             </button>
           </div>
@@ -171,10 +193,14 @@ onMounted(() => {
       <div class="w-full shrink-0 space-y-5 lg:w-95">
         <!-- 修改密码 -->
         <div class="card-base p-5 md:p-6">
-          <h3 class="mb-5 text-16 font-600 text-[var(--c-text)]">{{ t('profile.resetPassword') }}</h3>
+          <h3 class="mb-5 text-16 font-600 text-[var(--c-text)]">
+            {{ t('profile.resetPassword') }}
+          </h3>
           <div class="space-y-4">
             <div>
-              <label class="mb-1 block text-12 text-[var(--c-text-sub)]">{{ t('profile.oldPassword') }}</label>
+              <label class="mb-1 block text-12 text-[var(--c-text-sub)]">{{
+                t('profile.oldPassword')
+              }}</label>
               <input
                 v-model="pwdForm.old_password"
                 type="password"
@@ -182,7 +208,9 @@ onMounted(() => {
               />
             </div>
             <div>
-              <label class="mb-1 block text-12 text-[var(--c-text-sub)]">{{ t('profile.newPassword') }}</label>
+              <label class="mb-1 block text-12 text-[var(--c-text-sub)]">{{
+                t('profile.newPassword')
+              }}</label>
               <input
                 v-model="pwdForm.new_password"
                 type="password"
@@ -190,19 +218,30 @@ onMounted(() => {
               />
             </div>
             <div>
-              <label class="mb-1 block text-12 text-[var(--c-text-sub)]">{{ t('profile.confirmNewPassword') }}</label>
+              <label class="mb-1 block text-12 text-[var(--c-text-sub)]">{{
+                t('profile.confirmNewPassword')
+              }}</label>
               <input
                 v-model="pwdForm.confirm_password"
                 type="password"
                 class="h-10 w-full border-b border-[var(--c-border)] bg-transparent text-14 text-[var(--c-text)] outline-none transition-colors focus:border-[var(--c-primary)]"
               />
             </div>
-            <p v-if="pwdForm.new_password && pwdForm.new_password !== pwdForm.confirm_password" class="text-12 text-[var(--c-danger)]">
+            <p
+              v-if="pwdForm.new_password && pwdForm.new_password !== pwdForm.confirm_password"
+              class="text-12 text-[var(--c-danger)]"
+            >
               {{ t('auth.passwordMismatch') }}
             </p>
             <div class="flex gap-2">
-              <button class="btn-ghost h-9 flex-1 text-13" @click="clearPwd">{{ t('profile.clearForm') }}</button>
-              <button class="btn-olive h-9 flex-1 text-13" :disabled="!canSavePwd || savingPwd" @click="savePwd">
+              <button class="btn-ghost h-9 flex-1 text-13" @click="clearPwd">
+                {{ t('profile.clearForm') }}
+              </button>
+              <button
+                class="btn-olive h-9 flex-1 text-13"
+                :disabled="!canSavePwd || savingPwd"
+                @click="savePwd"
+              >
                 {{ t('common.save') }}
               </button>
             </div>
@@ -211,10 +250,22 @@ onMounted(() => {
 
         <!-- 重置订阅 -->
         <div class="card-base p-5 md:p-6">
-          <h3 class="mb-4 text-16 font-600 text-[var(--c-text)]">{{ t('profile.resetSubscribe') }}</h3>
-          <div class="mb-4 flex items-start gap-2.5 rounded-xl p-3.5" style="background: var(--c-warning-bg)">
-            <AppIcon name="alert" :size="17" class="mt-0.5 shrink-0" :style="{ color: 'var(--c-warning)' }" />
-            <p class="text-12 leading-5 text-[var(--c-text)]">{{ t('profile.resetSubscribeTip') }}</p>
+          <h3 class="mb-4 text-16 font-600 text-[var(--c-text)]">
+            {{ t('profile.resetSubscribe') }}
+          </h3>
+          <div
+            class="mb-4 flex items-start gap-2.5 rounded-xl p-3.5"
+            style="background: var(--c-warning-bg)"
+          >
+            <AppIcon
+              name="alert"
+              :size="17"
+              class="mt-0.5 shrink-0"
+              :style="{ color: 'var(--c-warning)' }"
+            />
+            <p class="text-12 leading-5 text-[var(--c-text)]">
+              {{ t('profile.resetSubscribeTip') }}
+            </p>
           </div>
           <button class="btn-danger h-10 w-full text-13" @click="showResetModal = true">
             <AppIcon name="refresh" :size="15" />
@@ -225,7 +276,12 @@ onMounted(() => {
     </div>
 
     <!-- 重置确认弹窗 -->
-    <n-modal v-model:show="showResetModal" preset="card" :title="t('profile.resetSubscribe')" class="max-w-95">
+    <n-modal
+      v-model:show="showResetModal"
+      preset="card"
+      :title="t('profile.resetSubscribe')"
+      class="max-w-95"
+    >
       <div class="space-y-4">
         <p class="text-13 text-[var(--c-text-sub)]">{{ t('profile.resetConfirm') }}</p>
         <input
@@ -234,7 +290,11 @@ onMounted(() => {
           :placeholder="t('auth.password')"
           class="h-10 w-full rounded-[var(--r-control)] border border-[var(--c-border)] bg-[var(--c-bg-card)] px-3 text-13 text-[var(--c-text)] outline-none transition-colors focus:border-[var(--c-primary)]"
         />
-        <button class="btn-danger h-10 w-full text-13" :disabled="resetting" @click="onResetSubscribe">
+        <button
+          class="btn-danger h-10 w-full text-13"
+          :disabled="resetting"
+          @click="onResetSubscribe"
+        >
           {{ t('profile.resetSubscribeBtn') }}
         </button>
       </div>
@@ -243,13 +303,22 @@ onMounted(() => {
     <!-- 新订阅链接展示 -->
     <n-modal
       :show="!!newSubscribeUrl"
-      @update:show="(v: boolean) => { if (!v) newSubscribeUrl = '' }"
       preset="card"
       :title="t('profile.newSubscribeUrl')"
       class="max-w-105"
+      @update:show="
+        (v: boolean) => {
+          if (!v) newSubscribeUrl = ''
+        }
+      "
     >
-      <div class="flex items-center gap-2 rounded-xl p-3" style="background-color: var(--c-bg-hover)">
-        <span class="num min-w-0 flex-1 break-all text-12 text-[var(--c-text)]">{{ newSubscribeUrl }}</span>
+      <div
+        class="flex items-center gap-2 rounded-xl p-3"
+        style="background-color: var(--c-bg-hover)"
+      >
+        <span class="num min-w-0 flex-1 break-all text-12 text-[var(--c-text)]">{{
+          newSubscribeUrl
+        }}</span>
         <button class="btn-primary h-9 shrink-0 px-4 text-12" @click="copyNewUrl">
           <AppIcon name="copy" :size="14" />
           {{ t('common.copy') }}

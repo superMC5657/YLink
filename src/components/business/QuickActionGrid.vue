@@ -32,15 +32,57 @@ interface Action {
 }
 
 const actions: Action[] = [
-  { key: 'docs', icon: 'book', label: t('dashboard.viewTutorial'), color: '#6558F5', bg: '#EAE7FF' },
-  { key: 'invite', icon: 'gift', label: t('dashboard.inviteEarn'), color: '#C2487B', bg: '#FBE3EF' },
+  {
+    key: 'docs',
+    icon: 'book',
+    label: t('dashboard.viewTutorial'),
+    color: '#6558F5',
+    bg: '#EAE7FF',
+  },
+  {
+    key: 'invite',
+    icon: 'gift',
+    label: t('dashboard.inviteEarn'),
+    color: '#C2487B',
+    bg: '#FBE3EF',
+  },
   { key: 'plans', icon: 'zap', label: t('dashboard.buyPlan'), color: '#D98E04', bg: '#FCEFCE' },
-  { key: 'free-traffic', icon: 'sparkles', label: t('dashboard.freeTraffic'), color: '#5BA829', bg: '#DDF3C6' },
-  { key: 'download', icon: 'download', label: t('dashboard.appDownload'), color: '#4B8FE5', bg: '#E1EEFB' },
-  { key: 'tickets', icon: 'ticket', label: t('dashboard.myTickets'), color: '#7C9A3D', bg: '#EAF2D9' },
+  {
+    key: 'free-traffic',
+    icon: 'sparkles',
+    label: t('dashboard.freeTraffic'),
+    color: '#5BA829',
+    bg: '#DDF3C6',
+  },
+  {
+    key: 'download',
+    icon: 'download',
+    label: t('dashboard.appDownload'),
+    color: '#4B8FE5',
+    bg: '#E1EEFB',
+  },
+  {
+    key: 'tickets',
+    icon: 'ticket',
+    label: t('dashboard.myTickets'),
+    color: '#7C9A3D',
+    bg: '#EAF2D9',
+  },
   { key: 'profile', icon: 'user', label: t('dashboard.profile'), color: '#C2487B', bg: '#FBE3EF' },
-  { key: 'subscribe-link', icon: 'link', label: t('dashboard.subscribeLink'), color: '#6558F5', bg: '#EAE7FF' },
-  { key: 'import', icon: 'download', label: t('dashboard.oneClickImport'), color: '#E5484D', bg: '#FDE3E4' },
+  {
+    key: 'subscribe-link',
+    icon: 'link',
+    label: t('dashboard.subscribeLink'),
+    color: '#6558F5',
+    bg: '#EAE7FF',
+  },
+  {
+    key: 'import',
+    icon: 'download',
+    label: t('dashboard.oneClickImport'),
+    color: '#E5484D',
+    bg: '#FDE3E4',
+  },
 ]
 
 function onAction(a: Action) {
@@ -108,27 +150,51 @@ function openDownload(kind: 'windows' | 'macos' | 'android') {
     </div>
 
     <!-- 免费流量说明 -->
-    <n-modal v-model:show="showFreeTraffic" preset="card" :title="t('dashboard.freeTraffic')" class="max-w-105">
+    <n-modal
+      v-model:show="showFreeTraffic"
+      preset="card"
+      :title="t('dashboard.freeTraffic')"
+      class="max-w-105"
+    >
       <div class="flex items-start gap-3">
-        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full" style="background: var(--c-success-bg); color: var(--c-success)">
+        <span
+          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+          style="background: var(--c-success-bg); color: var(--c-success)"
+        >
           <AppIcon name="sparkles" :size="20" />
         </span>
-        <p class="text-14 leading-6 text-[var(--c-text)]">{{ config.config?.free_traffic_tips || '暂无说明' }}</p>
+        <p class="text-14 leading-6 text-[var(--c-text)]">
+          {{ config.config?.free_traffic_tips || '暂无说明' }}
+        </p>
       </div>
     </n-modal>
 
     <!-- APP 下载 -->
-    <n-modal v-model:show="showDownload" preset="card" :title="t('dashboard.appDownload')" class="max-w-105">
+    <n-modal
+      v-model:show="showDownload"
+      preset="card"
+      :title="t('dashboard.appDownload')"
+      class="max-w-105"
+    >
       <div class="grid grid-cols-3 gap-3">
-        <button class="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-[var(--c-border)] py-5 transition-colors hover:bg-[var(--c-bg-hover)]" @click="openDownload('windows')">
+        <button
+          class="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-[var(--c-border)] py-5 transition-colors hover:bg-[var(--c-bg-hover)]"
+          @click="openDownload('windows')"
+        >
           <AppIcon name="download" :size="24" :style="{ color: 'var(--c-primary)' }" />
           <span class="text-13 font-500">Windows</span>
         </button>
-        <button class="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-[var(--c-border)] py-5 transition-colors hover:bg-[var(--c-bg-hover)]" @click="openDownload('macos')">
+        <button
+          class="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-[var(--c-border)] py-5 transition-colors hover:bg-[var(--c-bg-hover)]"
+          @click="openDownload('macos')"
+        >
           <AppIcon name="download" :size="24" :style="{ color: 'var(--c-primary)' }" />
           <span class="text-13 font-500">macOS</span>
         </button>
-        <button class="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-[var(--c-border)] py-5 transition-colors hover:bg-[var(--c-bg-hover)]" @click="openDownload('android')">
+        <button
+          class="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-[var(--c-border)] py-5 transition-colors hover:bg-[var(--c-bg-hover)]"
+          @click="openDownload('android')"
+        >
           <AppIcon name="download" :size="24" :style="{ color: 'var(--c-primary)' }" />
           <span class="text-13 font-500">Android</span>
         </button>

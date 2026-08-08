@@ -5,6 +5,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useConfigStore } from '@/stores/config'
 import { apiCaptcha } from '@/api/user'
 import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
@@ -12,6 +13,7 @@ import { useCountdown } from '@/composables/useCountdown'
 import type { FormInst, FormRules } from 'naive-ui'
 
 const auth = useAuthStore()
+const config = useConfigStore()
 const route = useRoute()
 const router = useRouter()
 const message = useMessage()
@@ -30,10 +32,11 @@ const form = ref({
   invite_code: '',
 })
 
-// URL ?code= 自动填充邀请码
+// URL ?code= 自动填充邀请码;并拉取站点配置(判断强制邀请)
 onMounted(() => {
   const code = route.query.code as string | undefined
   if (code) form.value.invite_code = code
+  void config.fetchConfig()
 })
 
 const rules = computed<FormRules>(() => ({
@@ -77,6 +80,21 @@ const rules = computed<FormRules>(() => ({
       },
     },
   ],
+  // 站点开启强制邀请时必填(契约 §4.1 / /config invite_code_required)
+  ...(config.inviteCodeRequired
+    ? {
+        invite_code: [
+          {
+            required: true,
+            trigger: ['blur', 'input'],
+            validator: (_r, v: string) => {
+              if (!v?.trim()) return new Error('邀请码必填')
+              return true
+            },
+          },
+        ],
+      }
+    : {}),
 }))
 
 async function sendCode() {
@@ -121,7 +139,9 @@ async function onSubmit() {
 <template>
   <div>
     <h2 class="mb-1 text-20 font-700 text-[var(--c-text)]">{{ t('auth.welcomeRegister') }}</h2>
-    <p class="mb-6 text-13 text-[var(--c-text-sub)]">{{ t('auth.email') }} + {{ t('auth.password') }}</p>
+    <p class="mb-6 text-13 text-[var(--c-text-sub)]">
+      {{ t('auth.email') }} + {{ t('auth.password') }}
+    </p>
 
     <n-form ref="formRef" :model="form" :rules="rules" size="large" @keyup.enter="onSubmit">
       <n-form-item path="email">
@@ -174,7 +194,10 @@ async function onSubmit() {
       </n-form-item>
 
       <button class="btn-primary h-11 w-full text-15" :disabled="loading" @click="onSubmit">
-        <span v-if="loading" class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+        <span
+          v-if="loading"
+          class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+        />
         {{ t('auth.register') }}
       </button>
     </n-form>

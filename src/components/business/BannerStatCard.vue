@@ -20,13 +20,21 @@ const { t } = useI18n()
     "
   >
     <!-- 氛围圆环 -->
-    <div class="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full border-2 border-white/10" />
-    <div class="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full border-2 border-white/15" />
-    <div class="pointer-events-none absolute bottom-0 right-24 h-24 w-24 rounded-full bg-white/5 blur-2xl" />
+    <div
+      class="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full border-2 border-white/10"
+    />
+    <div
+      class="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full border-2 border-white/15"
+    />
+    <div
+      class="pointer-events-none absolute bottom-0 right-24 h-24 w-24 rounded-full bg-white/5 blur-2xl"
+    />
 
     <div class="relative flex flex-wrap items-center gap-5">
       <!-- Logo -->
-      <span class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 backdrop-blur">
+      <span
+        class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 backdrop-blur"
+      >
         <AppIcon name="zap" :size="28" />
       </span>
 

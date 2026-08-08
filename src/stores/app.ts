@@ -35,13 +35,19 @@ export const useAppStore = defineStore('app', {
       setThemeMode(mode)
       this.applyTheme()
     },
-    /** 将当前模式写入 <html data-theme>,同步 Naive darkTheme */
+    /** 将当前模式写入 <html data-theme>,同步 Naive darkTheme,并通知 Tauri 窗口标题栏 */
     applyTheme() {
       const theme = resolveTheme(this.themeMode)
       document.documentElement.setAttribute('data-theme', theme)
       document.dispatchEvent(
         new CustomEvent('theme-changed', { detail: { theme, dark: theme === 'dark' } }),
       )
+      // Tauri 桌面端:标题栏亮暗跟随(Rust 侧 set_window_theme)
+      if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
+        void import('@tauri-apps/api/core').then(({ invoke }) => {
+          void invoke('set_window_theme', { dark: theme === 'dark' })
+        })
+      }
     },
     setLanguage(lang: string) {
       this.language = lang

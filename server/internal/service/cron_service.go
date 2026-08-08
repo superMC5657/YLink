@@ -69,9 +69,32 @@ func (s *CronService) CloseExpiredOrders(ctx context.Context) {
 	}
 	closed := 0
 	for _, o := range orders {
-		// 条件更新（status=0），已支付/已完成订单不会被误关
-		if err := s.repos.Order.UpdateStatusIfPending(s.db, o.OrderNo, model.OrderCanceled); err == nil {
+		err := repo.WithTx(s.db, func(tx *gorm.DB) error {
+			locked, err := s.repos.Order.GetByNoForUpdate(tx, o.OrderNo)
+			if err != nil {
+				return err
+			}
+			if locked.Status != model.OrderPending {
+				return nil // 已支付/已取消，跳过
+			}
+			if err := s.repos.Order.UpdateStatus(tx, o.OrderNo, model.OrderCanceled); err != nil {
+				return err
+			}
+			// 回退优惠券占用（防止券与配额永久残留）
+			if locked.CouponID != nil {
+				if err := s.repos.Coupon.Release(tx, *locked.CouponID); err != nil {
+					return err
+				}
+				if err := s.repos.Coupon.DeleteUsage(tx, *locked.CouponID, locked.UserID, locked.OrderNo); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+		if err == nil {
 			closed++
+		} else {
+			logger.L().Error("close order fail", zapS("order_no", o.OrderNo), zapE(err))
 		}
 	}
 	logger.L().Info("close expired orders done", zapS("closed", fmt.Sprint(closed)))
@@ -124,6 +147,14 @@ func (s *CronService) ConfirmCommissions(ctx context.Context) {
 	now := time.Now()
 	for _, cl := range list {
 		err := repo.WithTx(s.db, func(tx *gorm.DB) error {
+			// 条件更新（status=0→1）：已被退款撤销的佣金不发放
+			affected, err := s.repos.Commission.UpdateStatusIfPending(tx, cl.ID)
+			if err != nil {
+				return err
+			}
+			if affected == 0 {
+				return nil
+			}
 			inviter, err := s.repos.User.GetByIDForUpdate(tx, cl.InviteUserID)
 			if err != nil {
 				return err
@@ -132,9 +163,9 @@ func (s *CronService) ConfirmCommissions(ctx context.Context) {
 			if err := s.repos.User.Save(tx, inviter); err != nil {
 				return err
 			}
-			cl.Status = model.CommissionGranted
-			cl.ConfirmedAt = &now
-			return s.repos.Commission.Save(tx, &cl)
+			confirmed := &cl
+			confirmed.ConfirmedAt = &now
+			return s.repos.Commission.Save(tx, confirmed)
 		})
 		if err != nil {
 			logger.L().Error("confirm commission fail", zapS("order_no", cl.OrderNo), zapE(err))
@@ -209,6 +240,39 @@ func (s *CronService) TrafficRemind(ctx context.Context) {
 // TrafficDaily 流量日结转（模式 B 空跑，供二期对账）。
 func (s *CronService) TrafficDaily(ctx context.Context) {
 	logger.L().Info("traffic daily (mode B: no-op)")
+}
+
+// AgentAudit 代理商月度复核（core-flows 第 5 节）：有效邀请人数不满足阈值 → 降级 role=0。
+func (s *CronService) AgentAudit(ctx context.Context) {
+	required := 50
+	type agentCfg struct {
+		RequiredValidInvites int `json:"required_valid_invites"`
+	}
+	if raw, err := s.repos.Setting.Get(s.db, "agent"); err == nil {
+		var c agentCfg
+		if json.Unmarshal([]byte(raw), &c) == nil && c.RequiredValidInvites > 0 {
+			required = c.RequiredValidInvites
+		}
+	}
+	var agents []model.User
+	if err := s.db.Where("role = ?", model.RoleAgent).Find(&agents).Error; err != nil {
+		logger.L().Error("agent audit query", zapE(err))
+		return
+	}
+	downgraded := 0
+	for _, a := range agents {
+		valid, err := s.repos.User.CountValidInvited(s.db, a.ID)
+		if err != nil {
+			continue
+		}
+		if valid < int64(required) {
+			if err := s.repos.User.UpdateRole(s.db, a.ID, model.RoleUser); err == nil {
+				downgraded++
+				logger.L().Info("agent downgraded", zapS("user_id", fmt.Sprint(a.ID)))
+			}
+		}
+	}
+	logger.L().Info("agent audit done", zapS("downgraded", fmt.Sprint(downgraded)))
 }
 
 // zapS / zapE 便捷字段构造。

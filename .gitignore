@@ -34,6 +34,8 @@ Thumbs.db
 # Tauri 生成物
 src-tauri/target/
 src-tauri/gen/
+src-tauri/icons/icon.png
+app-icon.png
 
 # 测试与覆盖率
 coverage/

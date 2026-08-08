@@ -30,7 +30,11 @@ const showPayment = ref(false)
 const payMethod = ref('epay_alipay')
 
 async function load() {
-  await orderStore.fetch({ page: currentPage.value, page_size: pageSize, status: statusFilter.value })
+  await orderStore.fetch({
+    page: currentPage.value,
+    page_size: pageSize,
+    status: statusFilter.value,
+  })
   // 存在待支付订单时开启轮询
   if (orderStore.list.some((o) => o.status === 0)) {
     orderStore.startPolling(() => void orderStore.fetch())
@@ -86,20 +90,33 @@ onBeforeUnmount(() => orderStore.stopPolling())
           ]"
           placeholder="全部"
           clearable
-          @update:value="(v: number | null) => { statusFilter = v === null ? '' : (v as 0 | 1 | 2 | 3); onStatusChange() }"
+          @update:value="
+            (v: number | null) => {
+              statusFilter = v === null ? '' : (v as 0 | 1 | 2 | 3)
+              onStatusChange()
+            }
+          "
         />
         <!-- 视图切换 -->
         <div class="flex rounded-full border border-[var(--c-border)] p-0.5">
           <button
             class="cursor-pointer rounded-full px-3 py-1 text-12 transition-colors"
-            :class="viewMode === 'table' ? 'bg-[var(--c-primary-soft)] text-[var(--c-primary-text)]' : 'text-[var(--c-text-sub)]'"
+            :class="
+              viewMode === 'table'
+                ? 'bg-[var(--c-primary-soft)] text-[var(--c-primary-text)]'
+                : 'text-[var(--c-text-sub)]'
+            "
             @click="viewMode = 'table'"
           >
             {{ t('order.tableView') }}
           </button>
           <button
             class="cursor-pointer rounded-full px-3 py-1 text-12 transition-colors"
-            :class="viewMode === 'card' ? 'bg-[var(--c-primary-soft)] text-[var(--c-primary-text)]' : 'text-[var(--c-text-sub)]'"
+            :class="
+              viewMode === 'card'
+                ? 'bg-[var(--c-primary-soft)] text-[var(--c-primary-text)]'
+                : 'text-[var(--c-text-sub)]'
+            "
             @click="viewMode = 'card'"
           >
             {{ t('order.cardView') }}
@@ -116,12 +133,7 @@ onBeforeUnmount(() => orderStore.stopPolling())
           @view="viewDetail"
           @pay="goPay"
         />
-        <OrderCardList
-          v-else
-          :orders="orderStore.list"
-          @view="viewDetail"
-          @pay="goPay"
-        />
+        <OrderCardList v-else :orders="orderStore.list" @view="viewDetail" @pay="goPay" />
         <EmptyState
           v-if="!orderStore.loading && orderStore.list.length === 0"
           :text="t('order.noOrders')"
@@ -140,11 +152,7 @@ onBeforeUnmount(() => orderStore.stopPolling())
     </div>
 
     <!-- 详情抽屉 -->
-    <OrderDetailDrawer
-      v-model:show="drawerVisible"
-      :order-no="currentOrderNo"
-      @changed="load"
-    />
+    <OrderDetailDrawer v-model:show="drawerVisible" :order-no="currentOrderNo" @changed="load" />
 
     <!-- 去支付收银台 -->
     <PaymentModal v-model:show="showPayment" :order="payOrder" :method="payMethod" @paid="onPaid" />

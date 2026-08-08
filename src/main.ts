@@ -32,6 +32,7 @@ import { setupGuards } from './router/guards'
 import { useAppStore } from './stores/app'
 import { useAuthStore } from './stores/auth'
 import { setHttpLanguage } from './utils/http'
+import { onDeepLink } from './utils/platform'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
@@ -40,10 +41,9 @@ import PriceText from '@/components/ui/PriceText.vue'
 import StatNumber from '@/components/ui/StatNumber.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import UiCard from '@/components/ui/UiCard.vue'
+import { loadLocaleMessages, normalizeLocale } from '@/locales'
 import './styles/tokens.css'
 import './styles/theme'
-import zhCN from './locales/zh-CN'
-import enUS from './locales/en-US'
 
 /** naive-ui 按需注册(与 create({}) 默认空注册不同,必须显式列出) */
 const naive = create({
@@ -74,14 +74,13 @@ const i18n = createI18n({
   legacy: false,
   locale: 'zh-CN',
   fallbackLocale: 'zh-CN',
-  messages: { 'zh-CN': zhCN, 'en-US': enUS },
+  messages: {},
 })
 
 const app = createApp(App)
 const pinia = createPinia()
 pinia.use(piniaPluginPersistedstate as never)
 app.use(pinia)
-app.use(router)
 app.use(i18n)
 app.use(naive)
 
@@ -95,19 +94,39 @@ app.component('StatNumber', StatNumber)
 app.component('PageHeader', PageHeader)
 app.component('UiCard', UiCard)
 
-// 恢复会话(持久化 token)与主题/语言
-const auth = useAuthStore()
-auth.restore()
+/**
+ * 异步引导:语言包懒加载完成后再挂载,避免首帧缺文案。
+ * 语言解析:持久化值 → 浏览器语言 → zh-CN。
+ * 注意:router 在此安装,确保守卫先于初始导航注册。
+ */
+async function bootstrap() {
+  const auth = useAuthStore()
+  auth.restore()
 
-const appStore = useAppStore()
-appStore.applyTheme()
-appStore.initSystemThemeListener()
+  const appStore = useAppStore()
+  appStore.applyTheme()
+  appStore.initSystemThemeListener()
 
-const browserLang = navigator.language?.startsWith('en') ? 'en-US' : 'zh-CN'
-const initialLang = appStore.language || browserLang
-i18n.global.locale.value = initialLang as 'zh-CN' | 'en-US'
-setHttpLanguage(initialLang)
+  const initialLang = normalizeLocale(appStore.language)
+  const messages = await loadLocaleMessages(initialLang)
+  i18n.global.setLocaleMessage(initialLang, messages)
+  i18n.global.locale.value = initialLang
+  setHttpLanguage(initialLang)
 
-setupGuards(router)
+  setupGuards(router)
+  app.use(router)
 
-app.mount('#app')
+  // Tauri 深链接:nanocloud://plans → 路由 /plans(desktop-tauri.md §4)
+  onDeepLink((url) => {
+    try {
+      const path = new URL(url).pathname
+      if (path && path !== '/') void router.push(path)
+    } catch {
+      void router.push(url.replace(/^[a-z]+:\/\//, '/'))
+    }
+  })
+
+  app.mount('#app')
+}
+
+void bootstrap()

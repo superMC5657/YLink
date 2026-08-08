@@ -19,7 +19,13 @@ type Subscribe struct {
 
 func NewSubscribe(svc *service.SubscribeService) *Subscribe { return &Subscribe{svc: svc} }
 
-// UserSubscribe GET /user/subscribe
+// UserSubscribe 当前订阅信息
+// @Summary 当前订阅信息
+// @Tags 订阅
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} resp.Body{data=service.SubscribeResp}
+// @Router /user/subscribe [get]
 func (h *Subscribe) UserSubscribe(c *gin.Context) {
 	data, err := h.svc.UserSubscribe(c.Request.Context(), middleware.UserID(c))
 	if err != nil {
@@ -33,7 +39,15 @@ type resetReq struct {
 	Password string `json:"password" binding:"required"`
 }
 
-// Reset POST /user/subscribe/reset
+// Reset 重置订阅信息
+// @Summary 重置订阅信息
+// @Tags 订阅
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param body body object{password=string} true "请求"
+// @Success 200 {object} resp.Body{data=object{subscribe_url=string}}
+// @Router /user/subscribe/reset [post]
 func (h *Subscribe) Reset(c *gin.Context) {
 	var req resetReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -48,7 +62,15 @@ func (h *Subscribe) Reset(c *gin.Context) {
 	resp.OK(c, gin.H{"subscribe_url": *url})
 }
 
-// TrafficLogs GET /user/traffic-logs?from=&to=（范围最大 90 天）
+// TrafficLogs 流量明细
+// @Summary 流量明细
+// @Tags 订阅
+// @Security BearerAuth
+// @Produce json
+// @Param from query string true "开始日期"
+// @Param to query string true "结束日期"
+// @Success 200 {object} resp.Body{data=object{list=[]model.TrafficLog}}
+// @Router /user/traffic-logs [get]
 func (h *Subscribe) TrafficLogs(c *gin.Context) {
 	from := c.Query("from")
 	to := c.Query("to")
@@ -75,7 +97,14 @@ func validDate(s string) bool {
 	return err == nil
 }
 
-// ClientSubscribe GET /client/subscribe/{token}（代理客户端直连，不走 envelope）
+// ClientSubscribe 订阅下发（代理客户端直连，不走 envelope）
+// @Summary 订阅下发
+// @Tags 订阅
+// @Produce plain
+// @Param token path string true "订阅 token"
+// @Param flag query string false "clash/sing-box/v2ray"
+// @Success 200 {string} string "配置正文"
+// @Router /client/subscribe/{token} [get]
 func (h *Subscribe) ClientSubscribe(c *gin.Context) {
 	token := c.Param("token")
 	flag := c.Query("flag")

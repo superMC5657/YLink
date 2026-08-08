@@ -1,9 +1,5 @@
 import { http } from '@/utils/http'
-import type {
-  Notice,
-  PageQuery,
-  PageResult,
-} from '@/types/api'
+import type { Notice, PageQuery, PageResult } from '@/types/api'
 
 export const apiNotice = {
   fetch: (q: PageQuery = {}) =>

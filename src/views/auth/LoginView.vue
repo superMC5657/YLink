@@ -2,12 +2,13 @@
 /**
  * 登录页 —— 数据:POST /auth/login(docs/api/README.md §4.2)
  */
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import type { FormInst, FormRules } from 'naive-ui'
+import { removeItem } from '@/utils/storage'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -17,7 +18,16 @@ const { t } = useI18n()
 
 const formRef = ref<FormInst | null>(null)
 const loading = ref(false)
-const form = ref({ email: '2734921923@qq.com', password: 'Passw0rd' })
+// 登录页不预填演示账号(真实后端账号以注册为准)
+const form = ref({ email: '', password: '' })
+
+/** localStorage 残留过自定义后端地址时,显示「重置后端地址」自救入口 */
+const hasCustomApiBase = computed(() => localStorage.getItem('app:apiBase') !== null)
+
+function resetApiBase() {
+  removeItem('apiBase')
+  window.location.reload()
+}
 
 const rules: FormRules = {
   email: [{ required: true, message: t('auth.invalidEmail'), trigger: ['blur', 'input'] }],
@@ -85,5 +95,12 @@ async function onSubmit() {
         {{ t('auth.register') }}
       </router-link>
     </p>
+
+    <!-- 自救入口:localStorage 残留自定义后端地址导致「网络异常」时,一键重置 -->
+    <div v-if="hasCustomApiBase" class="mt-3 text-center">
+      <button class="text-12 text-[var(--c-text-sub)] underline-offset-2 hover:text-[var(--c-danger)] hover:underline" @click="resetApiBase">
+        {{ t('auth.resetApiBase') }}
+      </button>
+    </div>
   </div>
 </template>

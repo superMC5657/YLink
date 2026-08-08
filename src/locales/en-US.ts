@@ -47,6 +47,7 @@ export default {
     passwordMismatch: 'Passwords do not match',
     invalidEmail: 'Please enter a valid email',
     codeSent: 'Code sent',
+    resetApiBase: 'Network error? Click to reset API base URL',
   },
   dashboard: {
     title: 'Dashboard',

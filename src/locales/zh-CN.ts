@@ -47,6 +47,7 @@ export default {
     passwordMismatch: '两次输入的密码不一致',
     invalidEmail: '请输入正确的邮箱地址',
     codeSent: '验证码已发送',
+    resetApiBase: '网络异常?点击重置后端接口地址',
   },
   dashboard: {
     title: '仪表板',

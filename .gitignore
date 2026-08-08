@@ -42,5 +42,8 @@ coverage/
 playwright-report/
 test-results/
 
+# 本地联调运行时(PID/日志)
+.dev/
+
 # agent
 .reasonix

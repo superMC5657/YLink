@@ -61,10 +61,23 @@
 | 流量明细 | 近 7/30 天/自定义范围、ECharts 堆叠柱状图(亮暗主题联动)、汇总卡、明细表 |
 | 404 | 渐变数字 + 返回首页 |
 
+### M7 桌面分辨率适配(✅ 完成)
+
+| 项 | 说明 |
+|---|---|
+| 内容区宽度 | `max-w-[1200px]` → `max-w-[1440px]`:1920 屏利用率 62%→75%,2560 屏留白减半;窄屏(<1200)自动全宽 |
+| 窄桌面侧边栏 | 1024-1279px 视口进入主布局时自动折叠为 72px(内容区 +160px),用户可手动展开 |
+| 表格适配 | 订单表/邀请页两张表包 `overflow-x-auto` 容器:窄屏表格内部滚动,页面不再被撑破;订单表紧凑化(单元格 padding/字号)+ 订单号截断 12 字符,1440 屏免滚动 |
+| docs 搜索修复 | 搜索行 flex 组合 `flex-1 md:w-64 md:flex-none` 冲突导致溢出,改 `min-w-0 flex-1 md:max-w-72` |
+| 溢出兜底 | `<main>` 增加 `overflow-x-hidden`,任何横向泄漏不外溢 |
+| 诊断工具 | `scripts/diag-layout.mjs`:5 分辨率 × 12 路由自动测量(页面级溢出/内容区宽度/表格滚动),当前 0 异常 |
+| 验证 | E2E 32/32(登录用例适配登录页不再预填账号)+ typecheck + lint 全绿 |
+
 ### 审查修复(✅ 已修复,阻断项清零)
 
 | 问题 | 修复 |
 |---|---|
+| **全站字号放大 4 倍(字体比例不协调根因)** | presetUno 的 `text-<number>` 规则按 4px 基准转 rem(`text-13` → `3.25rem` = 52px),导致 292 处字号类全部放大 4 倍(11→44px、16→64px、28→112px),文字溢出按钮/撑爆卡片。在 `uno.config.ts` 增加自定义规则 `[/^text-(\d+)$/ → font-size: Npx]` 覆盖(UnoCSS 用户规则优先),全站字号回归规范阶梯 11/12/13/14/16/18/20/28/32;`scripts/diag-font.mjs` 测量验证 |
 | persistedstate 插件用 `app.use()` 注册导致 `context.pinia` 未定义,首帧崩溃 | 改为 `pinia.use(piniaPluginPersistedstate)` |
 | naive-ui `create()` 默认注册空组件,`n-config-provider` 等全部无法解析 | 显式列出 18 个用到的组件 |
 | themeOverrides 传 CSS 变量(`var(--c-primary)`)被 seemly 解析报错 | 拆亮/暗两套真实色值 overrides,与 tokens.css 双源同步(见前置条件 3.5) |
@@ -159,9 +172,10 @@
 | 前置 | 说明 |
 |---|---|
 | 单元测试 | `pnpm test`(Vitest + jsdom,29 用例);`pnpm test:coverage` 看覆盖率 |
-| E2E | `pnpm e2e`(Playwright):webServer 自动拉起 Mock dev;本地默认系统 Chrome(`channel:'chrome'`),CI 用 `playwright install chromium`;双 project(桌面 1440 / 移动 390×844) |
+| E2E | `pnpm e2e`(Playwright):webServer 以 `pnpm dev --mode e2e` 启动,**固定使用 `.env.e2e`(Mock)**,不受 `.env.development.local` 联调覆盖影响;本地默认系统 Chrome(`channel:'chrome'`),CI 用 `playwright install chromium`;双 project(桌面 1280 / 移动 390×844) |
+| 布局诊断 | `node scripts/diag-layout.mjs`:5 分辨率(1024-2560)× 12 路由测量页面级横向溢出与内容区宽度(需先起 Mock dev) |
 | 质量门禁 | `pnpm lint`(ESLint 0 error 0 warning)、`pnpm typecheck`、`pnpm format:check`(Prettier) |
-| 注意 | E2E 会创建订单/触发支付,反复运行产生累积数据(Mock 内存态,重启 dev 即清空) |
+| 注意 | E2E 会创建订单/触发支付,反复运行产生累积数据(Mock 内存态,重启 dev 即清空);登录页**不预填账号**,E2E 手动填写 Mock 演示账号 |
 
 ### 3.3 对接真实后端
 

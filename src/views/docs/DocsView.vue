@@ -45,11 +45,11 @@ watch(
   <div>
     <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <h1 class="text-20 font-600 text-[var(--c-text)]">{{ t('docs.title') }}</h1>
-      <div class="flex items-center gap-2">
+      <div class="flex w-full items-center gap-2 md:w-auto">
         <!-- 语言下拉 -->
         <n-select
           :value="knowledge.language"
-          class="w-36"
+          class="w-36 shrink-0"
           size="medium"
           :options="[
             { label: '简体中文', value: 'zh-CN' },
@@ -58,7 +58,7 @@ watch(
           @update:value="(v: string) => switchLanguage(v)"
         />
         <!-- 搜索 -->
-        <div class="relative flex-1 md:w-64 md:flex-none">
+        <div class="relative min-w-0 flex-1 md:max-w-72">
           <span class="absolute top-1/2 left-3 -translate-y-1/2 text-[var(--c-text-sub)]">
             <AppIcon name="search" :size="16" />
           </span>

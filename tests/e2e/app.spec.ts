@@ -10,7 +10,9 @@ test.describe('登录', () => {
     await expect(page).toHaveTitle(/NanoCloud/)
     await expect(page.locator('button', { hasText: '登录' }).first()).toBeVisible()
 
-    // 表单已预填 Mock 账号
+    // 登录页不预填账号(Mock 固定演示账号,手动填写)
+    await page.getByPlaceholder('邮箱').fill('2734921923@qq.com')
+    await page.getByPlaceholder('密码').fill('Passw0rd')
     await page.locator('button', { hasText: '登录' }).first().click()
     await expect(page).toHaveURL(/#\/dashboard/)
     await expect(page.getByText('钱包余额')).toBeVisible()

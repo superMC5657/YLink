@@ -28,7 +28,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm dev',
+    // --mode e2e 强制使用 .env.e2e(Mock),避免 .env.development.local 联调覆盖影响测试稳定性
+    command: 'pnpm dev --mode e2e',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,

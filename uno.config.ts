@@ -19,6 +19,11 @@ export default defineConfig({
     }),
   ],
   transformers: [transformerDirectives()],
+  rules: [
+    // 覆盖 presetUno 的 text-<number> 规则:默认按 4px 基准转 rem(如 text-13 → 3.25rem = 52px),
+    // 本项目约定 text-N = N px(design-system.md §3 字号阶梯 12/13/14/16/18/20/24/28/32)。
+    [/^text-(\d+(?:\.\d+)?)$/, ([, d]) => ({ 'font-size': `${d}px` })],
+  ],
   shortcuts: {
     'card-base': 'bg-[var(--c-bg-card)] rounded-[var(--r-card)] shadow-[var(--s-card)]',
     'btn-primary':

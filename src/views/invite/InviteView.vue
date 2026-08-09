@@ -108,37 +108,39 @@ onMounted(() => {
             </button>
           </div>
 
-          <n-table v-if="isDesktop" :bordered="false" class="w-full">
-            <thead>
-              <tr>
-                <th class="text-13">{{ t('invite.code') }}</th>
-                <th class="text-13">{{ t('invite.usedCount') }}</th>
-                <th class="text-13">{{ t('invite.createdAt') }}</th>
-                <th class="text-13">{{ t('common.action') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="c in invite.codes"
-                :key="c.code"
-                class="transition-colors hover:bg-[var(--c-bg-hover)]"
-              >
-                <td class="num font-600 text-[var(--c-text)]">{{ c.code }}</td>
-                <td class="num text-[var(--c-text)]">{{ c.used_count }}</td>
-                <td class="text-13 text-[var(--c-text-sub)]">
-                  {{ formatTime(c.created_at, false) }}
-                </td>
-                <td>
-                  <button
-                    class="text-13 font-500 text-[var(--c-primary-text)] hover:underline"
-                    @click="copyCode(c.code)"
-                  >
-                    {{ t('common.copy') }}
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </n-table>
+          <div v-if="isDesktop" class="w-full overflow-x-auto">
+            <n-table :bordered="false" class="w-full">
+              <thead>
+                <tr>
+                  <th class="text-13">{{ t('invite.code') }}</th>
+                  <th class="text-13">{{ t('invite.usedCount') }}</th>
+                  <th class="text-13">{{ t('invite.createdAt') }}</th>
+                  <th class="text-13">{{ t('common.action') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="c in invite.codes"
+                  :key="c.code"
+                  class="transition-colors hover:bg-[var(--c-bg-hover)]"
+                >
+                  <td class="num font-600 text-[var(--c-text)]">{{ c.code }}</td>
+                  <td class="num text-[var(--c-text)]">{{ c.used_count }}</td>
+                  <td class="text-13 text-[var(--c-text-sub)]">
+                    {{ formatTime(c.created_at, false) }}
+                  </td>
+                  <td>
+                    <button
+                      class="text-13 font-500 text-[var(--c-primary-text)] hover:underline"
+                      @click="copyCode(c.code)"
+                    >
+                      {{ t('common.copy') }}
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </n-table>
+          </div>
 
           <!-- 移动端卡片 -->
           <div v-else class="space-y-2">
@@ -177,30 +179,32 @@ onMounted(() => {
           <h3 class="mb-4 text-16 font-600 text-[var(--c-text)]">
             {{ t('invite.commissionRecords') }}
           </h3>
-          <n-table v-if="isDesktop" :bordered="false" class="w-full">
-            <thead>
-              <tr>
-                <th class="text-13">{{ t('order.orderNo') }}</th>
-                <th class="text-13">{{ t('invite.amount') }}</th>
-                <th class="text-13">{{ t('invite.rate') }}</th>
-                <th class="text-13">{{ t('invite.recordTime') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="r in invite.records"
-                :key="r.order_no"
-                class="transition-colors hover:bg-[var(--c-bg-hover)]"
-              >
-                <td><CopyText :text="r.order_no" :max-chars="16" /></td>
-                <td class="num font-600 text-[var(--c-pink)]">+{{ formatMoney(r.amount) }}</td>
-                <td class="num text-13 text-[var(--c-text-sub)]">{{ r.rate }}%</td>
-                <td class="text-13 text-[var(--c-text-sub)]">
-                  {{ formatTime(r.confirmed_at, false) }}
-                </td>
-              </tr>
-            </tbody>
-          </n-table>
+          <div v-if="isDesktop" class="w-full overflow-x-auto">
+            <n-table :bordered="false" class="w-full">
+              <thead>
+                <tr>
+                  <th class="text-13">{{ t('order.orderNo') }}</th>
+                  <th class="text-13">{{ t('invite.amount') }}</th>
+                  <th class="text-13">{{ t('invite.rate') }}</th>
+                  <th class="text-13">{{ t('invite.recordTime') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="r in invite.records"
+                  :key="r.order_no"
+                  class="transition-colors hover:bg-[var(--c-bg-hover)]"
+                >
+                  <td><CopyText :text="r.order_no" :max-chars="14" /></td>
+                  <td class="num font-600 text-[var(--c-pink)]">+{{ formatMoney(r.amount) }}</td>
+                  <td class="num text-13 text-[var(--c-text-sub)]">{{ r.rate }}%</td>
+                  <td class="text-13 text-[var(--c-text-sub)]">
+                    {{ formatTime(r.confirmed_at, false) }}
+                  </td>
+                </tr>
+              </tbody>
+            </n-table>
+          </div>
           <div v-else class="space-y-2">
             <div
               v-for="r in invite.records"

@@ -30,6 +30,10 @@ onMounted(() => {
   void config.fetchConfig()
   void user.refreshDashboard()
   app.initSystemThemeListener()
+  // 1024-1279px 窄桌面:默认折叠侧边栏,给内容区留更多横向空间
+  if (window.innerWidth >= 1024 && window.innerWidth < 1280) {
+    app.sidebarCollapsed = true
+  }
   // 窗口聚焦静默刷新
   window.addEventListener('focus', onFocus)
   window.addEventListener('visibilitychange', onVisibility)
@@ -64,8 +68,14 @@ watch(
     <div class="flex min-w-0 flex-1 flex-col">
       <AppHeader @toggle-drawer="drawerVisible = true" />
 
-      <main class="flex-1 overflow-y-auto" :class="isMobile ? 'px-4 pb-24 pt-4' : 'px-6 py-6'">
-        <div class="mx-auto w-full" :class="isDesktop ? 'max-w-[1200px]' : 'max-w-none'">
+      <main
+        class="flex-1 overflow-y-auto overflow-x-hidden"
+        :class="isMobile ? 'px-4 pb-24 pt-4' : 'px-6 py-6 md:px-8'"
+      >
+        <div
+          class="mx-auto w-full"
+          :class="isDesktop ? 'max-w-[1440px]' : 'max-w-none'"
+        >
           <router-view v-slot="{ Component }">
             <transition name="fade-slide" mode="out-in">
               <component :is="Component" />

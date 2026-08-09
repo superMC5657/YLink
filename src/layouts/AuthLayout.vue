@@ -4,24 +4,12 @@
  * 规范见 docs/frontend/pages.md §2.3。
  */
 import { useConfigStore } from '@/stores/config'
-import { useI18n } from 'vue-i18n'
-import { useLocale } from '@/composables/useLocale'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
+import LanguageToggle from '@/components/ui/LanguageToggle.vue'
 
 const config = useConfigStore()
-const { locale } = useI18n()
-const { switchLocale } = useLocale()
 
 void config.fetchConfig()
-
-function onLanguageChange(value: string) {
-  void switchLocale(value)
-}
-
-const languageOptions = [
-  { label: '简体中文', value: 'zh-CN' },
-  { label: 'English', value: 'en-US' },
-]
 </script>
 
 <template>
@@ -43,14 +31,7 @@ const languageOptions = [
 
     <!-- 右上角语言/主题 -->
     <div class="absolute top-4 right-4 z-10 flex items-center gap-2">
-      <n-dropdown trigger="click" :options="languageOptions" @select="onLanguageChange">
-        <button
-          class="flex h-9 cursor-pointer items-center gap-1 rounded-full border border-[var(--c-border)] bg-[var(--c-bg-card)] px-3 text-13 text-[var(--c-text-sub)] transition-colors hover:bg-[var(--c-bg-hover)]"
-        >
-          <AppIcon name="globe" :size="16" />
-          <span>{{ languageOptions.find((o) => o.value === locale)?.label }}</span>
-        </button>
-      </n-dropdown>
+      <LanguageToggle />
       <ThemeToggle />
     </div>
 
@@ -66,7 +47,10 @@ const languageOptions = [
         <h1 class="text-22 font-700 text-[var(--c-text)]">{{ config.siteName }}</h1>
       </div>
 
-      <div class="card-base p-6 md:p-8" style="--s-card: var(--s-pop)">
+      <div
+        class="card-base border border-solid border-[var(--c-card-border)] p-6 md:p-8"
+        style="--s-card: var(--s-pop)"
+      >
         <router-view />
       </div>
 

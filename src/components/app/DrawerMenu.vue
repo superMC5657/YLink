@@ -71,13 +71,13 @@ function onLogout() {
           <div
             class="mb-1.5 px-3 text-11 uppercase tracking-wider text-[var(--c-text-sub)] opacity-70"
           >
-            {{ group.label }}
+            {{ t(group.label) }}
           </div>
           <div class="space-y-1">
             <button
               v-for="item in group.items"
               :key="item.path"
-              class="flex h-11 w-full cursor-pointer items-center gap-3 rounded-[var(--r-pill)] px-3 text-14 transition-colors"
+              class="flex h-11 w-full cursor-pointer items-center gap-3 rounded-[var(--r-control)] px-3 text-14 transition-colors"
               :class="
                 isActive(item.path)
                   ? 'bg-[var(--c-primary-soft)] font-500 text-[var(--c-primary-text)]'
@@ -86,7 +86,7 @@ function onLogout() {
               @click="go(item.path)"
             >
               <AppIcon :name="item.icon" :size="20" />
-              <span>{{ item.name }}</span>
+              <span>{{ t(item.name) }}</span>
             </button>
           </div>
         </div>
@@ -107,7 +107,7 @@ function onLogout() {
           </div>
         </div>
         <button
-          class="mt-4 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-[var(--r-pill)] text-14 text-[var(--c-danger)] transition-colors hover:bg-[var(--c-danger-bg)]"
+          class="mt-4 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-[var(--r-control)] text-14 text-[var(--c-danger)] transition-colors hover:bg-[var(--c-danger-bg)]"
           @click="onLogout"
         >
           <AppIcon name="log-out" :size="17" />

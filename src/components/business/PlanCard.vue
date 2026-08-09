@@ -79,7 +79,7 @@ function periodLabel(p: PlanPeriod): string {
       <button
         v-for="p in periods"
         :key="p"
-        class="cursor-pointer rounded-full px-3 py-1 text-12 transition-colors"
+        class="cursor-pointer rounded-[var(--r-control)] px-3 py-1 text-12 transition-colors"
         :class="
           currentPeriod === p
             ? 'bg-[var(--c-primary-soft)] font-600 text-[var(--c-primary-text)]'
@@ -123,7 +123,7 @@ function periodLabel(p: PlanPeriod): string {
 
     <!-- 购买 -->
     <button
-      class="mt-5 h-11 w-full cursor-pointer rounded-[var(--r-pill)] border border-[var(--c-primary)] text-14 font-500 text-[var(--c-primary-text)] transition-all duration-[var(--t-base)] hover:bg-[var(--c-primary)] hover:text-white active:scale-98"
+      class="mt-5 h-11 w-full cursor-pointer rounded-[var(--r-control)] border border-[var(--c-primary)] text-14 font-500 text-[var(--c-primary-text)] transition-all duration-[var(--t-base)] hover:bg-[var(--c-primary)] hover:text-white active:scale-98"
       @click="emit('buy', plan)"
     >
       {{ t('plan.buyNow') }}

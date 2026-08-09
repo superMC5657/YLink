@@ -102,7 +102,8 @@ DashboardPage
 
 ### 3.4 使用文档 `/docs`（截图2）
 
-- 组件：搜索框（防抖 300ms，前端过滤当前列表 + 传 `keyword` 重新拉取）、语言下拉（zh/en，仅显示对应语言文档）、`KnowledgeGroupCard` × N（分类：防失联/新手知识科普/安卓配置/苹果配置/Windows/MacOS…分类由后端返回动态渲染）。
+- 组件：搜索框（防抖 300ms，前端过滤当前列表 + 传 `keyword` 重新拉取）、`KnowledgeGroupCard` × N（分类：防失联/新手知识科普/安卓配置/苹果配置/Windows/MacOS…分类由后端返回动态渲染）。
+- 语言：复用网站全局语言（顶栏语言切换），`app.language` 变化时自动重新拉取对应语言的文档，页面内不提供独立语言下拉。
 - 文章行：标题 + 更新时间 + 「阅读 →」（主色文字链接）。
 - 数据：`GET /knowledges?keyword=&language=`。
 - 详情页 `/docs/:id`：Markdown 渲染（markdown-it + DOMPurify + 代码高亮），顶部返回 + 标题 + 更新时间；移动端全宽阅读，正文字号 16px。

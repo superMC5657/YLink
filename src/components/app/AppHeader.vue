@@ -3,39 +3,26 @@
  * 顶栏:毛玻璃吸顶。桌面含折叠钮/站点名/主题/语言/用户;移动端含抽屉钮/站点名/主题/头像。
  */
 import { computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import { useConfigStore } from '@/stores/config'
 import { useMessage, useDialog } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
-import { useLocale } from '@/composables/useLocale'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
+import LanguageToggle from '@/components/ui/LanguageToggle.vue'
 
 const app = useAppStore()
 const auth = useAuthStore()
 const config = useConfigStore()
-const route = useRoute()
 const router = useRouter()
 const message = useMessage()
 const dialog = useDialog()
-const { t, locale } = useI18n()
-const { switchLocale } = useLocale()
+const { t } = useI18n()
 const emit = defineEmits<{ (e: 'toggle-drawer'): void }>()
 
 const isMobile = computed(() => window.innerWidth < 768)
 const userEmail = computed(() => auth.user?.email ?? '')
-
-const languageOptions = computed(() =>
-  (config.config?.languages ?? ['zh-CN', 'en-US']).map((lang) => ({
-    label: lang === 'zh-CN' ? '简体中文' : 'English',
-    value: lang,
-  })),
-)
-
-function onLanguageChange(value: string) {
-  void switchLocale(value)
-}
 
 function goProfile() {
   router.push('/profile')
@@ -81,22 +68,12 @@ function onLogout() {
 
     <!-- 站点名(移动端) -->
     <span v-if="isMobile" class="text-16 font-700 text-[var(--c-text)]">{{ config.siteName }}</span>
-    <span v-else class="ml-1 flex-1 text-13 text-[var(--c-text-sub)]">
-      {{ route.meta.title ? t(String(route.meta.title)) : '' }}
-    </span>
+    <!-- 桌面:占位撑开布局(原页面标题已移除) -->
+    <span v-else class="flex-1" />
 
     <div class="flex items-center gap-2">
-      <!-- 语言 -->
-      <n-dropdown trigger="click" :options="languageOptions" @select="onLanguageChange">
-        <button
-          class="flex h-9 cursor-pointer items-center gap-1 rounded-[var(--r-pill)] px-3 text-13 text-[var(--c-text-sub)] transition-colors hover:bg-[var(--c-bg-hover)]"
-        >
-          <AppIcon name="globe" :size="16" />
-          <span class="hidden sm:inline">{{
-            languageOptions.find((o) => o.value === locale)?.label
-          }}</span>
-        </button>
-      </n-dropdown>
+      <!-- 语言(滑动切换,仿主题切换) -->
+      <LanguageToggle />
 
       <!-- 主题 -->
       <ThemeToggle />
@@ -112,7 +89,7 @@ function onLogout() {
         @select="(k: string) => (k === 'logout' ? onLogout() : goProfile())"
       >
         <button
-          class="flex cursor-pointer items-center gap-2 rounded-[var(--r-pill)] px-2 py-1 transition-colors hover:bg-[var(--c-bg-hover)]"
+          class="flex cursor-pointer items-center gap-2 rounded-[var(--r-control)] px-2 py-1 transition-colors hover:bg-[var(--c-bg-hover)]"
         >
           <span
             class="flex h-8 w-8 items-center justify-center rounded-full text-white"

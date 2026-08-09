@@ -6,10 +6,12 @@
 import { onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useKnowledgeStore } from '@/stores/knowledge'
+import { useAppStore } from '@/stores/app'
 import { fromNow } from '@/utils/format'
 import { useI18n } from 'vue-i18n'
 
 const knowledge = useKnowledgeStore()
+const app = useAppStore()
 const router = useRouter()
 const { t } = useI18n()
 
@@ -23,21 +25,21 @@ function onSearch(value: string) {
   }, 300)
 }
 
-function switchLanguage(lang: string) {
-  void knowledge.fetch({ language: lang })
-}
-
 function goDetail(id: number) {
   router.push(`/docs/${id}`)
 }
 
 onMounted(() => {
-  void knowledge.fetch()
+  // 语言跟随网站全局语言(app.language),不提供独立选择
+  void knowledge.fetch({ language: app.language })
 })
 
+// 网站语言变化时重新拉取对应语言的知识库
 watch(
-  () => knowledge.language,
-  () => {},
+  () => app.language,
+  (lang) => {
+    void knowledge.fetch({ language: lang })
+  },
 )
 </script>
 
@@ -46,17 +48,6 @@ watch(
     <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <h1 class="text-20 font-600 text-[var(--c-text)]">{{ t('docs.title') }}</h1>
       <div class="flex w-full items-center gap-2 md:w-auto">
-        <!-- 语言下拉 -->
-        <n-select
-          :value="knowledge.language"
-          class="w-36 shrink-0"
-          size="medium"
-          :options="[
-            { label: '简体中文', value: 'zh-CN' },
-            { label: 'English', value: 'en-US' },
-          ]"
-          @update:value="(v: string) => switchLanguage(v)"
-        />
         <!-- 搜索 -->
         <div class="relative min-w-0 flex-1 md:max-w-72">
           <span class="absolute top-1/2 left-3 -translate-y-1/2 text-[var(--c-text-sub)]">

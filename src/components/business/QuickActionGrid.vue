@@ -3,7 +3,7 @@
  * 快捷操作宫格:9 个入口(路由跳转 / 复制订阅 / 一键导入 / 免费流量说明 / APP 下载)。
  * 页面:docs/frontend/pages.md §3.3
  */
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useConfigStore } from '@/stores/config'
@@ -31,59 +31,67 @@ interface Action {
   bg: string
 }
 
-const actions: Action[] = [
+// 用 computed 包裹:vue-i18n 的 t() 依赖当前 locale,语言切换时需重新求值,
+// 否则 label 停留在初始化时的语言,必须刷新页面才变化。
+const actions = computed<Action[]>(() => [
   {
     key: 'docs',
     icon: 'book',
     label: t('dashboard.viewTutorial'),
-    color: '#6558F5',
-    bg: '#EAE7FF',
+    color: 'var(--c-primary)',
+    bg: 'var(--c-primary-soft)',
   },
   {
     key: 'invite',
     icon: 'gift',
     label: t('dashboard.inviteEarn'),
-    color: '#C2487B',
-    bg: '#FBE3EF',
+    color: 'var(--c-pink)',
+    bg: 'var(--c-pink-bg)',
   },
-  { key: 'plans', icon: 'zap', label: t('dashboard.buyPlan'), color: '#D98E04', bg: '#FCEFCE' },
+  {
+    key: 'plans',
+    icon: 'zap',
+    label: t('dashboard.buyPlan'),
+    color: 'var(--c-warning)',
+    bg: 'var(--c-warning-bg)',
+  },
   {
     key: 'free-traffic',
     icon: 'sparkles',
     label: t('dashboard.freeTraffic'),
-    color: '#5BA829',
-    bg: '#DDF3C6',
+    color: 'var(--c-success)',
+    bg: 'var(--c-success-bg)',
   },
   {
     key: 'download',
     icon: 'download',
     label: t('dashboard.appDownload'),
-    color: '#4B8FE5',
-    bg: '#E1EEFB',
+    color: 'var(--c-blue)',
+    bg: 'var(--c-blue-bg)',
   },
   {
     key: 'tickets',
     icon: 'ticket',
     label: t('dashboard.myTickets'),
-    color: '#7C9A3D',
-    bg: '#EAF2D9',
+    color: 'var(--c-olive)',
+    bg: 'var(--c-olive-bg)',
   },
-  { key: 'profile', icon: 'user', label: t('dashboard.profile'), color: '#C2487B', bg: '#FBE3EF' },
+  { key: 'profile', icon: 'user', label: t('dashboard.profile'), color: 'var(--c-pink)', bg: 'var(--c-pink-bg)' },
   {
     key: 'subscribe-link',
     icon: 'link',
     label: t('dashboard.subscribeLink'),
-    color: '#6558F5',
-    bg: '#EAE7FF',
+    color: 'var(--c-primary)',
+    bg: 'var(--c-primary-soft)',
   },
   {
     key: 'import',
     icon: 'download',
     label: t('dashboard.oneClickImport'),
-    color: '#E5484D',
-    bg: '#FDE3E4',
+    color: 'var(--c-danger)',
+    bg: 'var(--c-danger-bg)',
   },
-]
+])
 
 function onAction(a: Action) {
   switch (a.key) {

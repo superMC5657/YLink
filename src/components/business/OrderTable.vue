@@ -61,7 +61,7 @@ function statusType(status: Order['status']) {
               </button>
               <button
                 v-if="o.status === 0"
-                class="rounded-full px-3 py-1 text-12 font-500 text-white transition-colors hover:brightness-105"
+                class="rounded-[var(--r-control)] px-3 py-1 text-12 font-500 text-white transition-colors hover:brightness-105"
                 style="background: linear-gradient(135deg, #6558f5, #8b5cf6)"
                 @click="emit('pay', o)"
               >

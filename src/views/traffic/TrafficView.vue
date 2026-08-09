@@ -155,7 +155,7 @@ onBeforeUnmount(() => {
     <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
       <h1 class="text-20 font-600 text-[var(--c-text)]">{{ t('traffic.title') }}</h1>
       <div class="flex items-center gap-2">
-        <div class="flex rounded-full border border-[var(--c-border)] p-0.5">
+        <div class="flex rounded-[var(--r-control)] border border-[var(--c-border)] p-0.5">
           <button
             v-for="r in [
               { key: '7d', label: t('traffic.last7d') },
@@ -163,7 +163,7 @@ onBeforeUnmount(() => {
               { key: 'custom', label: t('traffic.custom') },
             ]"
             :key="r.key"
-            class="cursor-pointer rounded-full px-3 py-1 text-12 transition-colors"
+            class="cursor-pointer rounded-[var(--r-control)] px-3 py-1 text-12 transition-colors"
             :class="
               rangeKey === r.key
                 ? 'bg-[var(--c-primary-soft)] font-500 text-[var(--c-primary-text)]'

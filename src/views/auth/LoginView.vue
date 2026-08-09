@@ -53,11 +53,19 @@ async function onSubmit() {
 <template>
   <div>
     <h2 class="mb-1 text-20 font-700 text-[var(--c-text)]">{{ t('auth.welcomeBack') }}</h2>
-    <p class="mb-6 text-13 text-[var(--c-text-sub)]">
+    <p class="mb-2 text-13 text-[var(--c-text-sub)]">
       {{ t('auth.email') }} / {{ t('auth.password') }}
     </p>
 
-    <n-form ref="formRef" :model="form" :rules="rules" size="large" @keyup.enter="onSubmit">
+    <n-form
+      ref="formRef"
+      :model="form"
+      :rules="rules"
+      size="large"
+      class="login-form"
+      :show-feedback="false"
+      @keyup.enter="onSubmit"
+    >
       <n-form-item path="email">
         <n-input v-model:value="form.email" :placeholder="t('auth.email')">
           <template #prefix><AppIcon name="user" :size="16" /></template>
@@ -74,7 +82,7 @@ async function onSubmit() {
         </n-input>
       </n-form-item>
 
-      <div class="mb-4 text-right">
+      <div class="mt-1 mb-3 text-right">
         <router-link to="/forgot" class="text-13 text-[var(--c-primary-text)] hover:underline">
           {{ t('auth.forgotLink') }}
         </router-link>
@@ -89,7 +97,7 @@ async function onSubmit() {
       </button>
     </n-form>
 
-    <p class="mt-5 text-center text-13 text-[var(--c-text-sub)]">
+    <p class="mt-4 text-center text-13 text-[var(--c-text-sub)]">
       {{ t('auth.toRegister') }}
       <router-link to="/register" class="text-[var(--c-primary-text)] hover:underline">
         {{ t('auth.register') }}
@@ -104,3 +112,10 @@ async function onSubmit() {
     </div>
   </div>
 </template>
+
+<style scoped>
+/* 收紧登录表单纵向间距:naive form-item 默认 feedback 占位 + 大留白 */
+.login-form :deep(.n-form-item) {
+  margin-bottom: 4px;
+}
+</style>

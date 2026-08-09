@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * 桌面侧边栏:240px / 折叠 72px,分组菜单,激活项胶囊高亮。
+ * 桌面侧边栏:200px / 折叠 72px,分组菜单,激活项胶囊高亮。
  * 规范见 docs/frontend/pages.md §2.1。
  */
 import { computed } from 'vue'
@@ -8,11 +8,13 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { NAV_GROUPS } from '@/router/nav'
 import { useConfigStore } from '@/stores/config'
+import { useI18n } from 'vue-i18n'
 
 const app = useAppStore()
 const config = useConfigStore()
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 
 const collapsed = computed(() => app.sidebarCollapsed)
 
@@ -28,8 +30,8 @@ function go(path: string) {
 
 <template>
   <aside
-    class="flex h-full shrink-0 flex-col border-r border-[var(--c-border)] bg-[var(--c-bg-card)] transition-[width] duration-300"
-    :style="{ width: collapsed ? '72px' : '240px' }"
+    class="flex h-full shrink-0 flex-col border-r border-r-solid border-[var(--c-card-border)] bg-[var(--c-bg-card)] transition-[width] duration-300"
+    :style="{ width: collapsed ? '72px' : '200px' }"
   >
     <!-- Logo 区 -->
     <div
@@ -54,23 +56,23 @@ function go(path: string) {
           v-if="!collapsed"
           class="mb-1.5 px-3 text-11 uppercase tracking-wider text-[var(--c-text-sub)] opacity-70"
         >
-          {{ group.label }}
+          {{ t(group.label) }}
         </div>
         <div class="space-y-1">
           <button
             v-for="item in group.items"
             :key="item.path"
-            class="group flex h-10 w-full cursor-pointer items-center gap-3 rounded-[var(--r-pill)] px-3 text-14 transition-all duration-[var(--t-fast)]"
+            class="group flex h-10 w-full cursor-pointer items-center gap-3 rounded-[var(--r-control)] px-3 text-14 transition-all duration-[var(--t-fast)]"
             :class="
               isActive(item.path)
                 ? 'bg-[var(--c-primary-soft)] text-[var(--c-primary-text)] font-500'
                 : 'text-[var(--c-text-sub)] hover:bg-[var(--c-bg-hover)] hover:text-[var(--c-text)]'
             "
-            :title="collapsed ? item.name : undefined"
+            :title="collapsed ? t(item.name) : undefined"
             @click="go(item.path)"
           >
             <AppIcon :name="item.icon" :size="19" class="shrink-0" />
-            <span v-if="!collapsed" class="truncate">{{ item.name }}</span>
+            <span v-if="!collapsed" class="truncate">{{ t(item.name) }}</span>
           </button>
         </div>
       </div>
@@ -79,11 +81,11 @@ function go(path: string) {
     <!-- 底部折叠按钮 -->
     <div class="shrink-0 border-t border-[var(--c-border)] p-3">
       <button
-        class="flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-[var(--r-pill)] text-[var(--c-text-sub)] transition-colors hover:bg-[var(--c-bg-hover)]"
+        class="flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-[var(--r-control)] text-[var(--c-text-sub)] transition-colors hover:bg-[var(--c-bg-hover)]"
         @click="app.toggleSidebar"
       >
         <AppIcon :name="collapsed ? 'chevron-right' : 'chevron-down'" :size="18" />
-        <span v-if="!collapsed" class="text-13">收起</span>
+        <span v-if="!collapsed" class="text-13">{{ t('nav.collapse') }}</span>
       </button>
     </div>
   </aside>

@@ -6,9 +6,11 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { MOBILE_TABS } from '@/router/nav'
+import { useI18n } from 'vue-i18n'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 
 const activeIndex = computed(() => {
   const idx = MOBILE_TABS.findIndex((t) => route.path.startsWith(t.path))
@@ -47,7 +49,7 @@ function go(path: string) {
         />
       </span>
       <span class="text-11" :style="{ fontWeight: i === activeIndex ? 600 : 400 }">{{
-        tab.name
+        t(tab.name)
       }}</span>
     </button>
   </nav>

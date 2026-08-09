@@ -13,8 +13,8 @@ const base: GlobalThemeOverrides = {
     fontFamily: 'Inter, "HarmonyOS Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif',
   },
   Button: {
-    borderRadiusMedium: '999px',
-    borderRadiusLarge: '999px',
+    borderRadiusMedium: '10px',
+    borderRadiusLarge: '10px',
   },
   Card: {
     borderRadius: '16px',

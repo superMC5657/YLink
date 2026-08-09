@@ -10,10 +10,11 @@
   --c-primary-text: #4b3ed6;
 
   /* 中性 */
-  --c-bg-app: #f5f6fb;
+  --c-bg-app: #eceef5;
   --c-bg-card: #ffffff;
   --c-bg-hover: #f2f3fa;
   --c-border: #ebecf4;
+  --c-card-border: #c9cede;
   --c-text: #1f2430;
   --c-text-sub: #8a8fa3;
   --c-text-inverse: #ffffff;
@@ -29,14 +30,19 @@
   --c-olive: #7c9a3d;
   --c-pink: #c2487b;
   --c-amber-icon: #f5a524;
+  /* 彩色浅底(快捷操作宫格等使用;暗色主题为半透明) */
+  --c-pink-bg: #fbe3ef;
+  --c-blue: #4b8fe5;
+  --c-blue-bg: #e1eefb;
+  --c-olive-bg: #eaf2d9;
 
   /* 形状/阴影/动效 */
   --r-card: 16px;
   --r-control: 10px;
   --r-pill: 999px;
-  --s-card: 0 8px 24px rgba(23, 25, 66, 0.06);
-  --s-card-hover: 0 12px 32px rgba(23, 25, 66, 0.1);
-  --s-pop: 0 16px 48px rgba(23, 25, 66, 0.16);
+  --s-card: 0 8px 24px rgba(23, 25, 66, 0.08);
+  --s-card-hover: 0 12px 32px rgba(23, 25, 66, 0.12);
+  --s-pop: 0 16px 48px rgba(23, 25, 66, 0.22);
   --t-fast: 0.15s ease;
   --t-base: 0.22s ease;
 
@@ -58,6 +64,7 @@
   --c-bg-card: #171b26;
   --c-bg-hover: #1e2331;
   --c-border: rgba(255, 255, 255, 0.07);
+  --c-card-border: rgba(255, 255, 255, 0.1);
   --c-text: #e8eaf2;
   --c-text-sub: #9ba1b7;
 
@@ -71,6 +78,11 @@
   --c-olive: #9dbe5f;
   --c-pink: #e57ba6;
   --c-amber-icon: #f5a524;
+  /* 彩色浅底 → 暗色半透明,避免刺眼的浅色块 */
+  --c-pink-bg: rgba(229, 123, 166, 0.14);
+  --c-blue: #6ea8f0;
+  --c-blue-bg: rgba(110, 168, 240, 0.14);
+  --c-olive-bg: rgba(157, 190, 95, 0.14);
 
   --s-card: 0 8px 24px rgba(0, 0, 0, 0.35);
   --s-card-hover: 0 12px 32px rgba(0, 0, 0, 0.45);
@@ -98,6 +110,20 @@ body {
     background-color var(--t-base),
     color var(--t-base);
   touch-action: manipulation;
+}
+
+/* 原生按钮重置:UnoCSS preflight 未重置 button 背景/边框/padding,
+   否则无背景类的按钮会显示浏览器默认灰底(buttonface),
+   无边框类的按钮会残留浏览器默认 2px outset 外圈线条,
+   无 padding 类的按钮会保留浏览器默认 padding(1px 6px),
+   导致按钮内文字(如表格中的"复制")与同行/同列标题错位几个像素。
+   带 padding 或 btn 工具类的按钮由类选择器覆盖,不受影响。
+   注意:注释内不可出现 px-* 加斜杠星号(padding 类简写),会提前闭合注释。 */
+button {
+  background-color: transparent;
+  color: inherit;
+  border: 0 solid transparent;
+  padding: 0;
 }
 
 /* 数字展示字体 */

@@ -99,7 +99,7 @@ onMounted(() => {
           </div>
 
           <button
-            class="mt-6 h-11 w-full rounded-[var(--r-pill)] text-14 font-500 transition-all active:scale-98"
+            class="mt-6 h-11 w-full rounded-[var(--r-control)] text-14 font-500 transition-all active:scale-98"
             :class="{
               'bg-[var(--c-bg-hover)] text-[var(--c-text-sub)] cursor-not-allowed':
                 applyBtn.disabled,

@@ -98,9 +98,9 @@ onBeforeUnmount(() => orderStore.stopPolling())
           "
         />
         <!-- 视图切换 -->
-        <div class="flex rounded-full border border-[var(--c-border)] p-0.5">
+        <div class="flex rounded-[var(--r-control)] border border-[var(--c-border)] p-0.5">
           <button
-            class="cursor-pointer rounded-full px-3 py-1 text-12 transition-colors"
+            class="cursor-pointer rounded-[var(--r-control)] px-3 py-1 text-12 transition-colors"
             :class="
               viewMode === 'table'
                 ? 'bg-[var(--c-primary-soft)] text-[var(--c-primary-text)]'
@@ -111,7 +111,7 @@ onBeforeUnmount(() => orderStore.stopPolling())
             {{ t('order.tableView') }}
           </button>
           <button
-            class="cursor-pointer rounded-full px-3 py-1 text-12 transition-colors"
+            class="cursor-pointer rounded-[var(--r-control)] px-3 py-1 text-12 transition-colors"
             :class="
               viewMode === 'card'
                 ? 'bg-[var(--c-primary-soft)] text-[var(--c-primary-text)]'

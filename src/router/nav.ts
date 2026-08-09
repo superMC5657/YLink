@@ -4,60 +4,63 @@
  */
 
 export interface NavItem {
+  /** i18n key(渲染时用 t(name) 取当前语言文案) */
   name: string
   path: string
   icon: string
 }
 
 export interface NavGroup {
+  /** i18n key(分组标题) */
   label: string
   items: NavItem[]
 }
 
 export const NAV_GROUPS: NavGroup[] = [
   {
-    label: '基础',
+    label: 'nav.groupBasic',
     items: [
-      { name: '仪表板', path: '/dashboard', icon: 'home' },
-      { name: '使用文档', path: '/docs', icon: 'book' },
+      { name: 'nav.dashboard', path: '/dashboard', icon: 'home' },
+      { name: 'nav.docs', path: '/docs', icon: 'book' },
     ],
   },
   {
-    label: '财务',
+    label: 'nav.groupFinance',
     items: [
-      { name: '我的订单', path: '/orders', icon: 'order' },
-      { name: '邀请赚钱', path: '/invite', icon: 'gift' },
-      { name: '申请代理', path: '/agent', icon: 'agent' },
+      { name: 'nav.orders', path: '/orders', icon: 'order' },
+      { name: 'nav.invite', path: '/invite', icon: 'gift' },
+      { name: 'nav.agent', path: '/agent', icon: 'agent' },
     ],
   },
   {
-    label: '订阅',
+    label: 'nav.groupPlan',
     items: [
-      { name: '购买订阅', path: '/plans', icon: 'zap' },
-      { name: '节点状态', path: '/nodes', icon: 'server' },
+      { name: 'nav.plans', path: '/plans', icon: 'zap' },
+      { name: 'nav.nodes', path: '/nodes', icon: 'server' },
     ],
   },
   {
-    label: '用户',
+    label: 'nav.groupUser',
     items: [
-      { name: '个人信息', path: '/profile', icon: 'user' },
-      { name: '我的工单', path: '/tickets', icon: 'ticket' },
-      { name: '流量明细', path: '/traffic', icon: 'traffic' },
+      { name: 'nav.profile', path: '/profile', icon: 'user' },
+      { name: 'nav.tickets', path: '/tickets', icon: 'ticket' },
+      { name: 'nav.traffic', path: '/traffic', icon: 'traffic' },
     ],
   },
 ]
 
 export interface TabItem {
+  /** i18n key(渲染时用 t(name) 取当前语言文案) */
   name: string
   path: string
   icon: string
 }
 
 export const MOBILE_TABS: TabItem[] = [
-  { name: '仪表板', path: '/dashboard', icon: 'home' },
-  { name: '购买订阅', path: '/plans', icon: 'zap' },
-  { name: '我的工单', path: '/tickets', icon: 'ticket' },
-  { name: '我的', path: '/profile', icon: 'user' },
+  { name: 'nav.dashboard', path: '/dashboard', icon: 'home' },
+  { name: 'nav.plans', path: '/plans', icon: 'zap' },
+  { name: 'nav.tickets', path: '/tickets', icon: 'ticket' },
+  { name: 'nav.mine', path: '/profile', icon: 'user' },
 ]
 
 /** 展开导航所有路径,供路由激活匹配 */

@@ -168,7 +168,7 @@ async function submit() {
         <button
           v-for="p in periods"
           :key="p"
-          class="flex cursor-pointer items-center gap-1.5 rounded-full border px-4 py-2 text-13 transition-colors"
+          class="flex cursor-pointer items-center gap-1.5 rounded-[var(--r-control)] border px-4 py-2 text-13 transition-colors"
           :class="
             period === p
               ? 'border-[var(--c-primary)] bg-[var(--c-primary-soft)] font-500 text-[var(--c-primary-text)]'

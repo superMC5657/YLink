@@ -20,7 +20,7 @@ export const usePlanStore = defineStore('plan', {
       this.loading = true
       try {
         const data = await apiPlan.fetch()
-        this.list = data.list
+        this.list = data?.list ?? []
         this.loaded = true
       } finally {
         this.loading = false

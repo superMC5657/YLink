@@ -21,7 +21,8 @@ export const useServerStore = defineStore('server', {
       this.loading = true
       try {
         const data = await apiServer.fetch()
-        this.groups = data.groups
+        // 兜底 null:后端空数据时避免模板 groups.length 崩溃
+        this.groups = data?.groups ?? []
         this.lastUpdated = Date.now()
       } finally {
         this.loading = false

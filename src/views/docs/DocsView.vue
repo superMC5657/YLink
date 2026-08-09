@@ -107,7 +107,7 @@ watch(
         </div>
 
         <EmptyState
-          v-if="!knowledge.loading && knowledge.groups.length === 0"
+          v-if="!knowledge.loading && (knowledge.groups?.length ?? 0) === 0"
           :text="t('docs.noResult')"
           :icon="'search'"
         />

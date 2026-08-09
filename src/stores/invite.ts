@@ -26,7 +26,7 @@ export const useInviteStore = defineStore('invite', {
     },
     async fetchCodes() {
       const data = await apiInvite.codes()
-      this.codes = data.list
+      this.codes = data?.list ?? []
       this.codeLimit = data.limit
       this.registerUrlPrefix = data.register_url_prefix
     },
@@ -37,7 +37,7 @@ export const useInviteStore = defineStore('invite', {
     },
     async fetchRecords(page = 1, pageSize = 10) {
       const data = await apiInvite.records({ page, page_size: pageSize })
-      this.records = data.list
+      this.records = data?.list ?? []
       this.recordsTotal = data.total
     },
     async transfer(amount: number) {

@@ -47,3 +47,8 @@ test-results/
 
 # agent
 .reasonix
+
+# 开发迭代
+.ui-shots
+mock
+tmp

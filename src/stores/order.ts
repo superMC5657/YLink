@@ -31,7 +31,7 @@ export const useOrderStore = defineStore('order', {
           page_size: query.page_size ?? this.pageSize,
           status: query.status,
         })
-        this.list = data.list
+        this.list = data?.list ?? []
         this.total = data.total
         this.page = data.page
       } finally {

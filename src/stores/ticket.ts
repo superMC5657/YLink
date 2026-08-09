@@ -21,7 +21,7 @@ export const useTicketStore = defineStore('ticket', {
       this.loading = true
       try {
         const data = await apiTicket.fetch({ page, page_size: pageSize })
-        this.list = data.list
+        this.list = data?.list ?? []
         this.total = data.total
       } finally {
         this.loading = false

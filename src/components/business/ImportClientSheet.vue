@@ -70,8 +70,8 @@ async function doCopy() {
             :size="22"
           />
         </span>
-        <span class="text-13 font-500 text-[var(--c-text)]">{{ opt.name }}</span>
-        <span class="text-11 text-[var(--c-text-sub)]">{{ opt.platforms.join(' / ') }}</span>
+        <span class="text-14 font-500 text-[var(--c-text)]">{{ opt.name }}</span>
+        <span class="text-14 text-[var(--c-text-sub)]">{{ opt.platforms.join(' / ') }}</span>
       </button>
     </div>
 
@@ -79,10 +79,10 @@ async function doCopy() {
       class="mt-4 flex items-center justify-between rounded-xl p-3"
       style="background-color: var(--c-bg-hover)"
     >
-      <span class="min-w-0 flex-1 truncate text-13 text-[var(--c-text-sub)]">
+      <span class="min-w-0 flex-1 truncate text-14 text-[var(--c-text-sub)]">
         {{ user.subscribe?.subscribe_url ?? '暂无订阅' }}
       </span>
-      <button class="btn-ghost ml-3 h-8 shrink-0 px-3 text-12" @click="doCopy">
+      <button class="btn-ghost ml-3 h-8 shrink-0 px-3 text-14" @click="doCopy">
         <AppIcon :name="copied ? 'check' : 'copy'" :size="14" />
         {{ copied ? t('common.copied') : t('common.copy') }}
       </button>

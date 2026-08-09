@@ -88,7 +88,7 @@ onMounted(() => {
         <div class="card-base p-5 md:p-6">
           <div class="mb-4 flex items-center justify-between">
             <h3 class="text-16 font-600 text-[var(--c-text)]">{{ t('invite.inviteCodes') }}</h3>
-            <button class="btn-olive h-9 px-4 text-13" @click="onCreateCode">
+            <button class="btn-olive h-9 px-4 text-14" @click="onCreateCode">
               <AppIcon name="plus" :size="15" />
               {{ t('invite.createCode') }}
             </button>
@@ -98,11 +98,11 @@ onMounted(() => {
             class="mb-4 flex flex-wrap items-center gap-2 rounded-xl p-3"
             style="background-color: var(--c-bg-hover)"
           >
-            <span class="text-12 text-[var(--c-text-sub)]">{{ t('invite.registerLink') }}:</span>
-            <span class="num min-w-0 flex-1 truncate text-12 text-[var(--c-text)]">
+            <span class="text-14 text-[var(--c-text-sub)]">{{ t('invite.registerLink') }}:</span>
+            <span class="num min-w-0 flex-1 truncate text-14 text-[var(--c-text)]">
               {{ invite.registerUrlPrefix }}{{ invite.codes[0]?.code ?? '------' }}
             </span>
-            <button class="btn-ghost h-7 px-3 text-12" @click="copyRegisterLink">
+            <button class="btn-ghost h-7 px-3 text-14" @click="copyRegisterLink">
               <AppIcon name="copy" :size="13" />
               {{ t('common.copy') }}
             </button>
@@ -112,10 +112,10 @@ onMounted(() => {
             <n-table :bordered="false" class="w-full">
               <thead>
                 <tr>
-                  <th class="text-13">{{ t('invite.code') }}</th>
-                  <th class="text-13">{{ t('invite.usedCount') }}</th>
-                  <th class="text-13">{{ t('invite.createdAt') }}</th>
-                  <th class="text-13">{{ t('common.action') }}</th>
+                  <th class="text-14">{{ t('invite.code') }}</th>
+                  <th class="text-14">{{ t('invite.usedCount') }}</th>
+                  <th class="text-14">{{ t('invite.createdAt') }}</th>
+                  <th class="text-14">{{ t('common.action') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -126,12 +126,12 @@ onMounted(() => {
                 >
                   <td class="num font-600 text-[var(--c-text)]">{{ c.code }}</td>
                   <td class="num text-[var(--c-text)]">{{ c.used_count }}</td>
-                  <td class="text-13 text-[var(--c-text-sub)]">
+                  <td class="text-14 text-[var(--c-text-sub)]">
                     {{ formatTime(c.created_at, false) }}
                   </td>
                   <td>
                     <button
-                      class="text-13 font-500 text-[var(--c-primary-text)] hover:underline"
+                      class="text-14 font-500 text-[var(--c-primary-text)] hover:underline"
                       @click="copyCode(c.code)"
                     >
                       {{ t('common.copy') }}
@@ -152,12 +152,12 @@ onMounted(() => {
             >
               <div>
                 <div class="num text-14 font-600 text-[var(--c-text)]">{{ c.code }}</div>
-                <div class="text-12 text-[var(--c-text-sub)]">
+                <div class="text-14 text-[var(--c-text-sub)]">
                   {{ t('invite.usedCount') }}:{{ c.used_count }} ·
                   {{ formatTime(c.created_at, false) }}
                 </div>
               </div>
-              <button class="btn-ghost h-8 px-3 text-12" @click="copyCode(c.code)">
+              <button class="btn-ghost h-8 px-3 text-14" @click="copyCode(c.code)">
                 <AppIcon name="copy" :size="13" />
                 {{ t('common.copy') }}
               </button>
@@ -169,7 +169,7 @@ onMounted(() => {
             />
           </div>
 
-          <p class="mt-3 text-12 text-[var(--c-text-sub)]">
+          <p class="mt-3 text-14 text-[var(--c-text-sub)]">
             {{ t('invite.codeLimit', { limit: invite.codeLimit }) }}
           </p>
         </div>
@@ -183,10 +183,10 @@ onMounted(() => {
             <n-table :bordered="false" class="w-full">
               <thead>
                 <tr>
-                  <th class="text-13">{{ t('order.orderNo') }}</th>
-                  <th class="text-13">{{ t('invite.amount') }}</th>
-                  <th class="text-13">{{ t('invite.rate') }}</th>
-                  <th class="text-13">{{ t('invite.recordTime') }}</th>
+                  <th class="text-14">{{ t('order.orderNo') }}</th>
+                  <th class="text-14">{{ t('invite.amount') }}</th>
+                  <th class="text-14">{{ t('invite.rate') }}</th>
+                  <th class="text-14">{{ t('invite.recordTime') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -197,8 +197,8 @@ onMounted(() => {
                 >
                   <td><CopyText :text="r.order_no" :max-chars="14" /></td>
                   <td class="num font-600 text-[var(--c-pink)]">+{{ formatMoney(r.amount) }}</td>
-                  <td class="num text-13 text-[var(--c-text-sub)]">{{ r.rate }}%</td>
-                  <td class="text-13 text-[var(--c-text-sub)]">
+                  <td class="num text-14 text-[var(--c-text-sub)]">{{ r.rate }}%</td>
+                  <td class="text-14 text-[var(--c-text-sub)]">
                     {{ formatTime(r.confirmed_at, false) }}
                   </td>
                 </tr>
@@ -216,11 +216,11 @@ onMounted(() => {
                 <div class="num text-14 font-600 text-[var(--c-pink)]">
                   +{{ formatMoney(r.amount) }}
                 </div>
-                <div class="truncate text-12 text-[var(--c-text-sub)]">{{ r.order_no }}</div>
+                <div class="truncate text-14 text-[var(--c-text-sub)]">{{ r.order_no }}</div>
               </div>
               <div class="text-right">
-                <div class="text-12 text-[var(--c-text)]">{{ r.rate }}%</div>
-                <div class="text-12 text-[var(--c-text-sub)]">
+                <div class="text-14 text-[var(--c-text)]">{{ r.rate }}%</div>
+                <div class="text-14 text-[var(--c-text-sub)]">
                   {{ formatTime(r.confirmed_at, false) }}
                 </div>
               </div>
@@ -289,7 +289,7 @@ onMounted(() => {
     >
       <div class="space-y-4">
         <div>
-          <div class="mb-1.5 text-13 text-[var(--c-text-sub)]">
+          <div class="mb-1.5 text-14 text-[var(--c-text-sub)]">
             {{
               t('invite.transferable', {
                 amount: formatMoney(invite.summary?.commission_balance ?? 0),

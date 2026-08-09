@@ -93,39 +93,39 @@ function openPayment(method: string) {
           </div>
 
           <div class="mt-5 space-y-3 rounded-xl p-4" style="background-color: var(--c-bg-hover)">
-            <div class="flex justify-between text-13">
+            <div class="flex justify-between text-14">
               <span class="text-[var(--c-text-sub)]">{{ t('order.orderNo') }}</span>
               <CopyText :text="detail.order_no" :max-chars="22" :silent="true" />
             </div>
-            <div class="flex justify-between text-13">
+            <div class="flex justify-between text-14">
               <span class="text-[var(--c-text-sub)]">{{ t('order.period') }}</span>
               <span class="text-[var(--c-text)]">{{ periodLabel(detail.period) }}</span>
             </div>
-            <div class="flex justify-between text-13">
+            <div class="flex justify-between text-14">
               <span class="text-[var(--c-text-sub)]">{{ t('order.amount') }}</span>
               <span class="num text-[var(--c-text)]">{{ formatMoney(detail.amount) }}</span>
             </div>
-            <div v-if="detail.discount_amount > 0" class="flex justify-between text-13">
+            <div v-if="detail.discount_amount > 0" class="flex justify-between text-14">
               <span class="text-[var(--c-text-sub)]">{{ t('order.discount') }}</span>
               <span class="num text-[var(--c-marketing)]"
                 >-{{ formatMoney(detail.discount_amount) }}</span
               >
             </div>
-            <div v-if="detail.balance_used > 0" class="flex justify-between text-13">
+            <div v-if="detail.balance_used > 0" class="flex justify-between text-14">
               <span class="text-[var(--c-text-sub)]">{{ t('order.balanceUsed') }}</span>
               <span class="num text-[var(--c-text)]">-{{ formatMoney(detail.balance_used) }}</span>
             </div>
-            <div class="flex justify-between text-13">
+            <div class="flex justify-between text-14">
               <span class="text-[var(--c-text-sub)]">{{ t('order.payAmount') }}</span>
               <span class="num text-16 font-700 text-[var(--c-success)]">{{
                 formatMoney(detail.pay_amount)
               }}</span>
             </div>
-            <div v-if="detail.coupon_code" class="flex justify-between text-13">
+            <div v-if="detail.coupon_code" class="flex justify-between text-14">
               <span class="text-[var(--c-text-sub)]">{{ t('order.coupon') }}</span>
               <span class="text-[var(--c-text)]">{{ detail.coupon_code }}</span>
             </div>
-            <div class="flex justify-between text-13">
+            <div class="flex justify-between text-14">
               <span class="text-[var(--c-text-sub)]">{{ t('order.payMethod') }}</span>
               <span class="text-[var(--c-text)]">
                 {{
@@ -139,11 +139,11 @@ function openPayment(method: string) {
                 }}
               </span>
             </div>
-            <div class="flex justify-between text-13">
+            <div class="flex justify-between text-14">
               <span class="text-[var(--c-text-sub)]">{{ t('order.paidAt') }}</span>
               <span class="text-[var(--c-text)]">{{ formatTime(detail.paid_at) }}</span>
             </div>
-            <div class="flex justify-between text-13">
+            <div class="flex justify-between text-14">
               <span class="text-[var(--c-text-sub)]">{{ t('order.createdAt') }}</span>
               <span class="text-[var(--c-text)]">{{ formatTime(detail.created_at) }}</span>
             </div>
@@ -152,7 +152,7 @@ function openPayment(method: string) {
           <!-- 待支付:支付方式 + 操作 -->
           <template v-if="detail.status === 0">
             <div class="mt-5">
-              <div class="mb-2 text-13 font-500 text-[var(--c-text)]">{{ t('plan.payment') }}</div>
+              <div class="mb-2 text-14 font-500 text-[var(--c-text)]">{{ t('plan.payment') }}</div>
               <div class="grid grid-cols-3 gap-2">
                 <button
                   v-for="m in [
@@ -177,7 +177,7 @@ function openPayment(method: string) {
                     }"
                   />
                   <span
-                    class="text-12"
+                    class="text-14"
                     :style="{
                       color: payMethod === m.code ? 'var(--c-primary-text)' : 'var(--c-text-sub)',
                     }"
@@ -191,7 +191,7 @@ function openPayment(method: string) {
               <button class="btn-primary h-10 flex-1 text-14" @click="openPayment(payMethod)">
                 {{ t('order.goPay') }} · {{ formatMoney(detail.pay_amount) }}
               </button>
-              <button class="btn-ghost h-10 px-4 text-13 text-[var(--c-danger)]" @click="onCancel">
+              <button class="btn-ghost h-10 px-4 text-14 text-[var(--c-danger)]" @click="onCancel">
                 {{ t('order.cancelOrder') }}
               </button>
             </div>

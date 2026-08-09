@@ -42,13 +42,13 @@ const expireBadge = computed(() => {
           <AppIcon name="zap" :size="20" />
         </span>
         <div>
-          <div class="text-11 text-[var(--c-text-sub)]">
+          <div class="text-14 text-[var(--c-text-sub)]">
             {{ t('dashboard.currentSubscription') }}
           </div>
           <div class="text-16 font-600 text-[var(--c-text)]">
             {{ sub?.has_subscription ? sub?.plan?.name : t('dashboard.noSubscription') }}
           </div>
-          <div class="text-12 text-[var(--c-text-sub)]">
+          <div class="text-14 text-[var(--c-text-sub)]">
             {{ t('dashboard.expireAt') }}:
             {{ sub?.expired_at ? formatTime(sub.expired_at, false) : '-' }}
           </div>
@@ -59,7 +59,7 @@ const expireBadge = computed(() => {
 
     <!-- 用量进度 -->
     <div class="mt-5">
-      <div class="mb-1.5 flex items-center justify-between text-13">
+      <div class="mb-1.5 flex items-center justify-between text-14">
         <span class="text-[var(--c-text-sub)]">
           {{ t('dashboard.transferUsed') }}
           <span class="num font-600 text-[var(--c-text)]">{{
@@ -94,8 +94,8 @@ const expireBadge = computed(() => {
         class="flex flex-col items-center gap-0.5 rounded-xl py-2.5"
         style="background-color: var(--c-bg-hover)"
       >
-        <span class="text-11 text-[var(--c-text-sub)]">{{ t('dashboard.transferRemaining') }}</span>
-        <span class="num text-13 font-600 text-[var(--c-text)]">{{
+        <span class="text-14 text-[var(--c-text-sub)]">{{ t('dashboard.transferRemaining') }}</span>
+        <span class="num text-14 font-600 text-[var(--c-text)]">{{
           formatBytes(sub?.remaining)
         }}</span>
       </div>
@@ -103,8 +103,8 @@ const expireBadge = computed(() => {
         class="flex flex-col items-center gap-0.5 rounded-xl py-2.5"
         style="background-color: var(--c-bg-hover)"
       >
-        <span class="text-11 text-[var(--c-text-sub)]">{{ t('dashboard.speedLimit') }}</span>
-        <span class="num text-13 font-600 text-[var(--c-text)]">{{
+        <span class="text-14 text-[var(--c-text-sub)]">{{ t('dashboard.speedLimit') }}</span>
+        <span class="num text-14 font-600 text-[var(--c-text)]">{{
           formatSpeed(sub?.speed_limit)
         }}</span>
       </div>
@@ -112,8 +112,8 @@ const expireBadge = computed(() => {
         class="flex flex-col items-center gap-0.5 rounded-xl py-2.5"
         style="background-color: var(--c-bg-hover)"
       >
-        <span class="text-11 text-[var(--c-text-sub)]">{{ t('dashboard.deviceLimit') }}</span>
-        <span class="num text-13 font-600 text-[var(--c-text)]">{{
+        <span class="text-14 text-[var(--c-text-sub)]">{{ t('dashboard.deviceLimit') }}</span>
+        <span class="num text-14 font-600 text-[var(--c-text)]">{{
           sub?.device_limit ?? '-'
         }}</span>
       </div>
@@ -121,16 +121,16 @@ const expireBadge = computed(() => {
         class="flex flex-col items-center gap-0.5 rounded-xl py-2.5"
         style="background-color: var(--c-bg-hover)"
       >
-        <span class="text-11 text-[var(--c-text-sub)]">{{ t('dashboard.planName') }}</span>
-        <span class="text-13 font-600 text-[var(--c-text)]">{{ sub?.plan?.name ?? '-' }}</span>
+        <span class="text-14 text-[var(--c-text-sub)]">{{ t('dashboard.planName') }}</span>
+        <span class="text-14 font-600 text-[var(--c-text)]">{{ sub?.plan?.name ?? '-' }}</span>
       </div>
       <div
         class="flex flex-col items-center gap-0.5 rounded-xl py-2.5"
         style="background-color: var(--c-bg-hover)"
       >
-        <span class="text-11 text-[var(--c-text-sub)]">{{ t('common.expired') }}</span>
+        <span class="text-14 text-[var(--c-text-sub)]">{{ t('common.expired') }}</span>
         <span
-          class="text-13 font-600"
+          class="text-14 font-600"
           :style="{ color: sub?.is_expired ? 'var(--c-danger)' : 'var(--c-success)' }"
         >
           {{ sub?.is_expired ? '是' : '否' }}

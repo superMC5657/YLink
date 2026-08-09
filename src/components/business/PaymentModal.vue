@@ -135,7 +135,7 @@ onBeforeUnmount(stopPolling)
       <span
         class="h-8 w-8 animate-spin rounded-full border-3 border-[var(--c-border)] border-t-[var(--c-primary)]"
       />
-      <span class="text-13 text-[var(--c-text-sub)]">{{ t('plan.orderCreating') }}</span>
+      <span class="text-14 text-[var(--c-text-sub)]">{{ t('plan.orderCreating') }}</span>
     </div>
 
     <!-- 二维码 -->
@@ -143,13 +143,13 @@ onBeforeUnmount(stopPolling)
       <div class="rounded-2xl border border-[var(--c-border)] p-3">
         <img :src="qrDataUrl" alt="qr" class="h-55 w-55" />
       </div>
-      <p class="text-13 text-[var(--c-text-sub)]">{{ t('plan.qrcodeTip') }}</p>
+      <p class="text-14 text-[var(--c-text-sub)]">{{ t('plan.qrcodeTip') }}</p>
       <div
         class="flex items-center gap-1.5 rounded-full px-4 py-1.5"
         style="background-color: var(--c-bg-hover)"
       >
         <AppIcon name="clock" :size="15" :style="{ color: 'var(--c-warning)' }" />
-        <span class="num text-13 font-600 text-[var(--c-text)]">
+        <span class="num text-14 font-600 text-[var(--c-text)]">
           {{ Math.floor(remaining / 60) }}:{{ String(remaining % 60).padStart(2, '0') }}
         </span>
       </div>
@@ -172,7 +172,7 @@ onBeforeUnmount(stopPolling)
         style="background-color: var(--c-bg-hover)"
       >
         <AppIcon name="clock" :size="15" :style="{ color: 'var(--c-warning)' }" />
-        <span class="num text-13 font-600 text-[var(--c-text)]">
+        <span class="num text-14 font-600 text-[var(--c-text)]">
           {{ Math.floor(remaining / 60) }}:{{ String(remaining % 60).padStart(2, '0') }}
         </span>
       </div>
@@ -187,19 +187,19 @@ onBeforeUnmount(stopPolling)
         <AppIcon name="check" :size="36" :stroke-width="3" />
       </span>
       <h3 class="text-20 font-700 text-[var(--c-text)]">{{ t('plan.paySuccess') }}</h3>
-      <p class="text-13 text-[var(--c-text-sub)]">{{ t('plan.paySuccessTip') }}</p>
+      <p class="text-14 text-[var(--c-text-sub)]">{{ t('plan.paySuccessTip') }}</p>
       <div class="mt-2 w-full rounded-xl p-4 text-left" style="background-color: var(--c-bg-hover)">
-        <div class="flex justify-between text-13">
+        <div class="flex justify-between text-14">
           <span class="text-[var(--c-text-sub)]">{{ t('order.orderNo') }}</span>
           <span class="num text-[var(--c-text)]">{{ props.order?.order_no }}</span>
         </div>
-        <div class="mt-1.5 flex justify-between text-13">
+        <div class="mt-1.5 flex justify-between text-14">
           <span class="text-[var(--c-text-sub)]">{{ t('order.payAmount') }}</span>
           <span class="num font-600 text-[var(--c-success)]">{{
             formatMoney(props.order?.pay_amount)
           }}</span>
         </div>
-        <div class="mt-1.5 flex justify-between text-13">
+        <div class="mt-1.5 flex justify-between text-14">
           <span class="text-[var(--c-text-sub)]">{{ t('order.paidAt') }}</span>
           <span class="text-[var(--c-text)]">{{ formatTime(props.order?.paid_at) }}</span>
         </div>
@@ -218,7 +218,7 @@ onBeforeUnmount(stopPolling)
         <AppIcon name="alert" :size="28" />
       </span>
       <p class="text-14 text-[var(--c-text)]">{{ t('plan.payExpired') }}</p>
-      <button class="btn-ghost h-9 px-5 text-13" @click="emit('update:show', false)">
+      <button class="btn-ghost h-9 px-5 text-14" @click="emit('update:show', false)">
         {{ t('common.close') }}
       </button>
     </div>

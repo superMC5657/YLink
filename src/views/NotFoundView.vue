@@ -30,7 +30,7 @@ const { t } = useI18n()
     </span>
     <div>
       <h1 class="text-18 font-600 text-[var(--c-text)]">{{ t('notFound.title') }}</h1>
-      <p class="mt-1 text-13 text-[var(--c-text-sub)]">{{ t('notFound.desc') }}</p>
+      <p class="mt-1 text-14 text-[var(--c-text-sub)]">{{ t('notFound.desc') }}</p>
     </div>
     <button class="btn-primary h-10 px-6 text-14" @click="router.push('/dashboard')">
       <AppIcon name="home" :size="16" />

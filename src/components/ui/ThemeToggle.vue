@@ -15,9 +15,9 @@ const modes: { value: ThemeMode; label: string; icon: string }[] = [
   { value: 'system', label: '跟随系统', icon: 'globe' },
 ]
 
-// 轨道几何:w-14=56px,滑块 w-6=24px,左右对称余量 5px(border 1px + padding 4px)
+// 轨道几何:w-14=56px,滑块 w-7=28px(与语言切换滑块保持一致),左右对称余量 5px(border 1px + padding 4px)
 const TRACK_W = 56
-const SLIDER_W = 24
+const SLIDER_W = 28
 const EDGE_GAP = 5
 
 const currentIndex = computed(() => {
@@ -45,7 +45,7 @@ function cycle() {
     @click="cycle"
   >
     <span
-      class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white shadow transition-transform duration-300"
+      class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white shadow transition-transform duration-300"
       :style="{
         transform: `translateX(${slideOffset})`,
         background: 'linear-gradient(135deg,#6558F5,#8B5CF6)',

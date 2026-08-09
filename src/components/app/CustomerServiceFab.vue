@@ -37,7 +37,7 @@ function open() {
       <transition name="fade">
         <span
           v-if="show"
-          class="absolute right-full mr-3 whitespace-nowrap rounded-full bg-[var(--c-bg-card)] px-3 py-1 text-12 text-[var(--c-text)] shadow"
+          class="absolute right-full mr-3 whitespace-nowrap rounded-full bg-[var(--c-bg-card)] px-3 py-1 text-14 text-[var(--c-text)] shadow"
           style="--s-card: var(--s-pop)"
         >
           在线客服

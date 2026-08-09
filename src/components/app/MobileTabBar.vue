@@ -48,7 +48,7 @@ function go(path: string) {
           style="background: var(--c-primary)"
         />
       </span>
-      <span class="text-11" :style="{ fontWeight: i === activeIndex ? 600 : 400 }">{{
+      <span class="text-14" :style="{ fontWeight: i === activeIndex ? 600 : 400 }">{{
         t(tab.name)
       }}</span>
     </button>

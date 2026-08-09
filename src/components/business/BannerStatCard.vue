@@ -39,14 +39,14 @@ const { t } = useI18n()
       </span>
 
       <div class="min-w-0 flex-1">
-        <div class="text-13 text-white/70">{{ t('dashboard.title') }}</div>
+        <div class="text-14 text-white/70">{{ t('dashboard.title') }}</div>
         <div class="truncate text-20 font-700">{{ user.stat?.email }}</div>
       </div>
 
       <!-- 余额 / 佣金 -->
       <div class="flex gap-6 md:gap-10">
         <div>
-          <div class="flex items-center gap-1.5 text-13 text-white/70">
+          <div class="flex items-center gap-1.5 text-14 text-white/70">
             <AppIcon name="wallet" :size="15" />
             {{ t('dashboard.balance') }}
           </div>
@@ -55,7 +55,7 @@ const { t } = useI18n()
           </div>
         </div>
         <div>
-          <div class="flex items-center gap-1.5 text-13 text-white/70">
+          <div class="flex items-center gap-1.5 text-14 text-white/70">
             <AppIcon name="coins" :size="15" />
             {{ t('dashboard.commission') }}
           </div>

@@ -28,7 +28,7 @@ const style = computed(() => {
 
 <template>
   <span
-    class="inline-flex items-center gap-1 rounded-[var(--r-pill)] px-2.5 py-0.5 text-12 font-500 leading-5 whitespace-nowrap"
+    class="inline-flex items-center gap-1 rounded-[var(--r-pill)] px-2.5 py-0.5 text-14 font-500 leading-5 whitespace-nowrap"
     :style="{ color: style.color, backgroundColor: style.bg }"
   >
     <span v-if="dot" class="h-1.5 w-1.5 rounded-full" :style="{ backgroundColor: style.color }" />

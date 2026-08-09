@@ -63,7 +63,7 @@ onMounted(() => {
             <AppIcon name="award" :size="34" />
           </span>
           <h2 class="mt-4 text-20 font-700 text-[var(--c-text)]">{{ t('agent.becomeAgent') }}</h2>
-          <p class="mt-2 text-13 text-[var(--c-text-sub)]">{{ t('agent.agentDesc') }}</p>
+          <p class="mt-2 text-14 text-[var(--c-text-sub)]">{{ t('agent.agentDesc') }}</p>
 
           <div class="mt-3 flex flex-wrap items-center justify-center gap-2">
             <StatusBadge v-if="status?.is_agent" type="success">{{
@@ -78,7 +78,7 @@ onMounted(() => {
             class="mt-6 w-full rounded-xl p-4 text-left"
             style="background-color: var(--c-bg-hover)"
           >
-            <div class="flex justify-between text-13">
+            <div class="flex justify-between text-14">
               <span class="text-[var(--c-text-sub)]">{{ t('invite.registeredUsers') }}</span>
               <span class="num font-600 text-[var(--c-text)]">
                 {{ status?.valid_invites ?? 0 }} / {{ status?.required_valid_invites ?? 0 }}
@@ -141,9 +141,9 @@ onMounted(() => {
               >
                 <AppIcon :name="cond.met ? 'check' : 'close'" :size="14" :stroke-width="2.5" />
               </span>
-              <span class="text-13 leading-6 text-[var(--c-text)]">{{ cond.text }}</span>
+              <span class="text-14 leading-6 text-[var(--c-text)]">{{ cond.text }}</span>
             </div>
-            <div v-if="!status?.conditions?.length" class="text-13 text-[var(--c-text-sub)]">-</div>
+            <div v-if="!status?.conditions?.length" class="text-14 text-[var(--c-text-sub)]">-</div>
           </div>
         </div>
 
@@ -163,7 +163,7 @@ onMounted(() => {
               >
                 <AppIcon name="award" :size="17" />
               </span>
-              <span class="text-13 font-500 text-[var(--c-text)]">{{ b }}</span>
+              <span class="text-14 font-500 text-[var(--c-text)]">{{ b }}</span>
             </div>
           </div>
         </div>
@@ -175,10 +175,10 @@ onMounted(() => {
             <li
               v-for="(n, i) in policy?.notes ?? []"
               :key="i"
-              class="flex items-start gap-3 text-13 leading-6 text-[var(--c-text-sub)]"
+              class="flex items-start gap-3 text-14 leading-6 text-[var(--c-text-sub)]"
             >
               <span
-                class="num mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-11 font-600"
+                class="num mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-14 font-600"
                 style="background: var(--c-primary-soft); color: var(--c-primary-text)"
               >
                 {{ i + 1 }}

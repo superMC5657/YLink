@@ -61,14 +61,14 @@ function periodLabel(p: PlanPeriod): string {
   <div class="card-base card-hoverable flex flex-col p-6">
     <!-- 名称 -->
     <h3 class="text-center text-18 font-600 text-[var(--c-text)]">{{ plan.name }}</h3>
-    <p class="mt-0.5 text-center text-12 text-[var(--c-text-sub)]">
+    <p class="mt-0.5 text-center text-14 text-[var(--c-text-sub)]">
       {{ t('plan.traffic') }} {{ plan.traffic_gb }}G
     </p>
 
     <!-- 价格区 -->
     <div class="mt-4 flex items-baseline justify-center gap-1.5">
       <PriceText :value="price" :size="34" />
-      <span class="text-13 text-[var(--c-text-sub)]">/{{ periodLabel(currentPeriod) }}</span>
+      <span class="text-14 text-[var(--c-text-sub)]">/{{ periodLabel(currentPeriod) }}</span>
       <StatusBadge v-if="savePercent" type="marketing" :dot="false">
         {{ t('plan.savePercent', { n: savePercent }) }}
       </StatusBadge>
@@ -79,7 +79,7 @@ function periodLabel(p: PlanPeriod): string {
       <button
         v-for="p in periods"
         :key="p"
-        class="cursor-pointer rounded-[var(--r-control)] px-3 py-1 text-12 transition-colors"
+        class="cursor-pointer rounded-[var(--r-control)] px-3 py-1 text-14 transition-colors"
         :class="
           currentPeriod === p
             ? 'bg-[var(--c-primary-soft)] font-600 text-[var(--c-primary-text)]'
@@ -98,26 +98,26 @@ function periodLabel(p: PlanPeriod): string {
     >
       <div class="text-center">
         <div class="num text-16 font-700 text-[var(--c-text)]">{{ plan.traffic_gb }}G</div>
-        <div class="text-11 text-[var(--c-text-sub)]">{{ t('plan.traffic') }}</div>
+        <div class="text-14 text-[var(--c-text-sub)]">{{ t('plan.traffic') }}</div>
       </div>
       <div class="w-px bg-[var(--c-border)]" />
       <div class="text-center">
         <div class="num text-16 font-700 text-[var(--c-text)]">
           {{ formatSpeed(plan.speed_limit) }}
         </div>
-        <div class="text-11 text-[var(--c-text-sub)]">{{ t('plan.bandwidth') }}</div>
+        <div class="text-14 text-[var(--c-text-sub)]">{{ t('plan.bandwidth') }}</div>
       </div>
       <div class="w-px bg-[var(--c-border)]" />
       <div class="text-center">
         <div class="num text-16 font-700 text-[var(--c-text)]">{{ plan.device_limit }}</div>
-        <div class="text-11 text-[var(--c-text-sub)]">{{ t('plan.devices') }}</div>
+        <div class="text-14 text-[var(--c-text-sub)]">{{ t('plan.devices') }}</div>
       </div>
     </div>
 
     <!-- 描述 -->
     <!-- eslint-disable-next-line vue/no-v-html -->
     <div
-      class="plan-content mt-4 flex-1 text-13 leading-6 text-[var(--c-text-sub)]"
+      class="plan-content mt-4 flex-1 text-14 leading-6 text-[var(--c-text-sub)]"
       v-html="renderContent()"
     />
 

@@ -52,7 +52,7 @@ onMounted(() => {
               {{ item.title }}
             </span>
             <span class="flex shrink-0 items-center gap-2">
-              <span class="text-12 text-[var(--c-text-sub)]">{{ fromNow(item.created_at) }}</span>
+              <span class="text-14 text-[var(--c-text-sub)]">{{ fromNow(item.created_at) }}</span>
               <AppIcon
                 :name="'chevron-down'"
                 :size="16"
@@ -68,7 +68,7 @@ onMounted(() => {
           >
             <!-- eslint-disable-next-line vue/no-v-html -->
             <div
-              class="markdown-body text-13 text-[var(--c-text)]"
+              class="markdown-body text-14 text-[var(--c-text)]"
               v-html="renderHtml(item.content)"
             />
           </div>

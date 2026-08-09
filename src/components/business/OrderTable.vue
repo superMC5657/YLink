@@ -28,13 +28,13 @@ function statusType(status: Order['status']) {
     <n-table :bordered="false" :single-line="false" class="w-full">
       <thead>
         <tr>
-          <th class="text-13">{{ $t('order.productName') }}</th>
-          <th class="text-13">{{ $t('order.orderNo') }}</th>
-          <th class="text-13">{{ $t('order.period') }}</th>
-          <th class="text-13">{{ $t('order.payAmount') }}</th>
-          <th class="text-13">{{ $t('order.status') }}</th>
-          <th class="text-13">{{ $t('order.createdAt') }}</th>
-          <th class="text-13">{{ $t('order.action') }}</th>
+          <th class="text-14">{{ $t('order.productName') }}</th>
+          <th class="text-14">{{ $t('order.orderNo') }}</th>
+          <th class="text-14">{{ $t('order.period') }}</th>
+          <th class="text-14">{{ $t('order.payAmount') }}</th>
+          <th class="text-14">{{ $t('order.status') }}</th>
+          <th class="text-14">{{ $t('order.createdAt') }}</th>
+          <th class="text-14">{{ $t('order.action') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -45,23 +45,23 @@ function statusType(status: Order['status']) {
         >
           <td class="whitespace-nowrap text-14 font-500 text-[var(--c-text)]">{{ o.plan_name }}</td>
           <td class="whitespace-nowrap"><CopyText :text="o.order_no" :max-chars="12" /></td>
-          <td class="whitespace-nowrap text-13 text-[var(--c-text-sub)]">{{ periodLabel(o.period) }}</td>
+          <td class="whitespace-nowrap text-14 text-[var(--c-text-sub)]">{{ periodLabel(o.period) }}</td>
           <td class="num whitespace-nowrap text-14 font-600 text-[var(--c-text)]">{{ formatMoney(o.pay_amount) }}</td>
           <td class="whitespace-nowrap">
             <StatusBadge :type="statusType(o.status)">{{ orderStatusLabel(o.status) }}</StatusBadge>
           </td>
-          <td class="whitespace-nowrap text-13 text-[var(--c-text-sub)]">{{ formatTime(o.created_at, false) }}</td>
+          <td class="whitespace-nowrap text-14 text-[var(--c-text-sub)]">{{ formatTime(o.created_at, false) }}</td>
           <td class="whitespace-nowrap">
             <div class="flex items-center gap-2">
               <button
-                class="text-13 font-500 text-[var(--c-primary-text)] hover:underline"
+                class="text-14 font-500 text-[var(--c-primary-text)] hover:underline"
                 @click="emit('view', o)"
               >
                 {{ $t('common.viewDetail') }}
               </button>
               <button
                 v-if="o.status === 0"
-                class="rounded-[var(--r-control)] px-3 py-1 text-12 font-500 text-white transition-colors hover:brightness-105"
+                class="rounded-[var(--r-control)] px-3 py-1 text-14 font-500 text-white transition-colors hover:brightness-105"
                 style="background: linear-gradient(135deg, #6558f5, #8b5cf6)"
                 @click="emit('pay', o)"
               >

@@ -31,7 +31,7 @@ function statusType(status: Order['status']) {
         <StatusBadge :type="statusType(o.status)">{{ orderStatusLabel(o.status) }}</StatusBadge>
       </div>
 
-      <div class="mt-3 space-y-1.5 text-13">
+      <div class="mt-3 space-y-1.5 text-14">
         <div class="flex justify-between">
           <span class="text-[var(--c-text-sub)]">{{ $t('order.orderNo') }}</span>
           <CopyText :text="o.order_no" :max-chars="14" />
@@ -53,13 +53,13 @@ function statusType(status: Order['status']) {
       <div class="mt-3 flex justify-end gap-2">
         <button
           v-if="o.status === 0"
-          class="rounded-[var(--r-control)] px-4 py-1.5 text-12 font-500 text-white transition-colors hover:brightness-105"
+          class="rounded-[var(--r-control)] px-4 py-1.5 text-14 font-500 text-white transition-colors hover:brightness-105"
           style="background: linear-gradient(135deg, #6558f5, #8b5cf6)"
           @click="emit('pay', o)"
         >
           {{ $t('order.goPay') }}
         </button>
-        <button class="btn-ghost h-8 px-4 text-12" @click="emit('view', o)">
+        <button class="btn-ghost h-8 px-4 text-14" @click="emit('view', o)">
           {{ $t('common.viewDetail') }}
         </button>
       </div>

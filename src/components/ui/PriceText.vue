@@ -26,14 +26,14 @@ const parts = computed(() => {
 
 <template>
   <span class="inline-flex items-baseline gap-1">
-    <span class="num text-13 font-500" :style="{ color: 'var(--c-text-sub)' }">¥</span>
+    <span class="num text-14 font-500" :style="{ color: 'var(--c-text-sub)' }">¥</span>
     <span class="num font-700 leading-none" :style="{ fontSize: `${size}px`, color }">{{
       parts.int
     }}</span>
-    <span class="num text-13 font-500" :style="{ color: 'var(--c-text-sub)' }"
+    <span class="num text-14 font-500" :style="{ color: 'var(--c-text-sub)' }"
       >.{{ parts.dec }}</span
     >
-    <span v-if="original" class="num ml-1 text-13 text-[var(--c-text-sub)] line-through opacity-70"
+    <span v-if="original" class="num ml-1 text-14 text-[var(--c-text-sub)] line-through opacity-70"
       >¥{{ original.toFixed(2) }}</span
     >
   </span>

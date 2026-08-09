@@ -53,7 +53,7 @@ async function onSubmit() {
 <template>
   <div>
     <h2 class="mb-1 text-20 font-700 text-[var(--c-text)]">{{ t('auth.welcomeBack') }}</h2>
-    <p class="mb-2 text-13 text-[var(--c-text-sub)]">
+    <p class="mb-2 text-14 text-[var(--c-text-sub)]">
       {{ t('auth.email') }} / {{ t('auth.password') }}
     </p>
 
@@ -83,7 +83,7 @@ async function onSubmit() {
       </n-form-item>
 
       <div class="mt-1 mb-3 text-right">
-        <router-link to="/forgot" class="text-13 text-[var(--c-primary-text)] hover:underline">
+        <router-link to="/forgot" class="text-14 text-[var(--c-primary-text)] hover:underline">
           {{ t('auth.forgotLink') }}
         </router-link>
       </div>
@@ -97,7 +97,7 @@ async function onSubmit() {
       </button>
     </n-form>
 
-    <p class="mt-4 text-center text-13 text-[var(--c-text-sub)]">
+    <p class="mt-4 text-center text-14 text-[var(--c-text-sub)]">
       {{ t('auth.toRegister') }}
       <router-link to="/register" class="text-[var(--c-primary-text)] hover:underline">
         {{ t('auth.register') }}
@@ -106,7 +106,7 @@ async function onSubmit() {
 
     <!-- 自救入口:localStorage 残留自定义后端地址导致「网络异常」时,一键重置 -->
     <div v-if="hasCustomApiBase" class="mt-3 text-center">
-      <button class="text-12 text-[var(--c-text-sub)] underline-offset-2 hover:text-[var(--c-danger)] hover:underline" @click="resetApiBase">
+      <button class="text-14 text-[var(--c-text-sub)] underline-offset-2 hover:text-[var(--c-danger)] hover:underline" @click="resetApiBase">
         {{ t('auth.resetApiBase') }}
       </button>
     </div>

@@ -48,7 +48,7 @@ onMounted(async () => {
 <template>
   <div>
     <button
-      class="mb-4 flex cursor-pointer items-center gap-1.5 text-13 text-[var(--c-text-sub)] transition-colors hover:text-[var(--c-primary-text)]"
+      class="mb-4 flex cursor-pointer items-center gap-1.5 text-14 text-[var(--c-text-sub)] transition-colors hover:text-[var(--c-primary-text)]"
       @click="router.back()"
     >
       <AppIcon name="arrow-left" :size="16" />
@@ -63,7 +63,7 @@ onMounted(async () => {
             <StatusBadge type="neutral" :dot="false">{{ article.language }}</StatusBadge>
           </div>
           <h1 class="text-22 font-700 text-[var(--c-text)]">{{ article.title }}</h1>
-          <div class="mt-2 flex items-center gap-4 text-12 text-[var(--c-text-sub)]">
+          <div class="mt-2 flex items-center gap-4 text-14 text-[var(--c-text-sub)]">
             <span class="flex items-center gap-1">
               <AppIcon name="calendar" :size="14" />
               {{ t('docs.updatedAt') }}:{{ formatTime(article.updated_at) }}

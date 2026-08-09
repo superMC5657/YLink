@@ -153,7 +153,7 @@ function openDownload(kind: 'windows' | 'macos' | 'android') {
         @click="onAction(a)"
       >
         <AppIcon :name="a.icon" :size="20" :style="{ color: a.color }" />
-        <span class="text-11 leading-tight text-[var(--c-text)]">{{ a.label }}</span>
+        <span class="text-14 leading-tight text-[var(--c-text)]">{{ a.label }}</span>
       </button>
     </div>
 
@@ -190,21 +190,21 @@ function openDownload(kind: 'windows' | 'macos' | 'android') {
           @click="openDownload('windows')"
         >
           <AppIcon name="download" :size="24" :style="{ color: 'var(--c-primary)' }" />
-          <span class="text-13 font-500">Windows</span>
+          <span class="text-14 font-500">Windows</span>
         </button>
         <button
           class="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-[var(--c-border)] py-5 transition-colors hover:bg-[var(--c-bg-hover)]"
           @click="openDownload('macos')"
         >
           <AppIcon name="download" :size="24" :style="{ color: 'var(--c-primary)' }" />
-          <span class="text-13 font-500">macOS</span>
+          <span class="text-14 font-500">macOS</span>
         </button>
         <button
           class="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-[var(--c-border)] py-5 transition-colors hover:bg-[var(--c-bg-hover)]"
           @click="openDownload('android')"
         >
           <AppIcon name="download" :size="24" :style="{ color: 'var(--c-primary)' }" />
-          <span class="text-13 font-500">Android</span>
+          <span class="text-14 font-500">Android</span>
         </button>
       </div>
     </n-modal>

@@ -69,7 +69,7 @@ function onLogout() {
       <nav class="flex-1 overflow-y-auto px-3 py-3">
         <div v-for="group in NAV_GROUPS" :key="group.label" class="mb-4">
           <div
-            class="mb-1.5 px-3 text-11 uppercase tracking-wider text-[var(--c-text-sub)] opacity-70"
+            class="mb-1.5 px-3 text-14 uppercase tracking-wider text-[var(--c-text-sub)] opacity-70"
           >
             {{ t(group.label) }}
           </div>
@@ -103,7 +103,7 @@ function onLogout() {
           </span>
           <div class="min-w-0 flex-1">
             <div class="truncate text-14 font-500 text-[var(--c-text)]">{{ auth.user?.email }}</div>
-            <div class="text-12 text-[var(--c-text-sub)]">ID: {{ auth.user?.id ?? '-' }}</div>
+            <div class="text-14 text-[var(--c-text-sub)]">ID: {{ auth.user?.id ?? '-' }}</div>
           </div>
         </div>
         <button

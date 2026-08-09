@@ -81,7 +81,7 @@ onMounted(async () => {
       </button>
       <div class="min-w-0 flex-1">
         <h1 class="truncate text-16 font-600 text-[var(--c-text)]">{{ detail?.subject }}</h1>
-        <div class="flex items-center gap-2 text-12 text-[var(--c-text-sub)]">
+        <div class="flex items-center gap-2 text-14 text-[var(--c-text-sub)]">
           <span>{{ t('ticket.level') }}:{{ ticketLevelLabel(detail?.level ?? 0) }}</span>
           <StatusBadge
             v-if="detail"
@@ -93,7 +93,7 @@ onMounted(async () => {
       </div>
       <button
         v-if="detail && !isClosed"
-        class="btn-ghost h-8 shrink-0 px-3 text-12 text-[var(--c-danger)]"
+        class="btn-ghost h-8 shrink-0 px-3 text-14 text-[var(--c-danger)]"
         @click="onClose"
       >
         {{ t('ticket.closeTicket') }}
@@ -125,7 +125,7 @@ onMounted(async () => {
               :class="m.sender_type === 0 ? 'items-end' : 'items-start'"
             >
               <div
-                class="rounded-2xl px-4 py-2.5 text-13 leading-6 whitespace-pre-wrap"
+                class="rounded-2xl px-4 py-2.5 text-14 leading-6 whitespace-pre-wrap"
                 :style="
                   m.sender_type === 0
                     ? 'background: linear-gradient(135deg,#6558F5,#8B5CF6); color: #fff; border-bottom-right-radius: 4px'
@@ -134,7 +134,7 @@ onMounted(async () => {
               >
                 {{ m.message }}
               </div>
-              <span class="mt-1 text-11 text-[var(--c-text-sub)]">{{
+              <span class="mt-1 text-14 text-[var(--c-text-sub)]">{{
                 formatTime(m.created_at)
               }}</span>
             </div>
@@ -147,7 +147,7 @@ onMounted(async () => {
     <div class="mt-4">
       <div
         v-if="isClosed"
-        class="mb-3 flex items-center justify-center gap-2 rounded-xl p-3 text-13"
+        class="mb-3 flex items-center justify-center gap-2 rounded-xl p-3 text-14"
         style="background: var(--c-bg-hover); color: var(--c-text-sub)"
       >
         <AppIcon name="alert" :size="15" />
@@ -159,11 +159,11 @@ onMounted(async () => {
           rows="2"
           :placeholder="isClosed ? t('ticket.closedTip') : t('ticket.replyPlaceholder')"
           :disabled="isClosed"
-          class="flex-1 resize-none rounded-[var(--r-control)] border border-[var(--c-border)] bg-[var(--c-bg-card)] p-3 text-13 text-[var(--c-text)] outline-none transition-colors placeholder:text-[var(--c-text-sub)] focus:border-[var(--c-primary)] disabled:opacity-50"
+          class="flex-1 resize-none rounded-[var(--r-control)] border border-[var(--c-border)] bg-[var(--c-bg-card)] p-3 text-14 text-[var(--c-text)] outline-none transition-colors placeholder:text-[var(--c-text-sub)] focus:border-[var(--c-primary)] disabled:opacity-50"
           @keydown.enter.exact.prevent="sendReply"
         />
         <button
-          class="btn-primary h-11 shrink-0 px-5 text-13"
+          class="btn-primary h-11 shrink-0 px-5 text-14"
           :disabled="isClosed || sending || !replyText.trim()"
           @click="sendReply"
         >

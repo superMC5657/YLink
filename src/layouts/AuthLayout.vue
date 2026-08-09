@@ -54,7 +54,7 @@ void config.fetchConfig()
         <router-view />
       </div>
 
-      <p class="mt-5 text-center text-12 text-[var(--c-text-sub)] opacity-70">
+      <p class="mt-5 text-center text-14 text-[var(--c-text-sub)] opacity-70">
         {{ config.config?.site_description }}
       </p>
     </div>

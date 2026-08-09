@@ -35,7 +35,7 @@ export default defineConfig({
     'btn-danger':
       'inline-flex items-center justify-center gap-1 rounded-[var(--r-control)] bg-[var(--c-danger)] text-white font-medium transition-all duration-[var(--t-base)] hover:brightness-105 active:scale-98 disabled:opacity-60 disabled:pointer-events-none',
     'num-font':
-      'font-family: "DIN Alternate", "Bahnschrift", Inter, sans-serif; font-feature-settings: "tnum"',
+      'font-family: "DIN Alternate", "Bahnschrift", "Microsoft YaHei UI", sans-serif; font-feature-settings: "tnum"',
   },
   theme: {
     breakpoints: {

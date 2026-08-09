@@ -19,7 +19,7 @@ withDefaults(
 <template>
   <div class="card-base card-hoverable flex flex-col gap-3 p-5">
     <div class="flex items-center justify-between">
-      <span class="text-13 text-[var(--c-text-sub)]">{{ label }}</span>
+      <span class="text-14 text-[var(--c-text-sub)]">{{ label }}</span>
       <span
         v-if="icon"
         class="flex h-9 w-9 items-center justify-center rounded-full"
@@ -30,7 +30,7 @@ withDefaults(
     </div>
     <div class="flex items-baseline gap-1">
       <span class="num text-28 font-700 leading-none" :style="{ color }">{{ value }}</span>
-      <span v-if="unit" class="text-13 text-[var(--c-text-sub)]">{{ unit }}</span>
+      <span v-if="unit" class="text-14 text-[var(--c-text-sub)]">{{ unit }}</span>
     </div>
   </div>
 </template>

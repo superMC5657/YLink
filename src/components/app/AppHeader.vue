@@ -97,7 +97,7 @@ function onLogout() {
           >
             <AppIcon name="user" :size="17" />
           </span>
-          <span class="hidden max-w-40 truncate text-13 text-[var(--c-text)] lg:inline">{{
+          <span class="hidden max-w-40 truncate text-14 text-[var(--c-text)] lg:inline">{{
             userEmail
           }}</span>
         </button>

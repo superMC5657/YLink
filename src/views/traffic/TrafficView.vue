@@ -163,7 +163,7 @@ onBeforeUnmount(() => {
               { key: 'custom', label: t('traffic.custom') },
             ]"
             :key="r.key"
-            class="cursor-pointer rounded-[var(--r-control)] px-3 py-1 text-12 transition-colors"
+            class="cursor-pointer rounded-[var(--r-control)] px-3 py-1 text-14 transition-colors"
             :class="
               rangeKey === r.key
                 ? 'bg-[var(--c-primary-soft)] font-500 text-[var(--c-primary-text)]'
@@ -187,19 +187,19 @@ onBeforeUnmount(() => {
     <!-- 汇总卡 -->
     <div class="mb-5 grid grid-cols-3 gap-4">
       <div class="card-base flex flex-col items-center gap-1 p-4">
-        <span class="text-12 text-[var(--c-text-sub)]">{{ t('traffic.upload') }}</span>
+        <span class="text-14 text-[var(--c-text-sub)]">{{ t('traffic.upload') }}</span>
         <span class="num text-18 font-700 text-[var(--c-primary-text)]">{{
           formatBytes(totalUpload)
         }}</span>
       </div>
       <div class="card-base flex flex-col items-center gap-1 p-4">
-        <span class="text-12 text-[var(--c-text-sub)]">{{ t('traffic.download') }}</span>
+        <span class="text-14 text-[var(--c-text-sub)]">{{ t('traffic.download') }}</span>
         <span class="num text-18 font-700 text-[var(--c-pink)]">{{
           formatBytes(totalDownload)
         }}</span>
       </div>
       <div class="card-base flex flex-col items-center gap-1 p-4">
-        <span class="text-12 text-[var(--c-text-sub)]">{{ t('traffic.total') }}</span>
+        <span class="text-14 text-[var(--c-text-sub)]">{{ t('traffic.total') }}</span>
         <span class="num text-18 font-700 text-[var(--c-text)]">{{ formatBytes(totalAll) }}</span>
       </div>
     </div>
@@ -214,10 +214,10 @@ onBeforeUnmount(() => {
       <n-table :bordered="false" class="w-full">
         <thead>
           <tr>
-            <th class="text-13">{{ t('traffic.date') }}</th>
-            <th class="text-13">{{ t('traffic.upload') }}</th>
-            <th class="text-13">{{ t('traffic.download') }}</th>
-            <th class="text-13">{{ t('traffic.total') }}</th>
+            <th class="text-14">{{ t('traffic.date') }}</th>
+            <th class="text-14">{{ t('traffic.upload') }}</th>
+            <th class="text-14">{{ t('traffic.download') }}</th>
+            <th class="text-14">{{ t('traffic.total') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -226,10 +226,10 @@ onBeforeUnmount(() => {
             :key="x.date"
             class="transition-colors hover:bg-[var(--c-bg-hover)]"
           >
-            <td class="text-13 text-[var(--c-text)]">{{ x.date }}</td>
-            <td class="num text-13 text-[var(--c-primary-text)]">{{ formatBytes(x.u) }}</td>
-            <td class="num text-13 text-[var(--c-pink)]">{{ formatBytes(x.d) }}</td>
-            <td class="num text-13 font-500 text-[var(--c-text)]">{{ formatBytes(x.total) }}</td>
+            <td class="text-14 text-[var(--c-text)]">{{ x.date }}</td>
+            <td class="num text-14 text-[var(--c-primary-text)]">{{ formatBytes(x.u) }}</td>
+            <td class="num text-14 text-[var(--c-pink)]">{{ formatBytes(x.d) }}</td>
+            <td class="num text-14 font-500 text-[var(--c-text)]">{{ formatBytes(x.total) }}</td>
           </tr>
         </tbody>
       </n-table>

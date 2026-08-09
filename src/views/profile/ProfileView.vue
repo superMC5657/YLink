@@ -135,7 +135,7 @@ onMounted(() => {
                 <div class="text-14 font-500 text-[var(--c-text)]">
                   {{ t('profile.remindExpire') }}
                 </div>
-                <div class="text-12 text-[var(--c-text-sub)]">订阅到期前邮件提醒</div>
+                <div class="text-14 text-[var(--c-text-sub)]">订阅到期前邮件提醒</div>
               </div>
               <n-switch v-model:value="remindExpire" @update:value="onNotifyChange" />
             </div>
@@ -144,7 +144,7 @@ onMounted(() => {
                 <div class="text-14 font-500 text-[var(--c-text)]">
                   {{ t('profile.remindTraffic') }}
                 </div>
-                <div class="text-12 text-[var(--c-text-sub)]">流量不足 20% 时邮件提醒</div>
+                <div class="text-14 text-[var(--c-text-sub)]">流量不足 20% 时邮件提醒</div>
               </div>
               <n-switch v-model:value="remindTraffic" @update:value="onNotifyChange" />
             </div>
@@ -198,7 +198,7 @@ onMounted(() => {
           </h3>
           <div class="space-y-4">
             <div>
-              <label class="mb-1 block text-12 text-[var(--c-text-sub)]">{{
+              <label class="mb-1 block text-14 text-[var(--c-text-sub)]">{{
                 t('profile.oldPassword')
               }}</label>
               <input
@@ -208,7 +208,7 @@ onMounted(() => {
               />
             </div>
             <div>
-              <label class="mb-1 block text-12 text-[var(--c-text-sub)]">{{
+              <label class="mb-1 block text-14 text-[var(--c-text-sub)]">{{
                 t('profile.newPassword')
               }}</label>
               <input
@@ -218,7 +218,7 @@ onMounted(() => {
               />
             </div>
             <div>
-              <label class="mb-1 block text-12 text-[var(--c-text-sub)]">{{
+              <label class="mb-1 block text-14 text-[var(--c-text-sub)]">{{
                 t('profile.confirmNewPassword')
               }}</label>
               <input
@@ -229,16 +229,16 @@ onMounted(() => {
             </div>
             <p
               v-if="pwdForm.new_password && pwdForm.new_password !== pwdForm.confirm_password"
-              class="text-12 text-[var(--c-danger)]"
+              class="text-14 text-[var(--c-danger)]"
             >
               {{ t('auth.passwordMismatch') }}
             </p>
             <div class="flex gap-2">
-              <button class="btn-ghost h-9 flex-1 text-13" @click="clearPwd">
+              <button class="btn-ghost h-9 flex-1 text-14" @click="clearPwd">
                 {{ t('profile.clearForm') }}
               </button>
               <button
-                class="btn-olive h-9 flex-1 text-13"
+                class="btn-olive h-9 flex-1 text-14"
                 :disabled="!canSavePwd || savingPwd"
                 @click="savePwd"
               >
@@ -263,11 +263,11 @@ onMounted(() => {
               class="mt-0.5 shrink-0"
               :style="{ color: 'var(--c-warning)' }"
             />
-            <p class="text-12 leading-5 text-[var(--c-text)]">
+            <p class="text-14 leading-5 text-[var(--c-text)]">
               {{ t('profile.resetSubscribeTip') }}
             </p>
           </div>
-          <button class="btn-danger h-10 w-full text-13" @click="showResetModal = true">
+          <button class="btn-danger h-10 w-full text-14" @click="showResetModal = true">
             <AppIcon name="refresh" :size="15" />
             {{ t('profile.resetSubscribeBtn') }}
           </button>
@@ -283,15 +283,15 @@ onMounted(() => {
       class="max-w-95"
     >
       <div class="space-y-4">
-        <p class="text-13 text-[var(--c-text-sub)]">{{ t('profile.resetConfirm') }}</p>
+        <p class="text-14 text-[var(--c-text-sub)]">{{ t('profile.resetConfirm') }}</p>
         <input
           v-model="resetPwd"
           type="password"
           :placeholder="t('auth.password')"
-          class="h-10 w-full rounded-[var(--r-control)] border border-[var(--c-border)] bg-[var(--c-bg-card)] px-3 text-13 text-[var(--c-text)] outline-none transition-colors focus:border-[var(--c-primary)]"
+          class="h-10 w-full rounded-[var(--r-control)] border border-[var(--c-border)] bg-[var(--c-bg-card)] px-3 text-14 text-[var(--c-text)] outline-none transition-colors focus:border-[var(--c-primary)]"
         />
         <button
-          class="btn-danger h-10 w-full text-13"
+          class="btn-danger h-10 w-full text-14"
           :disabled="resetting"
           @click="onResetSubscribe"
         >
@@ -316,15 +316,15 @@ onMounted(() => {
         class="flex items-center gap-2 rounded-xl p-3"
         style="background-color: var(--c-bg-hover)"
       >
-        <span class="num min-w-0 flex-1 break-all text-12 text-[var(--c-text)]">{{
+        <span class="num min-w-0 flex-1 break-all text-14 text-[var(--c-text)]">{{
           newSubscribeUrl
         }}</span>
-        <button class="btn-primary h-9 shrink-0 px-4 text-12" @click="copyNewUrl">
+        <button class="btn-primary h-9 shrink-0 px-4 text-14" @click="copyNewUrl">
           <AppIcon name="copy" :size="14" />
           {{ t('common.copy') }}
         </button>
       </div>
-      <p class="mt-3 text-12 text-[var(--c-warning)]">{{ t('profile.resetSubscribeTip') }}</p>
+      <p class="mt-3 text-14 text-[var(--c-warning)]">{{ t('profile.resetSubscribeTip') }}</p>
     </n-modal>
   </div>
 </template>

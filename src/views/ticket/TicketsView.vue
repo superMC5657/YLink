@@ -65,7 +65,7 @@ onMounted(() => void ticket.fetch())
   <div>
     <PageHeader :title="t('ticket.title')">
       <template #actions>
-        <button class="btn-primary h-9 px-4 text-13" @click="showCreate = true">
+        <button class="btn-primary h-9 px-4 text-14" @click="showCreate = true">
           <AppIcon name="plus" :size="15" />
           {{ t('ticket.newTicket') }}
         </button>
@@ -97,11 +97,11 @@ onMounted(() => void ticket.fetch())
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-2">
                 <span class="truncate text-14 font-500 text-[var(--c-text)]">{{ tk.subject }}</span>
-                <span class="shrink-0 text-11 text-[var(--c-text-sub)]"
+                <span class="shrink-0 text-14 text-[var(--c-text-sub)]"
                   >{{ t('ticket.level') }}:{{ ticketLevelLabel(tk.level) }}</span
                 >
               </div>
-              <div class="mt-1 text-12 text-[var(--c-text-sub)]">
+              <div class="mt-1 text-14 text-[var(--c-text-sub)]">
                 {{ t('ticket.lastReplyAt') }}:{{ formatTime(tk.last_reply_at) }}
               </div>
             </div>
@@ -110,7 +110,7 @@ onMounted(() => void ticket.fetch())
               <StatusBadge :type="statusType(tk.status)">{{
                 ticketStatusLabel(tk.status)
               }}</StatusBadge>
-              <span class="text-11 text-[var(--c-text-sub)]">{{
+              <span class="text-14 text-[var(--c-text-sub)]">{{
                 formatTime(tk.created_at, false)
               }}</span>
             </div>
@@ -134,18 +134,18 @@ onMounted(() => void ticket.fetch())
     >
       <div class="space-y-4">
         <div>
-          <label class="mb-1 block text-12 text-[var(--c-text-sub)]">{{
+          <label class="mb-1 block text-14 text-[var(--c-text-sub)]">{{
             t('ticket.subject')
           }}</label>
           <input
             v-model="form.subject"
             type="text"
             :placeholder="t('ticket.subjectPlaceholder')"
-            class="h-10 w-full rounded-[var(--r-control)] border border-[var(--c-border)] bg-[var(--c-bg-card)] px-3 text-13 text-[var(--c-text)] outline-none transition-colors focus:border-[var(--c-primary)]"
+            class="h-10 w-full rounded-[var(--r-control)] border border-[var(--c-border)] bg-[var(--c-bg-card)] px-3 text-14 text-[var(--c-text)] outline-none transition-colors focus:border-[var(--c-primary)]"
           />
         </div>
         <div>
-          <label class="mb-1 block text-12 text-[var(--c-text-sub)]">{{ t('ticket.level') }}</label>
+          <label class="mb-1 block text-14 text-[var(--c-text-sub)]">{{ t('ticket.level') }}</label>
           <n-radio-group v-model:value="form.level">
             <n-radio-button
               v-for="o in levelOptions"
@@ -156,14 +156,14 @@ onMounted(() => void ticket.fetch())
           </n-radio-group>
         </div>
         <div>
-          <label class="mb-1 block text-12 text-[var(--c-text-sub)]">{{
+          <label class="mb-1 block text-14 text-[var(--c-text-sub)]">{{
             t('ticket.messagePlaceholder')
           }}</label>
           <textarea
             v-model="form.message"
             rows="4"
             :placeholder="t('ticket.messagePlaceholder')"
-            class="w-full resize-none rounded-[var(--r-control)] border border-[var(--c-border)] bg-[var(--c-bg-card)] p-3 text-13 text-[var(--c-text)] outline-none transition-colors placeholder:text-[var(--c-text-sub)] focus:border-[var(--c-primary)]"
+            class="w-full resize-none rounded-[var(--r-control)] border border-[var(--c-border)] bg-[var(--c-bg-card)] p-3 text-14 text-[var(--c-text)] outline-none transition-colors placeholder:text-[var(--c-text-sub)] focus:border-[var(--c-primary)]"
           />
         </div>
         <button

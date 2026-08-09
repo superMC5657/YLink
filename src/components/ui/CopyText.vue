@@ -46,7 +46,7 @@ function computedDisplay(): string {
 
 <template>
   <span class="inline-flex max-w-full items-center gap-1.5 align-middle">
-    <span class="num break-all text-13 text-[var(--c-text-sub)]" :title="text">{{ shown }}</span>
+    <span class="num break-all text-14 text-[var(--c-text-sub)]" :title="text">{{ shown }}</span>
     <button
       class="flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded transition-colors hover:bg-[var(--c-bg-hover)]"
       :style="{ color: copied ? 'var(--c-success)' : 'var(--c-text-sub)' }"

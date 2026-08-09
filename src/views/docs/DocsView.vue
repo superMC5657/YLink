@@ -77,7 +77,7 @@ watch(
               style="background: linear-gradient(180deg, #6558f5, #8b5cf6)"
             />
             <h3 class="text-16 font-600 text-[var(--c-text)]">{{ group.category }}</h3>
-            <span class="ml-auto text-12 text-[var(--c-text-sub)]"
+            <span class="ml-auto text-14 text-[var(--c-text-sub)]"
               >{{ group.items.length }} 篇</span
             >
           </div>
@@ -93,9 +93,9 @@ watch(
                 item.title
               }}</span>
               <span class="flex shrink-0 items-center gap-2.5">
-                <span class="text-12 text-[var(--c-text-sub)]">{{ fromNow(item.updated_at) }}</span>
+                <span class="text-14 text-[var(--c-text-sub)]">{{ fromNow(item.updated_at) }}</span>
                 <span
-                  class="flex items-center gap-0.5 text-13 font-500 text-[var(--c-primary-text)]"
+                  class="flex items-center gap-0.5 text-14 font-500 text-[var(--c-primary-text)]"
                 >
                   {{ t('docs.read') }}
                   <AppIcon name="chevron-right" :size="14" />

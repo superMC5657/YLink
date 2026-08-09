@@ -54,7 +54,7 @@ function go(path: string) {
       <div v-for="group in NAV_GROUPS" :key="group.label" class="mb-4">
         <div
           v-if="!collapsed"
-          class="mb-1.5 px-3 text-11 uppercase tracking-wider text-[var(--c-text-sub)] opacity-70"
+          class="mb-1.5 px-3 text-14 uppercase tracking-wider text-[var(--c-text-sub)] opacity-70"
         >
           {{ t(group.label) }}
         </div>
@@ -85,7 +85,7 @@ function go(path: string) {
         @click="app.toggleSidebar"
       >
         <AppIcon :name="collapsed ? 'chevron-right' : 'chevron-down'" :size="18" />
-        <span v-if="!collapsed" class="text-13">{{ t('nav.collapse') }}</span>
+        <span v-if="!collapsed" class="text-14">{{ t('nav.collapse') }}</span>
       </button>
     </div>
   </aside>

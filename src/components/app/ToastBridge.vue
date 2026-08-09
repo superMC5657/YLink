@@ -56,7 +56,7 @@ onBeforeUnmount(() => {
     <transition name="fade-slide">
       <div
         v-if="offline"
-        class="flex h-10 items-center justify-center gap-2 text-13 font-500 text-white"
+        class="flex h-10 items-center justify-center gap-2 text-14 font-500 text-white"
         style="background: linear-gradient(90deg, #e5484d, #f16a6e)"
       >
         <span class="h-2 w-2 animate-pulse rounded-full bg-white" />

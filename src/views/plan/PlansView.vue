@@ -57,7 +57,7 @@ onMounted(() => {
   <div>
     <div class="mb-5">
       <h1 class="text-20 font-600 text-[var(--c-text)]">{{ t('plan.title') }}</h1>
-      <p class="mt-1 text-13 text-[var(--c-text-sub)]">{{ config.config?.site_description }}</p>
+      <p class="mt-1 text-14 text-[var(--c-text-sub)]">{{ config.config?.site_description }}</p>
     </div>
 
     <n-spin :show="planStore.loading">

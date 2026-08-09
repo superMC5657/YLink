@@ -35,12 +35,12 @@ onBeforeUnmount(() => server.stopPolling())
     <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
       <div>
         <h1 class="text-20 font-600 text-[var(--c-text)]">{{ t('node.title') }}</h1>
-        <p class="mt-1 text-13 text-[var(--c-text-sub)]">
+        <p class="mt-1 text-14 text-[var(--c-text-sub)]">
           {{ t('node.group') }} {{ server.groups.length }} · {{ t('node.normal') }}
           {{ healthyNodes }}/{{ totalNodes }}
         </p>
       </div>
-      <span class="text-12 text-[var(--c-text-sub)]">
+      <span class="text-14 text-[var(--c-text-sub)]">
         {{ t('node.updatedAt', { time: updatedText || '--' }) }}
       </span>
     </div>
@@ -60,7 +60,7 @@ onBeforeUnmount(() => server.stopPolling())
               <AppIcon name="server" :size="17" />
             </span>
             <h3 class="text-16 font-600 text-[var(--c-text)]">{{ group.group }}</h3>
-            <span class="ml-auto text-12 text-[var(--c-text-sub)]"
+            <span class="ml-auto text-14 text-[var(--c-text-sub)]"
               >{{ group.servers.length }} 节点</span
             >
           </div>
@@ -87,13 +87,13 @@ onBeforeUnmount(() => server.stopPolling())
                 <div class="truncate text-14 font-500 text-[var(--c-text)]">{{ s.name }}</div>
                 <div class="mt-1 flex flex-wrap items-center gap-1.5">
                   <span
-                    class="rounded-full px-2 py-0.5 text-11"
+                    class="rounded-full px-2 py-0.5 text-14"
                     style="background: var(--c-bg-hover); color: var(--c-text-sub)"
                   >
                     {{ s.type }}
                   </span>
                   <span
-                    class="num rounded-full px-2 py-0.5 text-11"
+                    class="num rounded-full px-2 py-0.5 text-14"
                     style="background: var(--c-bg-hover); color: var(--c-text-sub)"
                   >
                     ×{{ s.rate }}
@@ -101,7 +101,7 @@ onBeforeUnmount(() => server.stopPolling())
                   <span
                     v-for="tag in s.tags"
                     :key="tag"
-                    class="rounded-full px-2 py-0.5 text-11"
+                    class="rounded-full px-2 py-0.5 text-14"
                     style="background: var(--c-primary-soft); color: var(--c-primary-text)"
                   >
                     {{ tag }}
@@ -110,7 +110,7 @@ onBeforeUnmount(() => server.stopPolling())
               </div>
 
               <span
-                class="shrink-0 text-12 font-500"
+                class="shrink-0 text-14 font-500"
                 :style="{ color: serverStatusMeta(s.status).color }"
               >
                 {{ serverStatusMeta(s.status).label }}

@@ -163,12 +163,12 @@ async function submit() {
   >
     <template v-if="props.plan">
       <!-- 1. 周期 -->
-      <div class="mb-2 text-13 font-500 text-[var(--c-text)]">{{ t('plan.period') }}</div>
+      <div class="mb-2 text-14 font-500 text-[var(--c-text)]">{{ t('plan.period') }}</div>
       <div class="flex flex-wrap gap-2">
         <button
           v-for="p in periods"
           :key="p"
-          class="flex cursor-pointer items-center gap-1.5 rounded-[var(--r-control)] border px-4 py-2 text-13 transition-colors"
+          class="flex cursor-pointer items-center gap-1.5 rounded-[var(--r-control)] border px-4 py-2 text-14 transition-colors"
           :class="
             period === p
               ? 'border-[var(--c-primary)] bg-[var(--c-primary-soft)] font-500 text-[var(--c-primary-text)]'
@@ -190,32 +190,32 @@ async function submit() {
             }}
           </span>
           <span class="num">{{ formatMoney(props.plan.prices[p] ?? 0) }}</span>
-          <span v-if="period === p && savePercent" class="text-11 text-[var(--c-marketing)]">
+          <span v-if="period === p && savePercent" class="text-14 text-[var(--c-marketing)]">
             {{ t('plan.savePercent', { n: savePercent }) }}
           </span>
         </button>
       </div>
 
       <!-- 2. 优惠券 -->
-      <div class="mt-5 mb-2 text-13 font-500 text-[var(--c-text)]">{{ t('plan.coupon') }}</div>
+      <div class="mt-5 mb-2 text-14 font-500 text-[var(--c-text)]">{{ t('plan.coupon') }}</div>
       <div class="flex gap-2">
         <input
           v-model="couponCode"
           type="text"
           :placeholder="t('plan.couponPlaceholder')"
-          class="h-10 flex-1 rounded-[var(--r-control)] border border-[var(--c-border)] bg-[var(--c-bg-card)] px-3 text-13 text-[var(--c-text)] outline-none transition-colors placeholder:text-[var(--c-text-sub)] focus:border-[var(--c-primary)]"
+          class="h-10 flex-1 rounded-[var(--r-control)] border border-[var(--c-border)] bg-[var(--c-bg-card)] px-3 text-14 text-[var(--c-text)] outline-none transition-colors placeholder:text-[var(--c-text-sub)] focus:border-[var(--c-primary)]"
         />
-        <button class="btn-ghost h-10 px-4 text-13" @click="checkCoupon">
+        <button class="btn-ghost h-10 px-4 text-14" @click="checkCoupon">
           {{ t('plan.couponCheck') }}
         </button>
       </div>
-      <p v-if="couponChecked && couponResult" class="mt-1.5 text-12 text-[var(--c-success)]">
+      <p v-if="couponChecked && couponResult" class="mt-1.5 text-14 text-[var(--c-success)]">
         {{ t('plan.couponApplied', { amount: formatMoney(couponResult.discount_amount) }) }}
       </p>
-      <p v-if="couponError" class="mt-1.5 text-12 text-[var(--c-danger)]">{{ couponError }}</p>
+      <p v-if="couponError" class="mt-1.5 text-14 text-[var(--c-danger)]">{{ couponError }}</p>
 
       <!-- 3. 支付方式 -->
-      <div class="mt-5 mb-2 text-13 font-500 text-[var(--c-text)]">{{ t('plan.payment') }}</div>
+      <div class="mt-5 mb-2 text-14 font-500 text-[var(--c-text)]">{{ t('plan.payment') }}</div>
       <div class="grid grid-cols-3 gap-2">
         <button
           v-for="m in availableMethods"
@@ -236,7 +236,7 @@ async function submit() {
             :style="{ color: payMethod === m.code ? 'var(--c-primary)' : 'var(--c-text-sub)' }"
           />
           <span
-            class="text-12"
+            class="text-14"
             :style="{ color: payMethod === m.code ? 'var(--c-primary-text)' : 'var(--c-text-sub)' }"
           >
             {{ m.name }}
@@ -245,19 +245,19 @@ async function submit() {
       </div>
       <p
         v-if="payMethod === 'balance' && !balanceEnough"
-        class="mt-1.5 text-12 text-[var(--c-danger)]"
+        class="mt-1.5 text-14 text-[var(--c-danger)]"
       >
         {{ t('plan.balanceShort', { amount: formatMoney(Math.max(0, payAmount - balance)) }) }}
       </p>
 
       <!-- 4. 费用明细 -->
       <div class="mt-5 rounded-xl p-4" style="background-color: var(--c-bg-hover)">
-        <div class="mb-2 text-13 font-500 text-[var(--c-text)]">{{ t('plan.feeDetail') }}</div>
-        <div class="flex justify-between text-13">
+        <div class="mb-2 text-14 font-500 text-[var(--c-text)]">{{ t('plan.feeDetail') }}</div>
+        <div class="flex justify-between text-14">
           <span class="text-[var(--c-text-sub)]">{{ t('plan.planPrice') }}</span>
           <span class="num text-[var(--c-text)]">{{ formatMoney(price) }}</span>
         </div>
-        <div v-if="discount > 0" class="mt-1.5 flex justify-between text-13">
+        <div v-if="discount > 0" class="mt-1.5 flex justify-between text-14">
           <span class="text-[var(--c-text-sub)]">{{ t('order.discount') }}</span>
           <span class="num text-[var(--c-marketing)]">-{{ formatMoney(discount) }}</span>
         </div>

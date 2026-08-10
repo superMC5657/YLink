@@ -3,7 +3,7 @@ package repo
 import (
 	"gorm.io/gorm"
 
-	"nanocloud/internal/model"
+	"ylink/internal/model"
 )
 
 // NoticeRepo 公告数据访问。

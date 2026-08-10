@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"nanocloud/internal/pkg/errs"
+	"ylink/internal/pkg/errs"
 )
 
 // Body 为统一信封。

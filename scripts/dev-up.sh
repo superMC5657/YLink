@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# NanoCloud 本地联调一键启动:MySQL/Redis 容器 + 后端 api + worker + 前端 dev(连真实后端)
+# YLink 本地联调一键启动:MySQL/Redis 容器 + 后端 api + worker + 前端 dev(连真实后端)
 # 用法:bash scripts/dev-up.sh
 # 停止:bash scripts/dev-down.sh
 set -euo pipefail
@@ -7,8 +7,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SERVER="$ROOT/server"
 RUN_DIR="$ROOT/.dev"
-MYSQL_PASS="nanocloud_root"
-REDIS_PASS="nanocloud_redis"
+MYSQL_PASS="ylink_root"
+REDIS_PASS="ylink_redis"
 ADMIN_EMAIL="admin@example.com"
 ADMIN_PASSWORD="Admin@123456"
 JWT_SECRET="dev-join-test-secret-32bytes-key!!"
@@ -45,45 +45,45 @@ ensure_image() {
   fi
 }
 
-if ! docker inspect nc-mysql >/dev/null 2>&1; then
+if ! docker inspect yl-mysql >/dev/null 2>&1; then
   ensure_image mysql:8.0
-  docker run -d --name nc-mysql \
-    -e MYSQL_ROOT_PASSWORD="$MYSQL_PASS" -e MYSQL_DATABASE=nanocloud \
+  docker run -d --name yl-mysql \
+    -e MYSQL_ROOT_PASSWORD="$MYSQL_PASS" -e MYSQL_DATABASE=ylink \
     -p 127.0.0.1:3306:3306 \
     mysql:8.0 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci >/dev/null
-  echo "  已创建 nc-mysql"
+  echo "  已创建 yl-mysql"
 else
-  docker start nc-mysql >/dev/null 2>&1 || true
-  echo "  nc-mysql 已存在,启动中"
+  docker start yl-mysql >/dev/null 2>&1 || true
+  echo "  yl-mysql 已存在,启动中"
 fi
 
-if ! docker inspect nc-redis >/dev/null 2>&1; then
+if ! docker inspect yl-redis >/dev/null 2>&1; then
   ensure_image redis:7-alpine
-  docker run -d --name nc-redis \
+  docker run -d --name yl-redis \
     -p 127.0.0.1:6379:6379 \
     redis:7-alpine redis-server --requirepass "$REDIS_PASS" >/dev/null
-  echo "  已创建 nc-redis"
+  echo "  已创建 yl-redis"
 else
-  docker start nc-redis >/dev/null 2>&1 || true
-  echo "  nc-redis 已存在,启动中"
+  docker start yl-redis >/dev/null 2>&1 || true
+  echo "  yl-redis 已存在,启动中"
 fi
 
 # 等待 MySQL/Redis 就绪(最多 120s)
 for i in $(seq 1 24); do
   MYSQL_OK=0; REDIS_OK=0
-  docker exec nc-mysql mysqladmin ping -h127.0.0.1 -uroot -p"$MYSQL_PASS" --silent >/dev/null 2>&1 && MYSQL_OK=1
-  docker exec nc-redis redis-cli -a "$REDIS_PASS" ping >/dev/null 2>&1 && REDIS_OK=1
+  docker exec yl-mysql mysqladmin ping -h127.0.0.1 -uroot -p"$MYSQL_PASS" --silent >/dev/null 2>&1 && MYSQL_OK=1
+  docker exec yl-redis redis-cli -a "$REDIS_PASS" ping >/dev/null 2>&1 && REDIS_OK=1
   [ "$MYSQL_OK" = 1 ] && [ "$REDIS_OK" = 1 ] && break
-  [ $i -eq 24 ] && { echo "错误:MySQL/Redis 5s 内未就绪,请 docker logs nc-mysql / nc-redis 排查"; exit 1; }
+  [ $i -eq 24 ] && { echo "错误:MySQL/Redis 5s 内未就绪,请 docker logs yl-mysql / yl-redis 排查"; exit 1; }
   sleep 5
 done
 echo "  MySQL + Redis 就绪"
 
 # ---------- 2. 数据库迁移(首次自动执行) ----------
 say "[2/4] 检查数据库迁移..."
-if ! docker exec nc-mysql mysql -uroot -p"$MYSQL_PASS" -e "SHOW TABLES LIKE 'users'" nanocloud 2>/dev/null | grep -q users; then
+if ! docker exec yl-mysql mysql -uroot -p"$MYSQL_PASS" -e "SHOW TABLES LIKE 'users'" ylink 2>/dev/null | grep -q users; then
   echo "  首次启动,执行迁移(DSN 带 mysql:// 前缀)..."
-  ( cd "$SERVER" && DB_URL="mysql://root:${MYSQL_PASS}@tcp(127.0.0.1:3306)/nanocloud?charset=utf8mb4&parseTime=true&loc=Local" make migrate >/dev/null )
+  ( cd "$SERVER" && DB_URL="mysql://root:${MYSQL_PASS}@tcp(127.0.0.1:3306)/ylink?charset=utf8mb4&parseTime=true&loc=Local" make migrate >/dev/null )
   echo "  迁移完成"
 else
   echo "  已迁移,跳过"
@@ -91,7 +91,7 @@ fi
 
 # ---------- 3. 后端 api + worker ----------
 say "[3/4] 启动后端 api + worker..."
-export APP_DATABASE_DSN="root:${MYSQL_PASS}@tcp(127.0.0.1:3306)/nanocloud?charset=utf8mb4&parseTime=true&loc=Local"
+export APP_DATABASE_DSN="root:${MYSQL_PASS}@tcp(127.0.0.1:3306)/ylink?charset=utf8mb4&parseTime=true&loc=Local"
 export APP_REDIS_ADDR=127.0.0.1:6379
 export APP_REDIS_PASSWORD="$REDIS_PASS"
 export APP_BASE_URL=http://localhost:8080

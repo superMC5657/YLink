@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
 
-	"nanocloud/internal/config"
+	"ylink/internal/config"
 )
 
 // NewDB 初始化 GORM 连接；慢查询（>200ms）与错误写入日志。

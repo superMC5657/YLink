@@ -1,6 +1,6 @@
 // API 服务入口。
 //
-//	@title        NanoCloud API
+//	@title        YLink API
 //	@version      1.0
 //	@description  代理订阅售卖系统后端 API。统一信封 {code,message,data}；鉴权 Bearer <access_token>。
 //	@host         api.example.com
@@ -22,14 +22,14 @@ import (
 
 	"go.uber.org/zap"
 
-	"nanocloud/internal/config"
-	jwtpkg "nanocloud/internal/pkg/jwt"
-	"nanocloud/internal/pkg/logger"
-	"nanocloud/internal/pkg/mailer"
-	"nanocloud/internal/pkg/payment"
-	"nanocloud/internal/pkg/redis"
-	"nanocloud/internal/repo"
-	"nanocloud/internal/router"
+	"ylink/internal/config"
+	jwtpkg "ylink/internal/pkg/jwt"
+	"ylink/internal/pkg/logger"
+	"ylink/internal/pkg/mailer"
+	"ylink/internal/pkg/payment"
+	"ylink/internal/pkg/redis"
+	"ylink/internal/repo"
+	"ylink/internal/router"
 )
 
 func main() {

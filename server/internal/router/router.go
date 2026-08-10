@@ -9,15 +9,15 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"gorm.io/gorm"
 
-	_ "nanocloud/docs"
+	_ "ylink/docs"
 
-	"nanocloud/internal/config"
-	"nanocloud/internal/handler"
-	"nanocloud/internal/middleware"
-	jwtpkg "nanocloud/internal/pkg/jwt"
-	"nanocloud/internal/pkg/mailer"
-	"nanocloud/internal/repo"
-	"nanocloud/internal/service"
+	"ylink/internal/config"
+	"ylink/internal/handler"
+	"ylink/internal/middleware"
+	jwtpkg "ylink/internal/pkg/jwt"
+	"ylink/internal/pkg/mailer"
+	"ylink/internal/repo"
+	"ylink/internal/service"
 )
 
 // Deps 为路由组装所需的全部依赖。

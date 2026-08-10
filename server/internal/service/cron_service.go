@@ -10,13 +10,13 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
-	"nanocloud/internal/config"
-	"nanocloud/internal/model"
-	"nanocloud/internal/pkg/logger"
-	"nanocloud/internal/pkg/mailer"
-	"nanocloud/internal/pkg/payment"
-	redispkg "nanocloud/internal/pkg/redis"
-	"nanocloud/internal/repo"
+	"ylink/internal/config"
+	"ylink/internal/model"
+	"ylink/internal/pkg/logger"
+	"ylink/internal/pkg/mailer"
+	"ylink/internal/pkg/payment"
+	redispkg "ylink/internal/pkg/redis"
+	"ylink/internal/repo"
 )
 
 // CronService 定时任务（worker 进程调度；所有任务由 worker 加分布式锁）。

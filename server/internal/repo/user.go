@@ -6,7 +6,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	"nanocloud/internal/model"
+	"ylink/internal/model"
 )
 
 // SettingRepo 站点配置数据访问。

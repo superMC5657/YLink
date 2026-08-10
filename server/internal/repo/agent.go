@@ -3,7 +3,7 @@ package repo
 import (
 	"gorm.io/gorm"
 
-	"nanocloud/internal/model"
+	"ylink/internal/model"
 )
 
 // AgentApplyRepo 代理商申请数据访问。

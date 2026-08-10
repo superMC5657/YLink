@@ -129,7 +129,7 @@
 | 插件接入(Rust) | ✅ http / store / clipboard / opener / single-instance / autostart / notification / process / window-state / os | capabilities 最小授权;http scope 限 `https://**` + localhost |
 | 平台适配层(前端) | ✅ `utils/platform.ts` 启用 Tauri 分支(clipboard/opener/deep-link 动态 import);`utils/http.ts` 走 plugin-http 原生 fetch;`stores/app.ts` applyTheme 同步窗口标题栏;`main.ts` 深链接路由跳转 | Web 端自动降级不受影响 |
 | 托盘/单实例 | ✅ 托盘菜单(显示主窗口/退出)+ single-instance 聚焦已有窗口 | lib.rs setup |
-| deep-link 注册 | ⚠️ 前端 onDeepLink 已实现,Rust 侧未注册插件、capabilities 未声明权限 | 需 Release 域名与 nanocloud:// 协议注册(desktop-tauri.md §3/§4) |
+| deep-link 注册 | ⚠️ 前端 onDeepLink 已实现,Rust 侧未注册插件、capabilities 未声明权限 | 需 Release 域名与 ylink:// 协议注册(desktop-tauri.md §3/§4) |
 | 自动更新 | ⚠️ tauri.conf.json 有 updater 配置(空 pubkey/示例端点),Rust 与前端未接入 | 需 `tauri signer generate` + Release 流水线(desktop-tauri.md §5) |
 | 通知触发点 | ⚠️ 插件已注册,前端未实现到期/工单回复/支付成功本地通知 | 依赖轮询钩子(可后补) |
 | 三平台打包与 updater 签名 | ❌ 未配置 | 需 GitHub Actions Release + `TAURI_SIGNING_PRIVATE_KEY` |
@@ -200,7 +200,7 @@
 | Rust 工具链 | Rust ≥ 1.77 + WebView2(Win);`pnpm tauri:dev` 开发联动,`pnpm tauri:build` 打包 |
 | 首次编译 | cargo 拉取 10+ 插件 crate,首次约 5 分钟;`cargo check` 可单独快速验证 |
 | 图标 | 改品牌后运行 `python scripts/gen-icon.py && pnpm tauri icon app-icon.png` 重新生成全套 |
-| 深链接/更新 | 发布前需注册 `nanocloud://` 协议(Rust 侧 deep-link 插件)与 `tauri signer generate` 密钥(见第 2 节) |
+| 深链接/更新 | 发布前需注册 `ylink://` 协议(Rust 侧 deep-link 插件)与 `tauri signer generate` 密钥(见第 2 节) |
 | 平台适配 | Web 与 Tauri 共用一套代码,`utils/platform.ts` 自动降级;勿在 Web 端调用 Tauri 专属 API(已全部动态 import 保护) |
 
 ### 3.6 上线(生产)

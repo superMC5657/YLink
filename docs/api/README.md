@@ -93,7 +93,7 @@
 {
   "code": 0, "message": "ok",
   "data": {
-    "site_name": "NanoCloud",
+    "site_name": "YLink",
     "site_logo": "https://.../logo.png",
     "site_description": "高速稳定的网络加速服务",
     "register_enabled": true,
@@ -261,14 +261,14 @@
 
 ### 7.1 列表（按分类分组）
 
-`GET /knowledges?language=zh-CN&keyword=Nano`
+`GET /knowledges?language=zh-CN&keyword=YLink`
 
 ```json
 { "code": 0, "message": "ok",
   "data": {
     "groups": [
       { "category": "安卓配置教程",
-        "items": [ { "id": 31, "title": "Nano (推荐使用)", "updated_at": "2026-08-04T23:51:53+08:00" },
+        "items": [ { "id": 31, "title": "YLink (推荐使用)", "updated_at": "2026-08-04T23:51:53+08:00" },
                    { "id": 32, "title": "Clash Meta (备用)", "updated_at": "2026-08-05T19:25:25+08:00" } ] },
       { "category": "防失联", "items": [ ] }
     ] } }
@@ -282,7 +282,7 @@
 
 ```json
 { "code": 0, "message": "ok",
-  "data": { "id": 31, "category": "安卓配置教程", "title": "Nano (推荐使用)",
+  "data": { "id": 31, "category": "安卓配置教程", "title": "YLink (推荐使用)",
             "body": "## 第一步…(Markdown)", "language": "zh-CN", "updated_at": "2026-08-04T23:51:53+08:00" } }
 ```
 
@@ -530,7 +530,7 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 |---|---|
 | `flag` | `clash` / `sing-box` / `v2ray`；缺省按 User-Agent 嗅探，仍不识别人话返回 base64 分享链接 |
 | 成功响应 | 对应格式配置正文：clash→`text/yaml`；sing-box→`application/json`；v2ray→`text/plain`（base64） |
-| 响应头 | `subscription-userinfo: upload={bytes}; download={bytes}; total={bytes}; expire={unix}`、`profile-update-interval: 24`、`content-disposition: attachment; filename="NanoCloud"` |
+| 响应头 | `subscription-userinfo: upload={bytes}; download={bytes}; total={bytes}; expire={unix}`、`profile-update-interval: 24`、`content-disposition: attachment; filename="YLink"` |
 | 失败 | token 无效/用户封禁 → 401 纯文本；未购套餐 → 返回仅含提示节点的配置 |
 
 本接口不走 envelope 格式；独立限流（如 10 次/分钟/token）。

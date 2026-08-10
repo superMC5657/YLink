@@ -6,13 +6,13 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"nanocloud/internal/model"
-	"nanocloud/internal/pkg/errs"
-	"nanocloud/internal/repo"
+	"ylink/internal/model"
+	"ylink/internal/pkg/errs"
+	"ylink/internal/repo"
 )
 
 // 站点配置默认值兜底
-const defaultSiteName = "NanoCloud"
+const defaultSiteName = "YLink"
 
 type siteSettings struct {
 	SiteName           string             `json:"site_name"`

@@ -9,8 +9,8 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	redispkg "nanocloud/internal/pkg/redis"
-	"nanocloud/internal/repo"
+	redispkg "ylink/internal/pkg/redis"
+	"ylink/internal/repo"
 )
 
 const settingsCacheTTL = 60 * time.Second

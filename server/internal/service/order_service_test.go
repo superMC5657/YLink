@@ -16,10 +16,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"nanocloud/internal/config"
-	"nanocloud/internal/model"
-	"nanocloud/internal/pkg/payment"
-	"nanocloud/internal/repo"
+	"ylink/internal/config"
+	"ylink/internal/model"
+	"ylink/internal/pkg/payment"
+	"ylink/internal/repo"
 )
 
 func planRow(p *model.Plan) *sqlmock.Rows {

@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 
-	"nanocloud/internal/model"
-	"nanocloud/internal/pkg/errs"
-	"nanocloud/internal/pkg/sanitize"
+	"ylink/internal/model"
+	"ylink/internal/pkg/errs"
+	"ylink/internal/pkg/sanitize"
 )
 
 // ---- 管理端 · 套餐 CRUD ----

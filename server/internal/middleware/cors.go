@@ -6,8 +6,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"nanocloud/internal/pkg/errs"
-	"nanocloud/internal/pkg/resp"
+	"ylink/internal/pkg/errs"
+	"ylink/internal/pkg/resp"
 )
 
 // CORS 白名单域名；订阅端点由路由层单独放行任意来源。

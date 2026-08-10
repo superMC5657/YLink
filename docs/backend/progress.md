@@ -12,7 +12,7 @@
 
 | 项 | 说明 | 位置 |
 |---|---|---|
-| 工程初始化 | `go.mod`(module `nanocloud`)、双入口 `cmd/server` + `cmd/worker` | `server/go.mod` |
+| 工程初始化 | `go.mod`(module `ylink`)、双入口 `cmd/server` + `cmd/worker` | `server/go.mod` |
 | 配置加载 | Viper:`configs/config.yaml` + `APP_` 前缀环境变量覆盖(点转下划线) | `internal/config/config.go` |
 | 日志 | zap JSON + lumberjack 按天切割,双输出(stdout + 文件) | `internal/pkg/logger/logger.go` |
 | 中间件链 | RequestID → Recovery → AccessLog → CORS → RateLimit → [Auth] → [Idempotency] | `internal/middleware/*` |
@@ -188,7 +188,7 @@
 | 前置 | 说明 |
 |---|---|
 | Go ≥ 1.24 | 本机 1.26.1 已满足 |
-| MySQL 8.0 | 库 `nanocloud`(utf8mb4);DSN 见 `configs/config.yaml` 或 `APP_DATABASE_DSN` |
+| MySQL 8.0 | 库 `ylink`(utf8mb4);DSN 见 `configs/config.yaml` 或 `APP_DATABASE_DSN` |
 | Redis 7 | 本地 `127.0.0.1:6379`(默认无密码);生产必须设密码 |
 | 迁移 | `DB_URL='...' make migrate` 执行 `migrations/0001_init.*`;或 docker-compose 内首启前执行 |
 | SMTP | 验证码/提醒邮件需要可用 SMTP;未配置时**注册/找回流程无法完成**(验证码发送失败仅记日志) |

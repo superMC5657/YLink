@@ -10,10 +10,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"nanocloud/internal/config"
-	"nanocloud/internal/model"
-	"nanocloud/internal/pkg/mailer"
-	"nanocloud/internal/repo"
+	"ylink/internal/config"
+	"ylink/internal/model"
+	"ylink/internal/pkg/mailer"
+	"ylink/internal/repo"
 )
 
 func newTicketEnv(t *testing.T) (*testEnv, *TicketService) {

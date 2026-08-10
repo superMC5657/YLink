@@ -6,10 +6,10 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"nanocloud/internal/model"
-	"nanocloud/internal/pkg/errs"
-	"nanocloud/internal/pkg/passwd"
-	"nanocloud/internal/repo"
+	"ylink/internal/model"
+	"ylink/internal/pkg/errs"
+	"ylink/internal/pkg/passwd"
+	"ylink/internal/repo"
 )
 
 // UserService 用户域：信息、设置、改密。

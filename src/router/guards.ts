@@ -28,7 +28,7 @@ export function setupGuards(router: Router): void {
   router.afterEach((to) => {
     const title = to.meta.title
     document.title = title
-      ? `${import.meta.env.VITE_APP_NAME ?? 'NanoCloud'} · ${title}`
-      : (import.meta.env.VITE_APP_NAME ?? 'NanoCloud')
+      ? `${import.meta.env.VITE_APP_NAME ?? 'YLink'} · ${title}`
+      : (import.meta.env.VITE_APP_NAME ?? 'YLink')
   })
 }

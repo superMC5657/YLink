@@ -7,7 +7,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"nanocloud/internal/config"
+	"ylink/internal/config"
 )
 
 // New 创建 Redis 客户端并探测连通性。

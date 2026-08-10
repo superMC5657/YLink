@@ -7,7 +7,7 @@ import { expect, test } from './fixtures'
 test.describe('登录', () => {
   test('登录页渲染并成功登录跳转仪表板', async ({ page }) => {
     await page.goto('/#/login')
-    await expect(page).toHaveTitle(/NanoCloud/)
+    await expect(page).toHaveTitle(/YLink/)
     await expect(page.locator('button', { hasText: '登录' }).first()).toBeVisible()
 
     // 登录页不预填账号(Mock 固定演示账号,手动填写)

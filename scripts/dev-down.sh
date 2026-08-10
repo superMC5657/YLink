@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# NanoCloud 本地联调一键停止:停 api / worker / 前端 dev(容器默认保留,数据不丢)
+# YLink 本地联调一键停止:停 api / worker / 前端 dev(容器默认保留,数据不丢)
 # 用法:bash scripts/dev-down.sh
 # 若也想停掉 MySQL/Redis 容器:bash scripts/dev-down.sh --containers
 set -uo pipefail
@@ -25,14 +25,14 @@ stop_pid() {
   rm -f "$pid_file"
 }
 
-echo "停止 NanoCloud 本地服务..."
+echo "停止 YLink 本地服务..."
 stop_pid "$RUN_DIR/vite.pid"   "前端 dev"
 stop_pid "$RUN_DIR/api.pid"    "后端 api"
 stop_pid "$RUN_DIR/worker.pid" "后端 worker"
 
 if [ "${1:-}" = "--containers" ]; then
   echo "停止 MySQL/Redis 容器(数据保留在 volume)..."
-  docker stop nc-mysql nc-redis >/dev/null 2>&1 && echo "  已停止 nc-mysql nc-redis"
+  docker stop yl-mysql yl-redis >/dev/null 2>&1 && echo "  已停止 yl-mysql yl-redis"
 fi
 
 echo "完成。如需重启:bash scripts/dev-up.sh"

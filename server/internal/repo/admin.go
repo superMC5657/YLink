@@ -7,8 +7,8 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	"nanocloud/internal/model"
-	"nanocloud/internal/pkg/passwd"
+	"ylink/internal/model"
+	"ylink/internal/pkg/passwd"
 )
 
 // ---- 管理端 · 用户 ----

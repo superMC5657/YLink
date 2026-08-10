@@ -322,7 +322,7 @@ INSERT INTO plans (id, name, content, month_price, quarter_price, half_year_pric
 
 INSERT INTO settings (`key`, value) VALUES
   ('site', JSON_OBJECT(
-    'site_name', 'NanoCloud', 'site_logo', '', 'site_description', '高速稳定的网络加速服务',
+    'site_name', 'YLink', 'site_logo', '', 'site_description', '高速稳定的网络加速服务',
     'register_enabled', TRUE, 'invite_code_required', FALSE,
     'app_downloads', JSON_OBJECT(), 'telegram', JSON_OBJECT(),
     'customer_service_url', '', 'free_traffic_tips', '绑定 TG 机器人每天领取免费流量',

@@ -11,13 +11,13 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"nanocloud/internal/config"
-	"nanocloud/internal/model"
-	"nanocloud/internal/pkg/errs"
-	"nanocloud/internal/pkg/passwd"
-	redispkg "nanocloud/internal/pkg/redis"
-	"nanocloud/internal/pkg/subscribe"
-	"nanocloud/internal/repo"
+	"ylink/internal/config"
+	"ylink/internal/model"
+	"ylink/internal/pkg/errs"
+	"ylink/internal/pkg/passwd"
+	redispkg "ylink/internal/pkg/redis"
+	"ylink/internal/pkg/subscribe"
+	"ylink/internal/repo"
 )
 
 // SubscribeService 订阅域：当前订阅、重置、流量明细、配置下发。
@@ -167,7 +167,7 @@ func (s *SubscribeService) Generate(ctx context.Context, token, flag, userAgent 
 	gen := pickGenerator(flag, userAgent)
 
 	subUser := &subscribe.User{
-		Name:          "NanoCloud",
+		Name:          "YLink",
 		TrafficEnable: user.TransferEnable,
 		U:             user.U,
 		D:             user.D,
@@ -210,7 +210,7 @@ func (s *SubscribeService) Generate(ctx context.Context, token, flag, userAgent 
 		Content:     content,
 		ContentType: contentType(gen),
 		UserInfo:    ui,
-		Filename:    "NanoCloud",
+		Filename:    "YLink",
 	}, nil
 }
 

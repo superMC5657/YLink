@@ -116,7 +116,7 @@ async function bootstrap() {
   setupGuards(router)
   app.use(router)
 
-  // Tauri 深链接:nanocloud://plans → 路由 /plans(desktop-tauri.md §4)
+  // Tauri 深链接:ylink://plans → 路由 /plans(desktop-tauri.md §4)
   onDeepLink((url) => {
     try {
       const path = new URL(url).pathname

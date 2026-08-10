@@ -10,9 +10,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"nanocloud/internal/config"
-	"nanocloud/internal/model"
-	"nanocloud/internal/repo"
+	"ylink/internal/config"
+	"ylink/internal/model"
+	"ylink/internal/repo"
 )
 
 func newInviteEnv(t *testing.T) (*testEnv, *InviteService) {

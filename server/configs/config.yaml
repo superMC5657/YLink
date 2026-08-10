@@ -1,12 +1,12 @@
-# NanoCloud API 配置（敏感项只经环境变量注入，见 docs/backend/deploy.md）
+# YLink API 配置（敏感项只经环境变量注入，见 docs/backend/deploy.md）
 app:
-  name: nanocloud-api
+  name: ylink-api
   env: development            # development / production
   addr: ":8080"
   base_url: "http://localhost:8080"   # 用于拼接订阅链接/支付回调地址
 
 database:
-  dsn: "root:root@tcp(127.0.0.1:3306)/nanocloud?charset=utf8mb4&parseTime=true&loc=Local"
+  dsn: "root:root@tcp(127.0.0.1:3306)/ylink?charset=utf8mb4&parseTime=true&loc=Local"
   max_open: 50
   max_idle: 10
 
@@ -25,7 +25,7 @@ smtp:
   port: 465
   username: "${SMTP_USER}"
   password: "${SMTP_PASS}"
-  from_name: "NanoCloud"
+  from_name: "YLink"
 
 payment:
   epay:                      # 易支付（彩虹兼容）
@@ -43,7 +43,7 @@ log:
 
 # 站点运营规则（settings 表初始化同款）
 site:
-  site_name: "NanoCloud"
+  site_name: "YLink"
   invite_commission_rate: 40        # 普通用户佣金比例 %
   agent_commission_rate: 50         # 代理商佣金比例 %
   agent_required_valid_invites: 50  # 代理申请有效邀请数阈值

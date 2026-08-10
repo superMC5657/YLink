@@ -1,4 +1,4 @@
-"""生成 NanoCloud 品牌图标源图(1024x1024 PNG,纯 Python 无依赖)。
+"""生成 YLink 品牌图标源图(1024x1024 PNG,纯 Python 无依赖)。
 主色 #6558F5 背景 + 白色闪电(与 Web 端 favicon 一致)。"""
 import struct
 import zlib

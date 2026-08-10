@@ -5,11 +5,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"nanocloud/internal/middleware"
-	"nanocloud/internal/pkg/errs"
-	"nanocloud/internal/pkg/resp"
-	"nanocloud/internal/pkg/validate"
-	"nanocloud/internal/service"
+	"ylink/internal/middleware"
+	"ylink/internal/pkg/errs"
+	"ylink/internal/pkg/resp"
+	"ylink/internal/pkg/validate"
+	"ylink/internal/service"
 )
 
 // Subscribe 订阅端点。

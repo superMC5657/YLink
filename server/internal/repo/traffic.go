@@ -3,7 +3,7 @@ package repo
 import (
 	"gorm.io/gorm"
 
-	"nanocloud/internal/model"
+	"ylink/internal/model"
 )
 
 // TrafficLogRepo 流量日明细数据访问。

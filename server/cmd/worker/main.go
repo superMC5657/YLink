@@ -12,12 +12,12 @@ import (
 	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
 
-	"nanocloud/internal/config"
-	"nanocloud/internal/pkg/logger"
-	"nanocloud/internal/pkg/mailer"
-	"nanocloud/internal/pkg/redis"
-	"nanocloud/internal/repo"
-	"nanocloud/internal/service"
+	"ylink/internal/config"
+	"ylink/internal/pkg/logger"
+	"ylink/internal/pkg/mailer"
+	"ylink/internal/pkg/redis"
+	"ylink/internal/repo"
+	"ylink/internal/service"
 )
 
 func main() {

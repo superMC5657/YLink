@@ -8,7 +8,7 @@ import (
 
 	"gopkg.in/gomail.v2"
 
-	"nanocloud/internal/config"
+	"ylink/internal/config"
 )
 
 // Mailer 为邮件发送器。

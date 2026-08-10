@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 
-	"nanocloud/internal/pkg/errs"
+	"ylink/internal/pkg/errs"
 )
 
 // RateLimit 基于 Redis 的固定窗口限流（多实例共享计数）。

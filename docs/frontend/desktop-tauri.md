@@ -22,7 +22,7 @@ src-tauri/
 
 | 配置 | 值 | 说明 |
 |---|---|---|
-| `productName` / `identifier` | 站点名 / `com.nanocloud.app` | identifier 全局唯一 |
+| `productName` / `identifier` | 站点名 / `com.ylink.app` | identifier 全局唯一 |
 | `app.windows[0]` | 1280×800，min 1024×680，title 跟随站点名 | 保留系统原生标题栏 |
 | `beforeDevCommand` / `devUrl` | `pnpm dev` / `http://localhost:5173` | 开发联动 |
 | `beforeBuildCommand` / `frontendDist` | `pnpm build` / `../dist` | 打包联动 |
@@ -38,7 +38,7 @@ src-tauri/
 | `tauri-plugin-store` | 设置与 token 持久化（JSON 文件） | storage 适配层 |
 | `tauri-plugin-clipboard-manager` | 写剪贴板 | 复制订阅链接/邀请码/订单号 |
 | `tauri-plugin-opener` | 打开外部 URL 与自定义 scheme | TG 链接、支付跳转、一键导入 |
-| `tauri-plugin-deep-link` | 注册 `nanocloud://` 协议 | 从网页/TG 唤起 App 并定位页面（如 `nanocloud://plans`） |
+| `tauri-plugin-deep-link` | 注册 `ylink://` 协议 | 从网页/TG 唤起 App 并定位页面（如 `ylink://plans`） |
 | `tauri-plugin-single-instance` | 单实例运行（仅桌面） | 重复启动聚焦已有窗口并转发深链接参数 |
 | `tauri-plugin-autostart` | 开机自启（仅桌面） | 设置页开关（默认关） |
 | `tauri-plugin-notification` | 系统通知 | 订阅到期、工单回复提醒（轮询发现变化时触发） |
@@ -46,7 +46,7 @@ src-tauri/
 | `tauri-plugin-window-state` | 记忆窗口尺寸/位置（仅桌面） | 体验细节 |
 | `tauri-plugin-os` | 系统信息 | 关于页、埋点 UA |
 
-capabilities/default.json 采用最小授权：逐项声明上述插件权限，`http` 权限的 `scope` 限定为已配置的后端域名（`https://api.example.com/**`），深链接插件仅注册 `nanocloud` scheme。
+capabilities/default.json 采用最小授权：逐项声明上述插件权限，`http` 权限的 `scope` 限定为已配置的后端域名（`https://api.example.com/**`），深链接插件仅注册 `ylink` scheme。
 
 ## 4. 窗口、托盘与系统行为
 
@@ -131,6 +131,6 @@ capabilities/default.json 采用最小授权：逐项声明上述插件权限，
 
 ### 9.5 已知边界
 
-- identifier 为 `com.nanocloud.app`（以 `.app` 结尾会触发 macOS 分发警告，与 Android 无关，暂不改动）。
+- identifier 为 `com.ylink.app`（以 `.app` 结尾会触发 macOS 分发警告，与 Android 无关，暂不改动）。
 - 通知插件在 Android 12+ 需运行时权限，由系统授权弹窗处理（能力降级逻辑在前端）。
-- 深链接插件（`nanocloud://`）尚未接入 Android manifest，如需移动端唤起，另接 `tauri-plugin-deep-link` 并重新 `tauri android init` 或手改 manifest。
+- 深链接插件（`ylink://`）尚未接入 Android manifest，如需移动端唤起，另接 `tauri-plugin-deep-link` 并重新 `tauri android init` 或手改 manifest。

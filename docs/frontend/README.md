@@ -94,7 +94,7 @@ proxy-seller-web/
 |---|---|---|
 | `VITE_API_BASE_URL` | 后端 API 根地址 | `https://api.example.com/api/v1` |
 | `VITE_USE_MOCK` | 是否启用本地 Mock | `true` / `false` |
-| `VITE_APP_NAME` | 站点名兜底（运行时以后端配置为准） | `NanoCloud` |
+| `VITE_APP_NAME` | 站点名兜底（运行时以后端配置为准） | `YLink` |
 
 运行时可以修改后端地址并持久化（设置页入口），便于同一客户端连接不同站点；默认读取打包时的 `VITE_API_BASE_URL`。
 

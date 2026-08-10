@@ -5,8 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"nanocloud/internal/pkg/errs"
-	jwtpkg "nanocloud/internal/pkg/jwt"
+	"ylink/internal/pkg/errs"
+	jwtpkg "ylink/internal/pkg/jwt"
 )
 
 const (

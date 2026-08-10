@@ -5,11 +5,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"nanocloud/internal/middleware"
-	"nanocloud/internal/model"
-	"nanocloud/internal/pkg/resp"
-	"nanocloud/internal/pkg/validate"
-	"nanocloud/internal/service"
+	"ylink/internal/middleware"
+	"ylink/internal/model"
+	"ylink/internal/pkg/resp"
+	"ylink/internal/pkg/validate"
+	"ylink/internal/service"
 )
 
 // Admin 管理端端点（role=admin）。

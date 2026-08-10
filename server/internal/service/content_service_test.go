@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"nanocloud/internal/model"
-	"nanocloud/internal/repo"
+	"ylink/internal/model"
+	"ylink/internal/repo"
 )
 
 func newContentEnv(t *testing.T) (*testEnv, *ContentService) {

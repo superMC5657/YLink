@@ -1,4 +1,4 @@
-module nanocloud
+module ylink
 
 go 1.26.1
 

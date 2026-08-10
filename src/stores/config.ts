@@ -9,6 +9,14 @@ interface ConfigState {
 }
 
 const CACHE_TTL = 24 * 60 * 60 * 1000 // 24h 缓存
+/** 缓存版本:站点品牌/配置结构变更时 +1,旧缓存立即失效(如品牌更名后用户仍读到旧 site_name) */
+const CACHE_VERSION = 2
+
+interface ConfigCache {
+  config: SiteConfig | null
+  loadedAt: number
+  version: number
+}
 
 export const useConfigStore = defineStore('config', {
   state: (): ConfigState => ({
@@ -16,7 +24,7 @@ export const useConfigStore = defineStore('config', {
     loadedAt: 0,
   }),
   getters: {
-    siteName: (s) => s.config?.site_name ?? import.meta.env.VITE_APP_NAME ?? 'NanoCloud',
+    siteName: (s) => s.config?.site_name ?? import.meta.env.VITE_APP_NAME ?? 'YLink',
     paymentMethods: (s) => s.config?.payment_methods ?? [],
     registerEnabled: (s) => s.config?.register_enabled ?? true,
     inviteCodeRequired: (s) => s.config?.invite_code_required ?? false,
@@ -24,8 +32,8 @@ export const useConfigStore = defineStore('config', {
   actions: {
     /** 启动拉取,带 24h 本地缓存;force=true 强制刷新 */
     async fetchConfig(force = false) {
-      const cached = getItem<ConfigState>('configCache')
-      if (!force && cached?.config && Date.now() - cached.loadedAt < CACHE_TTL) {
+      const cached = getItem<ConfigCache>('configCache')
+      if (!force && cached?.config && cached.version === CACHE_VERSION && Date.now() - cached.loadedAt < CACHE_TTL) {
         this.config = cached.config
         this.loadedAt = cached.loadedAt
         return
@@ -33,7 +41,7 @@ export const useConfigStore = defineStore('config', {
       const config = await apiConfig.fetch()
       this.config = config
       this.loadedAt = Date.now()
-      setItem('configCache', { config, loadedAt: this.loadedAt })
+      setItem('configCache', { config, loadedAt: this.loadedAt, version: CACHE_VERSION })
     },
   },
 })

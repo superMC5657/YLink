@@ -12,15 +12,15 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
-	"nanocloud/internal/config"
-	"nanocloud/internal/model"
-	"nanocloud/internal/pkg/errs"
-	jwtpkg "nanocloud/internal/pkg/jwt"
-	"nanocloud/internal/pkg/logger"
-	"nanocloud/internal/pkg/mailer"
-	"nanocloud/internal/pkg/passwd"
-	redispkg "nanocloud/internal/pkg/redis"
-	"nanocloud/internal/repo"
+	"ylink/internal/config"
+	"ylink/internal/model"
+	"ylink/internal/pkg/errs"
+	jwtpkg "ylink/internal/pkg/jwt"
+	"ylink/internal/pkg/logger"
+	"ylink/internal/pkg/mailer"
+	"ylink/internal/pkg/passwd"
+	redispkg "ylink/internal/pkg/redis"
+	"ylink/internal/repo"
 )
 
 const (

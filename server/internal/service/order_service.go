@@ -14,15 +14,15 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
-	"nanocloud/internal/config"
-	"nanocloud/internal/middleware"
-	"nanocloud/internal/model"
-	"nanocloud/internal/pkg/errs"
-	"nanocloud/internal/pkg/logger"
-	"nanocloud/internal/pkg/mailer"
-	"nanocloud/internal/pkg/payment"
-	redispkg "nanocloud/internal/pkg/redis"
-	"nanocloud/internal/repo"
+	"ylink/internal/config"
+	"ylink/internal/middleware"
+	"ylink/internal/model"
+	"ylink/internal/pkg/errs"
+	"ylink/internal/pkg/logger"
+	"ylink/internal/pkg/mailer"
+	"ylink/internal/pkg/payment"
+	redispkg "ylink/internal/pkg/redis"
+	"ylink/internal/repo"
 )
 
 // OrderService 交易域：套餐、优惠券、下单、收银台、支付回调、开通/续期。
@@ -407,7 +407,7 @@ func (s *OrderService) Checkout(ctx context.Context, userID int64, orderNo, meth
 		OrderNo:   order.OrderNo,
 		Method:    method,
 		Amount:    order.PayAmount,
-		Subject:   "NanoCloud 订阅",
+		Subject:   "YLink 订阅",
 		NotifyURL: notifyURL,
 		ReturnURL: s.cfg.App.BaseURL,
 	})

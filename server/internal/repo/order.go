@@ -4,7 +4,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	"nanocloud/internal/model"
+	"ylink/internal/model"
 )
 
 // OrderRepo 订单数据访问。

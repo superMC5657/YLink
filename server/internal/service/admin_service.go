@@ -9,11 +9,11 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"nanocloud/internal/config"
-	"nanocloud/internal/model"
-	"nanocloud/internal/pkg/errs"
-	"nanocloud/internal/pkg/sanitize"
-	"nanocloud/internal/repo"
+	"ylink/internal/config"
+	"ylink/internal/model"
+	"ylink/internal/pkg/errs"
+	"ylink/internal/pkg/sanitize"
+	"ylink/internal/repo"
 )
 
 // AdminService 管理端 API（/api/v1/admin，role=admin）。

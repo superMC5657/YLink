@@ -2,7 +2,7 @@
     "swagger": "2.0",
     "info": {
         "description": "代理订阅售卖系统后端 API。统一信封 {code,message,data}；鉴权 Bearer \u003caccess_token\u003e。",
-        "title": "NanoCloud API",
+        "title": "YLink API",
         "contact": {},
         "version": "1.0"
     },

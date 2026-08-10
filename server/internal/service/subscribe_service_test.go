@@ -13,11 +13,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"nanocloud/internal/config"
-	"nanocloud/internal/model"
-	"nanocloud/internal/pkg/passwd"
-	"nanocloud/internal/pkg/subscribe"
-	"nanocloud/internal/repo"
+	"ylink/internal/config"
+	"ylink/internal/model"
+	"ylink/internal/pkg/passwd"
+	"ylink/internal/pkg/subscribe"
+	"ylink/internal/repo"
 )
 
 func TestClashBuild(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"nanocloud/internal/model"
+	"ylink/internal/model"
 )
 
 // TicketRepo 工单数据访问。

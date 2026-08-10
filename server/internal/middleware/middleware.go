@@ -11,8 +11,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"nanocloud/internal/pkg/logger"
-	"nanocloud/internal/pkg/resp"
+	"ylink/internal/pkg/logger"
+	"ylink/internal/pkg/resp"
 )
 
 // RequestID 生成/透传 X-Request-Id。

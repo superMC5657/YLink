@@ -1,4 +1,4 @@
-# NanoCloud API Makefile
+# YLink API Makefile
 .PHONY: run worker migrate swagger lint test build up down
 
 run:

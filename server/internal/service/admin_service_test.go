@@ -10,9 +10,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"nanocloud/internal/model"
-	"nanocloud/internal/pkg/sanitize"
-	"nanocloud/internal/repo"
+	"ylink/internal/model"
+	"ylink/internal/pkg/sanitize"
+	"ylink/internal/repo"
 )
 
 func TestSanitize(t *testing.T) {

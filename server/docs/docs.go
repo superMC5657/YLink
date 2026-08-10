@@ -2947,7 +2947,7 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "api.example.com",
 	BasePath:         "/api/v1",
 	Schemes:          []string{},
-	Title:            "NanoCloud API",
+	Title:            "YLink API",
 	Description:      "代理订阅售卖系统后端 API。统一信封 {code,message,data}；鉴权 Bearer <access_token>。",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,

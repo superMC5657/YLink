@@ -5,9 +5,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"nanocloud/internal/middleware"
-	"nanocloud/internal/pkg/resp"
-	"nanocloud/internal/service"
+	"ylink/internal/middleware"
+	"ylink/internal/pkg/resp"
+	"ylink/internal/service"
 )
 
 // Content 站点配置/公告/知识库端点。

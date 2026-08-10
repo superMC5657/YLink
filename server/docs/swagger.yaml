@@ -677,7 +677,7 @@ host: api.example.com
 info:
   contact: {}
   description: 代理订阅售卖系统后端 API。统一信封 {code,message,data}；鉴权 Bearer <access_token>。
-  title: NanoCloud API
+  title: YLink API
   version: "1.0"
 paths:
   /admin/orders/{order_no}/refund:

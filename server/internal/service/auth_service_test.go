@@ -14,14 +14,14 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 
-	"nanocloud/internal/config"
-	"nanocloud/internal/model"
-	"nanocloud/internal/pkg/errs"
-	jwtpkg "nanocloud/internal/pkg/jwt"
-	"nanocloud/internal/pkg/logger"
-	"nanocloud/internal/pkg/mailer"
-	"nanocloud/internal/pkg/passwd"
-	"nanocloud/internal/repo"
+	"ylink/internal/config"
+	"ylink/internal/model"
+	"ylink/internal/pkg/errs"
+	jwtpkg "ylink/internal/pkg/jwt"
+	"ylink/internal/pkg/logger"
+	"ylink/internal/pkg/mailer"
+	"ylink/internal/pkg/passwd"
+	"ylink/internal/repo"
 )
 
 func init() { logger.Nop() }
@@ -46,7 +46,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	cfg.JWT.Secret = "test-secret-key-0123456789abcdef0123456789"
 	cfg.JWT.AccessTTL = 2 * time.Hour
 	cfg.JWT.RefreshTTL = 336 * time.Hour
-	cfg.App.Name = "NanoCloud"
+	cfg.App.Name = "YLink"
 	cfg.SMTP.Host = "invalid.invalid"
 	cfg.SMTP.Port = 1
 

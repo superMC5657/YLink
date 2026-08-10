@@ -7,6 +7,8 @@ declare module 'vue-router' {
   interface RouteMeta {
     /** 游客页面:已登录访问重定向 /dashboard */
     guest?: boolean
+    /** 管理端页面:非管理员访问重定向 /dashboard */
+    admin?: boolean
     /** 页面标题(i18n key) */
     title?: string
   }
@@ -109,6 +111,43 @@ const routes: RouteRecordRaw[] = [
         name: 'traffic',
         component: () => import('@/views/traffic/TrafficView.vue'),
         meta: { title: 'traffic.title' },
+      },
+      // ---------- 管理后台(仅 role=1,守卫见 guards.ts) ----------
+      {
+        path: 'admin/overview',
+        name: 'admin-overview',
+        component: () => import('@/views/admin/AdminOverviewView.vue'),
+        meta: { admin: true, title: 'admin.overview' },
+      },
+      {
+        path: 'admin/users',
+        name: 'admin-users',
+        component: () => import('@/views/admin/AdminUsersView.vue'),
+        meta: { admin: true, title: 'admin.users' },
+      },
+      {
+        path: 'admin/plans',
+        name: 'admin-plans',
+        component: () => import('@/views/admin/AdminPlansView.vue'),
+        meta: { admin: true, title: 'admin.plans' },
+      },
+      {
+        path: 'admin/nodes',
+        name: 'admin-nodes',
+        component: () => import('@/views/admin/AdminNodesView.vue'),
+        meta: { admin: true, title: 'admin.nodes' },
+      },
+      {
+        path: 'admin/orders',
+        name: 'admin-orders',
+        component: () => import('@/views/admin/AdminOrdersView.vue'),
+        meta: { admin: true, title: 'admin.orders' },
+      },
+      {
+        path: 'admin/tickets',
+        name: 'admin-tickets',
+        component: () => import('@/views/admin/AdminTicketsView.vue'),
+        meta: { admin: true, title: 'admin.tickets' },
       },
     ],
   },

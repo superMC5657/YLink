@@ -399,3 +399,161 @@ export interface ServerGroup {
 export interface ServerListResp {
   groups: ServerGroup[]
 }
+
+// ---------- 管理端 ----------
+
+export type AdminRole = 0 | 1 | 2
+
+export interface AdminOverviewResp {
+  user_count: number
+  agent_count: number
+  order_count: number
+  completed_orders: number
+  total_revenue: number
+  today_revenue: number
+  plan_count: number
+}
+
+export interface AdminUserItem {
+  id: number
+  email: string
+  role: AdminRole
+  balance: number
+  commission_balance: number
+  is_banned: boolean
+  invite_by_id: number | null
+  plan_id: number | null
+  expired_at: string | null
+  transfer_enable: number
+  u: number
+  d: number
+  created_at: string
+}
+
+export interface AdminUpdateUserReq {
+  role?: AdminRole
+  banned?: boolean
+}
+
+export interface AdjustBalanceReq {
+  amount: number
+  remark?: string
+}
+
+/** 管理端套餐(与用户端 Plan 字段不同:直接暴露各周期价格) */
+export interface AdminPlanItem {
+  id: number
+  name: string
+  content: string
+  month_price: number | null
+  quarter_price: number | null
+  half_year_price: number | null
+  year_price: number | null
+  onetime_price: number | null
+  traffic_gb: number
+  speed_limit: number | null
+  device_limit: number | null
+  group_ids: number[] | null
+  is_show: boolean
+  sort: number
+}
+
+export interface AdminPlanReq {
+  name: string
+  content?: string
+  month_price?: number | null
+  quarter_price?: number | null
+  half_year_price?: number | null
+  year_price?: number | null
+  onetime_price?: number | null
+  traffic_gb: number
+  speed_limit?: number | null
+  device_limit?: number | null
+  group_ids?: number[] | null
+  is_show?: boolean
+  sort?: number
+}
+
+export interface AdminServerGroupItem {
+  id: number
+  name: string
+  sort: number
+}
+
+export interface AdminServerGroupReq {
+  name: string
+  sort?: number
+}
+
+export interface AdminServerItem {
+  id: number
+  group_id: number
+  name: string
+  type: string
+  host: string
+  port: number
+  config: string
+  rate: number
+  tags: string[] | null
+  status: ServerStatus
+  is_show: boolean
+  sort: number
+}
+
+export interface AdminServerReq {
+  group_id: number
+  name: string
+  type: string
+  host: string
+  port: number
+  config: string
+  rate?: number
+  tags?: string[] | null
+  status?: ServerStatus
+  is_show?: boolean
+  sort?: number
+}
+
+export interface AdminOrderItem {
+  order_no: string
+  user_id: number
+  user_email: string
+  plan_name: string
+  period: string
+  amount: number
+  discount_amount: number
+  balance_used: number
+  pay_amount: number
+  status: OrderStatus
+  pay_method: string | null
+  paid_at: string | null
+  created_at: string
+}
+
+export interface RefundReq {
+  remark?: string
+}
+
+export interface AdminTicketItem {
+  id: number
+  user_id: number
+  user_email: string
+  subject: string
+  level: TicketLevel
+  status: TicketStatus
+  last_reply_at: string | null
+  created_at: string
+}
+
+export interface AdminTicketDetail {
+  id: number
+  subject: string
+  level: TicketLevel
+  status: TicketStatus
+  created_at: string
+  messages: TicketMessage[]
+}
+
+export interface AdminReplyReq {
+  message: string
+}

@@ -2,7 +2,7 @@
 
 > 本文档记录 `server/` 目录 Go/Gin 后端的开发状态,是 docs/backend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-07(全部里程碑 B1–B7 实现完成;本轮补齐管理端 API/安全缺口/退款审计/cron 增强/可观测,并修复二轮审查阻断项)
+> 最后更新:2026-08-10(全部里程碑 B1–B7 实现完成;2026-08-10 全量核对:go build/vet/test 实测全绿,管理端 API 13 组、worker cron 7 项与文档一致;补正迁移表数 14→18、测试用例数 36+→47)
 
 ---
 
@@ -20,7 +20,7 @@
 | 参数校验 | binding 错误统一转 40000 + 字段级文案 | `internal/pkg/validate` |
 | 密码哈希 | bcrypt cost 12 | `internal/pkg/passwd` |
 | JWT | access(2h)/refresh(14d),带 `TokenType` 防两类令牌混用;refresh 白名单存 Redis | `internal/pkg/jwt` |
-| 迁移 | 14 张业务表 + 节点分组/演示套餐/settings 初始化数据,golang-migrate 格式 | `server/migrations/0001_init.{up,down}.sql` |
+| 迁移 | 18 张业务表(users/plans/orders/payments/coupons/coupon_usages/invite_codes/commission_logs/server_groups/servers/notices/knowledges/tickets/ticket_messages/traffic_logs/settings/audit_logs/agent_applies)+ 节点分组/演示套餐/settings 初始化数据,golang-migrate 格式 | `server/migrations/0001_init.{up,down}.sql` |
 | 健康检查 | `GET /healthz`(存活)/`GET /readyz`(DB+Redis 连通) | `internal/handler/health.go` |
 | 工程化 | Makefile( run/migrate/test/build )、Dockerfile 多阶段、docker-compose、Caddyfile、.env.example | `server/` 根目录 |
 | 基础包单测 | errs 映射 / jwt 签发解析 / passwd | `internal/pkg/*/*_test.go` |
@@ -108,10 +108,10 @@
 
 第二轮审查(管理端/安全改造增量):见「安全与一致性加固」表,2 个阻断项(取消竞态误释放券、cron 关单残留券)与 3 个 should-fix(佣金确认覆盖、代理审批并发、admin 自保护)均已修复。
 
-### 测试状态(✅ 已更新)
+### 测试状态(✅ 已更新,2026-08-10 实测)
 
 - `go build ./...` / `go vet ./...` / `gofmt -l`(0 输出)全部通过
-- `go test ./... -count=1` 全绿,**36+ 用例**,覆盖:错误码映射、JWT、密码、验证码限频/已注册、注册/登录锁定/刷新旋转、优惠券试算/超限 12001/原子占用、下单幂等、续期状态机、回调幂等、epay 验签与篡改拒绝、订阅生成(3 格式)、佣金划转、代理申请、工单流转、佣金确认竞态、超时关单(含优惠券回退)、取消并发已支付回滚、退款佣金回滚、代理审批、bluemonday 清洗
+- `go test ./... -count=1` 全绿,**47 个测试函数**,覆盖:错误码映射、JWT、密码、验证码限频/已注册、注册/登录锁定/刷新旋转、优惠券试算/超限 12001/原子占用、下单幂等、续期状态机、回调幂等、epay 验签与篡改拒绝、订阅生成(3 格式)、佣金划转、代理申请、工单流转、佣金确认竞态、超时关单(含优惠券回退)、取消并发已支付回滚、退款佣金回滚、代理审批、bluemonday 清洗
 
 ---
 
@@ -121,7 +121,7 @@
 |---|---|
 | `GET /admin/stat/overview` | 用户/代理/订单/收入(总额+今日)/在售套餐统计 |
 | `GET /admin/users`、`PUT /admin/users/{id}`、`POST /admin/users/{id}/balance` | 列表/封禁与角色(禁止操作自己)/调余额(审计) |
-| `GET/POST/PUT/DELETE /admin/plans`、`/admin/servers`、`/admin/server-groups` | 套餐与节点 CRUD(写入侧 XSS 清洗) |
+| `GET/POST/PUT/DELETE /admin/plans`、`/admin/servers`、`/admin/server-groups` | 套餐与节点 CRUD(写入侧 XSS 清洗;响应经 `AdminPlanView`/`AdminServerView` DTO,价格统一为元并展开 group_ids/is_show/host/port/config) |
 | `GET /admin/orders`、`POST /admin/orders/{no}/refund` | 订单列表;退款(余额退回+优惠券回退+佣金回滚+审计,行锁) |
 | `GET/POST/PUT/DELETE /admin/coupons` | 优惠券 CRUD |
 | `POST/PUT/DELETE /admin/notices`、`/admin/knowledges` | 公告/知识库 CRUD(bluemonday 清洗) |
@@ -152,10 +152,10 @@
 | 支付回执邮件 | 在线回调与余额支付成功后异步发送(`[站点] 支付成功`),未配置 SMTP 静默跳过 |
 | agent-audit cron | 每月 1 日 03:00 复核代理有效邀请数,不达标降级 role=0 |
 
-### 测试状态(✅ 更新)
+### 测试状态(✅ 更新,2026-08-10 实测)
 
 - `go build ./...` / `go vet ./...` / `gofmt -l`(0 输出)全部通过
-- `go test ./... -count=1` 全绿;**36+ 用例**,新增覆盖:bluemonday 清洗、优惠券超限 12001、优惠券原子占用、超时关单(含优惠券回退)、取消并发已支付(0 行回滚)、佣金确认竞态、退款佣金回滚、代理审批
+- `go test ./... -count=1` 全绿;**47 个测试函数**,新增覆盖:bluemonday 清洗、优惠券超限 12001、优惠券原子占用、超时关单(含优惠券回退)、取消并发已支付(0 行回滚)、佣金确认竞态、退款佣金回滚、代理审批
 
 ---
 

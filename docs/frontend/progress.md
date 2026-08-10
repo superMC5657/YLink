@@ -2,7 +2,7 @@
 
 > 本文档记录 `src/` 目录 Vue 3 用户端应用的开发状态,是 docs/frontend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-07(M1–M5 全部实现完成,M6 Tauri 骨架 + 工程化质量门禁就绪;lint/单测/E2E/cargo check 全绿)
+> 最后更新:2026-08-10(M1–M8 已实现;2026-08-10 全量核对:typecheck/lint/build/vitest 31 用例/E2E 42 用例/cargo check 全部实测通过;管理后台核心 5 模块已完成,二期剩余 8 模块见第 2 节)
 
 ---
 
@@ -19,7 +19,7 @@
 | 国际化 | vue-i18n@11,zh-CN / en-US 按模块命名空间,`Accept-Language` 联动 | `src/locales/*` |
 | 环境变量 | `VITE_API_BASE_URL` / `VITE_USE_MOCK` / `VITE_APP_NAME`,运行时后端地址可改并持久化 | `.env.development`、`.env.production`、`utils/storage.ts` |
 | 防闪烁 | `index.html` 内联首帧脚本,渲染前读持久化主题写入 `data-theme` | `index.html` |
-| Mock | vite-plugin-mock,5 个模块严格按契约(含 401/错误码/支付自动完成模拟) | `mock/*.ts` |
+| Mock | vite-plugin-mock,6 个模块(auth/business/config/order/server/user)严格按契约(含 401/错误码/支付自动完成模拟) | `mock/*.ts` |
 
 ### M2 布局与设计系统(✅ 完成)
 
@@ -30,7 +30,7 @@
 | 桌面布局 | 240px 侧边栏(折叠 72px)+ 毛玻璃吸顶顶栏(折叠钮/站点名/主题/语言/用户 chip) | `components/app/AppSidebar.vue`、`AppHeader.vue` |
 | 平板/手机 | `<768px` 底栏 4 Tab + 抽屉菜单(分组一致);`768-1024` 迷你侧边栏;useMediaQuery 断点驱动 | `MobileTabBar.vue`、`DrawerMenu.vue`、`MainLayout.vue` |
 | 全局壳 | AuthLayout(居中卡片 + 氛围背景 + 语言/主题)、客服浮球、naive message/dialog provider + toast 桥接 | `layouts/*`、`CustomerServiceFab.vue`、`ToastBridge.vue` |
-| 基础组件 | AppIcon(离线线性图标 60+)/ UiCard / StatNumber / StatusBadge / PriceText / EmptyState / PageHeader / CopyText / ThemeToggle(三态循环),全部全局注册 | `components/ui/*` |
+| 基础组件 | AppIcon(离线线性图标 60+)/ UiCard / StatNumber / StatusBadge / PriceText / EmptyState / PageHeader / CopyText / LanguageToggle / ThemeToggle(三态循环),全部全局注册 | `components/ui/*` |
 
 ### M3 核心页(✅ 完成)
 
@@ -109,12 +109,25 @@
 | 注册页强制邀请码 | 站点 `invite_code_required=true` 时校验必填 | `src/views/auth/RegisterView.vue` |
 | 离线横幅 | 顶部红色常驻横幅 + 恢复 toast | `src/components/app/ToastBridge.vue` |
 
-### 验证状态(✅)
+### M8 管理后台(✅ 核心模块完成,2026-08-10)
+
+| 项 | 说明 | 位置 |
+|---|---|---|
+| 角色区分基建 | auth store `isAdmin` getter;路由 meta `admin` 标志 + 守卫(非管理员访问 `/admin/*` 重定向 `/dashboard`);侧边栏/移动端抽屉按角色追加「管理后台」分组;顶栏用户下拉管理员增加「管理后台」入口 | `src/stores/auth.ts`、`src/router/*`、`components/app/*` |
+| 管理端契约 | `src/api/admin.ts` 封装 5 组端点;类型对齐后端 DTO(价格统一为元) | `src/api/admin.ts`、`src/types/api.d.ts` |
+| 总览 | 7 项运营统计卡 + 快捷入口 | `views/admin/AdminOverviewView.vue` |
+| 用户管理 | 搜索/分页/封禁/角色调整/调余额(均写审计) | `views/admin/AdminUsersView.vue` |
+| 套餐管理 | CRUD:周期定价(元)/流量/设备/限速/节点分组/上架/排序 | `views/admin/AdminPlansView.vue` |
+| 节点管理 | 分组 CRUD + 节点 CRUD(6 协议/地址/配置 JSON/倍率/状态/标签) | `views/admin/AdminNodesView.vue` |
+| 订单管理 | 状态筛选/分页/退款(余额退回+佣金回滚) | `views/admin/AdminOrdersView.vue` |
+| Mock + E2E | `mock/admin.ts` 管理端 Mock;`tests/e2e/admin.spec.ts` 角色区分 5 用例 × 双 project(管理员可见入口/普通用户不可见且访问被重定向) | `mock/*`、`tests/e2e/*` |
+
+### 验证状态(✅,2026-08-10 全量实测)
 
 - `pnpm typecheck`(vue-tsc --noEmit)零错误
-- `pnpm build`(vue-tsc + vite build)成功,主包 gzip ≈ 253KB
-- `pnpm lint` 0 error 0 warning;`pnpm test` 29/29
-- `pnpm e2e`(Playwright)**30/30 通过**:登录 → 仪表板 → 套餐 → 下单(余额支付)→ 订单 → 8 页面可达性 → 暗色切换 → 移动端 390×844 底栏导航
+- `pnpm build`(vue-tsc + vite build)成功,主包 gzip ≈ 253.3KB
+- `pnpm lint` 0 error 0 warning;`pnpm test` **31/31 通过**(此前文档记 29,系后续新增用例未同步)
+- `pnpm e2e`(Playwright)**42/42 通过**:登录 → 仪表板 → 套餐 → 下单(余额支付)→ 订单 → 8 页面可达性 → 暗色切换 → 移动端底栏导航 + **管理后台角色区分 10 例**(其中 2 例来自调试残留 `zz-errfail.spec.ts`,正式套件为 40 例,见第 2 节)
 - `cargo check`(src-tauri)通过
 
 ---
@@ -140,6 +153,7 @@
 | 项 | 说明 |
 |---|---|
 | 组件测试 | 已建 Vitest 但仅覆盖 utils/store/composables;关键组件(StatCard/PlanCard/OrderTable)渲染测试未写(测试策略 frontend/README §9) |
+| E2E 调试残留 | `tests/e2e/zz-errfail.spec.ts`(无断言、纯日志抓取诊断脚本)仍在正式套件中,会被本地/CI 的 `pnpm e2e` 执行(占 2/32),应移出测试目录或按 tag 排除 |
 | husky + lint-staged + commitlint | 未配置(Conventional Commits 约定见 docs/README §5,尚未工具化) |
 | 移动端下拉刷新 / 加载更多 | pages.md §6.3 建议项,未实现(分页器在平板以上已可用) |
 | PWA | 手机端一期仅响应式 Web,未加 manifest/离线壳(desktop-tauri.md §9 标注可后补) |
@@ -149,7 +163,7 @@
 
 | 项 | 状态 | 依赖/说明 |
 |---|---|---|
-| 管理后台前端 | 未开始(独立应用,复用 admin API) | 契约范围见 api/README.md 第 16 节 |
+| 管理后台(二期剩余模块) | **核心 5 模块已实现**(总览/用户/套餐/节点/订单,见第 1 节 M8);剩余:优惠券/公告/知识库/工单/代理审批/佣金日志/流量导入/站点设置 | 后端 13 组 admin API 已全量就绪;契约见 [docs/api/README.md](../api/README.md) 第 16 节 |
 | 移动端深链/分享面板 | 未做 | 需 Tauri Mobile 评估(desktop-tauri.md §9) |
 | 更新卡片 UI | 未做 | 依赖 M6 updater 插件 |
 
@@ -171,7 +185,7 @@
 
 | 前置 | 说明 |
 |---|---|
-| 单元测试 | `pnpm test`(Vitest + jsdom,29 用例);`pnpm test:coverage` 看覆盖率 |
+| 单元测试 | `pnpm test`(Vitest + jsdom,31 用例);`pnpm test:coverage` 看覆盖率 |
 | E2E | `pnpm e2e`(Playwright):webServer 以 `pnpm dev --mode e2e` 启动,**固定使用 `.env.e2e`(Mock)**,不受 `.env.development.local` 联调覆盖影响;本地默认系统 Chrome(`channel:'chrome'`),CI 用 `playwright install chromium`;双 project(桌面 1280 / 移动 390×844) |
 | 布局诊断 | `node scripts/diag-layout.mjs`:5 分辨率(1024-2560)× 12 路由测量页面级横向溢出与内容区宽度(需先起 Mock dev) |
 | 质量门禁 | `pnpm lint`(ESLint 0 error 0 warning)、`pnpm typecheck`、`pnpm format:check`(Prettier) |

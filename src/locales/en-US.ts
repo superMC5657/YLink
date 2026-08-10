@@ -16,6 +16,13 @@ export default {
     traffic: 'Traffic',
     mine: 'Me',
     collapse: 'Collapse',
+    groupAdmin: 'Admin',
+    adminOverview: 'Overview',
+    adminUsers: 'Users',
+    adminPlans: 'Plans',
+    adminNodes: 'Nodes',
+    adminOrders: 'Orders',
+    adminTickets: 'Tickets',
   },
   common: {
     confirm: 'Confirm',

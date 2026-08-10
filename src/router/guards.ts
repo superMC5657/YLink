@@ -22,6 +22,11 @@ export function setupGuards(router: Router): void {
         query: { redirect: to.fullPath },
       }
     }
+
+    // 管理端页面:非管理员(role=1)重定向仪表板
+    if (to.meta.admin && !auth.isAdmin) {
+      return { name: 'dashboard' }
+    }
     return true
   })
 

@@ -16,6 +16,13 @@ export default {
     traffic: '流量明细',
     mine: '我的',
     collapse: '收起',
+    groupAdmin: '管理后台',
+    adminOverview: '总览',
+    adminUsers: '用户管理',
+    adminPlans: '套餐管理',
+    adminNodes: '节点管理',
+    adminOrders: '订单管理',
+    adminTickets: '工单管理',
   },
   common: {
     confirm: '确认',

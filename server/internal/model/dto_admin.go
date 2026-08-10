@@ -14,6 +14,40 @@ type AdminOverviewResp struct {
 	PlanCount       int64   `json:"plan_count"`
 }
 
+// AdminPlanView 管理端套餐视图:价格统一为元,展开 group_ids/is_show(用户端 Plan 隐藏)。
+type AdminPlanView struct {
+	ID            int64    `json:"id"`
+	Name          string   `json:"name"`
+	Content       string   `json:"content"`
+	MonthPrice    *float64 `json:"month_price"`
+	QuarterPrice  *float64 `json:"quarter_price"`
+	HalfYearPrice *float64 `json:"half_year_price"`
+	YearPrice     *float64 `json:"year_price"`
+	OnetimePrice  *float64 `json:"onetime_price"`
+	TrafficGB     int      `json:"traffic_gb"`
+	SpeedLimit    *int     `json:"speed_limit"`
+	DeviceLimit   *int     `json:"device_limit"`
+	GroupIDs      []int64  `json:"group_ids"`
+	IsShow        bool     `json:"is_show"`
+	Sort          int      `json:"sort"`
+}
+
+// AdminServerView 管理端节点视图:展开 group_id/host/port/config(用户端隐藏)。
+type AdminServerView struct {
+	ID      int64    `json:"id"`
+	GroupID int64    `json:"group_id"`
+	Name    string   `json:"name"`
+	Type    string   `json:"type"`
+	Host    string   `json:"host"`
+	Port    int      `json:"port"`
+	Config  string   `json:"config"`
+	Rate    float64  `json:"rate"`
+	Tags    []string `json:"tags"`
+	Status  int      `json:"status"`
+	IsShow  bool     `json:"is_show"`
+	Sort    int      `json:"sort"`
+}
+
 // ---- 管理端 · 用户 ----
 
 type AdminUserItem struct {
@@ -55,7 +89,7 @@ type AdminPlanReq struct {
 	TrafficGB     int      `json:"traffic_gb" binding:"required"`
 	SpeedLimit    *int     `json:"speed_limit"`
 	DeviceLimit   *int     `json:"device_limit"`
-	GroupIDs      []int64  `json:"group_ids"`
+	GroupIDs      *[]int64 `json:"group_ids"` // nil=不更新;空数组=清空(该套餐不关联任何分组)
 	IsShow        *bool    `json:"is_show"`
 	Sort          int      `json:"sort"`
 }
@@ -68,17 +102,17 @@ type AdminServerGroupReq struct {
 }
 
 type AdminServerReq struct {
-	GroupID int64    `json:"group_id" binding:"required"`
-	Name    string   `json:"name" binding:"required"`
-	Type    string   `json:"type" binding:"required,oneof=shadowsocks vmess vless trojan hysteria2 tuic"`
-	Host    string   `json:"host" binding:"required"`
-	Port    int      `json:"port" binding:"required"`
-	Config  string   `json:"config" binding:"required"` // 协议私有参数 JSON
-	Rate    float64  `json:"rate"`
-	Tags    []string `json:"tags"`
-	Status  int      `json:"status" binding:"omitempty,oneof=1 2 3"`
-	IsShow  *bool    `json:"is_show"`
-	Sort    int      `json:"sort"`
+	GroupID int64     `json:"group_id" binding:"required"`
+	Name    string    `json:"name" binding:"required"`
+	Type    string    `json:"type" binding:"required,oneof=shadowsocks vmess vless trojan hysteria2 tuic"`
+	Host    string    `json:"host" binding:"required"`
+	Port    int       `json:"port" binding:"required"`
+	Config  string    `json:"config" binding:"required"` // 协议私有参数 JSON
+	Rate    float64   `json:"rate"`
+	Tags    *[]string `json:"tags"` // nil=不更新;空数组=清空
+	Status  int       `json:"status" binding:"omitempty,oneof=1 2 3"`
+	IsShow  *bool     `json:"is_show"`
+	Sort    int       `json:"sort"`
 }
 
 // ---- 管理端 · 订单 ----

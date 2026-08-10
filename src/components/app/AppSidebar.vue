@@ -6,17 +6,21 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
-import { NAV_GROUPS } from '@/router/nav'
+import { useAuthStore } from '@/stores/auth'
+import { ADMIN_NAV_GROUPS, NAV_GROUPS } from '@/router/nav'
 import { useConfigStore } from '@/stores/config'
 import { useI18n } from 'vue-i18n'
 
 const app = useAppStore()
+const auth = useAuthStore()
 const config = useConfigStore()
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
 
 const collapsed = computed(() => app.sidebarCollapsed)
+/** 用户菜单 + (管理员)管理菜单 */
+const groups = computed(() => [...NAV_GROUPS, ...(auth.isAdmin ? ADMIN_NAV_GROUPS : [])])
 
 function isActive(path: string): boolean {
   if (path === '/dashboard') return route.path === '/dashboard'
@@ -51,7 +55,7 @@ function go(path: string) {
 
     <!-- 分组菜单 -->
     <nav class="flex-1 overflow-y-auto px-3 py-2">
-      <div v-for="group in NAV_GROUPS" :key="group.label" class="mb-4">
+      <div v-for="group in groups" :key="group.label" class="mb-4">
         <div
           v-if="!collapsed"
           class="mb-1.5 px-3 text-14 uppercase tracking-wider text-[var(--c-text-sub)] opacity-70"

@@ -63,5 +63,20 @@ export const MOBILE_TABS: TabItem[] = [
   { name: 'nav.mine', path: '/profile', icon: 'user' },
 ]
 
+/** 管理后台菜单(仅 role=1 可见):独立分组,渲染在用户菜单之后 */
+export const ADMIN_NAV_GROUPS: NavGroup[] = [
+  {
+    label: 'nav.groupAdmin',
+    items: [
+      { name: 'nav.adminOverview', path: '/admin/overview', icon: 'sliders' },
+      { name: 'nav.adminUsers', path: '/admin/users', icon: 'users' },
+      { name: 'nav.adminPlans', path: '/admin/plans', icon: 'zap' },
+      { name: 'nav.adminNodes', path: '/admin/nodes', icon: 'server' },
+      { name: 'nav.adminOrders', path: '/admin/orders', icon: 'order' },
+      { name: 'nav.adminTickets', path: '/admin/tickets', icon: 'ticket' },
+    ],
+  },
+]
+
 /** 展开导航所有路径,供路由激活匹配 */
 export const ALL_NAV_PATHS = NAV_GROUPS.flatMap((g) => g.items.map((i) => i.path))

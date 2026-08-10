@@ -11,9 +11,40 @@ import (
 
 // ---- 管理端 · 套餐 CRUD ----
 
-// ListAllPlans GET /admin/plans（含隐藏）。
-func (s *AdminService) ListAllPlans(ctx context.Context) ([]model.Plan, error) {
-	return s.repos.Plan.ListAll(s.db)
+// ListAllPlans GET /admin/plans（含隐藏,价格统一为元,展开 group_ids/is_show）。
+func (s *AdminService) ListAllPlans(ctx context.Context) ([]model.AdminPlanView, error) {
+	list, err := s.repos.Plan.ListAll(s.db)
+	if err != nil {
+		return nil, err
+	}
+	views := make([]model.AdminPlanView, 0, len(list))
+	for _, p := range list {
+		views = append(views, toPlanView(&p))
+	}
+	return views, nil
+}
+
+func toPlanView(p *model.Plan) model.AdminPlanView {
+	v := model.AdminPlanView{
+		ID: p.ID, Name: p.Name, Content: p.Content,
+		MonthPrice: yuanPtr(p.MonthPrice), QuarterPrice: yuanPtr(p.QuarterPrice),
+		HalfYearPrice: yuanPtr(p.HalfYearPrice), YearPrice: yuanPtr(p.YearPrice),
+		OnetimePrice: yuanPtr(p.OnetimePrice),
+		TrafficGB:    p.TrafficGB, SpeedLimit: p.SpeedLimit, DeviceLimit: p.DeviceLimit,
+		IsShow: p.IsShow, Sort: p.Sort,
+	}
+	if p.GroupIDs != "" {
+		_ = json.Unmarshal([]byte(p.GroupIDs), &v.GroupIDs)
+	}
+	return v
+}
+
+func yuanPtr(fen *int64) *float64 {
+	if fen == nil {
+		return nil
+	}
+	v := model.FenToYuan(*fen)
+	return &v
 }
 
 func (s *AdminService) CreatePlan(ctx context.Context, req *model.AdminPlanReq) (*model.Plan, error) {
@@ -34,7 +65,7 @@ func (s *AdminService) CreatePlan(ctx context.Context, req *model.AdminPlanReq) 
 	p.HalfYearPrice = fenPtr(req.HalfYearPrice)
 	p.YearPrice = fenPtr(req.YearPrice)
 	p.OnetimePrice = fenPtr(req.OnetimePrice)
-	if len(req.GroupIDs) > 0 {
+	if req.GroupIDs != nil {
 		b, _ := json.Marshal(req.GroupIDs)
 		p.GroupIDs = string(b)
 	}
@@ -63,7 +94,7 @@ func (s *AdminService) UpdatePlan(ctx context.Context, id int64, req *model.Admi
 	p.HalfYearPrice = fenPtr(req.HalfYearPrice)
 	p.YearPrice = fenPtr(req.YearPrice)
 	p.OnetimePrice = fenPtr(req.OnetimePrice)
-	if len(req.GroupIDs) > 0 {
+	if req.GroupIDs != nil {
 		b, _ := json.Marshal(req.GroupIDs)
 		p.GroupIDs = string(b)
 	}
@@ -84,8 +115,29 @@ func fenPtr(yuan *float64) *int64 {
 
 // ---- 管理端 · 节点 CRUD ----
 
-func (s *AdminService) ListAllServers(ctx context.Context) ([]model.Server, error) {
-	return s.repos.Server.ListAll(s.db)
+// ListAllServers GET /admin/servers（含隐藏,展开 group_id/host/port/config/tags）。
+func (s *AdminService) ListAllServers(ctx context.Context) ([]model.AdminServerView, error) {
+	list, err := s.repos.Server.ListAll(s.db)
+	if err != nil {
+		return nil, err
+	}
+	views := make([]model.AdminServerView, 0, len(list))
+	for _, srv := range list {
+		views = append(views, toServerView(&srv))
+	}
+	return views, nil
+}
+
+func toServerView(srv *model.Server) model.AdminServerView {
+	v := model.AdminServerView{
+		ID: srv.ID, GroupID: srv.GroupID, Name: srv.Name, Type: srv.Type,
+		Host: srv.Host, Port: srv.Port, Config: srv.Config,
+		Rate: srv.Rate, Status: srv.Status, IsShow: srv.IsShow, Sort: srv.Sort,
+	}
+	if srv.Tags != nil {
+		_ = json.Unmarshal([]byte(*srv.Tags), &v.Tags)
+	}
+	return v
 }
 
 func (s *AdminService) ListAllServerGroups(ctx context.Context) ([]model.ServerGroup, error) {
@@ -142,7 +194,7 @@ func (s *AdminService) DeleteServer(ctx context.Context, id int64) error {
 
 func srvFromReq(req *model.AdminServerReq) *model.Server {
 	tags := "[]"
-	if len(req.Tags) > 0 {
+	if req.Tags != nil {
 		if b, err := json.Marshal(req.Tags); err == nil {
 			tags = string(b)
 		}

@@ -17,6 +17,8 @@ export const useAuthStore = defineStore('auth', {
   }),
   getters: {
     isLoggedIn: (s) => !!s.accessToken,
+    /** 管理员(role=1):控制管理后台入口与路由守卫 */
+    isAdmin: (s) => s.user?.role === 1,
   },
   actions: {
     applyAuth(data: { access_token: string; refresh_token: string; user?: UserBrief }) {

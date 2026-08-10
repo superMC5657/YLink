@@ -104,14 +104,21 @@ export APP_SMTP_USER= APP_SMTP_PASS=
 export APP_PAYMENT_EPAY_GATEWAY= APP_PAYMENT_EPAY_PID= APP_PAYMENT_EPAY_KEY=
 
 if [ "$API_ALREADY" = 0 ]; then
+  say "  构建 server/worker 二进制..."
   (
     cd "$SERVER"
-    nohup go run ./cmd/server >> "$SERVER/logs/api.log" 2>&1 &
+    go build -o "$RUN_DIR/server.exe" ./cmd/server
+    go build -o "$RUN_DIR/worker.exe" ./cmd/worker
+  )
+  echo "  构建完成:$RUN_DIR/server.exe $RUN_DIR/worker.exe"
+  (
+    cd "$SERVER"
+    nohup "$RUN_DIR/server.exe" >> "$SERVER/logs/api.log" 2>&1 &
     echo $! > "$RUN_DIR/api.pid"
   )
   (
     cd "$SERVER"
-    nohup go run ./cmd/worker >> "$SERVER/logs/worker.log" 2>&1 &
+    nohup "$RUN_DIR/worker.exe" >> "$SERVER/logs/worker.log" 2>&1 &
     echo $! > "$RUN_DIR/worker.pid"
   )
   for i in $(seq 1 30); do

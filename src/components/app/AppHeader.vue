@@ -82,11 +82,23 @@ function onLogout() {
       <n-dropdown
         trigger="click"
         :options="[
+          ...(auth.isAdmin
+            ? [
+                { label: '管理后台', key: 'admin' },
+                { type: 'divider', key: 'd0' },
+              ]
+            : []),
           { label: '个人信息', key: 'profile' },
           { type: 'divider', key: 'd1' },
           { label: '退出登录', key: 'logout' },
         ]"
-        @select="(k: string) => (k === 'logout' ? onLogout() : goProfile())"
+        @select="
+          (k: string) => {
+            if (k === 'logout') onLogout()
+            else if (k === 'admin') router.push('/admin/overview')
+            else goProfile()
+          }
+        "
       >
         <button
           class="flex cursor-pointer items-center gap-2 rounded-[var(--r-control)] px-2 py-1 transition-colors hover:bg-[var(--c-bg-hover)]"

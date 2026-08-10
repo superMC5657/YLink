@@ -539,7 +539,7 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 
 ## 16. 管理端 API 附录（`/api/v1/admin`，role=admin）
 
-用户端 App 不调用；供二期管理后台使用，此处仅约定范围，详细契约在二期单独评审。
+用户端 App 不调用；供管理后台使用（前端 M8 已实现核心 5 模块）。响应走统一信封。
 
 | 模块 | 端点 |
 |---|---|
@@ -555,6 +555,13 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 | 佣金 | `GET /admin/commission-logs` |
 | 流量 | `POST /admin/traffic/import`（一期模式 B 手工导入） |
 | 配置 | `GET/PUT /admin/settings` |
+
+### 16.1 管理端响应字段约定（2026-08-10 细化）
+
+- `GET /admin/plans` 返回 `{list: AdminPlanView[]}`：价格字段（`month_price`/`quarter_price`/`half_year_price`/`year_price`/`onetime_price`）**单位为元**（`null` 表示未开放该周期），并展开 `group_ids: number[]`、`is_show`、`sort`、`traffic_gb`、`speed_limit`、`device_limit`。请求体 `AdminPlanReq` 同字段，价格传元。
+- `GET /admin/servers` 返回 `{list: AdminServerView[]}`：展开用户端隐藏的 `group_id`/`host`/`port`/`config`/`is_show`/`sort`，`tags: string[]`。请求体 `AdminServerReq` 中 `type ∈ {shadowsocks,vmess,vless,trojan,hysteria2,tuic}`、`status ∈ {1=正常,2=拥挤,3=维护}`、`config` 为协议私有参数 JSON 字符串。
+- `GET /admin/users` 分页返回 `{list,total,page,page_size}`，`balance`/`commission_balance` 单位为元；`PUT /admin/users/{id}` 请求体 `{role?, banned?}`（`role ∈ {0,1,2}`）；`POST /admin/users/{id}/balance` 请求体 `{amount(元，可正可负), remark?}`。
+- `GET /admin/orders` 分页返回 `{list,total,page,page_size}`，`status ∈ {0=待支付,1=已完成,2=已取消,3=已退款}`，金额单位为元。
 
 ---
 

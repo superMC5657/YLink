@@ -5,9 +5,10 @@
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useConfigStore } from '@/stores/config'
-import { NAV_GROUPS } from '@/router/nav'
+import { ADMIN_NAV_GROUPS, NAV_GROUPS } from '@/router/nav'
 import { useMessage, useDialog } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
+import { computed } from 'vue'
 
 const auth = useAuthStore()
 const config = useConfigStore()
@@ -16,6 +17,9 @@ const router = useRouter()
 const message = useMessage()
 const dialog = useDialog()
 const { t } = useI18n()
+
+/** 用户菜单 + (管理员)管理菜单 */
+const groups = computed(() => [...NAV_GROUPS, ...(auth.isAdmin ? ADMIN_NAV_GROUPS : [])])
 
 const props = defineProps<{ show: boolean }>()
 const emit = defineEmits<{ (e: 'update:show', v: boolean): void }>()
@@ -67,7 +71,7 @@ function onLogout() {
 
       <!-- 菜单 -->
       <nav class="flex-1 overflow-y-auto px-3 py-3">
-        <div v-for="group in NAV_GROUPS" :key="group.label" class="mb-4">
+        <div v-for="group in groups" :key="group.label" class="mb-4">
           <div
             class="mb-1.5 px-3 text-14 uppercase tracking-wider text-[var(--c-text-sub)] opacity-70"
           >

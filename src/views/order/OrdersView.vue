@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * 我的订单(截图3):表格/卡片双视图 + 分页 + 详情抽屉 + 支付入口 + 待支付轮询。
+ * 我的订单(截图3):表格/卡片双视图 + 分页 + 详情弹窗 + 支付入口 + 待支付轮询。
  * 数据:GET /orders(docs/api/README.md §10.2)
  */
 import { onMounted, onBeforeUnmount, ref } from 'vue'
@@ -10,7 +10,7 @@ import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import OrderTable from '@/components/business/OrderTable.vue'
 import OrderCardList from '@/components/business/OrderCardList.vue'
-import OrderDetailDrawer from '@/components/business/OrderDetailDrawer.vue'
+import OrderDetailModal from '@/components/business/OrderDetailModal.vue'
 import PaymentModal from '@/components/business/PaymentModal.vue'
 import type { Order } from '@/types/api'
 
@@ -23,7 +23,7 @@ const currentPage = ref(1)
 const pageSize = 10
 const statusFilter = ref<'' | 0 | 1 | 2 | 3>('')
 
-const drawerVisible = ref(false)
+const modalVisible = ref(false)
 const currentOrderNo = ref<string | null>(null)
 const payOrder = ref<Order | null>(null)
 const showPayment = ref(false)
@@ -55,7 +55,7 @@ function onStatusChange() {
 
 function viewDetail(order: Order) {
   currentOrderNo.value = order.order_no
-  drawerVisible.value = true
+  modalVisible.value = true
 }
 
 function goPay(order: Order) {
@@ -151,8 +151,8 @@ onBeforeUnmount(() => orderStore.stopPolling())
       </div>
     </div>
 
-    <!-- 详情抽屉 -->
-    <OrderDetailDrawer v-model:show="drawerVisible" :order-no="currentOrderNo" @changed="load" />
+    <!-- 详情弹窗 -->
+    <OrderDetailModal v-model:show="modalVisible" :order-no="currentOrderNo" @changed="load" />
 
     <!-- 去支付收银台 -->
     <PaymentModal v-model:show="showPayment" :order="payOrder" :method="payMethod" @paid="onPaid" />

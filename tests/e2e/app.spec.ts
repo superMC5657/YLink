@@ -70,7 +70,7 @@ test.describe('购买套餐(交易闭环)', () => {
 test.describe('订单', () => {
   test.use({ viewport: { width: 1440, height: 900 } })
 
-  test('订单列表渲染状态徽章与详情抽屉', async ({ authedPage }) => {
+  test('订单列表渲染状态徽章与详情弹窗', async ({ authedPage }) => {
     await authedPage.goto('/#/orders')
     await expect(authedPage.locator('table tbody tr').first()).toBeVisible()
     await expect(authedPage.getByText('已完成').first()).toBeVisible()

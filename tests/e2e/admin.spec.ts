@@ -54,7 +54,7 @@ test.describe('角色区分(管理员)', () => {
     await expect(page).toHaveURL(/#\/admin\/tickets/)
     // 工单列表渲染(有数据行,含发起用户)
     await expect(page.locator('table tbody tr').first()).toBeVisible()
-    // 打开详情抽屉,出现回复输入框
+    // 打开详情弹窗,出现回复输入框
     await page.getByText('查看').first().click()
     await expect(page.getByPlaceholder(/输入回复内容/)).toBeVisible()
     // 回复成功

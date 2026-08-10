@@ -18,8 +18,8 @@ const total = ref(0)
 const page = ref(1)
 const pageSize = 10
 
-// 详情抽屉
-const drawer = ref(false)
+// 详情弹窗
+const modalVisible = ref(false)
 const detail = ref<AdminTicketDetail | null>(null)
 const detailLoading = ref(false)
 const replyText = ref('')
@@ -64,7 +64,7 @@ function scrollToBottom() {
 }
 
 async function openDetail(t: AdminTicketItem) {
-  drawer.value = true
+  modalVisible.value = true
   detailLoading.value = true
   replyText.value = ''
   try {
@@ -161,7 +161,9 @@ onMounted(() => void load())
               </td>
               <td>
                 <div class="flex">
-                  <button class="btn-soft-blue h-7 px-3 text-14" @click="openDetail(t)">查看</button>
+                  <button class="btn-soft-blue h-7 px-3 text-14" @click="openDetail(t)">
+                    查看
+                  </button>
                 </div>
               </td>
             </tr>
@@ -181,89 +183,95 @@ onMounted(() => void load())
       </div>
     </div>
 
-    <!-- 工单详情抽屉 -->
-    <n-drawer v-model:show="drawer" :width="520">
-      <n-drawer-content closable>
-        <template #header>
-          <div class="min-w-0">
-            <div class="truncate text-16 font-600 text-[var(--c-text)]">
-              {{ detail?.subject }}
-            </div>
-            <div v-if="detail" class="mt-1 flex items-center gap-2">
-              <StatusBadge :type="STATUS_LABEL[detail.status]?.type ?? 'neutral'">
-                {{ STATUS_LABEL[detail.status]?.text ?? detail.status }}
-              </StatusBadge>
-              <span class="text-14 text-[var(--c-text-sub)]">
-                创建于 {{ detail.created_at.slice(0, 16).replace('T', ' ') }}
-              </span>
-            </div>
+    <!-- 工单详情弹窗(屏幕中央) -->
+    <n-modal
+      v-model:show="modalVisible"
+      preset="card"
+      style="width: 640px; max-width: calc(100vw - 32px)"
+    >
+      <template #header>
+        <div class="min-w-0">
+          <div class="truncate text-16 font-600 text-[var(--c-text)]">
+            {{ detail?.subject }}
           </div>
-        </template>
-
-        <n-spin :show="detailLoading">
-          <div v-if="detail" ref="msgListRef" class="max-h-[55vh] space-y-3 overflow-y-auto py-2">
-            <div
-              v-for="m in detail.messages"
-              :key="m.id"
-              class="flex gap-2"
-              :class="m.sender_type === 0 ? 'flex-row' : 'flex-row-reverse'"
-            >
-              <span
-                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white"
-                :style="
-                  m.sender_type === 0
-                    ? 'background: linear-gradient(135deg,#6558f5,#8b5cf6)'
-                    : 'background: var(--c-olive)'
-                "
-              >
-                <AppIcon :name="m.sender_type === 0 ? 'user' : 'headset'" :size="15" />
-              </span>
-              <div
-                class="max-w-[75%] rounded-2xl px-4 py-2.5 text-14 leading-relaxed"
-                :class="
-                  m.sender_type === 0
-                    ? 'rounded-tl-sm bg-[var(--c-bg-hover)] text-[var(--c-text)]'
-                    : 'rounded-tr-sm bg-[var(--c-primary-soft)] text-[var(--c-primary-text)]'
-                "
-              >
-                <div class="mb-1 flex items-center justify-between gap-3">
-                  <span class="text-14 font-500">
-                    {{ m.sender_type === 0 ? '用户' : '客服' }}
-                  </span>
-                  <span class="text-14 opacity-60">
-                    {{ m.created_at.slice(0, 16).replace('T', ' ') }}
-                  </span>
-                </div>
-                <div class="whitespace-pre-wrap">{{ m.message }}</div>
-              </div>
-            </div>
-            <EmptyState v-if="detail.messages.length === 0" text="暂无消息" />
-          </div>
-        </n-spin>
-
-        <!-- 回复区 -->
-        <div v-if="detail" class="mt-4 border-t border-[var(--c-border)] pt-4">
-          <n-input
-            v-model:value="replyText"
-            type="textarea"
-            :rows="3"
-            :disabled="isClosed()"
-            :placeholder="isClosed() ? '工单已关闭,无法回复' : '输入回复内容…'"
-          />
-          <div class="mt-3 flex justify-end gap-2">
-            <button class="btn-soft-danger h-9 px-4 text-14" :disabled="isClosed()" @click="onClose">
-              {{ isClosed() ? '已关闭' : '关闭工单' }}
-            </button>
-            <button
-              class="btn-primary h-9 px-5 text-14"
-              :disabled="sending || isClosed() || !replyText.trim()"
-              @click="sendReply"
-            >
-              回复
-            </button>
+          <div v-if="detail" class="mt-1 flex items-center gap-2">
+            <StatusBadge :type="STATUS_LABEL[detail.status]?.type ?? 'neutral'">
+              {{ STATUS_LABEL[detail.status]?.text ?? detail.status }}
+            </StatusBadge>
+            <span class="text-14 text-[var(--c-text-sub)]">
+              创建于 {{ detail.created_at.slice(0, 16).replace('T', ' ') }}
+            </span>
           </div>
         </div>
-      </n-drawer-content>
-    </n-drawer>
+      </template>
+
+      <n-spin :show="detailLoading">
+        <div
+          v-if="detail"
+          ref="msgListRef"
+          class="max-h-[40vh] space-y-3 overflow-y-auto px-3 py-2"
+        >
+          <div
+            v-for="m in detail.messages"
+            :key="m.id"
+            class="flex gap-2"
+            :class="m.sender_type === 0 ? 'flex-row' : 'flex-row-reverse'"
+          >
+            <span
+              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white"
+              :style="
+                m.sender_type === 0
+                  ? 'background: linear-gradient(135deg,#6558f5,#8b5cf6)'
+                  : 'background: var(--c-olive)'
+              "
+            >
+              <AppIcon :name="m.sender_type === 0 ? 'user' : 'headset'" :size="15" />
+            </span>
+            <div
+              class="max-w-[75%] rounded-2xl px-4 py-2.5 text-14 leading-relaxed"
+              :class="
+                m.sender_type === 0
+                  ? 'rounded-tl-sm bg-[var(--c-bg-hover)] text-[var(--c-text)]'
+                  : 'rounded-tr-sm bg-[var(--c-primary-soft)] text-[var(--c-primary-text)]'
+              "
+            >
+              <div class="mb-1 flex items-center justify-between gap-3">
+                <span class="text-14 font-500">
+                  {{ m.sender_type === 0 ? '用户' : '客服' }}
+                </span>
+                <span class="text-14 opacity-60">
+                  {{ m.created_at.slice(0, 16).replace('T', ' ') }}
+                </span>
+              </div>
+              <div class="whitespace-pre-wrap">{{ m.message }}</div>
+            </div>
+          </div>
+          <EmptyState v-if="detail.messages.length === 0" text="暂无消息" />
+        </div>
+      </n-spin>
+
+      <!-- 回复区 -->
+      <div v-if="detail" class="mt-4 border-t border-[var(--c-border)] pt-4">
+        <n-input
+          v-model:value="replyText"
+          type="textarea"
+          :rows="3"
+          :disabled="isClosed()"
+          :placeholder="isClosed() ? '工单已关闭,无法回复' : '输入回复内容…'"
+        />
+        <div class="mt-3 flex justify-end gap-2">
+          <button class="btn-soft-danger h-9 px-4 text-14" :disabled="isClosed()" @click="onClose">
+            {{ isClosed() ? '已关闭' : '关闭工单' }}
+          </button>
+          <button
+            class="btn-primary h-9 px-5 text-14"
+            :disabled="sending || isClosed() || !replyText.trim()"
+            @click="sendReply"
+          >
+            回复
+          </button>
+        </div>
+      </div>
+    </n-modal>
   </div>
 </template>

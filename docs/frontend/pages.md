@@ -113,7 +113,7 @@ DashboardPage
 - 组件：`PageHeader`（标题 + 表格/卡片视图切换）、`OrderTable`（桌面）/`OrderCardList`（移动或手动切换）、分页器。
 - 列：产品名称、订单号（CopyText）、周期（月付/季付/年付/一次性）、订单金额、订单状态（StatusBadge：待支付/已完成/已取消）、创建时间、操作（查看详情）。
 - 交互：
-  - 查看详情 → `OrderDetailDrawer`：订单全字段 + 支付入口（待支付时）+ 取消按钮；
+  - 查看详情 → `OrderDetailModal`：屏幕中央弹窗展示订单全字段 + 支付入口（待支付时）+ 取消按钮；
   - 待支付订单可「去支付」直接唤起收银台弹窗（复用购买页组件）；
   - 空态 EmptyState「暂无数据」。
 - 数据：`GET /orders?status=&page=&page_size=`；取消 `POST /orders/{order_no}/cancel`。
@@ -180,7 +180,7 @@ DashboardPage
 |---|---|---|
 | `OrderConfirmModal` | 套餐卡「立即购买」 | 下单确认 + 优惠券 + 支付方式 |
 | `PaymentModal` | 提交订单后 | 二维码/跳转 + 轮询 + 成功结果 |
-| `OrderDetailDrawer` | 订单列表「查看详情」 | 右侧抽屉（移动端全屏） |
+| `OrderDetailModal` | 订单列表「查看详情」 | 屏幕中央弹窗 |
 | `ImportClientSheet` | 快捷操作「一键导入」 | 客户端选择 + scheme 唤起 |
 | `TransferModal` | 邀请页「划转」 | 佣金转余额 |
 | `CustomerServiceFab` | 全局右下角 | 外链客服（TG/网页），地址取站点配置 |

@@ -39,11 +39,11 @@ src-tauri/
 | `tauri-plugin-clipboard-manager` | 写剪贴板 | 复制订阅链接/邀请码/订单号 |
 | `tauri-plugin-opener` | 打开外部 URL 与自定义 scheme | TG 链接、支付跳转、一键导入 |
 | `tauri-plugin-deep-link` | 注册 `nanocloud://` 协议 | 从网页/TG 唤起 App 并定位页面（如 `nanocloud://plans`） |
-| `tauri-plugin-single-instance` | 单实例运行 | 重复启动聚焦已有窗口并转发深链接参数 |
-| `tauri-plugin-autostart` | 开机自启 | 设置页开关（默认关） |
+| `tauri-plugin-single-instance` | 单实例运行（仅桌面） | 重复启动聚焦已有窗口并转发深链接参数 |
+| `tauri-plugin-autostart` | 开机自启（仅桌面） | 设置页开关（默认关） |
 | `tauri-plugin-notification` | 系统通知 | 订阅到期、工单回复提醒（轮询发现变化时触发） |
 | `tauri-plugin-updater` + `tauri-plugin-process` | 检查更新、下载安装、重启 | 启动时静默检查 + 设置页手动检查 |
-| `tauri-plugin-window-state` | 记忆窗口尺寸/位置 | 体验细节 |
+| `tauri-plugin-window-state` | 记忆窗口尺寸/位置（仅桌面） | 体验细节 |
 | `tauri-plugin-os` | 系统信息 | 关于页、埋点 UA |
 
 capabilities/default.json 采用最小授权：逐项声明上述插件权限，`http` 权限的 `scope` 限定为已配置的后端域名（`https://api.example.com/**`），深链接插件仅注册 `nanocloud` scheme。
@@ -84,12 +84,53 @@ capabilities/default.json 采用最小授权：逐项声明上述插件权限，
 
 ## 9. 移动端策略（Tauri 2 Mobile）
 
-一期决策：**不打包 Tauri Android/iOS 应用**，手机端体验由响应式 Web 完整承载（见 [design-system.md](design-system.md) 第 6 节）。理由：
+手机端体验仍由响应式 Web 完整承载（见 [design-system.md](design-system.md) 第 6 节）；同时已启用 **Tauri Android APK 打包**，把同一套 Vue SPA 包装为 Android 应用，作为 Web 的补充分发渠道（iOS 仍不打包：需要 Apple 开发者账号与审核，代理类应用上架风险高）。
 
-1. 手机浏览器 + PWA（可后续加入主屏图标、离线壳）已覆盖「查流量/买套餐/复制订阅/一键导入」全部场景；scheme 唤起在移动浏览器表现最好。
-2. Tauri Mobile 的 iOS 分发需要 Apple 开发者账号与审核，代理类应用上架风险高，投入产出比低。
+### 9.1 前置环境
 
-架构预留（若二期评估后要做）：
-- 能力适配层（`utils/platform.ts`）已抽象，新增 `isTauriMobile()` 分支即可；
-- 深链接、通知、剪贴板插件均有 mobile 实现；
-- 需补的工作：移动端窗口/安全区适配（响应式已覆盖）、`tauri android/ios init` 工程、签名与分发渠道、移动端专属能力（如分享面板）。
+| 依赖 | 版本要求 | 本项目现状 |
+|---|---|---|
+| JDK | 17+（AGP 8 要求） | JDK 21 ✅ |
+| Android SDK | platform + build-tools | `E:\envs\android_sdk`（ANDROID_HOME）✅ |
+| Android NDK | 25+ | 29.0.14206865 ✅ |
+| Rust Android target | `aarch64-linux-android` 等 4 个 | `rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android` ✅ |
+
+> 网络受限环境的处理（本机已配置，`src-tauri/gen/android/` 内的构建脚本带注释）：`services.gradle.org` / `plugins.gradle.org` 直连会 TLS 握手失败，`gradle/wrapper/gradle-wrapper.properties` 的 `distributionUrl` 已改指腾讯云镜像，`settings.gradle`、`buildSrc/`、`build.gradle.kts` 的仓库均改为阿里云镜像优先（官方源回退）。若在无此问题的网络重建（重新 `tauri android init`），可还原为官方源。
+
+### 9.2 工程与命令
+
+- `tauri android init` 已执行，生成 `src-tauri/gen/android/`（自动生成物，不入库，gitignore 已含 `src-tauri/gen/`）。
+- npm scripts（见 `package.json`）：
+
+| 命令 | 说明 |
+|---|---|
+| `pnpm tauri:android:dev` | 真机/模拟器热更新调试（需 `adb` 已连接设备） |
+| `pnpm tauri:android:build` | 构建 release APK（默认构建全部 4 个 ABI；`--target aarch64` 可只打 arm64） |
+| `pnpm tauri:android:build:aab` | 构建 AAB（上架 Google Play 用） |
+
+产物在 `src-tauri/gen/android/app/build/outputs/apk/`（或 `.../bundle/`）。
+
+### 9.3 平台差异与适配
+
+- **Rust 侧桌面专属能力已用 `#[cfg(desktop)]` 隔离**（见 `src-tauri/src/lib.rs`）：托盘/菜单、单实例、开机自启、窗口状态记忆。移动端构建自动排除，不影响桌面行为。
+- **移动端入口**：`run()` 标注 `#[cfg_attr(mobile, tauri::mobile_entry_point)]`，由 `MainActivity` 经 JNI 调用；桌面入口仍在 `main.rs`。
+- **前端能力适配**：`utils/platform.ts` 已抽象，`isTauri()` 分支覆盖剪贴板/打开链接/深链接；桌面专属入口（托盘/自启/更新卡片）在移动端自动隐藏。`set_window_theme` 在移动端为 no-op（无标题栏）。
+- **后端 API 走 `tauri-plugin-http`**（原生栈），Android 无需 CORS；manifest 已含 `INTERNET` 权限，debug 构建允许明文流量（`usesCleartextTraffic`），release 关闭。
+
+### 9.4 Release 签名（上架必需）
+
+`src-tauri/gen/android/app/build.gradle.kts` 已配置签名读取逻辑，缺省时 release 构建产出未签名 APK。**本项目已配置完毕**：`src-tauri/gen/android/keystore.properties` 已存在（`keyAlias=upload`，storeFile 指向 `E:\envs\android_sdk\zyan.jks`，2026-08-10 重新生成），`pnpm tauri:android:build` 产出的 release APK 已自动签名（验证命令：`apksigner verify --print-certs app-universal-release.apk`）。
+
+> ⚠️ 若在 CI/其他机器重建：keystore 文件与 `keystore.properties` 均在 `gen/`（不入库），需自行恢复。重新配置格式（Windows 路径**必须双反斜杠**，否则 Properties 会把 `\e` 等当转义符、路径被吞成 `E:envs...`）：
+> ```
+> keyAlias=<别名>
+> password=<密钥库密码>
+> storeFile=E:\\envs\\android_sdk\\zyan.jks
+> ```
+> 生成命令：`keytool -genkeypair -v -keystore <path> -alias upload -keyalg RSA -keysize 2048 -validity 10000`（生成时需输入密码，勿用空密码）。
+
+### 9.5 已知边界
+
+- identifier 为 `com.nanocloud.app`（以 `.app` 结尾会触发 macOS 分发警告，与 Android 无关，暂不改动）。
+- 通知插件在 Android 12+ 需运行时权限，由系统授权弹窗处理（能力降级逻辑在前端）。
+- 深链接插件（`nanocloud://`）尚未接入 Android manifest，如需移动端唤起，另接 `tauri-plugin-deep-link` 并重新 `tauri android init` 或手改 manifest。

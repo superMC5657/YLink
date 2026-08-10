@@ -23,7 +23,10 @@
     "e2e": "playwright test",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "tauri:build": "tauri build",
+    "tauri:android:dev": "tauri android dev",
+    "tauri:android:build": "tauri android build --apk",
+    "tauri:android:build:aab": "tauri android build --aab"
   },
   "dependencies": {
     "@iconify/vue": "^4.3.0",

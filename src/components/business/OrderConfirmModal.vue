@@ -205,7 +205,7 @@ async function submit() {
           :placeholder="t('plan.couponPlaceholder')"
           class="h-10 flex-1 rounded-[var(--r-control)] border border-[var(--c-border)] bg-[var(--c-bg-card)] px-3 text-14 text-[var(--c-text)] outline-none transition-colors placeholder:text-[var(--c-text-sub)] focus:border-[var(--c-primary)]"
         />
-        <button class="btn-ghost h-10 px-4 text-14" @click="checkCoupon">
+        <button class="btn-soft-blue h-10 px-4 text-14" @click="checkCoupon">
           {{ t('plan.couponCheck') }}
         </button>
       </div>

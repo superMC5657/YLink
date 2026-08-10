@@ -289,6 +289,29 @@ func (h *Admin) ListOrders(c *gin.Context) {
 	resp.PageOK(c, list, total, page, pageSize)
 }
 
+// CloseOrder 关闭订单（待支付）
+// @Summary 关闭订单
+// @Tags 管理端
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param order_no path string true "订单号"
+// @Param body body model.RefundReq true "请求"
+// @Success 200 {object} resp.Body
+// @Router /admin/orders/{order_no}/close [post]
+func (h *Admin) CloseOrder(c *gin.Context) {
+	var req model.RefundReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+		return
+	}
+	if err := h.svc.CloseOrder(c.Request.Context(), h.adminID(c), c.Param("order_no"), req.Remark, c.ClientIP()); err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.OK(c, nil)
+}
+
 // Refund 订单退款（佣金回滚 + 审计）
 // @Summary 订单退款
 // @Tags 管理端

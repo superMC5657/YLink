@@ -108,7 +108,7 @@ async function onSubmit() {
             <template #prefix><AppIcon name="shield-check" :size="16" /></template>
           </n-input>
           <button
-            class="btn-ghost h-10 shrink-0 px-4 text-14"
+            class="btn-soft-primary h-10 shrink-0 px-4 text-14"
             :disabled="sending || running"
             @click="sendCode"
           >
@@ -139,7 +139,7 @@ async function onSubmit() {
 
     <p class="mt-5 text-center text-14 text-[var(--c-text-sub)]">
       {{ t('auth.toLogin') }}
-      <router-link to="/login" class="text-[var(--c-primary-text)] hover:underline">
+      <router-link to="/login" class="text-[var(--c-primary-text)]">
         {{ t('auth.login') }}
       </router-link>
     </p>

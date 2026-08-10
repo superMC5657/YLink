@@ -218,7 +218,7 @@ onBeforeUnmount(stopPolling)
         <AppIcon name="alert" :size="28" />
       </span>
       <p class="text-14 text-[var(--c-text)]">{{ t('plan.payExpired') }}</p>
-      <button class="btn-ghost h-9 px-5 text-14" @click="emit('update:show', false)">
+      <button class="btn-soft-neutral h-9 px-5 text-14" @click="emit('update:show', false)">
         {{ t('common.close') }}
       </button>
     </div>

@@ -35,6 +35,10 @@ export const useInviteStore = defineStore('invite', {
       this.codes.unshift(code)
       return code
     },
+    async deleteCode(code: string) {
+      await apiInvite.deleteCode(code)
+      this.codes = this.codes.filter((c) => c.code !== code)
+    },
     async fetchRecords(page = 1, pageSize = 10) {
       const data = await apiInvite.records({ page, page_size: pageSize })
       this.records = data?.list ?? []

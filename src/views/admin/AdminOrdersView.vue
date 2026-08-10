@@ -65,9 +65,39 @@ function refund(o: AdminOrderItem) {
     positiveText: '退款',
     negativeText: '取消',
     onPositiveClick: async () => {
-      await apiAdmin.refund(o.order_no, { remark: '管理后台手动退款' })
-      message.success('退款成功')
-      void load()
+      try {
+        await apiAdmin.refund(o.order_no, { remark: '管理后台手动退款' })
+        message.success('退款成功')
+        void load()
+      } catch (e) {
+        message.error((e as Error).message)
+        void load()
+        throw e
+      }
+    },
+  })
+}
+
+function closeOrder(o: AdminOrderItem) {
+  if (o.status !== 0) {
+    message.warning('仅待支付订单可关闭')
+    return
+  }
+  dialog.warning({
+    title: '关闭订单',
+    content: `确定关闭订单 ${o.order_no} 吗?用户将无法继续支付该订单。`,
+    positiveText: '关闭',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      try {
+        await apiAdmin.closeOrder(o.order_no, { remark: '管理后台手动关闭' })
+        message.success('订单已关闭')
+        void load()
+      } catch (e) {
+        message.error((e as Error).message)
+        void load()
+        throw e
+      }
     },
   })
 }
@@ -87,7 +117,7 @@ onMounted(() => void load())
             <n-radio-button :value="2">已取消</n-radio-button>
             <n-radio-button :value="3">已退款</n-radio-button>
           </n-radio-group>
-          <button class="btn-ghost h-9 px-3 text-14" @click="load">
+          <button class="btn-soft-neutral h-9 px-3 text-14" @click="load">
             <AppIcon name="refresh" :size="15" /> 刷新
           </button>
         </div>
@@ -108,7 +138,7 @@ onMounted(() => void load())
               <th>状态</th>
               <th>支付方式</th>
               <th>创建时间</th>
-              <th class="text-right">操作</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody>
@@ -129,9 +159,16 @@ onMounted(() => void load())
                 {{ o.created_at.slice(0, 19).replace('T', ' ') }}
               </td>
               <td>
-                <div class="flex justify-end">
+                <div class="flex gap-2">
                   <button
-                    class="btn-ghost h-7 px-3 text-14"
+                    v-if="o.status === 0"
+                    class="btn-soft-danger h-7 px-3 text-14"
+                    @click="closeOrder(o)"
+                  >
+                    关闭
+                  </button>
+                  <button
+                    class="btn-soft-warning h-7 px-3 text-14"
                     :disabled="o.status !== 1"
                     :class="o.status !== 1 ? 'opacity-40' : ''"
                     @click="refund(o)"

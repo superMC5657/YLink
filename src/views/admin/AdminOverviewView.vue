@@ -11,6 +11,14 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 const loading = ref(false)
 const data = ref<AdminOverviewResp | null>(null)
 
+// 快捷操作入口:与仪表盘 QuickActionGrid 同风格——每个入口不同彩色浅底 + 彩色图标
+const quickEntries = [
+  { to: '/admin/users', icon: 'users', label: '用户管理', color: 'var(--c-primary)', bg: 'var(--c-primary-soft)' },
+  { to: '/admin/plans', icon: 'zap', label: '套餐管理', color: 'var(--c-warning)', bg: 'var(--c-warning-bg)' },
+  { to: '/admin/nodes', icon: 'server', label: '节点管理', color: 'var(--c-blue)', bg: 'var(--c-blue-bg)' },
+  { to: '/admin/orders', icon: 'order', label: '订单管理', color: 'var(--c-olive)', bg: 'var(--c-olive-bg)' },
+]
+
 async function load() {
   loading.value = true
   try {
@@ -65,28 +73,14 @@ onMounted(() => void load())
         <h2 class="mb-4 text-16 font-600 text-[var(--c-text)]">快捷操作</h2>
         <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
           <RouterLink
-            to="/admin/users"
-            class="btn-ghost h-11 flex items-center justify-center gap-2 text-14"
+            v-for="e in quickEntries"
+            :key="e.to"
+            :to="e.to"
+            class="flex cursor-pointer items-center justify-center gap-2 rounded-xl py-4 text-14 no-underline transition-all duration-[var(--t-fast)] hover:-translate-y-0.5 hover:shadow-[var(--s-card)] active:scale-95"
+            :style="{ backgroundColor: e.bg }"
           >
-            <AppIcon name="users" :size="17" /> 用户管理
-          </RouterLink>
-          <RouterLink
-            to="/admin/plans"
-            class="btn-ghost h-11 flex items-center justify-center gap-2 text-14"
-          >
-            <AppIcon name="zap" :size="17" /> 套餐管理
-          </RouterLink>
-          <RouterLink
-            to="/admin/nodes"
-            class="btn-ghost h-11 flex items-center justify-center gap-2 text-14"
-          >
-            <AppIcon name="server" :size="17" /> 节点管理
-          </RouterLink>
-          <RouterLink
-            to="/admin/orders"
-            class="btn-ghost h-11 flex items-center justify-center gap-2 text-14"
-          >
-            <AppIcon name="order" :size="17" /> 订单管理
+            <AppIcon :name="e.icon" :size="18" :style="{ color: e.color }" />
+            <span class="font-500 text-[var(--c-text)]">{{ e.label }}</span>
           </RouterLink>
         </div>
       </div>

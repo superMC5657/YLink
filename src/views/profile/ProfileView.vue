@@ -234,7 +234,7 @@ onMounted(() => {
               {{ t('auth.passwordMismatch') }}
             </p>
             <div class="flex gap-2">
-              <button class="btn-ghost h-9 flex-1 text-14" @click="clearPwd">
+              <button class="btn-soft-neutral h-9 flex-1 text-14" @click="clearPwd">
                 {{ t('profile.clearForm') }}
               </button>
               <button

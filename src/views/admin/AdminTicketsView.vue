@@ -117,7 +117,7 @@ onMounted(() => void load())
   <div>
     <PageHeader title="工单管理" subtitle="全量工单(含发起用户)/ 客服回复 / 关闭">
       <template #actions>
-        <button class="btn-ghost h-9 px-3 text-14" @click="load">
+        <button class="btn-soft-neutral h-9 px-3 text-14" @click="load">
           <AppIcon name="refresh" :size="15" /> 刷新
         </button>
       </template>
@@ -135,7 +135,7 @@ onMounted(() => void load())
               <th>状态</th>
               <th>最后回复</th>
               <th>创建时间</th>
-              <th class="text-right">操作</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody>
@@ -160,8 +160,8 @@ onMounted(() => void load())
                 {{ t.created_at.slice(0, 16).replace('T', ' ') }}
               </td>
               <td>
-                <div class="flex justify-end">
-                  <button class="btn-ghost h-7 px-3 text-14" @click="openDetail(t)">查看</button>
+                <div class="flex">
+                  <button class="btn-soft-blue h-7 px-3 text-14" @click="openDetail(t)">查看</button>
                 </div>
               </td>
             </tr>
@@ -251,7 +251,7 @@ onMounted(() => void load())
             :placeholder="isClosed() ? '工单已关闭,无法回复' : '输入回复内容…'"
           />
           <div class="mt-3 flex justify-end gap-2">
-            <button class="btn-ghost h-9 px-4 text-14" :disabled="isClosed()" @click="onClose">
+            <button class="btn-soft-danger h-9 px-4 text-14" :disabled="isClosed()" @click="onClose">
               {{ isClosed() ? '已关闭' : '关闭工单' }}
             </button>
             <button

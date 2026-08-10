@@ -112,7 +112,6 @@ onMounted(async () => {
 }
 .markdown-body :deep(a) {
   color: var(--c-primary-text);
-  text-decoration: underline;
 }
 .markdown-body :deep(blockquote) {
   border-left: 3px solid var(--c-border);

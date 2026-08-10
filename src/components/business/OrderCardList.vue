@@ -59,7 +59,7 @@ function statusType(status: Order['status']) {
         >
           {{ $t('order.goPay') }}
         </button>
-        <button class="btn-ghost h-8 px-4 text-14" @click="emit('view', o)">
+        <button class="btn-soft-blue h-8 px-4 text-14" @click="emit('view', o)">
           {{ $t('common.viewDetail') }}
         </button>
       </div>

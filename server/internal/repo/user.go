@@ -124,6 +124,12 @@ func (InviteCodeRepo) GetByCode(db *gorm.DB, code string) (*model.InviteCode, er
 
 func (InviteCodeRepo) Create(db *gorm.DB, ic *model.InviteCode) error { return db.Create(ic).Error }
 
+// DeleteByUser 删除指定用户自己的邀请码,返回受影响行数。
+func (InviteCodeRepo) DeleteByUser(db *gorm.DB, uid int64, code string) (int64, error) {
+	res := db.Where("user_id = ? AND code = ?", uid, code).Delete(&model.InviteCode{})
+	return res.RowsAffected, res.Error
+}
+
 func (InviteCodeRepo) ListByUser(db *gorm.DB, uid int64) ([]model.InviteCode, error) {
 	var list []model.InviteCode
 	err := db.Where("user_id = ?", uid).Order("id DESC").Find(&list).Error

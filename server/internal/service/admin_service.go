@@ -197,6 +197,38 @@ func (s *AdminService) ListOrders(ctx context.Context, status *int, page, pageSi
 	return out, total, nil
 }
 
+// CloseOrder POST /admin/orders/{no}/close：管理员关闭待支付订单（回退优惠券占用 + 审计）。
+func (s *AdminService) CloseOrder(ctx context.Context, adminID int64, orderNo, remark, ip string) error {
+	return repo.WithTx(s.db, func(tx *gorm.DB) error {
+		order, err := s.repos.Order.GetByNoForUpdate(tx, orderNo)
+		if err != nil {
+			return errs.ErrNotFound
+		}
+		if order.Status != model.OrderPending {
+			return errs.ErrOrderStatus
+		}
+		// 条件更新（防与支付回调竞态）：影响行数为 0 说明已被并发完成/取消
+		affected, err := s.repos.Order.UpdateStatusIfPending(tx, orderNo, model.OrderCanceled)
+		if err != nil {
+			return err
+		}
+		if affected == 0 {
+			return errs.ErrOrderStatus
+		}
+		if order.CouponID != nil {
+			if err := s.repos.Coupon.Release(tx, *order.CouponID); err != nil {
+				return err
+			}
+			if err := s.repos.Coupon.DeleteUsage(tx, *order.CouponID, order.UserID, orderNo); err != nil {
+				return err
+			}
+		}
+		return s.audit(tx, adminID, "close_order", orderNo, ip, map[string]any{
+			"remark": sanitize.Text(remark),
+		})
+	})
+}
+
 // Refund POST /admin/orders/{no}/refund：退款 + 佣金回滚 + 优惠券回退 + 审计。
 func (s *AdminService) Refund(ctx context.Context, adminID int64, orderNo, remark, ip string) error {
 	return repo.WithTx(s.db, func(tx *gorm.DB) error {

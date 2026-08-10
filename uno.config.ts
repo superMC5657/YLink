@@ -27,13 +27,29 @@ export default defineConfig({
   shortcuts: {
     'card-base': 'bg-[var(--c-bg-card)] rounded-[var(--r-card)] shadow-[var(--s-card)]',
     'btn-primary':
-      'inline-flex items-center justify-center gap-1 rounded-[var(--r-control)] bg-[linear-gradient(135deg,#6558F5,#8B5CF6)] text-white font-medium transition-all duration-[var(--t-base)] hover:shadow-lg hover:brightness-105 active:scale-98 disabled:opacity-60 disabled:pointer-events-none',
+      'whitespace-nowrap inline-flex items-center justify-center gap-1 rounded-[var(--r-control)] bg-[linear-gradient(135deg,#6558F5,#8B5CF6)] text-white font-medium transition-all duration-[var(--t-base)] hover:shadow-lg hover:brightness-105 active:scale-98 disabled:opacity-60 disabled:pointer-events-none',
     'btn-olive':
-      'inline-flex items-center justify-center gap-1 rounded-[var(--r-control)] bg-[var(--c-olive)] text-white font-medium transition-all duration-[var(--t-base)] hover:brightness-105 active:scale-98 disabled:opacity-60 disabled:pointer-events-none',
+      'whitespace-nowrap inline-flex items-center justify-center gap-1 rounded-[var(--r-control)] bg-[var(--c-olive)] text-white font-medium transition-all duration-[var(--t-base)] hover:brightness-105 active:scale-98 disabled:opacity-60 disabled:pointer-events-none',
     'btn-ghost':
-      'inline-flex items-center justify-center gap-1 rounded-[var(--r-control)] border border-[var(--c-border)] bg-transparent text-[var(--c-text)] font-medium transition-all duration-[var(--t-base)] hover:bg-[var(--c-bg-hover)] active:scale-98 disabled:opacity-60 disabled:pointer-events-none',
+      'whitespace-nowrap inline-flex items-center justify-center gap-1 rounded-[var(--r-control)] border border-[var(--c-border)] bg-transparent text-[var(--c-text)] font-medium transition-all duration-[var(--t-base)] hover:bg-[var(--c-bg-hover)] active:scale-98 disabled:opacity-60 disabled:pointer-events-none',
     'btn-danger':
-      'inline-flex items-center justify-center gap-1 rounded-[var(--r-control)] bg-[var(--c-danger)] text-white font-medium transition-all duration-[var(--t-base)] hover:brightness-105 active:scale-98 disabled:opacity-60 disabled:pointer-events-none',
+      'whitespace-nowrap inline-flex items-center justify-center gap-1 rounded-[var(--r-control)] bg-[var(--c-danger)] text-white font-medium transition-all duration-[var(--t-base)] hover:brightness-105 active:scale-98 disabled:opacity-60 disabled:pointer-events-none',
+    // 彩色浅底按钮(表格操作列等使用;浅色主题为浅底+深色文字,暗色主题为半透明底+亮色文字)
+    'btn-soft-primary':
+      'whitespace-nowrap inline-flex items-center justify-center gap-1 rounded-[var(--r-control)] bg-[var(--c-primary-soft)] text-[var(--c-primary-text)] font-medium transition-all duration-[var(--t-base)] hover:brightness-105 active:scale-98 disabled:opacity-60 disabled:pointer-events-none',
+    'btn-soft-blue':
+      'whitespace-nowrap inline-flex items-center justify-center gap-1 rounded-[var(--r-control)] bg-[var(--c-blue-bg)] text-[var(--c-blue)] font-medium transition-all duration-[var(--t-base)] hover:brightness-105 active:scale-98 disabled:opacity-60 disabled:pointer-events-none',
+    'btn-soft-success':
+      'whitespace-nowrap inline-flex items-center justify-center gap-1 rounded-[var(--r-control)] bg-[var(--c-success-bg)] text-[var(--c-success)] font-medium transition-all duration-[var(--t-base)] hover:brightness-105 active:scale-98 disabled:opacity-60 disabled:pointer-events-none',
+    'btn-soft-warning':
+      'whitespace-nowrap inline-flex items-center justify-center gap-1 rounded-[var(--r-control)] bg-[var(--c-warning-bg)] text-[var(--c-warning)] font-medium transition-all duration-[var(--t-base)] hover:brightness-105 active:scale-98 disabled:opacity-60 disabled:pointer-events-none',
+    'btn-soft-danger':
+      'whitespace-nowrap inline-flex items-center justify-center gap-1 rounded-[var(--r-control)] bg-[var(--c-danger-bg)] text-[var(--c-danger)] font-medium transition-all duration-[var(--t-base)] hover:brightness-105 active:scale-98 disabled:opacity-60 disabled:pointer-events-none',
+    'btn-soft-olive':
+      'whitespace-nowrap inline-flex items-center justify-center gap-1 rounded-[var(--r-control)] bg-[var(--c-olive-bg)] text-[var(--c-olive)] font-medium transition-all duration-[var(--t-base)] hover:brightness-105 active:scale-98 disabled:opacity-60 disabled:pointer-events-none',
+    // 中性浅底按钮(取消/关闭/刷新等次要操作;浅色主题为浅灰底+中性文字,暗色主题为半透明底)
+    'btn-soft-neutral':
+      'whitespace-nowrap inline-flex items-center justify-center gap-1 rounded-[var(--r-control)] bg-[var(--c-bg-hover)] text-[var(--c-text-sub)] font-medium transition-all duration-[var(--t-base)] hover:bg-[var(--c-border)] hover:text-[var(--c-text)] active:scale-98 disabled:opacity-60 disabled:pointer-events-none',
     'num-font':
       'font-family: "DIN Alternate", "Bahnschrift", "Microsoft YaHei UI", sans-serif; font-feature-settings: "tnum"',
   },

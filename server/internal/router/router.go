@@ -160,6 +160,7 @@ func registerUser(g *gin.RouterGroup, d Deps, a *app) {
 	authed.GET("/invite/summary", a.inviteH.Summary)
 	authed.GET("/invite/codes", a.inviteH.Codes)
 	authed.POST("/invite/codes", a.inviteH.CreateCode)
+	authed.DELETE("/invite/codes/:code", a.inviteH.DeleteCode)
 	authed.GET("/invite/records", a.inviteH.Records)
 	authed.POST("/invite/transfer", a.inviteH.Transfer)
 	authed.GET("/agent/status", a.inviteH.AgentStatus)
@@ -200,6 +201,7 @@ func registerAdmin(g *gin.RouterGroup, d Deps, a *app) {
 	// 订单
 	admin.GET("/orders", a.adminH.ListOrders)
 	admin.POST("/orders/:order_no/refund", a.adminH.Refund)
+	admin.POST("/orders/:order_no/close", a.adminH.CloseOrder)
 	// 优惠券
 	admin.GET("/coupons", a.adminH.ListCoupons)
 	admin.POST("/coupons", a.adminH.CreateCoupon)

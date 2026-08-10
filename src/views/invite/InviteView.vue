@@ -6,7 +6,7 @@
 import { onMounted, ref } from 'vue'
 import { useInviteStore } from '@/stores/invite'
 import { useUserStore } from '@/stores/user'
-import { useMessage } from 'naive-ui'
+import { useMessage, useDialog } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import { useMediaQuery } from '@vueuse/core'
 import { formatMoney, formatTime } from '@/utils/format'
@@ -17,6 +17,7 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 const invite = useInviteStore()
 const user = useUserStore()
 const message = useMessage()
+const dialog = useDialog()
 const { t } = useI18n()
 const isDesktop = useMediaQuery('(min-width: 1024px)')
 
@@ -61,6 +62,23 @@ async function copyCode(code: string) {
   message.success(t('common.copied'))
 }
 
+function onDeleteCode(code: string) {
+  dialog.warning({
+    title: t('invite.deleteCode'),
+    content: t('invite.deleteCodeConfirm', { code }),
+    positiveText: t('invite.deleteCode'),
+    negativeText: t('common.cancel'),
+    onPositiveClick: async () => {
+      try {
+        await invite.deleteCode(code)
+        message.success(t('invite.deleteCodeSuccess'))
+      } catch (e) {
+        message.error((e as Error).message)
+      }
+    },
+  })
+}
+
 async function copyRegisterLink() {
   const prefix = invite.registerUrlPrefix
   const first = invite.codes[0]
@@ -102,7 +120,7 @@ onMounted(() => {
             <span class="num min-w-0 flex-1 truncate text-14 text-[var(--c-text)]">
               {{ invite.registerUrlPrefix }}{{ invite.codes[0]?.code ?? '------' }}
             </span>
-            <button class="btn-ghost h-7 px-3 text-14" @click="copyRegisterLink">
+            <button class="btn-soft-blue h-7 px-3 text-14" @click="copyRegisterLink">
               <AppIcon name="copy" :size="13" />
               {{ t('common.copy') }}
             </button>
@@ -130,12 +148,22 @@ onMounted(() => {
                     {{ formatTime(c.created_at, false) }}
                   </td>
                   <td>
-                    <button
-                      class="text-14 font-500 text-[var(--c-primary-text)] hover:underline"
-                      @click="copyCode(c.code)"
-                    >
-                      {{ t('common.copy') }}
-                    </button>
+                    <div class="flex items-center gap-3">
+                      <button
+                        class="btn-soft-blue h-7 px-2.5 text-14"
+                        @click="copyCode(c.code)"
+                      >
+                        <AppIcon name="copy" :size="13" />
+                        {{ t('common.copy') }}
+                      </button>
+                      <button
+                        class="btn-soft-danger h-7 px-2.5 text-14"
+                        @click="onDeleteCode(c.code)"
+                      >
+                        <AppIcon name="trash" :size="13" />
+                        {{ t('invite.deleteCode') }}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               </tbody>
@@ -157,10 +185,15 @@ onMounted(() => {
                   {{ formatTime(c.created_at, false) }}
                 </div>
               </div>
-              <button class="btn-ghost h-8 px-3 text-14" @click="copyCode(c.code)">
-                <AppIcon name="copy" :size="13" />
-                {{ t('common.copy') }}
-              </button>
+              <div class="flex shrink-0 items-center gap-2">
+                <button class="btn-soft-blue h-8 px-3 text-14" @click="copyCode(c.code)">
+                  <AppIcon name="copy" :size="13" />
+                  {{ t('common.copy') }}
+                </button>
+                <button class="btn-soft-danger h-8 px-2.5 text-14" @click="onDeleteCode(c.code)">
+                  <AppIcon name="trash" :size="13" />
+                </button>
+              </div>
             </div>
             <EmptyState
               v-if="invite.codes.length === 0"

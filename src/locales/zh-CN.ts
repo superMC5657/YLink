@@ -186,6 +186,9 @@ export default {
     rate: '比例',
     emptyCodes: '暂无邀请码',
     emptyRecords: '暂无佣金记录',
+    deleteCode: '删除',
+    deleteCodeConfirm: '确定删除邀请码 {code} 吗?删除后该码将无法再用于注册。',
+    deleteCodeSuccess: '邀请码已删除',
   },
   agent: {
     title: '申请代理',

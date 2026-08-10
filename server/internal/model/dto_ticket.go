@@ -15,7 +15,7 @@ type TicketListItem struct {
 
 type CreateTicketReq struct {
 	Subject string `json:"subject" binding:"required,min=1,max=128"`
-	Level   int    `json:"level" binding:"required,oneof=0 1 2"`
+	Level   int    `json:"level" binding:"oneof=0 1 2"`
 	Message string `json:"message" binding:"required"`
 }
 

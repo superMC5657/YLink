@@ -68,6 +68,23 @@ func (h *Invite) CreateCode(c *gin.Context) {
 	resp.OK(c, data)
 }
 
+// DeleteCode 删除邀请码
+// @Summary 删除邀请码
+// @Tags 营销
+// @Security BearerAuth
+// @Produce json
+// @Param code path string true "邀请码"
+// @Success 200 {object} resp.Body
+// @Failure 400 {object} resp.Body
+// @Router /invite/codes/{code} [delete]
+func (h *Invite) DeleteCode(c *gin.Context) {
+	if err := h.svc.DeleteCode(c.Request.Context(), middleware.UserID(c), c.Param("code")); err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.OK(c, gin.H{})
+}
+
 // Records 佣金发放记录
 // @Summary 佣金发放记录
 // @Tags 营销

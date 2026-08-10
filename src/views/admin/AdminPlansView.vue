@@ -134,7 +134,7 @@ onMounted(() => void load())
     <PageHeader title="套餐管理" subtitle="上架/隐藏套餐与周期定价">
       <template #actions>
         <div class="flex items-center gap-2">
-          <button class="btn-ghost h-9 px-3 text-14" @click="load">
+          <button class="btn-soft-neutral h-9 px-3 text-14" @click="load">
             <AppIcon name="refresh" :size="15" /> 刷新
           </button>
           <button class="btn-primary h-9 px-4 text-14" @click="openCreate">
@@ -160,7 +160,7 @@ onMounted(() => void load())
               <th>设备数</th>
               <th>状态</th>
               <th>排序</th>
-              <th class="text-right">操作</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody>
@@ -181,8 +181,8 @@ onMounted(() => void load())
               </td>
               <td class="num-font">{{ p.sort }}</td>
               <td>
-                <div class="flex justify-end gap-2">
-                  <button class="btn-ghost h-7 px-3 text-14" @click="openEdit(p)">编辑</button>
+                <div class="flex gap-2">
+                  <button class="btn-soft-primary h-7 px-3 text-14" @click="openEdit(p)">编辑</button>
                   <button class="btn-danger h-7 px-3 text-14" @click="remove(p)">删除</button>
                 </div>
               </td>
@@ -257,7 +257,7 @@ onMounted(() => void load())
       </n-form>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <button class="btn-ghost h-9 px-4 text-14" @click="modal = false">取消</button>
+          <button class="btn-soft-neutral h-9 px-4 text-14" @click="modal = false">取消</button>
           <button class="btn-primary h-9 px-4 text-14" :disabled="saving" @click="save">
             保存
           </button>

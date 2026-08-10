@@ -130,6 +130,21 @@ func (s *InviteService) CreateCode(ctx context.Context, userID int64) (*model.In
 	return &model.InviteCodeItem{Code: ic.Code, UsedCount: 0, CreatedAt: ic.CreatedAt}, nil
 }
 
+// DeleteCode DELETE /invite/codes/:code 删除当前用户自己的邀请码。
+func (s *InviteService) DeleteCode(ctx context.Context, userID int64, code string) error {
+	if code == "" {
+		return errs.ErrInviteCode
+	}
+	affected, err := s.repos.Invite.DeleteByUser(s.db, userID, code)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return errs.ErrNotFound
+	}
+	return nil
+}
+
 // randomInviteCode 8 位大写字母数字。
 func randomInviteCode() string {
 	const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"

@@ -127,6 +127,11 @@ button {
   padding: 0;
 }
 
+/* 链接去下划线:浏览器默认 a 带下划线,UnoCSS preflight 未覆盖时会出现 */
+a {
+  text-decoration: none;
+}
+
 /* 数字展示字体 */
 .num {
   font-family: var(--font-num);

@@ -82,7 +82,7 @@ async function doCopy() {
       <span class="min-w-0 flex-1 truncate text-14 text-[var(--c-text-sub)]">
         {{ user.subscribe?.subscribe_url ?? '暂无订阅' }}
       </span>
-      <button class="btn-ghost ml-3 h-8 shrink-0 px-3 text-14" @click="doCopy">
+      <button class="btn-soft-blue ml-3 h-8 shrink-0 px-3 text-14" @click="doCopy">
         <AppIcon :name="copied ? 'check' : 'copy'" :size="14" />
         {{ copied ? t('common.copied') : t('common.copy') }}
       </button>

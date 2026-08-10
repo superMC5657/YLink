@@ -424,6 +424,8 @@
 
 `POST /invite/codes`（无 body）→ 返回新码对象；超限错误 13001。
 
+`DELETE /invite/codes/:code` → 删除当前用户自己的邀请码；不存在错误 40400。
+
 ### 11.3 佣金发放记录
 
 `GET /invite/records?page=1&page_size=10`
@@ -547,7 +549,7 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 | 用户 | `GET /admin/users`、`PUT /admin/users/{id}`（封禁/角色）、`POST /admin/users/{id}/balance`（调余额，审计） |
 | 套餐 | `GET/POST/PUT/DELETE /admin/plans` |
 | 节点 | `GET/POST/PUT/DELETE /admin/servers`、`/admin/server-groups` |
-| 订单 | `GET /admin/orders`、`POST /admin/orders/{no}/refund`（审计 + 佣金回滚） |
+| 订单 | `GET /admin/orders`、`POST /admin/orders/{no}/refund`（审计 + 佣金回滚）、`POST /admin/orders/{no}/close`（关闭待支付订单，审计） |
 | 优惠券 | `GET/POST/PUT/DELETE /admin/coupons` |
 | 内容 | `GET/POST/PUT/DELETE /admin/notices`、`/admin/knowledges` |
 | 工单 | `GET /admin/tickets`、`POST /admin/tickets/{id}/reply`、`/close` |

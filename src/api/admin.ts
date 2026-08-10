@@ -56,6 +56,8 @@ export const apiAdmin = {
     http.get<PageResult<AdminOrderItem>>('/admin/orders', { query }),
   refund: (orderNo: string, body: RefundReq) =>
     http.post<null>(`/admin/orders/${orderNo}/refund`, { body }),
+  closeOrder: (orderNo: string, body: RefundReq) =>
+    http.post<null>(`/admin/orders/${orderNo}/close`, { body }),
 
   // 工单
   tickets: (query: { page?: number; page_size?: number }) =>

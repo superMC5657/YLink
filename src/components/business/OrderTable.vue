@@ -54,7 +54,7 @@ function statusType(status: Order['status']) {
           <td class="whitespace-nowrap">
             <div class="flex items-center gap-2">
               <button
-                class="text-14 font-500 text-[var(--c-primary-text)] hover:underline"
+                class="btn-soft-blue h-7 px-3 text-14"
                 @click="emit('view', o)"
               >
                 {{ $t('common.viewDetail') }}

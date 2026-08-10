@@ -215,10 +215,10 @@ onMounted(() => void load())
     <PageHeader title="节点管理" subtitle="节点分组与节点 CRUD(配置将下发到订阅)">
       <template #actions>
         <div class="flex items-center gap-2">
-          <button class="btn-ghost h-9 px-3 text-14" @click="load">
+          <button class="btn-soft-neutral h-9 px-3 text-14" @click="load">
             <AppIcon name="refresh" :size="15" /> 刷新
           </button>
-          <button class="btn-ghost h-9 px-4 text-14" @click="openGroupCreate">新建分组</button>
+          <button class="btn-soft-primary h-9 px-4 text-14" @click="openGroupCreate">新建分组</button>
           <button class="btn-primary h-9 px-4 text-14" @click="openNodeCreate">
             <AppIcon name="plus" :size="15" /> 新建节点
           </button>
@@ -240,7 +240,7 @@ onMounted(() => void load())
               <th>状态</th>
               <th>展示</th>
               <th>排序</th>
-              <th class="text-right">操作</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody>
@@ -263,8 +263,8 @@ onMounted(() => void load())
               </td>
               <td class="num-font">{{ s.sort }}</td>
               <td>
-                <div class="flex justify-end gap-2">
-                  <button class="btn-ghost h-7 px-3 text-14" @click="openNodeEdit(s)">编辑</button>
+                <div class="flex gap-2">
+                  <button class="btn-soft-primary h-7 px-3 text-14" @click="openNodeEdit(s)">编辑</button>
                   <button class="btn-danger h-7 px-3 text-14" @click="removeNode(s)">删除</button>
                 </div>
               </td>
@@ -281,7 +281,7 @@ onMounted(() => void load())
     <div class="card-base mt-5 p-5">
       <div class="mb-3 flex items-center justify-between">
         <h2 class="text-16 font-600 text-[var(--c-text)]">节点分组</h2>
-        <button class="btn-ghost h-8 px-3 text-14" @click="openGroupCreate">新建分组</button>
+        <button class="btn-soft-primary h-8 px-3 text-14" @click="openGroupCreate">新建分组</button>
       </div>
       <div v-if="groups.length === 0" class="py-4"><EmptyState text="暂无分组" /></div>
       <div v-else class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
@@ -297,7 +297,7 @@ onMounted(() => void load())
             </div>
           </div>
           <div class="flex gap-2">
-            <button class="btn-ghost h-7 px-2.5 text-14" @click="openGroupEdit(g)">编辑</button>
+            <button class="btn-soft-primary h-7 px-2.5 text-14" @click="openGroupEdit(g)">编辑</button>
             <button class="btn-danger h-7 px-2.5 text-14" @click="removeGroup(g)">删除</button>
           </div>
         </div>
@@ -372,7 +372,7 @@ onMounted(() => void load())
       </n-form>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <button class="btn-ghost h-9 px-4 text-14" @click="nodeModal = false">取消</button>
+          <button class="btn-soft-neutral h-9 px-4 text-14" @click="nodeModal = false">取消</button>
           <button class="btn-primary h-9 px-4 text-14" :disabled="nodeSaving" @click="saveNode">
             保存
           </button>
@@ -397,7 +397,7 @@ onMounted(() => void load())
       </n-form>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <button class="btn-ghost h-9 px-4 text-14" @click="groupModal = false">取消</button>
+          <button class="btn-soft-neutral h-9 px-4 text-14" @click="groupModal = false">取消</button>
           <button class="btn-primary h-9 px-4 text-14" :disabled="groupSaving" @click="saveGroup">
             保存
           </button>

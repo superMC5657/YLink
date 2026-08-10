@@ -144,11 +144,12 @@ onMounted(() => void load())
             v-model:value="keyword"
             placeholder="搜索邮箱"
             clearable
-            class="w-48"
+            class="shrink-0"
+            style="width: 22rem"
             @keyup.enter="onSearch"
           />
-          <button class="btn-primary h-9 px-4 text-14" @click="onSearch">搜索</button>
-          <button class="btn-ghost h-9 px-3 text-14" @click="onSearch">
+          <button class="btn-primary h-9 shrink-0 px-4 text-14" @click="onSearch">搜索</button>
+          <button class="btn-soft-neutral h-9 shrink-0 px-3 text-14" @click="onSearch">
             <AppIcon name="refresh" :size="15" /> 刷新
           </button>
         </div>
@@ -168,13 +169,13 @@ onMounted(() => void load())
               <th>流量</th>
               <th>状态</th>
               <th>注册时间</th>
-              <th class="text-right">操作</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="u in list" :key="u.id">
               <td>{{ u.id }}</td>
-              <td class="font-500 text-[var(--c-text)]">{{ u.email }}</td>
+              <td class="whitespace-nowrap font-500 text-[var(--c-text)]">{{ u.email }}</td>
               <td>
                 <StatusBadge
                   :type="u.role === 1 ? 'primary' : u.role === 2 ? 'marketing' : 'neutral'"
@@ -196,12 +197,12 @@ onMounted(() => void load())
                 {{ u.created_at.slice(0, 10) }}
               </td>
               <td>
-                <div class="flex justify-end gap-2">
-                  <button class="btn-ghost h-7 px-3 text-14" @click="changeRole(u)">角色</button>
-                  <button class="btn-ghost h-7 px-3 text-14" @click="openBalance(u)">调余额</button>
+                <div class="flex gap-2">
+                  <button class="btn-soft-primary h-7 px-3 text-14" @click="changeRole(u)">角色</button>
+                  <button class="btn-soft-warning h-7 px-3 text-14" @click="openBalance(u)">调余额</button>
                   <button
                     class="h-7 px-3 text-14"
-                    :class="u.is_banned ? 'btn-olive' : 'btn-danger'"
+                    :class="u.is_banned ? 'btn-soft-success' : 'btn-danger'"
                     @click="toggleBan(u)"
                   >
                     {{ u.is_banned ? '解封' : '封禁' }}
@@ -244,7 +245,7 @@ onMounted(() => void load())
       </n-form>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <button class="btn-ghost h-9 px-4 text-14" @click="balanceModal = false">取消</button>
+          <button class="btn-soft-neutral h-9 px-4 text-14" @click="balanceModal = false">取消</button>
           <button
             class="btn-primary h-9 px-4 text-14"
             :disabled="balanceSaving"
@@ -275,7 +276,7 @@ onMounted(() => void load())
       </n-form>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <button class="btn-ghost h-9 px-4 text-14" @click="roleModal = false">取消</button>
+          <button class="btn-soft-neutral h-9 px-4 text-14" @click="roleModal = false">取消</button>
           <button class="btn-primary h-9 px-4 text-14" :disabled="roleSaving" @click="saveRole">
             保存
           </button>

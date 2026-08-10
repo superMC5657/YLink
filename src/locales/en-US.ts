@@ -186,6 +186,9 @@ export default {
     rate: 'Rate',
     emptyCodes: 'No invite codes',
     emptyRecords: 'No commission records',
+    deleteCode: 'Delete',
+    deleteCodeConfirm: 'Delete invite code {code}? It can no longer be used for registration.',
+    deleteCodeSuccess: 'Invite code deleted',
   },
   agent: {
     title: 'Become an agent',

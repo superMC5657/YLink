@@ -191,7 +191,7 @@ function openPayment(method: string) {
               <button class="btn-primary h-10 flex-1 text-14" @click="openPayment(payMethod)">
                 {{ t('order.goPay') }} · {{ formatMoney(detail.pay_amount) }}
               </button>
-              <button class="btn-ghost h-10 px-4 text-14 text-[var(--c-danger)]" @click="onCancel">
+              <button class="btn-soft-danger h-10 px-4 text-14" @click="onCancel">
                 {{ t('order.cancelOrder') }}
               </button>
             </div>

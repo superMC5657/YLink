@@ -11,7 +11,11 @@ import (
 // TicketRepo 工单数据访问。
 type TicketRepo struct{}
 
-func (TicketRepo) Create(db *gorm.DB, t *model.Ticket) error { return db.Create(t).Error }
+func (TicketRepo) Create(db *gorm.DB, t *model.Ticket) error {
+	// Select 强制写入 Level(0/1/2):零值 0 默认会被 GORM 跳过,
+	// 落到数据库默认值 1 导致「低」变成「中」。
+	return db.Select("user_id", "subject", "level", "status", "last_reply_at", "created_at").Create(t).Error
+}
 
 func (TicketRepo) CreateMessage(db *gorm.DB, m *model.TicketMessage) error {
 	return db.Create(m).Error

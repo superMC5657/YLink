@@ -93,7 +93,7 @@ onMounted(async () => {
       </div>
       <button
         v-if="detail && !isClosed"
-        class="btn-ghost h-8 shrink-0 px-3 text-14 text-[var(--c-danger)]"
+        class="btn-soft-danger h-8 shrink-0 px-3 text-14"
         @click="onClose"
       >
         {{ t('ticket.closeTicket') }}

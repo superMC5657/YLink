@@ -258,7 +258,7 @@ type Ticket struct {
 	ID          int64      `gorm:"primaryKey" json:"id"`
 	UserID      int64      `gorm:"index" json:"-"`
 	Subject     string     `gorm:"size:128" json:"subject"`
-	Level       int        `gorm:"default:1" json:"level"`
+	Level       int        `json:"level"`
 	Status      int        `gorm:"default:0" json:"status"`
 	LastReplyAt *time.Time `json:"last_reply_at"`
 	CreatedAt   time.Time  `json:"created_at"`

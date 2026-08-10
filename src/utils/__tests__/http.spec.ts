@@ -73,6 +73,31 @@ describe('http 封装', () => {
     expect((init?.headers as Record<string, string>).Authorization).toBe('Bearer abc')
   })
 
+  it('业务性 401(登录失败 40101)直接透出 message,不触发刷新/跳转', async () => {
+    const toast = vi.fn()
+    setToastProvider(toast)
+    localStorage.removeItem('app:auth') // 未登录
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse({ code: 40101, message: '邮箱或密码错误', data: null }, 401),
+    )
+    await expect(http.post('/auth/login', { body: {} })).rejects.toMatchObject({
+      code: 40101,
+      message: '邮箱或密码错误',
+    })
+    // 只调用一次:不尝试 refresh,不重放
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1)
+    expect(toast).toHaveBeenCalledWith('邮箱或密码错误', 'error')
+  })
+
+  it('业务性 401(40101)即使已有 token 也直接透出,不静默刷新', async () => {
+    writeTokens({ accessToken: 'abc', refreshToken: 'r' })
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse({ code: 40101, message: '邮箱或密码错误', data: null }, 401),
+    )
+    await expect(http.post('/auth/login', { body: {} })).rejects.toMatchObject({ code: 40101 })
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1)
+  })
+
   it('401 时用 refresh_token 静默换新并重放原请求', async () => {
     writeTokens({ accessToken: 'expired', refreshToken: 'valid-refresh' })
     vi.mocked(fetch)

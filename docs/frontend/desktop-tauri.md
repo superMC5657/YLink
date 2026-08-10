@@ -100,6 +100,16 @@ capabilities/default.json 采用最小授权：逐项声明上述插件权限，
 ### 9.2 工程与命令
 
 - `tauri android init` 已执行，生成 `src-tauri/gen/android/`（自动生成物，不入库，gitignore 已含 `src-tauri/gen/`）。
+- ⚠️ **图标不同步机制**：`tauri android init` 生成的 gradle 工程自带 tauri 模板默认图标（`gen/android/app/src/main/res/mipmap-*/`），**不会**从 `src-tauri/icons/android/` 拷贝。改品牌图标后必须手动同步（否则 APK 封面仍是默认图标）：
+  ```bash
+  for d in hdpi mdpi xhdpi xxhdpi xxxhdpi; do
+    for f in ic_launcher.png ic_launcher_round.png ic_launcher_foreground.png; do
+      cp "src-tauri/icons/android/mipmap-$d/$f" "src-tauri/gen/android/app/src/main/res/mipmap-$d/$f"
+    done
+  done
+  ```
+  2026-08-10 已执行过该同步。
+- ⚠️ **adaptive icon 背景色**：`tauri icon` 生成的 `icons/android/values/ic_launcher_background.xml` 默认是白色 `#fff`（白底白闪电会看不见），需手改为品牌主色 `#6558F5`；同时 `gen/android/app/src/main/res/` 必须存在 `mipmap-anydpi-v26/ic_launcher.xml` + `ic_launcher_round.xml`（引用 `@mipmap/ic_launcher_foreground` + `@color/ic_launcher_background`）与 `values/ic_launcher_background.xml`，并在 `AndroidManifest.xml` 声明 `android:roundIcon="@mipmap/ic_launcher_round"`。缺 anydpi 定义时 Android 8+ 按 legacy 图标处理，launcher 套 mask 缩放导致图标明显偏小。2026-08-10 已配齐。
 - npm scripts（见 `package.json`）：
 
 | 命令 | 说明 |
@@ -119,7 +129,7 @@ capabilities/default.json 采用最小授权：逐项声明上述插件权限，
 
 ### 9.4 Release 签名（上架必需）
 
-`src-tauri/gen/android/app/build.gradle.kts` 已配置签名读取逻辑，缺省时 release 构建产出未签名 APK。**本项目已配置完毕**：`src-tauri/gen/android/keystore.properties` 已存在（`keyAlias=upload`，storeFile 指向 `E:\envs\android_sdk\zyan.jks`，2026-08-10 重新生成），`pnpm tauri:android:build` 产出的 release APK 已自动签名（验证命令：`apksigner verify --print-certs app-universal-release.apk`）。
+`src-tauri/gen/android/app/build.gradle.kts` 已配置签名读取逻辑，缺省时 release 构建产出未签名 APK。**本项目已配置完毕**：`src-tauri/gen/android/keystore.properties` 已存在（`keyAlias=upload`，storeFile 指向 `E:\envs\android_sdk\zyan.jks`，2026-08-10 重新生成，**密码已重置为 `Ylink@2026Sign`**），`pnpm tauri:android:build` 产出的 release APK 已自动签名（验证命令：`apksigner verify --print-certs app-universal-release.apk`）。
 
 > ⚠️ 若在 CI/其他机器重建：keystore 文件与 `keystore.properties` 均在 `gen/`（不入库），需自行恢复。重新配置格式（Windows 路径**必须双反斜杠**，否则 Properties 会把 `\e` 等当转义符、路径被吞成 `E:envs...`）：
 > ```

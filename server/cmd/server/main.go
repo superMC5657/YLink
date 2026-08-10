@@ -55,6 +55,10 @@ func main() {
 	if err := repo.EnsureAdmin(db, os.Getenv("ADMIN_EMAIL"), os.Getenv("ADMIN_PASSWORD")); err != nil {
 		logger.L().Warn("ensure admin skipped", zap.Error(err))
 	}
+	// 演示账号初始化（环境变量注入，幂等；仅本地联调用，生产可不设置）
+	if err := repo.EnsureDemoUser(db, os.Getenv("DEMO_EMAIL"), os.Getenv("DEMO_PASSWORD")); err != nil {
+		logger.L().Warn("ensure demo user skipped", zap.Error(err))
+	}
 
 	jwtMgr := jwtpkg.NewManager(cfg.JWT.Secret, cfg.JWT.AccessTTL, cfg.JWT.RefreshTTL)
 	mail := mailer.New(cfg.SMTP)

@@ -156,8 +156,21 @@ async function request<T>(method: string, url: string, opts: HttpOptions = {}): 
     throw new ApiErrorImpl(-1, '网络异常,请稍后再试', 0)
   }
 
-  // 401:尝试静默刷新后重放一次
+  let json: ApiEnvelope<T> | null = null
+  try {
+    json = (await resp.json()) as ApiEnvelope<T>
+  } catch {
+    // 非 JSON 响应
+  }
+
+  // 401:业务性 401(如登录失败 40101"邮箱或密码错误")直接透出后端 message,
+  // 不做会话刷新;仅会话过期(40100)或非业务 401 才尝试静默刷新重放。
   if (resp.status === 401) {
+    if (json && typeof json.code === 'number' && json.code !== 40100) {
+      const err = new ApiErrorImpl(json.code, json.message || '请求失败', resp.status)
+      if (!opts.silent) showErrorToast(err.message)
+      throw err
+    }
     const ok = await refreshTokens()
     if (ok) {
       const retryTokens = readTokens()
@@ -168,18 +181,16 @@ async function request<T>(method: string, url: string, opts: HttpOptions = {}): 
         body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
         signal: opts.signal,
       })
+      try {
+        json = (await resp.json()) as ApiEnvelope<T>
+      } catch {
+        json = null
+      }
     } else {
       if (!opts.silent) showErrorToast('登录已过期,请重新登录')
       redirectToLogin()
       throw new ApiErrorImpl(40100, '登录已过期', 401)
     }
-  }
-
-  let json: ApiEnvelope<T> | null = null
-  try {
-    json = (await resp.json()) as ApiEnvelope<T>
-  } catch {
-    // 非 JSON 响应
   }
 
   if (json && json.code !== 0) {

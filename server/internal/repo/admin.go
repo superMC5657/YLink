@@ -285,3 +285,28 @@ func EnsureAdmin(db *gorm.DB, email, password string) error {
 	}
 	return db.Create(admin).Error
 }
+
+// EnsureDemoUser 幂等初始化演示账号：该邮箱不存在且环境变量齐全时创建（普通用户）。
+func EnsureDemoUser(db *gorm.DB, email, password string) error {
+	if email == "" || password == "" {
+		return errors.New("DEMO_EMAIL / DEMO_PASSWORD 未设置")
+	}
+	var count int64
+	if err := db.Model(&model.User{}).Where("email = ?", email).Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return nil
+	}
+	hash, err := passwd.Hash(password)
+	if err != nil {
+		return err
+	}
+	demo := &model.User{
+		Email:        email,
+		PasswordHash: hash,
+		Role:         model.RoleUser,
+		SubToken:     uuid.NewString(),
+	}
+	return db.Create(demo).Error
+}

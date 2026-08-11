@@ -258,20 +258,22 @@ func (s *AuthService) Forgot(ctx context.Context, req *model.ForgotReq) error {
 
 // ---- 登出 ----
 
-// Logout 吊销当前 refresh。
+// Logout 吊销当前 refresh 并 bump 会话版本号（access 立即失效）。
 func (s *AuthService) Logout(ctx context.Context, userID int64, jti string) error {
 	if jti != "" {
 		s.rdb.Del(ctx, refreshKey(userID, jti))
 	}
+	bumpSessionVersion(ctx, s.rdb, userID)
 	return nil
 }
 
 // ---- 会话 ----
 
-// issueSession 签发 token 对并写 refresh 白名单。
+// issueSession 签发 token 对并写 refresh 白名单；access 携带当前会话版本号快照。
 func (s *AuthService) issueSession(ctx context.Context, user *model.User) (*model.TokenResp, error) {
 	jti := uuid.NewString()
-	access, refresh, err := s.jwt.Generate(user.ID, user.Role, jti)
+	sv := sessionVersion(ctx, s.rdb, user.ID)
+	access, refresh, err := s.jwt.Generate(user.ID, user.Role, jti, sv)
 	if err != nil {
 		return nil, err
 	}
@@ -286,13 +288,14 @@ func (s *AuthService) issueSession(ctx context.Context, user *model.User) (*mode
 	}, nil
 }
 
-// revokeAllSessions 删除用户全部 refresh 白名单。
+// revokeAllSessions 删除用户全部 refresh 白名单，并 bump 会话版本号（access 立即失效）。
 func (s *AuthService) revokeAllSessions(ctx context.Context, userID int64) error {
 	pattern := redispkg.Key("refresh", fmt.Sprint(userID), "*")
 	iter := s.rdb.Scan(ctx, 0, pattern, 100).Iterator()
 	for iter.Next(ctx) {
 		s.rdb.Del(ctx, iter.Val())
 	}
+	bumpSessionVersion(ctx, s.rdb, userID)
 	return iter.Err()
 }
 

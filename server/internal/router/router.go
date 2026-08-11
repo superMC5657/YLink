@@ -138,7 +138,7 @@ func registerUser(g *gin.RouterGroup, d Deps, a *app) {
 	pub.GET("/knowledges/:id", a.contentH.KnowledgeDetail)
 
 	authed := g.Group("")
-	authed.Use(middleware.Auth(d.JWT))
+	authed.Use(middleware.Auth(d.JWT, d.Redis))
 	authed.POST("/auth/logout", a.authH.Logout)
 	authed.GET("/user/stat", a.userH.Stat)
 	authed.GET("/user/profile", a.userH.Profile)
@@ -148,6 +148,7 @@ func registerUser(g *gin.RouterGroup, d Deps, a *app) {
 	// 交易
 	authed.GET("/plans", a.orderH.Plans)
 	authed.POST("/coupons/check", a.orderH.CouponCheck)
+	authed.GET("/coupons/available", a.orderH.CouponsAvailable)
 	authed.POST("/orders", middleware.Idempotency(d.Redis), a.orderH.Create)
 	authed.GET("/orders", a.orderH.List)
 	authed.GET("/orders/:order_no", a.orderH.Detail)
@@ -177,7 +178,7 @@ func registerUser(g *gin.RouterGroup, d Deps, a *app) {
 // registerAdmin 管理端 API（role=admin）。
 func registerAdmin(g *gin.RouterGroup, d Deps, a *app) {
 	admin := g.Group("/admin")
-	admin.Use(middleware.Auth(d.JWT), middleware.RequireRole(1))
+	admin.Use(middleware.Auth(d.JWT, d.Redis), middleware.RequireRole(1))
 
 	// 仪表盘
 	admin.GET("/stat/overview", a.adminH.Overview)

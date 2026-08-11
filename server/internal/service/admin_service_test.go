@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"ylink/internal/model"
+	redispkg "ylink/internal/pkg/redis"
 	"ylink/internal/pkg/sanitize"
 	"ylink/internal/repo"
 )
@@ -100,11 +101,20 @@ func TestAdminRefundWithCommissionRollback(t *testing.T) {
 	now := time.Now()
 	payMethod := "epay_alipay"
 	paidAt := now.Add(-time.Hour)
+	planID1 := int64(1)
+	future := now.Add(30 * 24 * time.Hour)
+	p1 := &model.Plan{ID: 1, Name: "白羊座", TrafficGB: 300, IsShow: true, CreatedAt: now, UpdatedAt: now}
 	o := &model.Order{ID: 1, OrderNo: "O1", UserID: 2, PlanID: 1, Period: "month",
 		Amount: 1000, PayAmount: 1000, Status: 1, PayMethod: &payMethod, PaidAt: &paidAt, CreatedAt: now, UpdatedAt: now}
 	// 行锁读订单
 	e.mock.ExpectBegin()
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `orders`")).WillReturnRows(orderRow(o))
+	// 收回订阅：锁购买人（有订阅：plan_id=1 未过期）→ 查套餐 → 清除订阅
+	buyer := &model.User{ID: 2, Email: "buyer@b.com", PlanID: &planID1, ExpiredAt: &future,
+		TransferEnable: 300 * 1024 * 1024 * 1024, U: 1, D: 2, CreatedAt: now, UpdatedAt: now}
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `users`")).WillReturnRows(userRow(buyer))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `plans`")).WillReturnRows(planRow(p1))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `users`")).WillReturnResult(sqlmock.NewResult(0, 1))
 	// 订单状态 → 已退款（先 Save）
 	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `orders`")).WillReturnResult(sqlmock.NewResult(0, 1))
 	// 佣金查询：已发放
@@ -226,4 +236,136 @@ func TestAdminListKnowledges(t *testing.T) {
 	assert.Equal(t, "入门指南", out[0].Category)
 	assert.Equal(t, "zh-CN", out[0].Language)
 	assert.True(t, out[0].IsShow)
+}
+
+func TestAdminAdjustBalanceNegativeRejected(t *testing.T) {
+	e := newTestEnv(t)
+	repos := &repo.Repos{}
+	set := NewSettingService(e.db, e.rdb, repos)
+	svc := NewAdminService(e.db, e.rdb, repos, nil, set)
+
+	now := time.Now()
+	// 事务：行锁读用户（余额 0）→ 调 -100 → 服务层拒绝，回滚
+	e.mock.ExpectBegin()
+	u := &model.User{ID: 5, Email: "u@b.com", Balance: 0, CreatedAt: now, UpdatedAt: now}
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `users`")).WillReturnRows(userRow(u))
+	e.mock.ExpectRollback()
+
+	err := svc.AdjustBalance(context.Background(), 1, 5, -100, "扣款", "127.0.0.1")
+	require.Error(t, err)
+	assert.Equal(t, 40000, codeOf(err))
+}
+
+func TestAdminUpdateUserBanBumpsSessionVersion(t *testing.T) {
+	e := newTestEnv(t)
+	repos := &repo.Repos{}
+	set := NewSettingService(e.db, e.rdb, repos)
+	svc := NewAdminService(e.db, e.rdb, repos, nil, set)
+
+	now := time.Now()
+	u := &model.User{ID: 5, Email: "u@b.com", Role: 0, IsBanned: false, CreatedAt: now, UpdatedAt: now}
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `users`")).WillReturnRows(userRow(u))
+	// GORM 默认单写操作包事务：SetBanned 与审计各一个 BEGIN/COMMIT
+	e.mock.ExpectBegin()
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `users`")).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectCommit()
+	e.mock.ExpectBegin()
+	e.mock.ExpectExec(regexp.QuoteMeta("INSERT INTO `audit_logs`")).WillReturnResult(sqlmock.NewResult(1, 1))
+	e.mock.ExpectCommit()
+
+	banned := true
+	err := svc.UpdateUser(context.Background(), 1, 5, &model.AdminUpdateUserReq{Banned: &banned}, "127.0.0.1")
+	require.NoError(t, err)
+
+	// 会话版本号已 bump → 该用户旧 access token 立即失效
+	n, err := e.rdb.Get(context.Background(), redispkg.SessionVersionKey(5)).Int64()
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), n)
+}
+
+func TestAdminUpdateUserRoleBumpsSessionVersion(t *testing.T) {
+	e := newTestEnv(t)
+	repos := &repo.Repos{}
+	set := NewSettingService(e.db, e.rdb, repos)
+	svc := NewAdminService(e.db, e.rdb, repos, nil, set)
+
+	now := time.Now()
+	u := &model.User{ID: 6, Email: "r@b.com", Role: 0, IsBanned: false, CreatedAt: now, UpdatedAt: now}
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `users`")).WillReturnRows(userRow(u))
+	// GORM 默认单写操作包事务：UpdateRole 与审计各一个 BEGIN/COMMIT
+	e.mock.ExpectBegin()
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `users`")).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectCommit()
+	e.mock.ExpectBegin()
+	e.mock.ExpectExec(regexp.QuoteMeta("INSERT INTO `audit_logs`")).WillReturnResult(sqlmock.NewResult(1, 1))
+	e.mock.ExpectCommit()
+
+	role := 2
+	err := svc.UpdateUser(context.Background(), 1, 6, &model.AdminUpdateUserReq{Role: &role}, "127.0.0.1")
+	require.NoError(t, err)
+
+	n, err := e.rdb.Get(context.Background(), redispkg.SessionVersionKey(6)).Int64()
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), n)
+}
+
+func TestAdminRefundRevokesOnetimeTraffic(t *testing.T) {
+	// 退款一次性流量包：仅扣回本次流量，不清除订阅结构
+	e := newTestEnv(t)
+	repos := &repo.Repos{}
+	set := NewSettingService(e.db, e.rdb, repos)
+	svc := NewAdminService(e.db, e.rdb, repos, nil, set)
+
+	now := time.Now()
+	payMethod := "epay_alipay"
+	paidAt := now.Add(-time.Hour)
+	p1 := &model.Plan{ID: 1, Name: "白羊座", TrafficGB: 300, IsShow: true, CreatedAt: now, UpdatedAt: now}
+	o := &model.Order{ID: 2, OrderNo: "O2", UserID: 3, PlanID: 1, Period: "onetime",
+		Amount: 1000, PayAmount: 1000, Status: 1, PayMethod: &payMethod, PaidAt: &paidAt, CreatedAt: now, UpdatedAt: now}
+	e.mock.ExpectBegin()
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `orders`")).WillReturnRows(orderRow(o))
+	// onetime：锁用户（当前 transfer_enable=200G）→ 查套餐(300G) → 扣回 300G → 下限 0
+	buyer := &model.User{ID: 3, Email: "o@b.com", TransferEnable: 200 * 1024 * 1024 * 1024, CreatedAt: now, UpdatedAt: now}
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `users`")).WillReturnRows(userRow(buyer))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `plans`")).WillReturnRows(planRow(p1))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `users`")).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `orders`")).WillReturnResult(sqlmock.NewResult(0, 1))
+	// 无佣金
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `commission_logs`")).WillReturnError(assert.AnError)
+	e.mock.ExpectExec(regexp.QuoteMeta("INSERT INTO `audit_logs`")).WillReturnResult(sqlmock.NewResult(1, 1))
+	e.mock.ExpectCommit()
+
+	err := svc.Refund(context.Background(), 1, "O2", "退流量", "127.0.0.1")
+	require.NoError(t, err)
+}
+
+func TestAdminRefundKeepsOtherPlanSubscription(t *testing.T) {
+	// 退款订单的套餐 ≠ 用户当前订阅套餐：不清除订阅（用户当前用的是别的套餐）
+	e := newTestEnv(t)
+	repos := &repo.Repos{}
+	set := NewSettingService(e.db, e.rdb, repos)
+	svc := NewAdminService(e.db, e.rdb, repos, nil, set)
+
+	now := time.Now()
+	payMethod := "epay_alipay"
+	paidAt := now.Add(-time.Hour)
+	future := now.Add(30 * 24 * time.Hour)
+	p1 := &model.Plan{ID: 1, Name: "白羊座", TrafficGB: 300, IsShow: true, CreatedAt: now, UpdatedAt: now}
+	o := &model.Order{ID: 3, OrderNo: "O3", UserID: 4, PlanID: 1, Period: "month",
+		Amount: 1000, PayAmount: 1000, Status: 1, PayMethod: &payMethod, PaidAt: &paidAt, CreatedAt: now, UpdatedAt: now}
+	e.mock.ExpectBegin()
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `orders`")).WillReturnRows(orderRow(o))
+	// 锁用户：当前订阅是套餐 2（≠ 订单套餐 1）→ 不清除 → 无 UPDATE users
+	otherPlan := int64(2)
+	buyer := &model.User{ID: 4, Email: "p@b.com", PlanID: &otherPlan, ExpiredAt: &future, CreatedAt: now, UpdatedAt: now}
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `users`")).WillReturnRows(userRow(buyer))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `plans`")).WillReturnRows(planRow(p1))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `orders`")).WillReturnResult(sqlmock.NewResult(0, 1))
+	// 无佣金
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `commission_logs`")).WillReturnError(assert.AnError)
+	e.mock.ExpectExec(regexp.QuoteMeta("INSERT INTO `audit_logs`")).WillReturnResult(sqlmock.NewResult(1, 1))
+	e.mock.ExpectCommit()
+
+	err := svc.Refund(context.Background(), 1, "O3", "退其他套餐单", "127.0.0.1")
+	require.NoError(t, err)
 }

@@ -3,6 +3,7 @@ package redis
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/redis/go-redis/v9"
 
@@ -33,4 +34,12 @@ func Key(parts ...string) string {
 		out += p
 	}
 	return out
+}
+
+// SessionVersionKey 会话版本号 Key：`auth:ver:{userID}`。
+// 封禁/降级/登出等操作 INCR 该值，Auth 中间件比对 access token 中快照的 sv，
+// 不一致即 401——实现封禁/降级对已签发 JWT 的实时失效（access TTL 内无需等过期）。
+// Key 不存在视为版本 0（Redis 重启/首次签发均安全）。
+func SessionVersionKey(userID int64) string {
+	return Key("auth", "ver", strconv.FormatInt(userID, 10))
 }

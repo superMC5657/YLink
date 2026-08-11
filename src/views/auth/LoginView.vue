@@ -44,6 +44,8 @@ async function onSubmit() {
     message.success(t('auth.loginSuccess'))
     const redirect = (route.query.redirect as string) || '/dashboard'
     router.replace(redirect)
+  } catch {
+    // 错误提示由 http 层统一 toast,这里仅阻止异常冒泡为 unhandled error
   } finally {
     loading.value = false
   }
@@ -88,7 +90,12 @@ async function onSubmit() {
         </router-link>
       </div>
 
-      <button class="btn-primary h-11 w-full text-15" :disabled="loading" @click="onSubmit">
+      <button
+        type="button"
+        class="btn-primary h-11 w-full text-15"
+        :disabled="loading"
+        @click="onSubmit"
+      >
         <span
           v-if="loading"
           class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
@@ -106,7 +113,10 @@ async function onSubmit() {
 
     <!-- 自救入口:localStorage 残留自定义后端地址导致「网络异常」时,一键重置 -->
     <div v-if="hasCustomApiBase" class="mt-3 text-center">
-      <button class="text-14 text-[var(--c-text-sub)] hover:text-[var(--c-danger)]" @click="resetApiBase">
+      <button
+        class="text-14 text-[var(--c-text-sub)] hover:text-[var(--c-danger)]"
+        @click="resetApiBase"
+      >
         {{ t('auth.resetApiBase') }}
       </button>
     </div>

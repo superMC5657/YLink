@@ -328,6 +328,26 @@
 
 纯试算不落库；下单时服务端重算。
 
+`GET /coupons/available?plan_id=&period=`（需鉴权；`plan_id`/`period` 可选过滤）
+
+返回当前用户可用的优惠券列表（启用 + 生效期内 + 总限量未满 + 每人限用未满；传了 `plan_id`/`period` 时额外过滤适用套餐/周期）：
+
+```json
+// 成功
+{ "code": 0, "message": "ok", "data": { "list": [
+  { "code": "618SALE", "type": 1, "value": 2.00, "min_spend": 0,
+    "valid_periods": ["month","quarter","half_year","year"], "plan_ids": [],
+    "started_at": null, "ended_at": null },
+  { "code": "VIP50", "type": 2, "value": 10, "min_spend": 200,
+    "valid_periods": ["year"], "plan_ids": [1,2], "started_at": null, "ended_at": "2026-12-31T23:59:59+08:00" }
+] } }
+```
+
+- `type`：1=固定金额（`value` 为元）/ 2=百分比（`value` 为百分比数值，如 10 表示 10%）
+- `min_spend` 单位为元；`valid_periods`/`plan_ids` 空数组表示不限
+- 不返回 `total_limit`/`used_count`/`limit_per_user`（运营内部信息）
+- 下单仍需在弹窗输入码（或点选后自动填入）经 `POST /coupons/check` 试算；服务端下单时重算，展示列表仅为便利
+
 ---
 
 ## 10. 订单与支付

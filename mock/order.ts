@@ -105,6 +105,48 @@ function scheduleAutoPay(orderNo: string) {
 
 export default [
   {
+    url: '/api/v1/coupons/available',
+    method: 'get',
+    response: ({ headers }: { headers: Record<string, string> }) => {
+      if (!verifyAccess(headers)) return unauthorized()
+      // 与 /coupons/check 的 discountMap 保持一致（Mock 内存态，契约字段对齐 AdminCouponView 展开）
+      return ok({
+        list: [
+          {
+            code: '618SALE',
+            type: 1,
+            value: 2.0,
+            min_spend: 0,
+            valid_periods: ['month', 'quarter', 'half_year', 'year'],
+            plan_ids: [],
+            started_at: null,
+            ended_at: null,
+          },
+          {
+            code: 'NEW10',
+            type: 2,
+            value: 10,
+            min_spend: 0,
+            valid_periods: ['month', 'quarter', 'half_year', 'year'],
+            plan_ids: [],
+            started_at: null,
+            ended_at: null,
+          },
+          {
+            code: 'WELCOME',
+            type: 1,
+            value: 5.0,
+            min_spend: 20,
+            valid_periods: ['month', 'quarter', 'half_year', 'year'],
+            plan_ids: [],
+            started_at: null,
+            ended_at: null,
+          },
+        ],
+      })
+    },
+  },
+  {
     url: '/api/v1/coupons/check',
     method: 'post',
     response: ({

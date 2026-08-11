@@ -127,6 +127,55 @@ func (s *OrderService) CouponCheck(ctx context.Context, userID int64, req *model
 	}, nil
 }
 
+// AvailableCoupons GET /coupons/available：当前用户可用的优惠券列表。
+// planID/period 为可选过滤（下单弹窗按选中套餐+周期展示）；不传则返回全部可用券。
+// 过滤：启用 + 生效期内 + 总限量未满（SQL）；每人限用未满 + 适用套餐/周期（内存按当前用户）。
+func (s *OrderService) AvailableCoupons(ctx context.Context, userID, planID int64, period string) ([]model.CouponItem, error) {
+	now := time.Now()
+	list, err := s.repos.Coupon.ListAvailable(s.db, now)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]model.CouponItem, 0, len(list))
+	for _, c := range list {
+		// 每人限用（limit=0 不限）
+		if c.LimitPerUser > 0 {
+			n, err := s.repos.Coupon.CountUsage(s.db, c.ID, userID)
+			if err == nil && n >= int64(c.LimitPerUser) {
+				continue
+			}
+		}
+		// 适用套餐（可选过滤；券 plan_ids 为空=全部）
+		if planID > 0 && c.PlanIDs != nil {
+			var ids []int64
+			if json.Unmarshal([]byte(*c.PlanIDs), &ids) == nil && len(ids) > 0 && !containsInt64(ids, planID) {
+				continue
+			}
+		}
+		// 适用周期（可选过滤；券 valid_periods 为空=全部）
+		if period != "" && c.ValidPeriods != nil {
+			var periods []string
+			if json.Unmarshal([]byte(*c.ValidPeriods), &periods) == nil && len(periods) > 0 && !containsStr(periods, period) {
+				continue
+			}
+		}
+		item := model.CouponItem{
+			Code: c.Code, Type: c.Type,
+			Value: model.FenToYuan(c.Value), MinSpend: model.FenToYuan(c.MinSpend),
+			ValidPeriods: []string{}, PlanIDs: []int64{},
+			StartedAt: c.StartedAt, EndedAt: c.EndedAt,
+		}
+		if c.ValidPeriods != nil {
+			_ = json.Unmarshal([]byte(*c.ValidPeriods), &item.ValidPeriods)
+		}
+		if c.PlanIDs != nil {
+			_ = json.Unmarshal([]byte(*c.PlanIDs), &item.PlanIDs)
+		}
+		out = append(out, item)
+	}
+	return out, nil
+}
+
 // validateCoupon 校验优惠券并返回优惠金额（分）。db 由调用方传入（下单传事务）。
 func (s *OrderService) validateCoupon(db *gorm.DB, userID int64, code string, plan *model.Plan, period string, amount int64) (*model.Coupon, int64, error) {
 	coupon, err := s.repos.Coupon.GetByCode(db, code)
@@ -168,10 +217,10 @@ func (s *OrderService) validateCoupon(db *gorm.DB, userID int64, code string, pl
 	}
 	// 计算优惠
 	var discount int64
-	if coupon.Type == 1 { // 固定金额
+	if coupon.Type == 1 { // 固定金额（Value 为分，直接与订单金额分比较）
 		discount = min64(coupon.Value, amount)
-	} else { // 百分比
-		discount = amount * coupon.Value / 100
+	} else { // 百分比（Value 为「百分比×100」的分存储：10% 券存 1000 分 → /10000 还原百分比）
+		discount = amount * coupon.Value / 10000
 		if discount > amount {
 			discount = amount
 		}

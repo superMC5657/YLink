@@ -232,3 +232,114 @@ func TestHandleNotifyIdempotent(t *testing.T) {
 	err := svc.HandleNotify(ctx, "epay_alipay", &payment.NotifyResult{OrderNo: "O2026", TradeNo: "T1", Amount: 1000, Paid: true})
 	require.NoError(t, err)
 }
+
+func TestAvailableCoupons(t *testing.T) {
+	e, svc := newOrderEnv(t)
+	ctx := context.Background()
+	now := time.Now()
+
+	// 两张可用券：id=1 正常；id=2 limit_per_user=1 且该用户已用满 → 应被过滤
+	cp1 := &model.Coupon{ID: 1, Code: "SALE10", Type: 1, Value: 200, MinSpend: 0, LimitPerUser: 0, TotalLimit: 100, UsedCount: 3, IsEnable: true, CreatedAt: now, UpdatedAt: now}
+	cp2 := &model.Coupon{ID: 2, Code: "ONCE", Type: 2, Value: 1000, MinSpend: 500, LimitPerUser: 1, TotalLimit: 0, UsedCount: 0, IsEnable: true, CreatedAt: now, UpdatedAt: now}
+	couponRows := sqlmock.NewRows([]string{
+		"id", "code", "type", "value", "min_spend", "limit_per_user", "total_limit", "used_count",
+		"valid_periods", "plan_ids", "started_at", "ended_at", "is_enable", "created_at", "updated_at",
+	}).AddRow(cp1.ID, cp1.Code, cp1.Type, cp1.Value, cp1.MinSpend, cp1.LimitPerUser, cp1.TotalLimit, cp1.UsedCount,
+		cp1.ValidPeriods, cp1.PlanIDs, cp1.StartedAt, cp1.EndedAt, cp1.IsEnable, now, now).
+		AddRow(cp2.ID, cp2.Code, cp2.Type, cp2.Value, cp2.MinSpend, cp2.LimitPerUser, cp2.TotalLimit, cp2.UsedCount,
+			cp2.ValidPeriods, cp2.PlanIDs, cp2.StartedAt, cp2.EndedAt, cp2.IsEnable, now, now)
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `coupons`")).WillReturnRows(couponRows)
+	// cp1 limit=0 → 不查 usage；cp2 limit=1 → 查 usage 返回 1（已用满）
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT count(*) FROM `coupon_usages`")).WillReturnRows(
+		sqlmock.NewRows([]string{"count"}).AddRow(1))
+
+	list, err := svc.AvailableCoupons(ctx, 7, 0, "")
+	require.NoError(t, err)
+	require.Len(t, list, 1)
+	assert.Equal(t, "SALE10", list[0].Code)
+	assert.Equal(t, 1, list[0].Type)
+	assert.Equal(t, 2.00, list[0].Value) // 200 分 → 2.00 元
+	assert.Equal(t, 0.00, list[0].MinSpend)
+}
+
+func TestAvailableCouponsPlanPeriodFilter(t *testing.T) {
+	e, svc := newOrderEnv(t)
+	ctx := context.Background()
+	now := time.Now()
+
+	// 券仅适用套餐 2 + 周期 year
+	planIDs := `[2]`
+	periods := `["year"]`
+	cp := &model.Coupon{ID: 3, Code: "YEARONLY", Type: 2, Value: 1000, MinSpend: 0, LimitPerUser: 0, TotalLimit: 0, UsedCount: 0,
+		ValidPeriods: &periods, PlanIDs: &planIDs, IsEnable: true, CreatedAt: now, UpdatedAt: now}
+	couponRows := sqlmock.NewRows([]string{
+		"id", "code", "type", "value", "min_spend", "limit_per_user", "total_limit", "used_count",
+		"valid_periods", "plan_ids", "started_at", "ended_at", "is_enable", "created_at", "updated_at",
+	}).AddRow(cp.ID, cp.Code, cp.Type, cp.Value, cp.MinSpend, cp.LimitPerUser, cp.TotalLimit, cp.UsedCount,
+		cp.ValidPeriods, cp.PlanIDs, cp.StartedAt, cp.EndedAt, cp.IsEnable, now, now)
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `coupons`")).WillReturnRows(couponRows)
+
+	// 请求套餐 1 + month → 不匹配，返回空
+	list, err := svc.AvailableCoupons(ctx, 7, 1, "month")
+	require.NoError(t, err)
+	require.Empty(t, list)
+
+	// 请求套餐 2 + year → 匹配（sqlmock.Rows 为迭代器不可复用，需新建）
+	rows2 := sqlmock.NewRows([]string{
+		"id", "code", "type", "value", "min_spend", "limit_per_user", "total_limit", "used_count",
+		"valid_periods", "plan_ids", "started_at", "ended_at", "is_enable", "created_at", "updated_at",
+	}).AddRow(cp.ID, cp.Code, cp.Type, cp.Value, cp.MinSpend, cp.LimitPerUser, cp.TotalLimit, cp.UsedCount,
+		cp.ValidPeriods, cp.PlanIDs, cp.StartedAt, cp.EndedAt, cp.IsEnable, now, now)
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `coupons`")).WillReturnRows(rows2)
+	list, err = svc.AvailableCoupons(ctx, 7, 2, "year")
+	require.NoError(t, err)
+	require.Len(t, list, 1)
+	assert.Equal(t, "YEARONLY", list[0].Code)
+	assert.Equal(t, 10.00, list[0].Value) // 百分比 1000 分 → 10（%）
+}
+
+func TestCouponCheckPercent(t *testing.T) {
+	// 回归：百分比券不应整单全免。
+	// 10% 券 Value 以「百分比×100」的分存储 = 1000；订单 10 元 = 1000 分。
+	// 期望优惠 1 元（100 分）、实付 9 元，而非 10000 分/全免。
+	e, svc := newOrderEnv(t)
+	now := time.Now()
+	mPrice := int64(1000)
+	p := &model.Plan{ID: 1, Name: "白羊座", MonthPrice: &mPrice, TrafficGB: 300, IsShow: true, CreatedAt: now, UpdatedAt: now}
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `plans`")).WillReturnRows(planRow(p))
+	cp := &model.Coupon{ID: 9, Code: "PCT10", Type: 2, Value: 1000, MinSpend: 0, LimitPerUser: 0, TotalLimit: 0, UsedCount: 0, IsEnable: true, CreatedAt: now, UpdatedAt: now}
+	couponRows := sqlmock.NewRows([]string{
+		"id", "code", "type", "value", "min_spend", "limit_per_user", "total_limit", "used_count",
+		"valid_periods", "plan_ids", "started_at", "ended_at", "is_enable", "created_at", "updated_at",
+	}).AddRow(cp.ID, cp.Code, cp.Type, cp.Value, cp.MinSpend, cp.LimitPerUser, cp.TotalLimit, cp.UsedCount,
+		cp.ValidPeriods, cp.PlanIDs, cp.StartedAt, cp.EndedAt, cp.IsEnable, now, now)
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `coupons`")).WillReturnRows(couponRows)
+
+	resp, err := svc.CouponCheck(context.Background(), 7, &model.CouponCheckReq{Code: "PCT10", PlanID: 1, Period: "month"})
+	require.NoError(t, err)
+	assert.True(t, resp.Valid)
+	assert.Equal(t, 1.00, resp.DiscountAmount) // 10% × 10 元 = 1 元
+	assert.Equal(t, 9.00, resp.PayAmount)
+}
+
+func TestCouponCheckPercentCapped(t *testing.T) {
+	// 100% 券 Value = 10000 分；订单 10 元 → 优惠封顶 10 元（不应溢出为负）
+	e, svc := newOrderEnv(t)
+	now := time.Now()
+	mPrice := int64(1000)
+	p := &model.Plan{ID: 1, Name: "白羊座", MonthPrice: &mPrice, TrafficGB: 300, IsShow: true, CreatedAt: now, UpdatedAt: now}
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `plans`")).WillReturnRows(planRow(p))
+	cp := &model.Coupon{ID: 9, Code: "FREE", Type: 2, Value: 10000, MinSpend: 0, LimitPerUser: 0, TotalLimit: 0, UsedCount: 0, IsEnable: true, CreatedAt: now, UpdatedAt: now}
+	couponRows := sqlmock.NewRows([]string{
+		"id", "code", "type", "value", "min_spend", "limit_per_user", "total_limit", "used_count",
+		"valid_periods", "plan_ids", "started_at", "ended_at", "is_enable", "created_at", "updated_at",
+	}).AddRow(cp.ID, cp.Code, cp.Type, cp.Value, cp.MinSpend, cp.LimitPerUser, cp.TotalLimit, cp.UsedCount,
+		cp.ValidPeriods, cp.PlanIDs, cp.StartedAt, cp.EndedAt, cp.IsEnable, now, now)
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `coupons`")).WillReturnRows(couponRows)
+
+	resp, err := svc.CouponCheck(context.Background(), 7, &model.CouponCheckReq{Code: "FREE", PlanID: 1, Period: "month"})
+	require.NoError(t, err)
+	assert.True(t, resp.Valid)
+	assert.Equal(t, 10.00, resp.DiscountAmount)
+	assert.Equal(t, 0.00, resp.PayAmount)
+}

@@ -37,6 +37,24 @@ type CouponCheckResp struct {
 	PayAmount      float64 `json:"pay_amount"`
 }
 
+// CouponItem 用户可见的可用优惠券（GET /coupons/available）。
+// 仅暴露展示所需字段；total_limit/used_count/limit_per_user 属运营内部信息不返回。
+type CouponItem struct {
+	Code         string     `json:"code"`
+	Type         int        `json:"type"`          // 1=固定金额 2=百分比
+	Value        float64    `json:"value"`         // type=1 为元；type=2 为百分比数值（如 10 表示 10%）
+	MinSpend     float64    `json:"min_spend"`     // 元
+	ValidPeriods []string   `json:"valid_periods"` // 空=不限周期
+	PlanIDs      []int64    `json:"plan_ids"`      // 空=全部套餐
+	StartedAt    *time.Time `json:"started_at"`
+	EndedAt      *time.Time `json:"ended_at"`
+}
+
+// CouponAvailableResp 可用优惠券列表信封。
+type CouponAvailableResp struct {
+	List []CouponItem `json:"list"`
+}
+
 // ---- 订单 ----
 
 type CreateOrderReq struct {

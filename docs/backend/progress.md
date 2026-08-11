@@ -2,7 +2,7 @@
 
 > 本文档记录 `server/` 目录 Go/Gin 后端的开发状态,是 docs/backend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-11(全部里程碑 B1–B7 实现完成;2026-08-11 全量核对:go build/vet/test 实测全绿;全量审查 33 项修复完成,见「全量审查修复」;同日文档核对:与代码实况比对,待办见第 2 节)
+> 最后更新:2026-08-11(全部里程碑 B1–B7 实现完成;2026-08-11 全量核对:go build/vet/test 实测全绿;全量审查 33 项修复完成,见「全量审查修复」;一期小缺口收尾完成,见「一期小缺口收尾」;同日文档核对:与代码实况比对,待办见第 2 节)
 
 ---
 
@@ -55,6 +55,7 @@
 |---|---|
 | `GET /plans` | 上架套餐,`prices` 仅含支持周期,`speed_limit:null` 表示不限速 |
 | `POST /coupons/check` | 纯试算不落库;下单时服务端重算 |
+| `GET /coupons/available` | 当前用户可用优惠券列表(启用/生效期/总量未满 + 每人限用 + 可选 `plan_id`/`period` 过滤;DTO 不暴露运营计数,契约 §9) |
 | `POST /orders` | `Idempotency-Key` 24h 幂等(**key 按 user_id 隔离**);算价 = amount − discount;优惠券重校验 |
 | `GET /orders` / `GET /orders/{order_no}` | 列表(状态过滤)、详情(兼 3s 轮询,仅本人) |
 | `POST /orders/{order_no}/cancel` | 仅待支付可取消(否则 11003) |
@@ -122,7 +123,7 @@
 | `GET /admin/stat/overview` | 用户/代理/订单/收入(总额+今日)/在售套餐统计 |
 | `GET /admin/users`、`PUT /admin/users/{id}`、`POST /admin/users/{id}/balance` | 列表/封禁与角色(禁止操作自己)/调余额(审计) |
 | `GET/POST/PUT/DELETE /admin/plans`、`/admin/servers`、`/admin/server-groups` | 套餐与节点 CRUD(写入侧 XSS 清洗;响应经 `AdminPlanView`/`AdminServerView` DTO,价格统一为元并展开 group_ids/is_show/host/port/config) |
-| `GET /admin/orders`、`POST /admin/orders/{no}/refund` | 订单列表;退款(余额退回+优惠券回退+佣金回滚+审计,行锁) |
+| `GET /admin/orders`、`POST /admin/orders/{no}/refund` | 订单列表;退款(余额退回+**收回订阅**+优惠券回退+佣金回滚+审计,行锁) |
 | `GET/POST/PUT/DELETE /admin/coupons` | 优惠券 CRUD(列表返回 `AdminCouponView`:展开 type/value(元)/min_spend(元)/used_count/valid_periods/plan_ids,见 dto_admin.go) |
 | `GET/POST/PUT/DELETE /admin/notices`、`/admin/knowledges` | 公告/知识库 CRUD(bluemonday 清洗;**GET 列表含隐藏**,2026-08-11 补齐) |
 | `GET /admin/tickets`、`GET /admin/tickets/{id}`、`POST /admin/tickets/{id}/reply|close` | 工单管理(客服回复→已回复) |
@@ -162,6 +163,8 @@
 | 到期提醒仅一次 | `ExpireRemind` 改为前 3 天与前 1 天双窗口(marker 区分) |
 | 代理有效注册天数写死 | 读 `agent.valid_invite_days`(默认 3),注册/代理审计/审批共用 |
 | 余额支付 content 空串 | `CheckoutResp.Content` 改 `*string`,余额支付返回 `null` |
+| 百分比优惠券整单全免 | `validateCoupon` 百分比折扣 `amount*coupon.Value/100` 单位错配(Value 为「百分比×100」的分存储:10% 券存 1000 分),10% 券折出 10000 分 → 封顶全免;改 `/10000` 还原百分比,并补 `TestCouponCheckPercent`/`TestCouponCheckPercentCapped` 防回归 |
+| 退款未收回订阅 | `Refund` 原只退余额/回退券/撤佣金,未处理 `users` 订阅字段,退款后用户仍可使用已退款订阅;新增 `revokeSubscriptionOnRefund`:onetime 扣回流量(下限 0),周期套餐且当前生效订阅正是该订单套餐时清除订阅(plan_id/expired_at 置空、流量清零、限速/设备清空);不同套餐/续期叠加场景行为见方法注释,补 3 个测试 |
 | 死代码清理 | 删除 `ListPendingOrderNos`/`GetByNoAdmin`/`IncrUsed`/`SetString` |
 
 ### 增强(✅ 完成)
@@ -173,10 +176,10 @@
 | 支付回执邮件 | 在线回调与余额支付成功后异步发送(`[站点] 支付成功`),未配置 SMTP 静默跳过 |
 | agent-audit cron | 每月 1 日 03:00 复核代理有效邀请数,不达标降级 role=0 |
 
-### 测试状态(✅ 更新,2026-08-10 实测)
+### 测试状态(✅ 更新,2026-08-11 实测)
 
 - `go build ./...` / `go vet ./...` / `gofmt -l`(0 输出)全部通过
-- `go test ./... -count=1` 全绿;**47 个测试函数**,新增覆盖:bluemonday 清洗、优惠券超限 12001、优惠券原子占用、超时关单(含优惠券回退)、取消并发已支付(0 行回滚)、佣金确认竞态、退款佣金回滚、代理审批
+- `go test ./... -count=1` 全绿;**67 个测试函数**(2026-08-11 退款收回订阅新增 3:周期订阅清除、onetime 扣流量、不同套餐不清除;此前 64 含优惠券折扣修复 2),覆盖:错误码映射、JWT(含 SV 会话版本号)、密码、验证码限频/已注册、注册/登录锁定/刷新旋转、优惠券试算(固定/百分比/封顶)/超限 12001/原子占用、下单幂等、续期状态机、回调幂等、epay 验签与篡改拒绝、订阅生成(3 格式)、佣金划转、代理申请、工单流转、佣金确认竞态、超时关单(含优惠券回退)、取消并发已支付回滚、**退款(余额/券/佣金/订阅收回/onetime/异套餐)**,代理审批、bluemonday 清洗、Auth 中间件(无头/无效/refresh 混用/SV 匹配/bump 立即失效)、余额调整负值拒绝
 
 ---
 
@@ -194,12 +197,20 @@
 | Grafana 看板 | `/metrics` 已暴露,看板配置未做 | 依赖运维侧导入 dashboards |
 | 后端 CI / Release 接入 | 未接入 GitHub Actions | 当前 `.github/workflows/ci.yml` 仅前端 quality + e2e;`server/` 无独立 CI job,镜像构建/发布未配流水线 |
 
+### 一期小缺口收尾(✅ 2026-08-11)
+
+| 项 | 说明 |
+|---|---|
+| 封禁/降级后 JWT 实时失效 | 会话版本号机制:Claims 增加 `SV`(签发时快照,`jwt.Generate` 带参);Redis `auth:ver:{uid}` 存当前版本;封禁/解封/角色变更/代理审批通过/代理商降级/找回密码/登出均 `INCR` bump;Auth 中间件比对 SV 不一致即 401(Key 不存在视为 0,Redis 异常不阻断退化为 TTL)。access 2h 内无需等过期 |
+| 余额负值保护 | `AdjustBalance` 服务层拒绝调整后余额为负(40000)+ 迁移 `0002_balance_check` 加 `CHECK (balance >= 0)`(MySQL 8.0.16+ 强制执行);佣金回滚减 `commission_balance` 不受约束 |
+| 迁移 | `server/migrations/0002_balance_check.{up,down}.sql`(golang-migrate 格式,新增约束/回滚) |
+| 测试 | 新增 `middleware/auth_test.go`(6 场景:无头/无效/refresh 混用/有效/SV 匹配/bump 后立即失效+重新签发恢复)、admin_service 3 例(负值拒绝/封禁 bump/角色 bump);**测试函数 47 → 60 全绿** |
+
 ### 一期内已知缺口(可后补)
 
 | 项 | 说明 |
 |---|---|
-| 封禁/降级对已签发 JWT 无效 | Auth 中间件只校验 token 快照,封禁后最多 2h(access TTL)内旧 token 仍可用;严格实时生效需中间件查库或 Redis 黑名单(量级小可接受) |
-| 余额支付负余额保护 | 划转/调余额允许结果出现负值(佣金扣回场景允许为负,记账审计);如需强约束可加 CHECK 约束(二期) |
+| 既有 format:check 告警(前端) | 属前端仓库状态,见 docs/frontend/progress.md;后端 `gofmt -l` 0 输出 |
 
 ---
 

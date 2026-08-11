@@ -53,6 +53,18 @@ function onStatusChange() {
   void load()
 }
 
+/** 移动端卡片视图「加载更多」：翻页追加，不重置列表 */
+async function loadMore() {
+  const next = currentPage.value + 1
+  await orderStore.fetch({
+    page: next,
+    page_size: pageSize,
+    status: statusFilter.value,
+    append: true,
+  })
+  currentPage.value = next
+}
+
 function viewDetail(order: Order) {
   currentOrderNo.value = order.order_no
   modalVisible.value = true
@@ -142,12 +154,23 @@ onBeforeUnmount(() => orderStore.stopPolling())
       </n-spin>
 
       <div v-if="orderStore.total > pageSize" class="mt-5 flex justify-center">
+        <!-- 桌面表格视图：分页器；移动端卡片视图：加载更多按钮 -->
         <n-pagination
+          v-if="isDesktop"
           :page="currentPage"
           :page-size="pageSize"
           :item-count="orderStore.total"
           @update:page="onPageChange"
         />
+        <button
+          v-else
+          v-show="orderStore.list.length < orderStore.total"
+          class="cursor-pointer rounded-[var(--r-control)] border border-[var(--c-border)] px-6 py-2 text-14 text-[var(--c-text-sub)] transition-colors hover:bg-[var(--c-bg-hover)]"
+          :disabled="orderStore.loading"
+          @click="loadMore"
+        >
+          {{ orderStore.loading ? t('common.loading') : t('order.loadMore') }}
+        </button>
       </div>
     </div>
 

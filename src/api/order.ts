@@ -2,6 +2,7 @@ import { http } from '@/utils/http'
 import type {
   CheckoutReq,
   CheckoutResp,
+  CouponAvailableResp,
   CouponCheckReq,
   CouponCheckResp,
   CreateOrderReq,
@@ -9,10 +10,15 @@ import type {
   OrderStatus,
   PageQuery,
   PageResult,
+  PlanPeriod,
 } from '@/types/api'
 
 export const apiCoupon = {
   check: (body: CouponCheckReq) => http.post<CouponCheckResp>('/coupons/check', { body }),
+  available: (q: { plan_id?: number; period?: PlanPeriod } = {}) =>
+    http.get<CouponAvailableResp>('/coupons/available', {
+      query: { plan_id: q.plan_id, period: q.period },
+    }),
 }
 
 export const apiOrder = {

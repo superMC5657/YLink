@@ -271,25 +271,7 @@ const coupons = [
   },
 ]
 
-const notices = [
-  {
-    id: 1,
-    title: '系统维护公告',
-    content: '**本周六** 02:00-04:00 进行机房例行维护,期间部分节点可能短暂不可用。',
-    is_show: true,
-    sort: 1,
-    created_at: '2026-07-01T09:00:00+08:00',
-  },
-  {
-    id: 2,
-    title: '新用户福利',
-    content: '新注册用户完成邮箱验证后,联系客服可领取 1GB 免费流量。',
-    is_show: false,
-    sort: 2,
-    created_at: '2026-06-20T09:00:00+08:00',
-  },
-]
-
+// ---------- 知识库 ----------
 const knowledges = [
   {
     id: 1,
@@ -456,7 +438,12 @@ const settings = [
 
 function paged<T>(list: T[], page: number, pageSize: number) {
   const start = (page - 1) * pageSize
-  return { list: list.slice(start, start + pageSize), total: list.length, page, page_size: pageSize }
+  return {
+    list: list.slice(start, start + pageSize),
+    total: list.length,
+    page,
+    page_size: pageSize,
+  }
 }
 
 export default [
@@ -471,7 +458,13 @@ export default [
   {
     url: '/api/v1/admin/users',
     method: 'get',
-    response: ({ headers, query }: { headers: Record<string, string>; query: Record<string, string> }) => {
+    response: ({
+      headers,
+      query,
+    }: {
+      headers: Record<string, string>
+      query: Record<string, string>
+    }) => {
       if (!verifyAdmin(headers)) return unauthorized()
       const page = Number(query.page ?? 1)
       const pageSize = Number(query.page_size ?? 10)
@@ -507,14 +500,21 @@ export default [
   {
     url: '/api/v1/admin/orders',
     method: 'get',
-    response: ({ headers, query }: { headers: Record<string, string>; query: Record<string, string> }) => {
+    response: ({
+      headers,
+      query,
+    }: {
+      headers: Record<string, string>
+      query: Record<string, string>
+    }) => {
       if (!verifyAdmin(headers)) return unauthorized()
       const page = Number(query.page ?? 1)
       const pageSize = Number(query.page_size ?? 10)
       const status = query.status
-      const filtered = status === undefined || status === ''
-        ? orders
-        : orders.filter((o) => String(o.status) === status)
+      const filtered =
+        status === undefined || status === ''
+          ? orders
+          : orders.filter((o) => String(o.status) === status)
       return ok(paged(filtered, page, pageSize))
     },
   },
@@ -557,7 +557,13 @@ export default [
   {
     url: '/api/v1/admin/tickets',
     method: 'get',
-    response: ({ headers, query }: { headers: Record<string, string>; query: Record<string, string> }) => {
+    response: ({
+      headers,
+      query,
+    }: {
+      headers: Record<string, string>
+      query: Record<string, string>
+    }) => {
       if (!verifyAdmin(headers)) return unauthorized()
       const page = Number(query.page ?? 1)
       const pageSize = Number(query.page_size ?? 10)
@@ -678,77 +684,6 @@ export default [
     },
   },
 
-  // ---------- 公告 ----------
-  {
-    url: '/api/v1/admin/notices',
-    method: 'get',
-    response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
-      return ok({ list: notices })
-    },
-  },
-  {
-    url: '/api/v1/admin/notices',
-    method: 'post',
-    response: ({
-      headers,
-      body,
-    }: {
-      headers: Record<string, string>
-      body: { title?: string; content?: string; is_show?: boolean; sort?: number }
-    }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
-      if (!body.title || !body.content) {
-        return { code: 40000, message: '参数校验失败: title/content 必填', data: null }
-      }
-      const created = {
-        id: Date.now(),
-        title: body.title,
-        content: body.content,
-        is_show: body.is_show ?? true,
-        sort: body.sort ?? 0,
-        created_at: '2026-08-11T10:00:00+08:00',
-      }
-      notices.unshift(created)
-      return ok(created)
-    },
-  },
-  {
-    url: '/api/v1/admin/notices/:id',
-    method: 'put',
-    response: ({
-      headers,
-      query,
-      body,
-    }: {
-      headers: Record<string, string>
-      query: { id?: string }
-      body: { title?: string; content?: string; is_show?: boolean; sort?: number }
-    }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
-      const n = notices.find((x) => String(x.id) === query.id)
-      if (!n) return { code: 40400, message: '公告不存在', data: null }
-      Object.assign(n, {
-        title: body.title ?? n.title,
-        content: body.content ?? n.content,
-        is_show: body.is_show ?? n.is_show,
-        sort: body.sort ?? n.sort,
-      })
-      return ok(null)
-    },
-  },
-  {
-    url: '/api/v1/admin/notices/:id',
-    method: 'delete',
-    response: ({ headers, query }: { headers: Record<string, string>; query: { id?: string } }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
-      const idx = notices.findIndex((x) => String(x.id) === query.id)
-      if (idx < 0) return { code: 40400, message: '公告不存在', data: null }
-      notices.splice(idx, 1)
-      return ok(null)
-    },
-  },
-
   // ---------- 知识库 ----------
   {
     url: '/api/v1/admin/knowledges',
@@ -766,7 +701,14 @@ export default [
       body,
     }: {
       headers: Record<string, string>
-      body: { category?: string; title?: string; body?: string; language?: string; is_show?: boolean; sort?: number }
+      body: {
+        category?: string
+        title?: string
+        body?: string
+        language?: string
+        is_show?: boolean
+        sort?: number
+      }
     }) => {
       if (!verifyAdmin(headers)) return unauthorized()
       if (!body.category || !body.title || !body.body) {
@@ -796,7 +738,14 @@ export default [
     }: {
       headers: Record<string, string>
       query: { id?: string }
-      body: { category?: string; title?: string; body?: string; language?: string; is_show?: boolean; sort?: number }
+      body: {
+        category?: string
+        title?: string
+        body?: string
+        language?: string
+        is_show?: boolean
+        sort?: number
+      }
     }) => {
       if (!verifyAdmin(headers)) return unauthorized()
       const k = knowledges.find((x) => String(x.id) === query.id)
@@ -828,7 +777,13 @@ export default [
   {
     url: '/api/v1/admin/agent/applies',
     method: 'get',
-    response: ({ headers, query }: { headers: Record<string, string>; query: Record<string, string> }) => {
+    response: ({
+      headers,
+      query,
+    }: {
+      headers: Record<string, string>
+      query: Record<string, string>
+    }) => {
       if (!verifyAdmin(headers)) return unauthorized()
       const page = Number(query.page ?? 1)
       const pageSize = Number(query.page_size ?? 10)
@@ -869,7 +824,13 @@ export default [
   {
     url: '/api/v1/admin/commission-logs',
     method: 'get',
-    response: ({ headers, query }: { headers: Record<string, string>; query: Record<string, string> }) => {
+    response: ({
+      headers,
+      query,
+    }: {
+      headers: Record<string, string>
+      query: Record<string, string>
+    }) => {
       if (!verifyAdmin(headers)) return unauthorized()
       const page = Number(query.page ?? 1)
       const pageSize = Number(query.page_size ?? 10)

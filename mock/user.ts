@@ -1,7 +1,6 @@
 import type { MockMethod } from 'vite-plugin-mock'
 import { verifyAccess } from './auth'
 import type {
-  Notice,
   KnowledgeDetail,
   KnowledgeGroup,
   Plan,
@@ -34,40 +33,6 @@ const subscribe: SubscribeInfo = {
   device_limit: 2,
   subscribe_url: 'https://api.example.com/api/v1/client/subscribe/9f3b6c4e-mock-token',
 }
-
-const notices: Notice[] = [
-  {
-    id: 12,
-    title: '紧急通知:香港节点线路升级维护',
-    content:
-      '## 维护公告\n\n香港 01/02 节点将于 **2026-07-20 02:00-04:00** 进行线路升级,期间可能出现短暂波动。\n\n感谢理解与支持!',
-    created_at: '2026-07-18T00:38:55+08:00',
-  },
-  {
-    id: 11,
-    title: '新增节点:新加坡 IPLC 专线上线',
-    content: '## 新节点上线\n\n新加坡 **IPLC 专线** 节点正式上线,欢迎体验。\n\n- 低延迟\n- 不限速',
-    created_at: '2026-07-10T10:00:00+08:00',
-  },
-  {
-    id: 10,
-    title: '618 年中大促:年付套餐 8 折',
-    content: '## 限时活动\n\n活动期间购买 **年付套餐** 立享 8 折优惠,叠加优惠券更划算!',
-    created_at: '2026-06-18T09:00:00+08:00',
-  },
-  {
-    id: 9,
-    title: '关于订阅流量统计延迟的说明',
-    content: '流量统计可能存在 5-10 分钟延迟,属正常现象。',
-    created_at: '2026-06-01T12:00:00+08:00',
-  },
-  {
-    id: 8,
-    title: '欢迎使用 YLink',
-    content: '欢迎使用 YLink!请先阅读[使用文档](/docs)获取客户端配置教程。',
-    created_at: '2026-05-01T08:00:00+08:00',
-  },
-]
 
 const knowledgeZh: KnowledgeDetail[] = [
   {
@@ -277,28 +242,6 @@ export default [
         })
       }
       return ok({ list: trafficLogs })
-    },
-  },
-  {
-    url: '/api/v1/notices',
-    method: 'get',
-    response: ({
-      headers,
-      query,
-    }: {
-      headers: Record<string, string>
-      query: { page?: string; page_size?: string }
-    }) => {
-      if (!verifyAccess(headers)) return unauthorized()
-      const page = Number(query.page ?? 1)
-      const size = Number(query.page_size ?? 5)
-      const start = (page - 1) * size
-      return ok({
-        total: notices.length,
-        page,
-        page_size: size,
-        list: notices.slice(start, start + size),
-      })
     },
   },
   {

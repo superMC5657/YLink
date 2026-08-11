@@ -245,6 +245,27 @@ export interface CouponCheckResp {
   pay_amount: number
 }
 
+/** 用户可见的可用优惠券（GET /coupons/available，契约 §9） */
+export interface CouponItem {
+  code: string
+  /** 1=固定金额 2=百分比 */
+  type: 1 | 2
+  /** type=1 为元；type=2 为百分比数值（如 10 表示 10%） */
+  value: number
+  /** 元；0 表示无门槛 */
+  min_spend: number
+  /** 空=不限周期 */
+  valid_periods: PlanPeriod[]
+  /** 空=全部套餐 */
+  plan_ids: number[]
+  started_at: string | null
+  ended_at: string | null
+}
+
+export interface CouponAvailableResp {
+  list: CouponItem[]
+}
+
 // ---------- 订单与支付 ----------
 
 export type OrderStatus = 0 | 1 | 2 | 3

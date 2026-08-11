@@ -10,7 +10,7 @@ import { apiCaptcha } from '@/api/user'
 import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import { useCountdown } from '@/composables/useCountdown'
-import type { FormInst, FormRules } from 'naive-ui'
+import type { FormInst, FormItemInst, FormRules } from 'naive-ui'
 
 const auth = useAuthStore()
 const config = useConfigStore()
@@ -21,6 +21,8 @@ const { t } = useI18n()
 const { remaining, running, start } = useCountdown(60)
 
 const formRef = ref<FormInst | null>(null)
+// email 表单项实例:发送验证码前单独校验邮箱(n-form 实例无 validateField,用 form-item 的 validate)
+const emailItemRef = ref<FormItemInst | null>(null)
 const loading = ref(false)
 const sending = ref(false)
 
@@ -99,10 +101,8 @@ const rules = computed<FormRules>(() => ({
 
 async function sendCode() {
   if (sending.value || running.value) return
-  // naive-ui 2.42 类型未暴露 validateField,运行时存在,局部断言调用
-  const inst = formRef.value as unknown as { validateField: (p: string) => Promise<void> } | null
   try {
-    await inst?.validateField('email')
+    await emailItemRef.value?.validate()
   } catch {
     return
   }
@@ -130,6 +130,8 @@ async function onSubmit() {
     })
     message.success(t('auth.registerSuccess'))
     router.replace('/dashboard')
+  } catch {
+    // 错误提示由 http 层统一 toast,这里仅阻止异常冒泡为 unhandled error
   } finally {
     loading.value = false
   }
@@ -144,7 +146,7 @@ async function onSubmit() {
     </p>
 
     <n-form ref="formRef" :model="form" :rules="rules" size="large" @keyup.enter="onSubmit">
-      <n-form-item path="email">
+      <n-form-item ref="emailItemRef" path="email">
         <n-input v-model:value="form.email" :placeholder="t('auth.email')">
           <template #prefix><AppIcon name="user" :size="16" /></template>
         </n-input>
@@ -156,6 +158,7 @@ async function onSubmit() {
             <template #prefix><AppIcon name="shield-check" :size="16" /></template>
           </n-input>
           <button
+            type="button"
             class="btn-soft-primary h-10 shrink-0 px-4 text-14"
             :disabled="sending || running"
             @click="sendCode"
@@ -193,7 +196,12 @@ async function onSubmit() {
         </n-input>
       </n-form-item>
 
-      <button class="btn-primary h-11 w-full text-15" :disabled="loading" @click="onSubmit">
+      <button
+        type="button"
+        class="btn-primary h-11 w-full text-15"
+        :disabled="loading"
+        @click="onSubmit"
+      >
         <span
           v-if="loading"
           class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"

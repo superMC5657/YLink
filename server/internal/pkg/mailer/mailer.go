@@ -36,6 +36,8 @@ func (m *Mailer) Send(to, subject, htmlBody string) error {
 	msg.SetHeader("Subject", subject)
 	msg.SetBody("text/html", htmlBody)
 	d := gomail.NewDialer(m.host, m.port, m.username, m.password)
+	// 465 为隐式 SSL/TLS(QQ/163 常用),gomail 默认 SSL=false 会导致握手失败
+	d.SSL = m.port == 465
 	return d.DialAndSend(msg)
 }
 

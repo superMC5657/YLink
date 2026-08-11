@@ -23,8 +23,8 @@ jwt:
 smtp:
   host: "smtp.qq.com"
   port: 465
-  username: "${SMTP_USER}"
-  password: "${SMTP_PASS}"
+  username: "${APP_SMTP_USERNAME}"
+  password: "${APP_SMTP_PASSWORD}"
   from_name: "YLink"
 
 payment:
@@ -44,8 +44,8 @@ log:
 # 站点运营规则（settings 表初始化同款）
 site:
   site_name: "YLink"
-  invite_commission_rate: 40        # 普通用户佣金比例 %
-  agent_commission_rate: 50         # 代理商佣金比例 %
+  invite_commission_rate: 30        # 普通用户佣金比例 %
+  agent_commission_rate: 40         # 代理商佣金比例 %
   agent_required_valid_invites: 50  # 代理申请有效邀请数阈值
   commission_confirm_days: 3        # 佣金确认期（天）
   order_expire_minutes: 30          # 订单超时关闭（分钟）

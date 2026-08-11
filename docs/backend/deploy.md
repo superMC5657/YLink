@@ -27,8 +27,8 @@ jwt:
 smtp:
   host: "smtp.qq.com"
   port: 465
-  username: "${SMTP_USER}"
-  password: "${SMTP_PASS}"
+  username: "${APP_SMTP_USERNAME}"
+  password: "${APP_SMTP_PASSWORD}"
   from_name: "YLink"
 
 payment:

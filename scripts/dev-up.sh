@@ -100,7 +100,26 @@ export APP_BASE_URL=http://localhost:8081
 export APP_JWT_SECRET="$JWT_SECRET"
 export ADMIN_EMAIL="$ADMIN_EMAIL" ADMIN_PASSWORD="$ADMIN_PASSWORD"
 export DEMO_EMAIL="$DEMO_EMAIL" DEMO_PASSWORD="$DEMO_PASSWORD"
-export APP_SMTP_USER= APP_SMTP_PASS=
+# SMTP 邮件(QQ 等)从 server/.env 读取:APP_SMTP_USERNAME/APP_SMTP_PASSWORD/APP_SMTP_HOST/APP_SMTP_PORT/APP_SMTP_FROM_NAME
+# 变量名统一为 viper 映射后的长名(config.yaml 的 smtp.username/smtp.password → APP_SMTP_USERNAME/APP_SMTP_PASSWORD),
+# 与 .env 里的 key 完全一致,无短名转换,避免后端读不到真实账号导致 535 认证失败。
+ENV_FILE="$SERVER/.env"
+if [ -f "$ENV_FILE" ]; then
+  SMTP_HOST="$(grep -E '^APP_SMTP_HOST=' "$ENV_FILE" | head -1 | cut -d= -f2-)"
+  SMTP_PORT="$(grep -E '^APP_SMTP_PORT=' "$ENV_FILE" | head -1 | cut -d= -f2-)"
+  SMTP_USERNAME="$(grep -E '^APP_SMTP_USERNAME=' "$ENV_FILE" | head -1 | cut -d= -f2-)"
+  SMTP_PASSWORD="$(grep -E '^APP_SMTP_PASSWORD=' "$ENV_FILE" | head -1 | cut -d= -f2-)"
+  SMTP_FROM="$(grep -E '^APP_SMTP_FROM_NAME=' "$ENV_FILE" | head -1 | cut -d= -f2-)"
+else
+  SMTP_HOST= SMTP_PORT= SMTP_USERNAME= SMTP_PASSWORD= SMTP_FROM=
+fi
+# 仅当 .env 已配置 SMTP 时才导出(避免空值覆盖 config.yaml 里的 smtp 段)
+if [ -n "$SMTP_USERNAME" ] || [ -n "$SMTP_PASSWORD" ]; then
+  export APP_SMTP_HOST="$SMTP_HOST" APP_SMTP_PORT="$SMTP_PORT"
+  export APP_SMTP_USERNAME="$SMTP_USERNAME" APP_SMTP_PASSWORD="$SMTP_PASSWORD"
+  export APP_SMTP_FROM_NAME="$SMTP_FROM"
+  say "  SMTP 已从 $ENV_FILE 读取(${SMTP_USERNAME:-未设置用户})"
+fi
 export APP_PAYMENT_EPAY_GATEWAY= APP_PAYMENT_EPAY_PID= APP_PAYMENT_EPAY_KEY=
 
 if [ "$API_ALREADY" = 0 ]; then

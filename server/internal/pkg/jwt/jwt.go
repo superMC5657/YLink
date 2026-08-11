@@ -14,6 +14,7 @@ type Claims struct {
 	Role      int    `json:"role"`
 	JTI       string `json:"jti"`   // refresh 白名单索引
 	TokenType string `json:"ttype"` // access / refresh，防止两类令牌混用
+	SV        int64  `json:"sv"`    // 会话版本号：封禁/降级/登出等 bump 后旧 access 立即失效
 	jwt.RegisteredClaims
 }
 
@@ -29,14 +30,15 @@ func NewManager(secret string, accessTTL, refreshTTL time.Duration) *Manager {
 }
 
 // Generate 签发 access/refresh 令牌对；jti 用于 refresh 白名单（Redis）。
-// 两类令牌带不同 TokenType，防止混淆使用。
-func (m *Manager) Generate(userID int64, role int, jti string) (access, refresh string, err error) {
+// 两类令牌带不同 TokenType，防止混淆使用；sv 为会话版本号（签发时快照）。
+func (m *Manager) Generate(userID int64, role int, jti string, sv int64) (access, refresh string, err error) {
 	now := time.Now()
 	access, err = m.sign(&Claims{
 		UserID:    userID,
 		Role:      role,
 		JTI:       jti,
 		TokenType: "access",
+		SV:        sv,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(m.accessTTL)),
@@ -50,6 +52,7 @@ func (m *Manager) Generate(userID int64, role int, jti string) (access, refresh 
 		Role:      role,
 		JTI:       jti,
 		TokenType: "refresh",
+		SV:        sv,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(m.refreshTTL)),

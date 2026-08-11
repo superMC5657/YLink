@@ -126,10 +126,12 @@ func (s *AdminService) UpdateUser(ctx context.Context, adminID, userID int64, re
 	if err != nil {
 		return errs.ErrNotFound
 	}
+	changed := false
 	if req.Banned != nil && *req.Banned != user.IsBanned {
 		if err := s.repos.User.SetBanned(s.db, userID, *req.Banned); err != nil {
 			return err
 		}
+		changed = true
 		_ = s.audit(s.db, adminID, "ban_user", fmt.Sprint(userID), ip, map[string]any{
 			"email": user.Email, "banned": *req.Banned,
 		})
@@ -138,19 +140,28 @@ func (s *AdminService) UpdateUser(ctx context.Context, adminID, userID int64, re
 		if err := s.repos.User.UpdateRole(s.db, userID, *req.Role); err != nil {
 			return err
 		}
+		changed = true
 		_ = s.audit(s.db, adminID, "update_role", fmt.Sprint(userID), ip, map[string]any{
 			"email": user.Email, "role": *req.Role,
 		})
+	}
+	// 封禁/解封/角色变更 → bump 会话版本号：已签发 access token 立即失效
+	if changed {
+		bumpSessionVersion(ctx, s.rdb, userID)
 	}
 	return nil
 }
 
 // AdjustBalance POST /admin/users/{id}/balance（审计）。
+// 强约束：调整后 balance 不允许为负（佣金回滚减的是 commission_balance，不在此约束）。
 func (s *AdminService) AdjustBalance(ctx context.Context, adminID, userID int64, amountFen int64, remark, ip string) error {
 	return repo.WithTx(s.db, func(tx *gorm.DB) error {
 		user, err := s.repos.User.GetByIDForUpdate(tx, userID)
 		if err != nil {
 			return errs.ErrNotFound
+		}
+		if user.Balance+amountFen < 0 {
+			return errs.New(40000, "调整后余额不能为负")
 		}
 		user.Balance += amountFen
 		if err := s.repos.User.Save(tx, user); err != nil {
@@ -226,7 +237,7 @@ func (s *AdminService) CloseOrder(ctx context.Context, adminID int64, orderNo, r
 	})
 }
 
-// Refund POST /admin/orders/{no}/refund：退款 + 佣金回滚 + 优惠券回退 + 审计。
+// Refund POST /admin/orders/{no}/refund：退款 + 收回订阅 + 佣金回滚 + 优惠券回退 + 审计。
 func (s *AdminService) Refund(ctx context.Context, adminID int64, orderNo, remark, ip string) error {
 	return repo.WithTx(s.db, func(tx *gorm.DB) error {
 		order, err := s.repos.Order.GetByNoForUpdate(tx, orderNo)
@@ -252,6 +263,10 @@ func (s *AdminService) Refund(ctx context.Context, adminID int64, orderNo, remar
 			if err := releaseCoupon(tx, *order.CouponID, order.UserID, order.OrderNo); err != nil {
 				return err
 			}
+		}
+		// 收回订阅：退款后用户不应继续享有该订单对应的订阅服务
+		if err := s.revokeSubscriptionOnRefund(tx, order); err != nil {
+			return err
 		}
 		order.Status = model.OrderRefunded
 		if err := s.repos.Order.Save(tx, order); err != nil {
@@ -284,6 +299,47 @@ func (s *AdminService) Refund(ctx context.Context, adminID int64, orderNo, remar
 			"pay_amount": order.PayAmount, "remark": sanitize.Text(remark),
 		})
 	})
+}
+
+// revokeSubscriptionOnRefund 退款收回订阅（core-flows 2.1 的逆操作）：
+//   - onetime：仅扣回本次叠加的流量（下限 0），不动到期时间
+//   - 周期套餐：若用户当前生效订阅正是该订单套餐（plan_id 相同且未过期），清除订阅
+//     （plan_id/expired_at 置空、流量清零、限速/设备数清空）
+//
+// 说明：系统未保存订单开通前的订阅快照，因此「同套餐续期叠加」场景退款后会整体清除订阅
+// （用户原有未过期订阅一并收回）；管理员对续期叠加订单退款时需知悉此行为。
+func (s *AdminService) revokeSubscriptionOnRefund(tx *gorm.DB, order *model.Order) error {
+	user, err := s.repos.User.GetByIDForUpdate(tx, order.UserID)
+	if err != nil {
+		return err
+	}
+	plan, err := s.repos.Plan.GetByID(tx, order.PlanID)
+	if err != nil {
+		return err
+	}
+	trafficBytes := int64(plan.TrafficGB) * 1024 * 1024 * 1024
+
+	if order.Period == "onetime" {
+		// 一次性流量包：扣回本次流量
+		user.TransferEnable -= trafficBytes
+		if user.TransferEnable < 0 {
+			user.TransferEnable = 0
+		}
+		return s.repos.User.Save(tx, user)
+	}
+	// 周期订阅：仅当当前生效订阅正是该订单套餐时清除
+	if user.PlanID != nil && *user.PlanID == order.PlanID &&
+		user.ExpiredAt != nil && user.ExpiredAt.After(time.Now()) {
+		user.PlanID = nil
+		user.ExpiredAt = nil
+		user.TransferEnable = 0
+		user.U = 0
+		user.D = 0
+		user.SpeedLimit = nil
+		user.DeviceLimit = nil
+		return s.repos.User.Save(tx, user)
+	}
+	return nil
 }
 
 // ---- 代理审批 ----
@@ -338,6 +394,8 @@ func (s *AdminService) ReviewAgentApply(ctx context.Context, adminID, applyID in
 			if err := s.repos.User.UpdateRole(tx, apply.UserID, model.RoleAgent); err != nil {
 				return err
 			}
+			// 升级为代理商 → bump 会话版本号：旧 access token 的 role 快照立即失效
+			bumpSessionVersion(ctx, s.rdb, apply.UserID)
 		}
 		now := time.Now()
 		apply.Status = status

@@ -13,7 +13,7 @@ export default defineConfig({
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   timeout: 30_000,
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:5174',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -30,7 +30,7 @@ export default defineConfig({
   webServer: {
     // --mode e2e 强制使用 .env.e2e(Mock),避免 .env.development.local 联调覆盖影响测试稳定性
     command: 'pnpm dev --mode e2e',
-    url: 'http://localhost:5173',
+    url: 'http://localhost:5174',
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
   },

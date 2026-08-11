@@ -2,7 +2,7 @@
 
 > 本文档记录 `src/` 目录 Vue 3 用户端应用的开发状态,是 docs/frontend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-11(M1–M8 已实现;2026-08-11 全量核对:typecheck/lint/vitest 31 用例通过;全量审查 33 项修复完成,见「全量审查修复」;管理后台 6 模块已完成,二期剩余 7 模块见第 2 节)
+> 最后更新:2026-08-11(M1–M9 已实现;2026-08-11 全量核对:typecheck/lint/vitest 31 用例通过;全量审查 33 项修复完成,见「全量审查修复」;管理后台 13 模块全部完成,见 M8+M9)
 
 ---
 
@@ -123,6 +123,23 @@
 | 工单管理 | 列表/详情/客服回复/关闭 | `views/admin/AdminTicketsView.vue` |
 | Mock + E2E | `mock/admin.ts` 管理端 Mock;`tests/e2e/admin.spec.ts` 角色区分 6 用例 × 双 project(管理员可见入口/普通用户不可见且访问被重定向) | `mock/*`、`tests/e2e/*` |
 
+### M9 管理后台二期剩余 7 模块(✅ 完成,2026-08-11)
+
+| 模块 | 说明 | 位置 |
+|---|---|---|
+| 优惠券管理 | 列表/新建/编辑/删除:类型(固定金额/百分比)/面值/最低消费/每人限用/总量/适用周期/适用套餐/生效失效时间/启停 | `views/admin/AdminCouponsView.vue` |
+| 公告管理 | 列表/发布/编辑/删除:标题/内容(Markdown)/展示开关/排序 | `views/admin/AdminNoticesView.vue` |
+| 知识库管理 | 列表(语言筛选+关键词搜索)/新建/编辑/删除:分类/标题/正文(Markdown)/语言/展示/排序 | `views/admin/AdminKnowledgesView.vue` |
+| 代理审批 | 状态筛选/分页/通过/拒绝(通过后升级代理商) | `views/admin/AdminAgentAppliesView.vue` |
+| 佣金日志 | 状态筛选(确认中/已发放/已撤销)/分页,展示邀请人/被邀请人/订单/比例/佣金 | `views/admin/AdminCommissionLogsView.vue` |
+| 流量导入 | 模式 B 手工导入:多行 user_id/date/u/d(字节),批量提交写审计 | `views/admin/AdminTrafficImportView.vue` |
+| 站点设置 | 按 key(site/payment/invite/agent/order/templates)编辑配置 JSON,保存后缓存失效 | `views/admin/AdminSettingsView.vue` |
+| API 封装 | `apiAdmin` 新增 7 组端点(优惠券/公告/知识库/代理审批/佣金日志/流量导入/站点设置),类型对齐契约 §16.1 | `src/api/admin.ts`、`src/types/api.d.ts` |
+| Mock | `mock/admin.ts` 补齐 7 组端点(含 CRUD 状态变更);移除无契约引用的遗留「佣金管理」幽灵端点 | `mock/admin.ts` |
+| 后端配套 | 新增 `GET /admin/notices`、`GET /admin/knowledges`(含隐藏);优惠券列表改返回 `AdminCouponView`(展开 type/value/used_count 等,价格转元) | `server/internal/**`(见 backend progress) |
+| i18n | 修复既存缺陷:admin 页面标题 key 从未在语言包定义(标签页显示原始 key),补 `admin.*` 13 项(zh/en) + nav 7 项 | `src/locales/*.ts` |
+| config 缓存修复 | 站点配置 localStorage 缓存 24h→60s(对齐后端 Redis 60s),申请代理页进页 `fetchConfig(true)` 强制刷新:管理后台改代理政策/注册开关/支付方式后用户端 ≤60s 生效 | `src/stores/config.ts`、`views/agent/AgentView.vue`(见 data-layer.md §8) |
+
 ### 验证状态(✅,2026-08-10 全量实测)
 
 - `pnpm typecheck`(vue-tsc --noEmit)零错误
@@ -130,6 +147,7 @@
 - `pnpm lint` 0 error 0 warning;`pnpm test` **31/31 通过**(此前文档记 29,系后续新增用例未同步)
 - `pnpm e2e`(Playwright)**42 例通过**(2026-08-11 `--list` 复核:21 用例 × 双 project):登录 → 仪表板 → 套餐 → 下单(余额支付)→ 订单 → 7 页面可达性 → 暗色切换 → 移动端底栏导航 + **管理后台角色区分 12 例**(6 用例 × 双 project;调试残留 `zz-errfail.spec.ts` 已移除)
 - `cargo check`(src-tauri)通过
+- **M9 二期 7 模块(2026-08-11)**:`pnpm typecheck` / `pnpm lint`(0 warning)/ `pnpm test`(31/31)/ `pnpm build` 全绿;后端 `go build`/`go vet`/`gofmt -l`(0 输出)/`go test`(47 函数)全绿;7 个新页面已注册路由 + 管理端菜单,交互验证待手动(Mock 管理员 `admin@example.com` / `Admin@123456`)
 
 ### 全量审查修复(✅ 2026-08-11)
 
@@ -182,7 +200,6 @@
 
 | 项 | 状态 | 依赖/说明 |
 |---|---|---|
-| 管理后台(二期剩余模块) | **核心 6 模块已实现**(总览/用户/套餐/节点/订单/工单,见第 1 节 M8);剩余:优惠券/公告/知识库/代理审批/佣金日志/流量导入/站点设置 | 后端 13 组 admin API 已全量就绪;契约见 [docs/api/README.md](../api/README.md) 第 16 节 |
 | 移动端深链/分享面板 | 未做 | 需 Tauri Mobile 评估(desktop-tauri.md §9) |
 | 更新卡片 UI | 未做 | 依赖 M6 updater 插件(尚未接入 Rust/前端,见 desktop-tauri.md §5 待办) |
 
@@ -206,7 +223,7 @@
 |---|---|
 | Node ≥ 20 + pnpm ≥ 10 | 本机 pnpm 10.33.0 已满足 |
 | 安装依赖 | `pnpm install`(pnpm 10 需批准 esbuild 构建脚本:`pnpm.onlyBuiltDependencies` 已在 package.json 配置) |
-| 启动 | `pnpm dev` → http://localhost:5173(Mock 环境默认开启) |
+| 启动 | `pnpm dev` → http://localhost:5174(Mock 环境默认开启) |
 | 演示账号 | `2734921923@qq.com` / `Passw0rd`(Mock 仅校验该口令;任意 `Bearer mock-access-*` 视为有效) |
 | 构建 | `pnpm build`(vue-tsc 类型检查 + vite 构建,产物 `dist/` 可独立部署静态托管) |
 

@@ -6,7 +6,7 @@
  */
 import { chromium } from 'playwright'
 
-const BASE = 'http://localhost:5173'
+const BASE = 'http://localhost:5174'
 const RESOLUTIONS = [
   { name: '1024x768', width: 1024, height: 768 },
   { name: '1280x800', width: 1280, height: 800 },

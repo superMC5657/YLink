@@ -557,3 +557,126 @@ export interface AdminTicketDetail {
 export interface AdminReplyReq {
   message: string
 }
+
+// ---------- 管理端 · 二期模块(契约 docs/api/README.md §16.1) ----------
+
+/** 管理端优惠券视图:展开 type/value(元)/min_spend(元)/used_count/valid_periods/plan_ids */
+export interface AdminCouponItem {
+  id: number
+  code: string
+  type: 1 | 2 // 1=固定金额 2=百分比
+  value: number
+  min_spend: number
+  limit_per_user: number
+  total_limit: number
+  used_count: number
+  valid_periods: string[]
+  plan_ids: number[]
+  started_at: string | null
+  ended_at: string | null
+  is_enable: boolean
+  created_at: string
+}
+
+export interface AdminCouponReq {
+  code: string
+  type: 1 | 2
+  value: number
+  min_spend?: number
+  limit_per_user?: number
+  total_limit?: number
+  valid_periods?: string[]
+  plan_ids?: number[]
+  started_at?: string | null
+  ended_at?: string | null
+  is_enable?: boolean
+}
+
+export interface AdminNoticeItem {
+  id: number
+  title: string
+  content: string
+  is_show: boolean
+  sort: number
+  created_at: string
+}
+
+export interface AdminNoticeReq {
+  title: string
+  content: string
+  is_show?: boolean
+  sort?: number
+}
+
+export interface AdminKnowledgeItem {
+  id: number
+  category: string
+  title: string
+  body: string
+  language: string
+  is_show: boolean
+  sort: number
+  updated_at: string
+}
+
+export interface AdminKnowledgeReq {
+  category: string
+  title: string
+  body: string
+  language?: string
+  is_show?: boolean
+  sort?: number
+}
+
+export type AdminApplyStatus = 0 | 1 | 2 // 0=待审核 1=通过 2=拒绝
+
+export interface AdminAgentApplyItem {
+  id: number
+  user_id: number
+  user_email: string
+  valid_invites: number
+  status: AdminApplyStatus
+  created_at: string
+}
+
+export interface AdminApproveReq {
+  remark?: string
+}
+
+export type CommissionStatus = 0 | 1 | 2 // 0=确认中 1=已发放 2=已撤销
+
+export interface AdminCommissionItem {
+  id: number
+  invite_user_id: number
+  invite_email: string
+  from_user_id: number
+  from_email: string
+  order_no: string
+  order_amount: number
+  rate: number
+  amount: number
+  status: CommissionStatus
+  confirmed_at: string | null
+  created_at: string
+}
+
+export interface TrafficImportItem {
+  user_id: number
+  date: string // YYYY-MM-DD
+  u: number
+  d: number
+}
+
+export interface TrafficImportReq {
+  items: TrafficImportItem[]
+}
+
+export interface AdminSettingsItem {
+  key: string
+  value: string // 配置项 JSON 字符串
+}
+
+export interface AdminSettingsReq {
+  key: string
+  value: string
+}

@@ -553,7 +553,7 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 | 节点 | `GET/POST/PUT/DELETE /admin/servers`、`/admin/server-groups` |
 | 订单 | `GET /admin/orders`、`POST /admin/orders/{no}/refund`（审计 + 佣金回滚）、`POST /admin/orders/{no}/close`（关闭待支付订单，审计） |
 | 优惠券 | `GET/POST/PUT/DELETE /admin/coupons` |
-| 内容 | `POST/PUT/DELETE /admin/notices`、`/admin/knowledges`（GET 列表未实现，见 backend progress §2） |
+| 内容 | `GET/POST/PUT/DELETE /admin/notices`、`/admin/knowledges` |
 | 工单 | `GET /admin/tickets`、`GET /admin/tickets/{id}`、`POST /admin/tickets/{id}/reply`、`/close` |
 | 代理 | `GET /admin/agent/applies`、`POST /admin/agent/applies/{id}/approve|reject` |
 | 佣金 | `GET /admin/commission-logs` |
@@ -566,6 +566,13 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 - `GET /admin/servers` 返回 `{list: AdminServerView[]}`：展开用户端隐藏的 `group_id`/`host`/`port`/`config`/`is_show`/`sort`，`tags: string[]`。请求体 `AdminServerReq` 中 `type ∈ {shadowsocks,vmess,vless,trojan,hysteria2,tuic}`、`status ∈ {1=正常,2=拥挤,3=维护}`、`config` 为协议私有参数 JSON 字符串。
 - `GET /admin/users` 分页返回 `{list,total,page,page_size}`，`balance`/`commission_balance` 单位为元；`PUT /admin/users/{id}` 请求体 `{role?, banned?}`（`role ∈ {0,1,2}`）；`POST /admin/users/{id}/balance` 请求体 `{amount(元，可正可负), remark?}`。
 - `GET /admin/orders` 分页返回 `{list,total,page,page_size}`，`status ∈ {0=待支付,1=已完成,2=已取消,3=已退款}`，金额单位为元。
+- `GET /admin/coupons` 返回 `{list: AdminCouponView[]}`：展开 `type ∈ {1=固定金额,2=百分比}`、`value`（type=1 为元、type=2 为百分比数值，如 10 表示 10%）、`min_spend` 单位为元、`limit_per_user`/`total_limit`/`used_count`、`valid_periods: string[]`（仅限可用周期）、`plan_ids: number[]`（仅限可用套餐，空=全部）、`started_at`/`ended_at`（null=不限）、`is_enable`、`created_at`。请求体 `AdminCouponReq` 同字段（`valid_periods`/`plan_ids` 传数组）。
+- `GET /admin/notices` 返回 `{list: AdminNoticeItem[]}`（含隐藏，倒序）：`id/title/content/is_show/sort/created_at`。请求体 `AdminNoticeReq`：`title/content` 必填、`is_show?`、`sort?`。
+- `GET /admin/knowledges` 返回 `{list: AdminKnowledgeItem[]}`（含隐藏）：`id/category/title/body/language(zh-CN|en-US)/is_show/sort/updated_at`。请求体 `AdminKnowledgeReq`：`category/title/body` 必填、`language?`（缺省继承原语言，新建默认 zh-CN）、`is_show?`、`sort?`。
+- `GET /admin/agent/applies` 分页返回 `{list,total,page,page_size}`，`status ∈ {0=待审核,1=通过,2=拒绝}`（`-1` 或缺省=全部）；列表项含 `user_email`/`valid_invites`。`POST /admin/agent/applies/{id}/approve|reject` 请求体 `{remark?}`，仅待审核可审（否则 409）。
+- `GET /admin/commission-logs` 分页返回 `{list,total,page,page_size}`，`status ∈ {0=确认中,1=已发放,2=已撤销}`；列表项含 `invite_email`/`from_email`/`order_no`/`order_amount`/`rate`/`amount`（元）/`confirmed_at`/`created_at`。
+- `POST /admin/traffic/import` 请求体 `{items: [{user_id, date(YYYY-MM-DD), u, d}]}`（至少 1 项，流量单位为字节），成功后写审计。
+- `GET /admin/settings` 返回 `{list: [{key, value}]}`，`value` 为配置项 JSON 字符串（`site`/`payment`/`invite`/`agent`/`order`/`templates`）；`PUT /admin/settings` 请求体 `{key, value}`（单 key 保存，写后失效配置缓存）。
 
 ---
 

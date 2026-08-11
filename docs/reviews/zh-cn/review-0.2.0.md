@@ -76,7 +76,7 @@
 - ~~**src/components/business/PlanCard.vue:24-33,46-53 + OrderConfirmModal.vue:43-56** — [P3] `savePercent` 数学与周期标签映射重复（第三份副本在 `utils/format.ts:periodLabel`）；提取共享 composable/util。~~
 - ~~**src/api/plan.ts:5-10** — [P3] `apiPlan.list` 与 `fetch` 重复且返回类型冲突（`Plan[]` vs `PlanListResp`），从未被调用（死代码；存在契约不匹配风险）。~~
 - ~~**src/components/ui/CopyText.vue:38** — [P3] `const shown = computedDisplay()` 在 setup 时只执行一次；按 key 复用的行在 `text` prop 变化后过期。应使用 `computed`。~~
-- ~~**tests/e2e/zz-errfail.spec.ts:1-22** — [P3] 提交了零断言的调试 spec 和 5 秒 sleep，污染 CI 运行（其 `8080` 追踪目标是未 mock 的后端）；`mobile.spec.ts:27` 以未断言的 `isVisible()` 结尾。~~
+- ~~**tests/e2e/zz-errfail.spec.ts:1-22** — [P3] 提交了零断言的调试 spec 和 5 秒 sleep，污染 CI 运行（其 `8081` 追踪目标是未 mock 的后端）；`mobile.spec.ts:27` 以未断言的 `isVisible()` 结尾。~~
 - ~~**src-tauri/tauri.conf.json:46-47** — [P3] Updater 配置为占位（`https://example.com/latest.json`、空 `pubkey`）而 updater 插件未注册——若日后启用会静默失败的死配置。~~
 - ~~**src-tauri/tauri.conf.json:33 + index.html** — [P3] CSP `script-src 'self'` 在 Tauri WebView 内会拦截内联 FOUC 脚本（仅浏览器端受保护）。~~
 - ~~**src/views/admin/AdminUsersView.vue:57-61** — [P3] 管理视图直接调用 `apiAdmin`，绕过文档化的仅-store 分层；`formatTraffic` 用不同舍入重新实现了 `formatBytes`（GB 保留 1 位小数 vs 2 位）。~~

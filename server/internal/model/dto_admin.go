@@ -153,7 +153,45 @@ type AdminCouponReq struct {
 	IsEnable     *bool      `json:"is_enable"`
 }
 
+// AdminCouponView 管理端优惠券视图:展开 type/value/min_spend(元)/used_count/valid_periods/plan_ids。
+type AdminCouponView struct {
+	ID           int64      `json:"id"`
+	Code         string     `json:"code"`
+	Type         int        `json:"type"`
+	Value        float64    `json:"value"`
+	MinSpend     float64    `json:"min_spend"`
+	LimitPerUser int        `json:"limit_per_user"`
+	TotalLimit   int        `json:"total_limit"`
+	UsedCount    int        `json:"used_count"`
+	ValidPeriods []string   `json:"valid_periods"`
+	PlanIDs      []int64    `json:"plan_ids"`
+	StartedAt    *time.Time `json:"started_at"`
+	EndedAt      *time.Time `json:"ended_at"`
+	IsEnable     bool       `json:"is_enable"`
+	CreatedAt    time.Time  `json:"created_at"`
+}
+
 // ---- 管理端 · 内容 ----
+
+type AdminNoticeItem struct {
+	ID        int64     `json:"id"`
+	Title     string    `json:"title"`
+	Content   string    `json:"content"`
+	IsShow    bool      `json:"is_show"`
+	Sort      int       `json:"sort"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type AdminKnowledgeItem struct {
+	ID        int64     `json:"id"`
+	Category  string    `json:"category"`
+	Title     string    `json:"title"`
+	Body      string    `json:"body"`
+	Language  string    `json:"language"`
+	IsShow    bool      `json:"is_show"`
+	Sort      int       `json:"sort"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
 
 type AdminNoticeReq struct {
 	Title   string `json:"title" binding:"required"`

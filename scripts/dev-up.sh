@@ -20,14 +20,14 @@ mkdir -p "$RUN_DIR" "$SERVER/logs"
 say() { printf '\n[%s] %s\n' "$(date +%H:%M:%S)" "$*"; }
 
 # ---------- 0. 端口占用检查 ----------
-if curl -s -o /dev/null http://localhost:8080/healthz 2>/dev/null; then
-  say "后端已在运行(http://localhost:8080),无需重复启动 api/worker。"
+if curl -s -o /dev/null http://localhost:8081/healthz 2>/dev/null; then
+  say "后端已在运行(http://localhost:8081),无需重复启动 api/worker。"
   API_ALREADY=1
 else
   API_ALREADY=0
 fi
-if curl -s -o /dev/null http://localhost:5173/ 2>/dev/null; then
-  say "前端 dev 已在运行(http://localhost:5173),无需重复启动。"
+if curl -s -o /dev/null http://localhost:5174/ 2>/dev/null; then
+  say "前端 dev 已在运行(http://localhost:5174),无需重复启动。"
   VITE_ALREADY=1
 else
   VITE_ALREADY=0
@@ -96,7 +96,7 @@ say "[3/4] 启动后端 api + worker..."
 export APP_DATABASE_DSN="root:${MYSQL_PASS}@tcp(127.0.0.1:3306)/ylink?charset=utf8mb4&parseTime=true&loc=Local"
 export APP_REDIS_ADDR=127.0.0.1:6379
 export APP_REDIS_PASSWORD="$REDIS_PASS"
-export APP_BASE_URL=http://localhost:8080
+export APP_BASE_URL=http://localhost:8081
 export APP_JWT_SECRET="$JWT_SECRET"
 export ADMIN_EMAIL="$ADMIN_EMAIL" ADMIN_PASSWORD="$ADMIN_PASSWORD"
 export DEMO_EMAIL="$DEMO_EMAIL" DEMO_PASSWORD="$DEMO_PASSWORD"
@@ -122,17 +122,17 @@ if [ "$API_ALREADY" = 0 ]; then
     echo $! > "$RUN_DIR/worker.pid"
   )
   for i in $(seq 1 30); do
-    curl -s -o /dev/null http://localhost:8080/healthz 2>/dev/null && break
+    curl -s -o /dev/null http://localhost:8081/healthz 2>/dev/null && break
     [ $i -eq 30 ] && { echo "错误:api 启动超时,查看 $SERVER/logs/api.log"; exit 1; }
     sleep 2
   done
-  echo "  api 就绪(http://localhost:8080),日志:server/logs/api.log"
+  echo "  api 就绪(http://localhost:8081),日志:server/logs/api.log"
 else
   echo "  跳过(已在运行)"
 fi
 
 # ---------- 4. 前端 dev(连真实后端) ----------
-say "[4/4] 启动前端 dev(真实后端,http://localhost:5173)..."
+say "[4/4] 启动前端 dev(真实后端,http://localhost:5174)..."
 if [ "$VITE_ALREADY" = 0 ]; then
   (
     cd "$ROOT"
@@ -140,19 +140,19 @@ if [ "$VITE_ALREADY" = 0 ]; then
     echo $! > "$RUN_DIR/vite.pid"
   )
   for i in $(seq 1 30); do
-    curl -s -o /dev/null http://localhost:5173/ 2>/dev/null && break
+    curl -s -o /dev/null http://localhost:5174/ 2>/dev/null && break
     [ $i -eq 30 ] && { echo "错误:前端启动超时,查看 $RUN_DIR/vite.log"; exit 1; }
     sleep 2
   done
-  echo "  前端就绪(http://localhost:5173),日志:.dev/vite.log"
+  echo "  前端就绪(http://localhost:5174),日志:.dev/vite.log"
 else
   echo "  跳过(已在运行)"
 fi
 
 say "全部就绪 🎉"
 echo "------------------------------------------------------------"
-echo "  前端:      http://localhost:5173"
-echo "  后端 API:  http://localhost:8080  (/healthz /api/v1/config)"
+echo "  前端:      http://localhost:5174"
+echo "  后端 API:  http://localhost:8081  (/healthz /api/v1/config)"
 echo "  演示账号:  demo@test.com / Passw0rd"
 echo "  管理员:    admin@example.com / Admin@123456"
 echo "  停止:      bash scripts/dev-down.sh"

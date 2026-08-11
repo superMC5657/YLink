@@ -2,7 +2,7 @@
 import { mkdirSync } from 'node:fs'
 import { chromium } from 'playwright'
 
-const BASE = 'http://localhost:5173'
+const BASE = 'http://localhost:5174'
 const OUT = '.ui-shots'
 mkdirSync(OUT, { recursive: true })
 

@@ -74,6 +74,13 @@ export const ADMIN_NAV_GROUPS: NavGroup[] = [
       { name: 'nav.adminNodes', path: '/admin/nodes', icon: 'server' },
       { name: 'nav.adminOrders', path: '/admin/orders', icon: 'order' },
       { name: 'nav.adminTickets', path: '/admin/tickets', icon: 'ticket' },
+      { name: 'nav.adminCoupons', path: '/admin/coupons', icon: 'credit' },
+      { name: 'nav.adminNotices', path: '/admin/notices', icon: 'bell' },
+      { name: 'nav.adminKnowledges', path: '/admin/knowledges', icon: 'book' },
+      { name: 'nav.adminAgentApplies', path: '/admin/agent-applies', icon: 'award' },
+      { name: 'nav.adminCommissionLogs', path: '/admin/commission-logs', icon: 'coins' },
+      { name: 'nav.adminTrafficImport', path: '/admin/traffic-import', icon: 'download' },
+      { name: 'nav.adminSettings', path: '/admin/settings', icon: 'globe' },
     ],
   },
 ]

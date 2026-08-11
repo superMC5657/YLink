@@ -32,7 +32,7 @@ export const createOrder = (body: CreateOrderReq) => http.post<CreateOrderResp>(
 |---|---|---|
 | `useAuthStore` | access_token、refresh_token、登录/登出/刷新动作 | 是 |
 | `useUserStore` | 用户信息、余额、佣金、通知开关 | 否（进入主布局时拉取） |
-| `useConfigStore` | 站点配置（站点名、TG 链接、客服地址、注册开关、代理政策文案） | 是（24h 缓存） |
+| `useConfigStore` | 站点配置（站点名、TG 链接、客服地址、注册开关、代理政策文案） | 是（60s 缓存） |
 | `useSubscribeStore` | 当前订阅、流量统计、订阅链接 | 否（窗口聚焦刷新） |
 | `useNoticeStore` | 公告列表、分页 | 否 |
 | `usePlanStore` | 套餐列表 | 会话级缓存 |
@@ -108,7 +108,7 @@ export const createOrder = (body: CreateOrderReq) => http.post<CreateOrderResp>(
 
 | 数据 | 策略 |
 |---|---|
-| 站点配置 | 启动拉取 + 24h 本地缓存，设置页可手动刷新 |
+| 站点配置 | 启动拉取 + 60s 本地缓存(与后端 Redis 60s 缓存对齐,代理政策/注册开关/支付方式等运营改动 ≤60s 反映);申请代理页进页强制刷新 |
 | 仪表板统计/订阅信息 | 进入页面拉取；窗口/标签页重新聚焦时静默刷新 |
 | 公告/文档/套餐 | 进入页面拉取，会话内缓存，手动下拉刷新失效重拉 |
 | 订单列表 | 每次进入拉取；存在待支付订单时 5s 轮询 |

@@ -6,7 +6,7 @@
 app:
   name: ylink-api
   env: production            # development / production
-  addr: ":8080"
+  addr: ":8081"
   base_url: "https://api.example.com"   # 用于拼接订阅链接/支付回调地址
 
 database:
@@ -63,7 +63,7 @@ RUN apk add --no-cache ca-certificates tzdata
 WORKDIR /app
 COPY --from=build /app/bin/ /app/bin/
 COPY configs/config.yaml /app/configs/
-EXPOSE 8080
+EXPOSE 8081
 ENTRYPOINT ["/app/bin/server"]   # worker 容器覆盖为 /app/bin/worker
 ```
 
@@ -86,7 +86,7 @@ services:
     build: ..
     env_file: .env
     depends_on: [mysql, redis]
-    ports: ["127.0.0.1:8080:8080"]     # 只对本机暴露，由 Caddy 反代
+    ports: ["127.0.0.1:8081:8081"]     # 只对本机暴露，由 Caddy 反代
 
   worker:
     build: ..
@@ -102,7 +102,7 @@ services:
 volumes: { mysql_data: {}, redis_data: {}, caddy_data: {} }
 ```
 
-Caddyfile：`api.example.com { reverse_proxy api:8080 }`（自动 HTTPS）。Web 版前端静态资源可同机 Caddy 托管或独立 CDN。
+Caddyfile：`api.example.com { reverse_proxy api:8081 }`（自动 HTTPS）。Web 版前端静态资源可同机 Caddy 托管或独立 CDN。
 
 ## 4. 上线步骤
 

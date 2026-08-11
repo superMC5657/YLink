@@ -391,6 +391,22 @@ func (h *Admin) DeleteCoupon(c *gin.Context) {
 
 // ---- 内容 ----
 
+// ListNotices 公告列表（含隐藏）
+// @Summary 公告列表
+// @Tags 管理端
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} resp.Body{data=[]model.AdminNoticeItem}
+// @Router /admin/notices [get]
+func (h *Admin) ListNotices(c *gin.Context) {
+	data, err := h.svc.ListAllNotices(c.Request.Context())
+	if err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.OK(c, gin.H{"list": data})
+}
+
 func (h *Admin) CreateNotice(c *gin.Context) {
 	var req model.AdminNoticeReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -432,6 +448,22 @@ func (h *Admin) DeleteNotice(c *gin.Context) {
 		return
 	}
 	resp.OK(c, nil)
+}
+
+// ListKnowledges 知识库列表（含隐藏）
+// @Summary 知识库列表
+// @Tags 管理端
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} resp.Body{data=[]model.AdminKnowledgeItem}
+// @Router /admin/knowledges [get]
+func (h *Admin) ListKnowledges(c *gin.Context) {
+	data, err := h.svc.ListAllKnowledges(c.Request.Context())
+	if err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.OK(c, gin.H{"list": data})
 }
 
 func (h *Admin) CreateKnowledge(c *gin.Context) {

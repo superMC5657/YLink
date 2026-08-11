@@ -148,3 +148,82 @@ func TestAdminReviewAgentApprove(t *testing.T) {
 	err := svc.ReviewAgentApply(context.Background(), 1, 3, true, "", "127.0.0.1")
 	require.NoError(t, err)
 }
+
+func TestAdminListCoupons(t *testing.T) {
+	e := newTestEnv(t)
+	repos := &repo.Repos{}
+	set := NewSettingService(e.db, e.rdb, repos)
+	svc := NewAdminService(e.db, e.rdb, repos, nil, set)
+
+	now := time.Now()
+	validPeriods := `["month","year"]`
+	planIDs := `[1,2]`
+	cp := &model.Coupon{
+		ID: 1, Code: "WELCOME10", Type: 2, Value: 1000, MinSpend: 0,
+		LimitPerUser: 1, TotalLimit: 100, UsedCount: 3,
+		ValidPeriods: &validPeriods, PlanIDs: &planIDs,
+		IsEnable: true, CreatedAt: now, UpdatedAt: now,
+	}
+	rows := sqlmock.NewRows([]string{
+		"id", "code", "type", "value", "min_spend", "limit_per_user", "total_limit", "used_count",
+		"valid_periods", "plan_ids", "started_at", "ended_at", "is_enable", "created_at", "updated_at",
+	}).AddRow(cp.ID, cp.Code, cp.Type, cp.Value, cp.MinSpend, cp.LimitPerUser, cp.TotalLimit, cp.UsedCount,
+		cp.ValidPeriods, cp.PlanIDs, nil, nil, cp.IsEnable, now, now)
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `coupons`")).WillReturnRows(rows)
+
+	out, err := svc.ListAllCoupons(context.Background())
+	require.NoError(t, err)
+	require.Len(t, out, 1)
+	assert.Equal(t, "WELCOME10", out[0].Code)
+	assert.Equal(t, 2, out[0].Type)
+	assert.Equal(t, 10.00, out[0].Value) // 1000 分 → 10 元
+	assert.Equal(t, 0.00, out[0].MinSpend)
+	assert.Equal(t, 3, out[0].UsedCount)
+	assert.Equal(t, []string{"month", "year"}, out[0].ValidPeriods)
+	assert.Equal(t, []int64{1, 2}, out[0].PlanIDs)
+	assert.True(t, out[0].IsEnable)
+}
+
+func TestAdminListNotices(t *testing.T) {
+	e := newTestEnv(t)
+	repos := &repo.Repos{}
+	set := NewSettingService(e.db, e.rdb, repos)
+	svc := NewAdminService(e.db, e.rdb, repos, nil, set)
+
+	now := time.Now()
+	n := &model.Notice{ID: 1, Title: "维护公告", Content: "正文", IsShow: false, Sort: 2, CreatedAt: now}
+	rows := sqlmock.NewRows([]string{"id", "title", "content", "is_show", "sort", "created_at", "updated_at"}).
+		AddRow(n.ID, n.Title, n.Content, n.IsShow, n.Sort, now, now)
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `notices`")).WillReturnRows(rows)
+
+	out, err := svc.ListAllNotices(context.Background())
+	require.NoError(t, err)
+	require.Len(t, out, 1)
+	assert.Equal(t, "维护公告", out[0].Title)
+	assert.False(t, out[0].IsShow) // 含隐藏项
+	assert.Equal(t, 2, out[0].Sort)
+}
+
+func TestAdminListKnowledges(t *testing.T) {
+	e := newTestEnv(t)
+	repos := &repo.Repos{}
+	set := NewSettingService(e.db, e.rdb, repos)
+	svc := NewAdminService(e.db, e.rdb, repos, nil, set)
+
+	now := time.Now()
+	k := &model.Knowledge{
+		ID: 1, Category: "入门指南", Title: "如何导入", Body: "正文",
+		Language: "zh-CN", IsShow: true, Sort: 1, UpdatedAt: now,
+	}
+	rows := sqlmock.NewRows([]string{
+		"id", "category", "title", "body", "language", "is_show", "sort", "created_at", "updated_at",
+	}).AddRow(k.ID, k.Category, k.Title, k.Body, k.Language, k.IsShow, k.Sort, now, now)
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `knowledges`")).WillReturnRows(rows)
+
+	out, err := svc.ListAllKnowledges(context.Background())
+	require.NoError(t, err)
+	require.Len(t, out, 1)
+	assert.Equal(t, "入门指南", out[0].Category)
+	assert.Equal(t, "zh-CN", out[0].Language)
+	assert.True(t, out[0].IsShow)
+}

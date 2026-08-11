@@ -238,10 +238,29 @@ func srvFromReq(req *model.AdminServerReq) *model.Server {
 
 // ---- 管理端 · 优惠券 CRUD ----
 
-func (s *AdminService) ListAllCoupons(ctx context.Context) ([]model.Coupon, error) {
+func (s *AdminService) ListAllCoupons(ctx context.Context) ([]model.AdminCouponView, error) {
 	var list []model.Coupon
-	err := s.db.Order("id DESC").Find(&list).Error
-	return list, err
+	if err := s.db.Order("id DESC").Find(&list).Error; err != nil {
+		return nil, err
+	}
+	out := make([]model.AdminCouponView, 0, len(list))
+	for _, c := range list {
+		v := model.AdminCouponView{
+			ID: c.ID, Code: c.Code, Type: c.Type,
+			Value: model.FenToYuan(c.Value), MinSpend: model.FenToYuan(c.MinSpend),
+			LimitPerUser: c.LimitPerUser, TotalLimit: c.TotalLimit, UsedCount: c.UsedCount,
+			StartedAt: c.StartedAt, EndedAt: c.EndedAt, IsEnable: c.IsEnable, CreatedAt: c.CreatedAt,
+			ValidPeriods: []string{}, PlanIDs: []int64{},
+		}
+		if c.ValidPeriods != nil {
+			_ = json.Unmarshal([]byte(*c.ValidPeriods), &v.ValidPeriods)
+		}
+		if c.PlanIDs != nil {
+			_ = json.Unmarshal([]byte(*c.PlanIDs), &v.PlanIDs)
+		}
+		out = append(out, v)
+	}
+	return out, nil
 }
 
 func (s *AdminService) CreateCoupon(ctx context.Context, req *model.AdminCouponReq) (*model.Coupon, error) {
@@ -382,4 +401,35 @@ func (s *AdminService) UpdateKnowledge(ctx context.Context, id int64, req *model
 
 func (s *AdminService) DeleteKnowledge(ctx context.Context, id int64) error {
 	return s.repos.Knowledge.Delete(s.db, id)
+}
+
+// ListAllNotices GET /admin/notices（含隐藏,创建时间倒序）。
+func (s *AdminService) ListAllNotices(ctx context.Context) ([]model.AdminNoticeItem, error) {
+	var list []model.Notice
+	if err := s.db.Order("id DESC").Find(&list).Error; err != nil {
+		return nil, err
+	}
+	out := make([]model.AdminNoticeItem, 0, len(list))
+	for _, n := range list {
+		out = append(out, model.AdminNoticeItem{
+			ID: n.ID, Title: n.Title, Content: n.Content, IsShow: n.IsShow, Sort: n.Sort, CreatedAt: n.CreatedAt,
+		})
+	}
+	return out, nil
+}
+
+// ListAllKnowledges GET /admin/knowledges（含隐藏）。
+func (s *AdminService) ListAllKnowledges(ctx context.Context) ([]model.AdminKnowledgeItem, error) {
+	var list []model.Knowledge
+	if err := s.db.Order("id DESC").Find(&list).Error; err != nil {
+		return nil, err
+	}
+	out := make([]model.AdminKnowledgeItem, 0, len(list))
+	for _, k := range list {
+		out = append(out, model.AdminKnowledgeItem{
+			ID: k.ID, Category: k.Category, Title: k.Title, Body: k.Body,
+			Language: k.Language, IsShow: k.IsShow, Sort: k.Sort, UpdatedAt: k.UpdatedAt,
+		})
+	}
+	return out, nil
 }

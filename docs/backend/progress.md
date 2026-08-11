@@ -123,8 +123,8 @@
 | `GET /admin/users`、`PUT /admin/users/{id}`、`POST /admin/users/{id}/balance` | 列表/封禁与角色(禁止操作自己)/调余额(审计) |
 | `GET/POST/PUT/DELETE /admin/plans`、`/admin/servers`、`/admin/server-groups` | 套餐与节点 CRUD(写入侧 XSS 清洗;响应经 `AdminPlanView`/`AdminServerView` DTO,价格统一为元并展开 group_ids/is_show/host/port/config) |
 | `GET /admin/orders`、`POST /admin/orders/{no}/refund` | 订单列表;退款(余额退回+优惠券回退+佣金回滚+审计,行锁) |
-| `GET/POST/PUT/DELETE /admin/coupons` | 优惠券 CRUD |
-| `POST/PUT/DELETE /admin/notices`、`/admin/knowledges` | 公告/知识库 CRUD(bluemonday 清洗) |
+| `GET/POST/PUT/DELETE /admin/coupons` | 优惠券 CRUD(列表返回 `AdminCouponView`:展开 type/value(元)/min_spend(元)/used_count/valid_periods/plan_ids,见 dto_admin.go) |
+| `GET/POST/PUT/DELETE /admin/notices`、`/admin/knowledges` | 公告/知识库 CRUD(bluemonday 清洗;**GET 列表含隐藏**,2026-08-11 补齐) |
 | `GET /admin/tickets`、`GET /admin/tickets/{id}`、`POST /admin/tickets/{id}/reply|close` | 工单管理(客服回复→已回复) |
 | `GET /admin/agent/applies`、`POST /admin/agent/applies/{id}/approve|reject` | 代理审批(行锁防并发;通过→role=2,审计) |
 | `GET /admin/commission-logs` | 佣金日志(含用户邮箱) |

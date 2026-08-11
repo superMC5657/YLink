@@ -8,7 +8,7 @@ interface ConfigState {
   loadedAt: number
 }
 
-const CACHE_TTL = 24 * 60 * 60 * 1000 // 24h 缓存
+const CACHE_TTL = 60 * 1000 // 60s:站点配置含运营可调项(代理政策/注册开关/支付方式),需及时反映管理后台改动;与后端 Redis 60s 缓存对齐
 /** 缓存版本:站点品牌/配置结构变更时 +1,旧缓存立即失效(如品牌更名后用户仍读到旧 site_name) */
 const CACHE_VERSION = 2
 
@@ -30,7 +30,7 @@ export const useConfigStore = defineStore('config', {
     inviteCodeRequired: (s) => s.config?.invite_code_required ?? false,
   },
   actions: {
-    /** 启动拉取,带 24h 本地缓存;force=true 强制刷新 */
+    /** 启动拉取,带 60s 本地缓存;force=true 强制刷新(政策/开关类展示页用) */
     async fetchConfig(force = false) {
       const cached = getItem<ConfigCache>('configCache')
       if (!force && cached?.config && cached.version === CACHE_VERSION && Date.now() - cached.loadedAt < CACHE_TTL) {

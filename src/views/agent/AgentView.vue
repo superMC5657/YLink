@@ -44,7 +44,8 @@ async function onApply() {
 
 onMounted(() => {
   void agent.fetchStatus()
-  void config.fetchConfig()
+  // 政策文案(特权/注意事项)来自站点配置,进页强制刷新以反映管理后台最新改动
+  void config.fetchConfig(true)
 })
 </script>
 

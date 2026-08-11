@@ -50,6 +50,5 @@ test-results/
 
 # 开发迭代
 .ui-shots
-mock
 tmp
 template_images

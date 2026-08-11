@@ -4,7 +4,7 @@
  */
 import { chromium } from 'playwright'
 
-const BASE = 'http://localhost:5173'
+const BASE = 'http://localhost:5174'
 const ROUTES = ['/#/dashboard', '/#/plans', '/#/orders', '/#/invite', '/#/agent', '/#/nodes', '/#/profile', '/#/tickets', '/#/traffic', '/#/docs']
 
 const browser = await chromium.launch({ channel: 'chrome' })

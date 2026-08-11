@@ -26,7 +26,7 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
       },
     },
     server: {
-      port: 5173,
+      port: 5174,
       host: true,
     },
     build: {

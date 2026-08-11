@@ -149,6 +149,48 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/admin/AdminTicketsView.vue'),
         meta: { admin: true, title: 'admin.tickets' },
       },
+      {
+        path: 'admin/coupons',
+        name: 'admin-coupons',
+        component: () => import('@/views/admin/AdminCouponsView.vue'),
+        meta: { admin: true, title: 'admin.coupons' },
+      },
+      {
+        path: 'admin/notices',
+        name: 'admin-notices',
+        component: () => import('@/views/admin/AdminNoticesView.vue'),
+        meta: { admin: true, title: 'admin.notices' },
+      },
+      {
+        path: 'admin/knowledges',
+        name: 'admin-knowledges',
+        component: () => import('@/views/admin/AdminKnowledgesView.vue'),
+        meta: { admin: true, title: 'admin.knowledges' },
+      },
+      {
+        path: 'admin/agent-applies',
+        name: 'admin-agent-applies',
+        component: () => import('@/views/admin/AdminAgentAppliesView.vue'),
+        meta: { admin: true, title: 'admin.agentApplies' },
+      },
+      {
+        path: 'admin/commission-logs',
+        name: 'admin-commission-logs',
+        component: () => import('@/views/admin/AdminCommissionLogsView.vue'),
+        meta: { admin: true, title: 'admin.commissionLogs' },
+      },
+      {
+        path: 'admin/traffic-import',
+        name: 'admin-traffic-import',
+        component: () => import('@/views/admin/AdminTrafficImportView.vue'),
+        meta: { admin: true, title: 'admin.trafficImport' },
+      },
+      {
+        path: 'admin/settings',
+        name: 'admin-settings',
+        component: () => import('@/views/admin/AdminSettingsView.vue'),
+        meta: { admin: true, title: 'admin.settings' },
+      },
     ],
   },
   {

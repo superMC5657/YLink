@@ -24,7 +24,7 @@ src-tauri/
 |---|---|---|
 | `productName` / `identifier` | 站点名 / `com.ylink.app` | identifier 全局唯一 |
 | `app.windows[0]` | 1280×800，min 1024×680，title 跟随站点名 | 保留系统原生标题栏 |
-| `beforeDevCommand` / `devUrl` | `pnpm dev` / `http://localhost:5173` | 开发联动 |
+| `beforeDevCommand` / `devUrl` | `pnpm dev` / `http://localhost:5174` | 开发联动 |
 | `beforeBuildCommand` / `frontendDist` | `pnpm build` / `../dist` | 打包联动 |
 | `app.security.csp` | `default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'` | 接口走 http 插件，无需放宽 connect-src |
 | `bundle.targets` | `nsis`（Win）/ `dmg`（macOS）/ `appimage, deb`（Linux） | —（tauri.conf.json 当前为 `"targets": "all"`，含移动端，实际打包按需指定） |

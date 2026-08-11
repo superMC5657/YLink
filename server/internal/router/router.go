@@ -209,9 +209,11 @@ func registerAdmin(g *gin.RouterGroup, d Deps, a *app) {
 	admin.PUT("/coupons/:id", a.adminH.UpdateCoupon)
 	admin.DELETE("/coupons/:id", a.adminH.DeleteCoupon)
 	// 内容
+	admin.GET("/notices", a.adminH.ListNotices)
 	admin.POST("/notices", a.adminH.CreateNotice)
 	admin.PUT("/notices/:id", a.adminH.UpdateNotice)
 	admin.DELETE("/notices/:id", a.adminH.DeleteNotice)
+	admin.GET("/knowledges", a.adminH.ListKnowledges)
 	admin.POST("/knowledges", a.adminH.CreateKnowledge)
 	admin.PUT("/knowledges/:id", a.adminH.UpdateKnowledge)
 	admin.DELETE("/knowledges/:id", a.adminH.DeleteKnowledge)

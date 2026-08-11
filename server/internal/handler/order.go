@@ -60,6 +60,25 @@ func (h *Order) CouponCheck(c *gin.Context) {
 	resp.OK(c, data)
 }
 
+// CouponsAvailable 可用优惠券列表（用户端可见）
+// @Summary 可用优惠券列表
+// @Tags 交易
+// @Security BearerAuth
+// @Produce json
+// @Param plan_id query int false "套餐 ID（可选过滤）"
+// @Param period query string false "周期（可选过滤）"
+// @Success 200 {object} resp.Body{data=model.CouponAvailableResp}
+// @Router /coupons/available [get]
+func (h *Order) CouponsAvailable(c *gin.Context) {
+	planID, _ := strconv.ParseInt(c.Query("plan_id"), 10, 64)
+	list, err := h.svc.AvailableCoupons(c.Request.Context(), middleware.UserID(c), planID, c.Query("period"))
+	if err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.OK(c, gin.H{"list": list})
+}
+
 // Create 创建订单（支持 Idempotency-Key）
 // @Summary 创建订单
 // @Tags 交易

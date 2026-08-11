@@ -543,7 +543,7 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 
 ## 16. 管理端 API 附录（`/api/v1/admin`，role=admin）
 
-用户端 App 不调用；供管理后台使用（前端 M8 已实现核心 5 模块）。响应走统一信封。
+用户端 App 不调用；供管理后台使用（前端 M8 已实现核心 6 模块：总览/用户/套餐/节点/订单/工单）。响应走统一信封。
 
 | 模块 | 端点 |
 |---|---|
@@ -553,8 +553,8 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 | 节点 | `GET/POST/PUT/DELETE /admin/servers`、`/admin/server-groups` |
 | 订单 | `GET /admin/orders`、`POST /admin/orders/{no}/refund`（审计 + 佣金回滚）、`POST /admin/orders/{no}/close`（关闭待支付订单，审计） |
 | 优惠券 | `GET/POST/PUT/DELETE /admin/coupons` |
-| 内容 | `GET/POST/PUT/DELETE /admin/notices`、`/admin/knowledges` |
-| 工单 | `GET /admin/tickets`、`POST /admin/tickets/{id}/reply`、`/close` |
+| 内容 | `POST/PUT/DELETE /admin/notices`、`/admin/knowledges`（GET 列表未实现，见 backend progress §2） |
+| 工单 | `GET /admin/tickets`、`GET /admin/tickets/{id}`、`POST /admin/tickets/{id}/reply`、`/close` |
 | 代理 | `GET /admin/agent/applies`、`POST /admin/agent/applies/{id}/approve|reject` |
 | 佣金 | `GET /admin/commission-logs` |
 | 流量 | `POST /admin/traffic/import`（一期模式 B 手工导入） |

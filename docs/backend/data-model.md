@@ -27,7 +27,7 @@ erDiagram
 |---|---|---|
 | id | BIGINT PK AI | — |
 | email | VARCHAR(190) UNIQUE NOT NULL | 登录账号 |
-| password_hash | VARCHAR(255) NOT NULL | Argon2id/bcrypt |
+| password_hash | VARCHAR(255) NOT NULL | bcrypt cost=12（`internal/pkg/passwd`） |
 | role | TINYINT NOT NULL DEFAULT 0 | 0=用户 1=管理员 2=代理商 |
 | balance | BIGINT NOT NULL DEFAULT 0 | 钱包余额（分） |
 | commission_balance | BIGINT NOT NULL DEFAULT 0 | 可划转佣金（分） |

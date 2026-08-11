@@ -128,7 +128,7 @@ Caddyfile：`api.example.com { reverse_proxy api:8080 }`（自动 HTTPS）。Web
 
 ## 7. 发布与回滚
 
-- CI 构建镜像打 `git sha` 与 `latest` 双标签；发布 = 更新 compose 镜像 tag + `up -d`（滚动期间短暂 502 由 Caddy 重试掩盖，或双实例蓝绿，二期）。
+- CI 构建镜像打 `git sha` 与 `latest` 双标签；发布 = 更新 compose 镜像 tag + `up -d`（滚动期间短暂 502 由 Caddy 重试掩盖，或双实例蓝绿，二期；⚠ 后端 CI 当前未接入 GitHub Actions，见 progress.md §2）。
 - 数据库迁移只向前兼容（新增列可空、不删旧列），保证回滚旧版本仍可运行；破坏性变更分两次发布（先加后删）。
 - 回滚：切回上一镜像 tag；若已执行不兼容迁移，用对应 `.down.sql` 回退（迁移设计时保证 down 可用）。
 

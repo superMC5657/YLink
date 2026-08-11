@@ -21,11 +21,18 @@
 | `/tickets` | 我的工单 | MainLayout | 登录 | 底栏 Tab 3 |
 | `/tickets/:id` | 工单详情 | MainLayout | 登录 | — |
 | `/traffic` | 流量明细 | MainLayout | 登录 | 抽屉-用户 |
+| `/admin/overview` | 管理后台·总览 | MainLayout | 管理员(role=1) | 侧边栏-管理后台 |
+| `/admin/users` | 管理后台·用户 | MainLayout | 管理员 | 侧边栏-管理后台 |
+| `/admin/plans` | 管理后台·套餐 | MainLayout | 管理员 | 侧边栏-管理后台 |
+| `/admin/nodes` | 管理后台·节点 | MainLayout | 管理员 | 侧边栏-管理后台 |
+| `/admin/orders` | 管理后台·订单 | MainLayout | 管理员 | 侧边栏-管理后台 |
+| `/admin/tickets` | 管理后台·工单 | MainLayout | 管理员 | 侧边栏-管理后台 |
 | `/:pathMatch(.*)*` | 404 | MainLayout | — | — |
 
 守卫规则：
 - `meta.guest` 页面：已登录访问直接重定向 `/dashboard`。
 - 其余页面：未登录跳转 `/login?redirect=<原路径>`，登录成功后回跳。
+- `meta.admin` 页面：非管理员（role≠1）访问重定向 `/dashboard`（见 [progress.md](progress.md) M8）。
 - Token 过期由 http 层静默刷新；刷新失败才清会话跳登录（见 [data-layer.md](data-layer.md)）。
 
 ## 2. 布局
@@ -173,6 +180,16 @@ DashboardPage
 ### 3.13 404 与全局异常
 
 - 404 页：插画 + 返回首页按钮；接口异常统一 toast；网络断开顶部横幅提示（`navigator.onLine` 监听），恢复自动重试关键数据。
+
+### 3.14 管理后台 `/admin/*`（M8，role=1）
+
+- 总览 `/admin/overview`：7 项运营统计卡（用户/代理/订单/收入/在售套餐）+ 快捷入口。
+- 用户 `/admin/users`：搜索/分页、封禁/角色调整、调余额（均写审计）。
+- 套餐 `/admin/plans`：CRUD（周期定价元/流量/设备/限速/节点分组/上架/排序）。
+- 节点 `/admin/nodes`：分组 CRUD + 节点 CRUD（6 协议/地址/配置 JSON/倍率/状态/标签）。
+- 订单 `/admin/orders`：状态筛选/分页、退款（余额退回+佣金回滚）、关闭待支付订单。
+- 工单 `/admin/tickets`：列表/详情、客服回复、关闭。
+- 数据来源：`api/admin.ts` 封装已实现 6 模块端点（总览/用户/套餐/节点/订单/工单，契约第 16 节）；优惠券/公告/知识库/代理审批/佣金/流量导入/站点设置 7 组端点未封装（见 progress.md §2 待办）；管理后台视图直调 `apiAdmin` 不经 store（文档化例外，见 data-layer.md §2）。
 
 ## 4. 弹窗与全局组件清单
 

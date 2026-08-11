@@ -14,7 +14,7 @@
 |---|---|---|
 | 工程初始化 | Vue 3.5 + TS + Vite 6 + pnpm,`<script setup>`;Node ≥ 20 | `package.json`、`vite.config.ts`、`tsconfig.json` |
 | 原子化 CSS | UnoCSS(presetUno / presetAttributify / presetIcons / transformerDirectives),自定义 shortcuts(`btn-primary`/`btn-olive`/`card-base` 等) | `uno.config.ts` |
-| 路由 | Vue Router 4 hash 模式,16 条路由(guest/登录双守卫 + 页面标题) | `src/router/index.ts`、`guards.ts`、`nav.ts` |
+| 路由 | Vue Router 4 hash 模式,22 条路由(16 用户端 + 6 管理端,guest/登录双守卫 + 页面标题) | `src/router/index.ts`、`guards.ts`、`nav.ts` |
 | 状态管理 | Pinia + persistedstate,12 个业务 store | `src/stores/*` |
 | 国际化 | vue-i18n@11,zh-CN / en-US 按模块命名空间,`Accept-Language` 联动 | `src/locales/*` |
 | 环境变量 | `VITE_API_BASE_URL` / `VITE_USE_MOCK` / `VITE_APP_NAME`,运行时后端地址可改并持久化 | `.env.development`、`.env.production`、`utils/storage.ts` |
@@ -102,8 +102,8 @@
 |---|---|---|
 | ESLint 9 flat config | js + typescript-eslint + eslint-plugin-vue(flat/recommended)+ eslint-config-prettier,0 error 0 warning | `eslint.config.ts` |
 | Prettier 3 | 全仓格式化 + format:check | `.prettierrc.json`、`.prettierignore` |
-| Vitest 单测 | jsdom,29 用例(格式化/http 401 刷新重放/invite store/倒计时),v8 覆盖率 | `vitest.config.ts`、`src/**/__tests__/*` |
-| Playwright E2E | 正式套件 30 用例(桌面 + 移动双 project、webServer 自动起 Mock),替代原冒烟脚本 | `playwright.config.ts`、`tests/e2e/*` |
+| Vitest 单测 | jsdom,31 用例(格式化/http 401 刷新重放/invite store/倒计时等),v8 覆盖率 | `vitest.config.ts`、`src/**/__tests__/*` |
+| Playwright E2E | 正式套件 42 例(21 用例 × 桌面/移动双 project、webServer 自动起 Mock),替代原冒烟脚本 | `playwright.config.ts`、`tests/e2e/*` |
 | CI | PR/push 双 job:quality(lint→typecheck→format:check→test→build)+ e2e(失败上传报告) | `.github/workflows/ci.yml` |
 | i18n 懒加载 | 语言包按需动态 import,useLocale 统一切换 | `src/locales/index.ts`、`src/composables/useLocale.ts` |
 | 注册页强制邀请码 | 站点 `invite_code_required=true` 时校验必填 | `src/views/auth/RegisterView.vue` |
@@ -114,21 +114,21 @@
 | 项 | 说明 | 位置 |
 |---|---|---|
 | 角色区分基建 | auth store `isAdmin` getter;路由 meta `admin` 标志 + 守卫(非管理员访问 `/admin/*` 重定向 `/dashboard`);侧边栏/移动端抽屉按角色追加「管理后台」分组;顶栏用户下拉管理员增加「管理后台」入口 | `src/stores/auth.ts`、`src/router/*`、`components/app/*` |
-| 管理端契约 | `src/api/admin.ts` 封装管理端全量端点;类型对齐后端 DTO(价格统一为元) | `src/api/admin.ts`、`src/types/api.d.ts` |
+| 管理端契约 | `src/api/admin.ts` 封装已实现 6 模块端点(总览/用户/套餐/节点/订单/工单);类型对齐后端 DTO(价格统一为元);剩余 7 组端点(优惠券/公告/知识库/代理审批/佣金/流量导入/站点设置)未封装,见第 2 节 | `src/api/admin.ts`、`src/types/api.d.ts` |
 | 总览 | 7 项运营统计卡 + 快捷入口 | `views/admin/AdminOverviewView.vue` |
 | 用户管理 | 搜索/分页/封禁/角色调整/调余额(均写审计) | `views/admin/AdminUsersView.vue` |
 | 套餐管理 | CRUD:周期定价(元)/流量/设备/限速/节点分组/上架/排序 | `views/admin/AdminPlansView.vue` |
 | 节点管理 | 分组 CRUD + 节点 CRUD(6 协议/地址/配置 JSON/倍率/状态/标签) | `views/admin/AdminNodesView.vue` |
 | 订单管理 | 状态筛选/分页/退款(余额退回+佣金回滚) | `views/admin/AdminOrdersView.vue` |
 | 工单管理 | 列表/详情/客服回复/关闭 | `views/admin/AdminTicketsView.vue` |
-| Mock + E2E | `mock/admin.ts` 管理端 Mock;`tests/e2e/admin.spec.ts` 角色区分 5 用例 × 双 project(管理员可见入口/普通用户不可见且访问被重定向) | `mock/*`、`tests/e2e/*` |
+| Mock + E2E | `mock/admin.ts` 管理端 Mock;`tests/e2e/admin.spec.ts` 角色区分 6 用例 × 双 project(管理员可见入口/普通用户不可见且访问被重定向) | `mock/*`、`tests/e2e/*` |
 
 ### 验证状态(✅,2026-08-10 全量实测)
 
 - `pnpm typecheck`(vue-tsc --noEmit)零错误
 - `pnpm build`(vue-tsc + vite build)成功,主包 gzip ≈ 253.3KB
 - `pnpm lint` 0 error 0 warning;`pnpm test` **31/31 通过**(此前文档记 29,系后续新增用例未同步)
-- `pnpm e2e`(Playwright)**40 例通过**:登录 → 仪表板 → 套餐 → 下单(余额支付)→ 订单 → 8 页面可达性 → 暗色切换 → 移动端底栏导航 + **管理后台角色区分 10 例**(调试残留 `zz-errfail.spec.ts` 已移除)
+- `pnpm e2e`(Playwright)**42 例通过**(2026-08-11 `--list` 复核:21 用例 × 双 project):登录 → 仪表板 → 套餐 → 下单(余额支付)→ 订单 → 7 页面可达性 → 暗色切换 → 移动端底栏导航 + **管理后台角色区分 12 例**(6 用例 × 双 project;调试残留 `zz-errfail.spec.ts` 已移除)
 - `cargo check`(src-tauri)通过
 
 ### 全量审查修复(✅ 2026-08-11)
@@ -162,8 +162,8 @@
 | 插件接入(Rust) | ✅ http / store / clipboard / opener / single-instance / autostart / notification / process / window-state / os | capabilities 最小授权;http scope 限 `https://**` + localhost |
 | 平台适配层(前端) | ✅ `utils/platform.ts` 启用 Tauri 分支(clipboard/opener/deep-link 动态 import);`utils/http.ts` 走 plugin-http 原生 fetch;`stores/app.ts` applyTheme 同步窗口标题栏;`main.ts` 深链接路由跳转 | Web 端自动降级不受影响 |
 | 托盘/单实例 | ✅ 托盘菜单(显示主窗口/退出)+ single-instance 聚焦已有窗口 | lib.rs setup |
-| deep-link 注册 | ✅ `tauri-plugin-deep-link` 已注册(Rust `#[cfg(desktop)]` init)+ capabilities `deep-link:default`;前端 onDeepLink 路由跳转 | Release 域名与 `ylink://` 协议注册见 desktop-tauri.md §3/§4 |
-| 自动更新 | ⚠️ tauri.conf.json 有 updater 配置(空 pubkey/示例端点),Rust 与前端未接入 | 需 `tauri signer generate` + Release 流水线(desktop-tauri.md §5) |
+| deep-link 注册 | ✅ 插件已注册(Rust `#[cfg(desktop)]` init)+ capabilities `deep-link:default`;前端 `onDeepLink` 路由跳转已就绪(main.ts) | ⚠️ Rust 单实例尚未转发 argv/深链 URL,端到端未验证;Release 域名与 `ylink://` 注册见 desktop-tauri.md §3/§4/§5 |
+| 自动更新 | ⚠️ 未接入:Rust 未注册 updater、`tauri.conf.json` 无 updater 配置、前端无更新卡片 | 需 `tauri signer generate` + Release 流水线(desktop-tauri.md §5 待办) |
 | 通知触发点 | ⚠️ 插件已注册,前端未实现到期/工单回复/支付成功本地通知 | 依赖轮询钩子(可后补) |
 | 三平台打包与 updater 签名 | ❌ 未配置 | 需 GitHub Actions Release + `TAURI_SIGNING_PRIVATE_KEY` |
 | 存储适配 | ⚠️ 一期统一 localStorage(WebView 持久化);plugin-store(JSON 文件)异步 API 与 persistedstate 同步接口冲突,迁移需异步化改造 | 见 storage.ts 注释 |
@@ -184,7 +184,17 @@
 |---|---|---|
 | 管理后台(二期剩余模块) | **核心 6 模块已实现**(总览/用户/套餐/节点/订单/工单,见第 1 节 M8);剩余:优惠券/公告/知识库/代理审批/佣金日志/流量导入/站点设置 | 后端 13 组 admin API 已全量就绪;契约见 [docs/api/README.md](../api/README.md) 第 16 节 |
 | 移动端深链/分享面板 | 未做 | 需 Tauri Mobile 评估(desktop-tauri.md §9) |
-| 更新卡片 UI | 未做 | 依赖 M6 updater 插件 |
+| 更新卡片 UI | 未做 | 依赖 M6 updater 插件(尚未接入 Rust/前端,见 desktop-tauri.md §5 待办) |
+
+### 工程化与待办(2026-08-11 核对)
+
+| 项 | 状态 | 说明 |
+|---|---|---|
+| 后端 CI / Rust CI | ❌ 未接入 | `.github/workflows/ci.yml` 仅前端 quality + e2e;`server/` 无独立 job、Rust 无 `cargo check` job |
+| 三平台 Release / updater | ❌ 未接入 | 无 Release 流水线、无 `latest.json`、未配置 `TAURI_SIGNING_PRIVATE_KEY`(desktop-tauri.md §5/§7) |
+| 自启 / 通知 / 更新卡片前端入口 | ❌ 未做 | `src/` 无对应调用代码;deep-link 前端监听已就绪(`utils/platform.ts` `onDeepLink` + `main.ts` 路由跳转) |
+| 单实例深链接转发 | ⚠️ 部分 | Rust `lib.rs` 单实例回调仅 `set_focus()` + 打日志,未把 argv/深链 URL 转发已有实例;端到端未验证 |
+| 移动端深链 `ylink://` | ❌ 未接入 | Android manifest 未声明(desktop-tauri.md §9.5) |
 
 ---
 
@@ -250,6 +260,6 @@
 
 - 端点、错误码、信封格式、单位约定:以 [docs/api/README.md](../api/README.md) 为准(本实现已对齐;`types/api.d.ts` 与契约一一对应)
 - 视觉令牌/响应式/组件规范:以 [docs/frontend/design-system.md](design-system.md) 为准
-- 路由表与逐页拆解:以 [docs/frontend/pages.md](pages.md) 为准(16 条路由全部落地)
+- 路由表与逐页拆解:以 [docs/frontend/pages.md](pages.md) 为准(22 条路由全部落地:16 用户端 + 6 管理端)
 - 数据层(HTTP 封装/store/i18n/深链接):以 [docs/frontend/data-layer.md](data-layer.md) 为准
 - 桌面化:以 [docs/frontend/desktop-tauri.md](desktop-tauri.md) 为准(M6 骨架已完成,deep-link/更新/三平台打包等发布能力见第 2 节)

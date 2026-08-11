@@ -7,13 +7,13 @@
 ### 目标
 - 1:1 还原并美化截图中的面板 UI（浅色毛玻璃卡片风格），完整支持 **暗色模式**。
 - 桌面、平板、手机三端体验完整：桌面为「侧边栏 + 顶栏」，手机为「顶栏 + 底部标签栏 + 抽屉菜单」（详见 [design-system.md](design-system.md) 第 6 节）。
-- 桌面端由 Tauri 2 承载，提供托盘、自启动、深链接一键导入、自动更新等原生能力。
+- 桌面端由 Tauri 2 承载，提供托盘、自启动、深链接一键导入等原生能力（自动更新待接入，见 desktop-tauri.md §5）。
 - 与 Go/Gin 后端通过 [../api/README.md](../api/README.md) 契约对接。
 
 ### 非目标（一期不做）
-- 管理后台前端（二期独立应用，复用 admin API）。
+- 管理后台前端：**核心 6 模块已随主 SPA 实现**（总览/用户/套餐/节点/订单/工单，M8，2026-08-10）；剩余 7 模块（优惠券/公告/知识库/代理审批/佣金日志/流量导入/站点设置）二期补全。
 - 内置代理内核（本应用是「面板客户端」，代理连接由本机 Clash/sing-box 等客户端完成，App 只负责一键导入）。
-- Tauri 移动端（Android/iOS）打包：架构上预留，一期以手机浏览器响应式体验为准（策略见 [desktop-tauri.md](desktop-tauri.md) 第 9 节）。
+- Tauri 移动端：Android APK 打包已启用（见 [desktop-tauri.md](desktop-tauri.md) 第 9 节）；iOS 不打包（需 Apple 开发者账号与审核，代理类应用上架风险高）。
 
 ## 2. 技术选型
 
@@ -26,7 +26,7 @@
 | 原子化 CSS | UnoCSS | 布局、间距、响应式断点、自定义 shortcuts |
 | 路由 | Vue Router 4 | 嵌套布局、登录守卫 |
 | 状态管理 | Pinia + pinia-plugin-persistedstate | 按业务域拆分 store |
-| 国际化 | vue-i18n@10 | zh-CN / en 起步，语言包懒加载 |
+| 国际化 | vue-i18n@11 | zh-CN / en 起步，语言包懒加载 |
 | 图表 | ECharts 5（按需引入） | 流量明细曲线 |
 | 图标 | @iconify/vue（Solar / MingCute 图标集） | 线性风格统一 |
 | Markdown 渲染 | markdown-it + DOMPurify | 知识库/公告正文，防 XSS |
@@ -84,8 +84,8 @@ proxy-seller-web/
 ├── mock/                     # vite-plugin-mock 数据（严格按契约）
 ├── docs/                     # 本文档目录
 ├── .env / .env.development / .env.production
-├── vite.config.ts / uno.config.ts / package.json / pnpm-workspace.yaml
-└── .github/workflows/        # CI：lint+test；Release：三平台打包+updater
+├── vite.config.ts / uno.config.ts / package.json
+└── .github/workflows/        # CI：前端 lint+typecheck+test+build+e2e（后端/Rust/Release 未接入）
 ```
 
 ## 5. 环境变量
@@ -107,7 +107,7 @@ proxy-seller-web/
 | 打开外部链接 | plugin-opener | `window.open` |
 | 一键导入客户端 | 直接打开 `clash://` 等 scheme | 同左（浏览器同样支持唤起） |
 | 持久化 | plugin-store（JSON 文件） | localStorage |
-| 系统能力 | 托盘/自启/通知/自动更新 | 无（功能入口自动隐藏或降级） |
+| 系统能力 | 托盘（Rust 已注册）；自启/通知/自动更新（插件已装，前端入口未接入） | 无（功能入口自动隐藏或降级） |
 
 `utils/platform.ts` 提供 `isTauri()` 与统一能力接口，所有降级逻辑收敛在此。
 
@@ -119,8 +119,8 @@ proxy-seller-web/
 
 ## 8. 工程化与代码规范
 
-- **包管理**：pnpm；Node >= 20，Rust >= 1.78。
-- **质量门禁**：ESLint 9（flat config）+ Prettier + Stylelint（可选）+ `vue-tsc --noEmit`；husky + lint-staged 提交前检查；commitlint 校验提交信息。
+- **包管理**：pnpm；Node >= 20，Rust >= 1.77.2（`src-tauri/Cargo.toml` rust-version）。
+- **质量门禁**：ESLint 9（flat config）+ Prettier + `vue-tsc --noEmit`；Stylelint、husky/lint-staged、commitlint **未引入**（CI 已在 GitHub Actions 强制 lint/typecheck/format/test/build）。
 - **命名**：组件 PascalCase；composable `useXxx`；store `useXxxStore`；api 模块按业务域小写命名；CSS 变量 `--c-*` 颜色、`--r-*` 圆角、`--s-*` 阴影、`--t-*` 动效。
 - **样式**：优先 UnoCSS 原子类；组件私有样式用 `<style scoped>`；主题相关一律使用 CSS 变量，禁止写死颜色（保证暗色模式正确）。
 - **注释**：业务组件顶部注明对应截图页面与契约接口；复杂逻辑写「为什么」而非「做什么」。
@@ -130,7 +130,7 @@ proxy-seller-web/
 | 层 | 工具 | 范围 |
 |---|---|---|
 | 单测 | Vitest + Vue Test Utils | http 封装（拦截/刷新/解包）、格式化工具、下单金额计算、表单校验、store 逻辑 |
-| 组件测试 | Vitest + jsdom | StatCard、PlanCard、OrderTable 等关键组件渲染与交互 |
+| 组件测试（未写，可后补） | Vitest + jsdom | StatCard、PlanCard、OrderTable 等关键组件渲染与交互（见 progress.md §2 一期缺口） |
 | E2E | Playwright | 登录 → 仪表板 → 购买套餐（Mock 支付）→ 订单详情；移动端视口（390×844）冒烟 |
 
 ## 10. 里程碑
@@ -142,4 +142,4 @@ proxy-seller-web/
 | M3 核心页 | 仪表板、使用文档、我的订单、个人信息 | 对应截图页面还原 |
 | M4 交易闭环 | 套餐、下单弹窗、优惠券、收银台、支付轮询 | Mock 环境完成购买全链路 |
 | M5 营销页 | 邀请赚钱、申请代理、工单、节点状态、流量明细 | 全部页面上线 |
-| M6 桌面化 | Tauri 插件接入、托盘、深链接、自动更新、三平台打包 | Release 产物可安装更新 |
+| M6 桌面化 | Tauri 插件接入、托盘、深链接、Android 打包（骨架完成） | 自动更新与三平台发布未接入（见 desktop-tauri.md §5/§7 与 progress.md §2） |

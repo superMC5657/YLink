@@ -15,7 +15,7 @@ sequenceDiagram
     S->>M: 发送验证码邮件
     U->>S: POST /auth/register {email, password, email_code, invite_code?}
     S->>R: 校验并删除验证码（一次性）
-    S->>S: 邮箱唯一校验 → 创建用户(Argon2id) → 处理邀请绑定
+    S->>S: 邮箱唯一校验 → 创建用户(bcrypt cost=12) → 处理邀请绑定
     S->>R: 写 refresh 白名单 refresh:{uid}:{jti}
     S-->>U: {access_token(2h), refresh_token(14d), user}
 ```
@@ -101,7 +101,7 @@ sequenceDiagram
 1. `GET /agent/status` 返回：是否已是代理、审核状态、条件达成情况（有效邀请人数 ≥ 阈值 50、无封禁记录）。
 2. 条件满足 → `POST /agent/apply` 写入申请（status=审核中）→ 管理端审核通过 → `role=2`。
 3. 有效邀请定义：`invite_by_id=我` 且（有付费订单 或 注册满 N 天未封禁），阈值取 settings。
-4. 审验周期（截图「12 个月」）：cron 每月校验代理仍满足有效人数，不满足则降级 `role=0` 并通知（二期）。
+4. 审验周期（截图「12 个月」）：cron 每月 1 日 03:00 复核代理仍满足有效人数，不满足则降级 `role=0`（已实现，见 progress.md §1；「通知」动作未实现）。
 
 ## 6. 订阅下发
 
@@ -122,7 +122,7 @@ sequenceDiagram
 
 ## 7. 工单流转
 
-- 用户创建（status=0 待回复）→ 客服回复（status=1 已回复，last_reply_at 更新）→ 用户再回复（回到 0）→ 任一方关闭（status=2，只允许重开一次，二期可做）。
+- 用户创建（status=0 待回复）→ 客服回复（status=1 已回复，last_reply_at 更新）→ 用户再回复（回到 0）→ 任一方关闭（status=2；「只允许重开一次」二期仍未实现）。
 - 用户侧轮询发现 status 变为「已回复」时触发本地通知（桌面端）/ 红点。
 
 ## 8. 流量数据来源（两种模式，一期先做 B）
@@ -139,11 +139,11 @@ sequenceDiagram
 | reconcile-payments | 每 10 分钟 | 对待支付 payment 主动查单补账 |
 | confirm-commissions | 每日 02:00 | 确认中佣金满 N 天转已发放并入 commission_balance |
 | expire-remind | 每日 10:00 | 到期前 3/1 天且开启提醒的用户发邮件 |
-| agent-audit | 每月 | 代理商有效人数复核降级（二期） |
+| agent-audit | 每月 1 日 03:00 | 代理商有效人数复核降级 role=0 |
 | traffic-daily | 每日 01:00 | 流量日结转/汇总校验（模式 B 下可空跑） |
 
 所有任务加 `cron:lock:{job}` 分布式锁，支持多实例部署安全。
 
 ## 10. 通知邮件模板
 
-统一 HTML 模板（品牌头 + 内容 + 页脚）：验证码、注册欢迎、到期提醒、流量提醒、支付成功回执（二期）。模板存 settings，支持变量替换（`{site_name} {code} {expired_at}` 等）；发送失败重试 2 次并记录日志，不阻塞主流程（异步 goroutine + 限流）。
+统一 HTML 模板（品牌头 + 内容 + 页脚）：验证码、注册欢迎、到期提醒、流量提醒、支付成功回执（已实现：在线回调与余额支付成功后异步发送，见 progress.md §1）。模板存 settings，支持变量替换（`{site_name} {code} {expired_at}` 等）；发送失败重试 2 次并记录日志，不阻塞主流程（异步 goroutine + 限流）。

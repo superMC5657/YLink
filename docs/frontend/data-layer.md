@@ -7,7 +7,7 @@
 ### 1.1 职责
 
 1. 底层通道选择：Tauri 环境用 `@tauri-apps/plugin-http`（原生网络栈，无 CORS/CSP 限制）；浏览器用 `window.fetch`（依赖后端 CORS）。
-2. 请求注入：`Authorization: Bearer <access_token>`、`Accept-Language`（当前语言）、`X-Client`（`tauri-windows / tauri-macos / web`）。
+2. 请求注入：`Authorization: Bearer <access_token>`、`Accept-Language`（当前语言）、`X-Client`（`web / tauri-windows / tauri-macos / tauri-linux`）。
 3. 响应处理：按 HTTP 状态 + 业务码（envelope `{code, message, data}`）统一解包为 `data`，错误归一化为 `ApiError { code, message, status }`。
 4. Token 生命周期：
    - 收到 401 且存在 refresh_token → 调 `POST /auth/refresh` 静默换新；

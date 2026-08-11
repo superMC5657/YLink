@@ -7,9 +7,9 @@
 | 端 | 形态 | 技术栈 | 文档 |
 |---|---|---|---|
 | 用户端 | 响应式 Web（桌面/平板/手机浏览器）+ Tauri 2 桌面应用（Win/macOS/Linux） | Vue 3.5 + TS + Vite 6 + Naive UI + UnoCSS + Pinia | [frontend/](frontend/README.md) |
-| 服务端 | REST API + 订阅下发 + 支付回调 | Go 1.24 + Gin + GORM + MySQL 8 + Redis 7 | [backend/](backend/README.md) |
+| 服务端 | REST API + 订阅下发 + 支付回调 | Go 1.26.1 + Gin + GORM + MySQL 8 + Redis 7 | [backend/](backend/README.md) |
 | 接口契约 | 前后端唯一事实来源 | REST + JSON，OpenAPI 风格描述 | [api/README.md](api/README.md) |
-| 管理端 | 运营后台（二期，复用同一后端 admin API） | 待定 | 见 backend 附录 |
+| 管理端 | 运营后台（同仓 SPA 内 M8 核心 6 模块已实现；二期剩余 7 模块） | Vue 3 SPA（同仓库） | 见 [api/README.md](api/README.md) §16 |
 
 ## 2. 总体架构
 

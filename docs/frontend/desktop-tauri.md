@@ -27,8 +27,8 @@ src-tauri/
 | `beforeDevCommand` / `devUrl` | `pnpm dev` / `http://localhost:5173` | 开发联动 |
 | `beforeBuildCommand` / `frontendDist` | `pnpm build` / `../dist` | 打包联动 |
 | `app.security.csp` | `default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'` | 接口走 http 插件，无需放宽 connect-src |
-| `bundle.targets` | `nsis`（Win）/ `dmg`（macOS）/ `appimage, deb`（Linux） | — |
-| `plugins.updater.endpoints` | `https://<release-host>/latest.json` | 自动更新清单 |
+| `bundle.targets` | `nsis`（Win）/ `dmg`（macOS）/ `appimage, deb`（Linux） | —（tauri.conf.json 当前为 `"targets": "all"`，含移动端，实际打包按需指定） |
+| `plugins.updater.endpoints` | 未配置 | updater 未接入（`tauri.conf.json` 无 updater 节点，见 §5 待办） |
 
 ## 3. 插件清单与用途
 
@@ -42,37 +42,43 @@ src-tauri/
 | `tauri-plugin-single-instance` | 单实例运行（仅桌面） | 重复启动聚焦已有窗口并转发深链接参数 |
 | `tauri-plugin-autostart` | 开机自启（仅桌面） | 设置页开关（默认关） |
 | `tauri-plugin-notification` | 系统通知 | 订阅到期、工单回复提醒（轮询发现变化时触发） |
-| `tauri-plugin-updater` + `tauri-plugin-process` | 检查更新、下载安装、重启 | 启动时静默检查 + 设置页手动检查 |
+| `tauri-plugin-updater` + `tauri-plugin-process` | 检查更新、下载安装、重启（⚠ updater 未接入，仅 process 已注册） | 启动时静默检查 + 设置页手动检查（待办，见 §5） |
 | `tauri-plugin-window-state` | 记忆窗口尺寸/位置（仅桌面） | 体验细节 |
 | `tauri-plugin-os` | 系统信息 | 关于页、埋点 UA |
 
-capabilities/default.json 采用最小授权：逐项声明上述插件权限，`http` 权限的 `scope` 限定为已配置的后端域名（`https://api.example.com/**`），深链接插件仅注册 `ylink` scheme。
+capabilities/default.json 采用最小授权：逐项声明上述插件权限，`http` 权限的 `scope` 实际为 `https://**` + `http://localhost:**` + `http://127.0.0.1:**`（而非文档示例的 `https://api.example.com/**`），深链接插件仅注册 `ylink` scheme。
 
 ## 4. 窗口、托盘与系统行为
 
-- **窗口**：单主窗口；关闭按钮默认最小化到托盘（可在设置改为直接退出）；托盘菜单：显示主窗口 / 检查更新 / 退出。
+- **窗口**：单主窗口；关闭即退出（未做最小化到托盘设置）；托盘菜单：显示主窗口 / 退出（检查更新未接入，见 §5）。
 - **主题跟随**：监听前端主题切换事件（`emit` 到 Rust），调用窗口 `set_theme` 让标题栏亮暗一致；托盘图标按系统主题切换亮暗两套资源。
-- **单实例 + 深链接**：第二个实例启动时，把 argv/深链接 URL 转发给已有实例，前端监听 `deep-link://new-url` 事件做路由跳转。
-- **通知触发点**：订阅剩余 ≤3 天（每日一次）、工单状态变为已回复、订单支付成功（App 内轮询发现后触发本地通知）。
+- **单实例 + 深链接**：Rust 侧单实例已注册但回调仅 `set_focus()` + 打日志，**尚未把 argv/深链接 URL 转发给已有实例**；前端 `onDeepLink` 监听 `new-url` 事件已就绪，端到端未验证（见 §5 待办）。
+- **通知触发点**：触发逻辑**尚未实现**（插件已注册）；规划为订阅剩余 ≤3 天、工单状态变为已回复、订单支付成功时，由前端轮询发现后触发本地通知。
 
-## 5. 自动更新
+## 5. 自动更新（未实现 / 待办）
 
-1. Release 流水线生成 `latest.json`（版本、各平台产物 URL、签名）并上传至固定地址（GitHub Releases 或自建静态服务）。
-2. App 启动后 10s 静默检查；发现新版本弹出自制更新卡片（版本号 + 更新日志），用户确认后下载、校验签名、安装并重启。
-3. 签名密钥对：`tauri signer generate` 生成；私钥存 CI Secret（`TAURI_SIGNING_PRIVATE_KEY` + 密码），公钥写入 `tauri.conf.json`。
-4. 降级策略：更新检查失败静默忽略，不打扰用户；设置页显示当前版本号与「检查更新」按钮。
+> 2026-08-11 核对：**updater 尚未接入**。Rust 未注册 `tauri-plugin-updater`（见 `src-tauri/Cargo.toml`），`tauri.conf.json` 无 updater 配置，前端无更新卡片入口，CI 无 Release 流水线。
+
+待办清单（按依赖顺序）：
+1. Rust 侧注册 `tauri-plugin-updater`（process 已注册），capabilities 补 `updater:default`。
+2. `tauri signer generate` 生成签名密钥对；私钥存 CI Secret（`TAURI_SIGNING_PRIVATE_KEY` + 密码），公钥与更新端点写入 `tauri.conf.json` 的 `plugins.updater`。
+3. 配置 Release 流水线：打 tag `v*` 触发矩阵构建（windows/macos/linux），`tauri-action` 产出 NSIS/DMG/AppImage/deb + `latest.json`（版本、各平台产物 URL、签名），上传 GitHub Release 或自建静态服务。
+4. 前端实现更新卡片（版本号 + 更新日志，确认后下载/校验/安装并重启）与设置页「检查更新」入口。
+5. 降级策略：更新检查失败静默忽略，不打扰用户。
 
 ## 6. 安全要点
 
 - CSP 收紧到 `'self'`；生产构建禁用 devtools（Cargo feature 控制）与右键菜单。
 - token 仅存 store 文件，不进日志；Rust 侧不接触业务数据。
 - 所有外部 URL 打开前做协议白名单校验（仅 `https:`、`mailto:`、已知的客户端 scheme）。
-- 依赖审计：CI 跑 `cargo audit` 与 `pnpm audit`。
+- 依赖审计：规划 CI 跑 `cargo audit` 与 `pnpm audit`；⚠ 当前 `.github/workflows/ci.yml` 尚未接入（见 §7）。
 
 ## 7. 构建与发布流水线（GitHub Actions）
 
-- **PR CI**：`pnpm lint` → `vue-tsc` → `vitest` → `pnpm build`；Rust 侧 `cargo check`。
-- **Release（打 tag `v*` 触发）**：矩阵构建（windows-latest / macos-latest / ubuntu-latest），`tauri-action` 产出 NSIS/DMG/AppImage/deb + updater 签名产物，上传 GitHub Release 并生成 `latest.json`。
+> 2026-08-11 核对：当前 `.github/workflows/ci.yml` **仅前端 quality（lint/typecheck/format/test/build）+ e2e 两个 job**；Rust `cargo check` 与三平台 Release **均未接入**。
+
+- **PR CI（现状）**：前端 quality + e2e（Playwright · Mock）。Rust 侧 `cargo check` 待接入（可加独立 job，如 `cargo check` + `cargo clippy`）。
+- **Release（待办，打 tag `v*` 触发）**：矩阵构建（windows-latest / macos-latest / ubuntu-latest），`tauri-action` 产出 NSIS/DMG/AppImage/deb + updater 签名产物，上传 GitHub Release 并生成 `latest.json`（依赖 §5 updater 配置）。
 - **macOS 公证**（可选二期）：Apple 证书 + notarize 步骤；无证书时文档注明用户需在「安全性与隐私」中放行。
 - 版本号策略：语义化版本，`package.json`、`Cargo.toml`、`tauri.conf.json` 三处由脚本同步。
 

@@ -1,12 +1,12 @@
 # 后端开发文档 · 总览与架构
 
-> Go/Gin 服务端：为用户端 App 提供 REST API，同时承担支付回调、订阅配置下发、定时任务（佣金结算/到期提醒）。管理端 API 同进程暴露（`/admin` 前缀），管理后台前端为二期独立应用。
+> Go/Gin 服务端：为用户端 App 提供 REST API，同时承担支付回调、订阅配置下发、定时任务（佣金结算/到期提醒）。管理端 API 同进程暴露（`/admin` 前缀）；管理后台前端已随主 SPA 实现核心 6 模块（M8），二期剩余 7 模块。
 
 ## 1. 技术选型
 
 | 层次 | 选型 | 说明 |
 |---|---|---|
-| 语言 | Go 1.24 | — |
+| 语言 | Go 1.26.1 | `server/go.mod` 声明 |
 | Web 框架 | Gin | 轻量、生态成熟 |
 | ORM | GORM v2 | MySQL 8；事务与关联查询方便 |
 | 数据库 | MySQL 8.0 | InnoDB，utf8mb4 |
@@ -20,7 +20,7 @@
 | 定时任务 | robfig/cron/v3 | 佣金确认、到期提醒、流量日结转 |
 | 邮件 | gomail（SMTP） | 验证码、到期/流量提醒 |
 | 二维码 | skip2/go-qrcode | 支付二维码（若网关不返回图片） |
-| 测试 | testify + miniredis + go-sqlmock（或 dockertest） | 单测/集成 |
+| 测试 | testify + miniredis + go-sqlmock | 单测（47 个测试函数） |
 
 ## 2. 分层架构
 
@@ -130,14 +130,14 @@ type Generator interface { Format() string; Build(u *User, nodes []Server) ([]by
 ## 9. 测试与工程化
 
 - **单测**：service 层为主（repo 用 sqlmock 或以接口 mock；Redis 用 miniredis）；重点：下单算价、优惠券、佣金、订阅状态机、回调验签幂等。
-- **集成测试**：dockertest 起 MySQL/Redis 跑核心链路（注册→购买→回调→订阅下发）。
+- **集成测试**：一期未引入 dockertest；核心链路以 service 层单测覆盖（见 progress.md §1 测试状态）。
 - **Makefile**：`make run / migrate / swagger / lint / test / build`。
-- **CI**：`gofumpt` 检查 → `golangci-lint` → `go test ./...` → 构建镜像。
+- **CI**：本机 `make lint / test / build` 可用；GitHub Actions 后端 CI **尚未接入**（当前 `.github/workflows/ci.yml` 仅覆盖前端 quality+e2e，见 progress.md §2 待办）。
 - **Swagger**：handler 注解维护，`make swagger` 生成；接口变更时与契约文档同步 PR 评审。
 
 ## 10. 安全清单
 
-1. 密码 Argon2id（或 bcrypt cost≥12）哈希；登录错误次数锁定（Redis 计数 5 次/10 分钟）。
+1. 密码 bcrypt cost=12 哈希（`internal/pkg/passwd`）；登录错误次数锁定（Redis 计数 5 次/10 分钟）。
 2. 邮件验证码 6 位数字、10 分钟有效、同邮箱 60s 限频、同 IP 每日上限。
 3. 订阅 token = UUIDv4，与用户解耦可重置；订阅端点单独限流（防刷流量统计接口）。
 4. 支付回调只信验签结果与网关主动查单，不信前端任何「已支付」声明。

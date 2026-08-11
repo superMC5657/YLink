@@ -96,7 +96,12 @@ async function submit() {
           <tr v-for="(r, i) in rows" :key="i">
             <td class="num-font text-[var(--c-text-sub)]">{{ i + 1 }}</td>
             <td>
-              <n-input-number v-model:value="r.user_id" :min="1" placeholder="用户 ID" class="w-32" />
+              <n-input-number
+                v-model:value="r.user_id"
+                :min="1"
+                placeholder="用户 ID"
+                class="w-32"
+              />
             </td>
             <td>
               <n-date-picker
@@ -122,10 +127,12 @@ async function submit() {
         </tbody>
       </n-table>
 
-      <div class="mt-4 rounded-lg bg-[var(--c-warning-bg)] px-4 py-3 text-14 text-[var(--c-warning)]">
+      <div
+        class="mt-4 rounded-lg bg-[var(--c-warning-bg)] px-4 py-3 text-14 text-[var(--c-warning)]"
+      >
         <AppIcon name="info" :size="15" class="mr-1 inline" />
         流量单位必须为字节。示例:1 GB = 1073741824 字节;1 MB = 1048576 字节。
-        同一用户同一天重复导入将累加覆盖(upsert)。
+        同一用户同一天重复导入将覆盖当日已记录的上行/下行数据。
       </div>
     </div>
   </div>

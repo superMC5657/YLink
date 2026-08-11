@@ -11,5 +11,5 @@ RUN apk add --no-cache ca-certificates tzdata
 WORKDIR /app
 COPY --from=build /app/bin/ /app/bin/
 COPY configs/config.yaml /app/configs/
-EXPOSE 8080
+EXPOSE 8081
 ENTRYPOINT ["/app/bin/server"]

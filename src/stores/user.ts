@@ -1,9 +1,17 @@
 import { defineStore } from 'pinia'
 import { apiUser } from '@/api/user'
-import type { SubscribeInfo, TrafficLog, UserStat } from '@/types/api'
+import type {
+  ChangePasswordReq,
+  ProfileResp,
+  ProfileUpdateReq,
+  SubscribeInfo,
+  TrafficLog,
+  UserStat,
+} from '@/types/api'
 
 interface UserState {
   stat: UserStat | null
+  profile: ProfileResp | null
   subscribe: SubscribeInfo | null
   trafficLogs: TrafficLog[]
 }
@@ -11,6 +19,7 @@ interface UserState {
 export const useUserStore = defineStore('user', {
   state: (): UserState => ({
     stat: null,
+    profile: null,
     subscribe: null,
     trafficLogs: [],
   }),
@@ -23,11 +32,26 @@ export const useUserStore = defineStore('user', {
     async fetchStat() {
       this.stat = await apiUser.stat()
     },
+    async fetchProfile() {
+      this.profile = await apiUser.profile()
+      return this.profile
+    },
+    async updateProfile(body: ProfileUpdateReq) {
+      this.profile = await apiUser.updateProfile(body)
+      return this.profile
+    },
+    async changePassword(body: ChangePasswordReq) {
+      return apiUser.changePassword(body)
+    },
+    async resetSubscribe(body: { password: string }) {
+      return apiUser.resetSubscribe(body)
+    },
     async fetchSubscribe() {
       this.subscribe = await apiUser.subscribe()
     },
     async fetchTrafficLogs(from: string, to: string) {
-      this.trafficLogs = await apiUser.trafficLogs(from, to)
+      const data = await apiUser.trafficLogs(from, to)
+      this.trafficLogs = data?.list ?? []
     },
     /** 窗口聚焦时静默刷新仪表板数据 */
     async refreshDashboard() {

@@ -76,32 +76,41 @@ func (s *AdminService) CreatePlan(ctx context.Context, req *model.AdminPlanReq) 
 }
 
 func (s *AdminService) UpdatePlan(ctx context.Context, id int64, req *model.AdminPlanReq) error {
-	p, err := s.repos.Plan.GetByID(s.db, id)
-	if err != nil {
+	if _, err := s.repos.Plan.GetByID(s.db, id); err != nil {
 		return errs.ErrNotFound
 	}
-	p.Name = sanitize.Text(req.Name)
-	p.Content = sanitize.Markdown(req.Content)
-	p.TrafficGB = req.TrafficGB
-	p.SpeedLimit = req.SpeedLimit
-	p.DeviceLimit = req.DeviceLimit
-	p.Sort = req.Sort
-	if req.IsShow != nil {
-		p.IsShow = *req.IsShow
+	updates := map[string]any{
+		"name":            sanitize.Text(req.Name),
+		"content":         sanitize.Markdown(req.Content),
+		"traffic_gb":      req.TrafficGB,
+		"speed_limit":     req.SpeedLimit,
+		"device_limit":    req.DeviceLimit,
+		"sort":            req.Sort,
+		"month_price":     fenPtr(req.MonthPrice),
+		"quarter_price":   fenPtr(req.QuarterPrice),
+		"half_year_price": fenPtr(req.HalfYearPrice),
+		"year_price":      fenPtr(req.YearPrice),
+		"onetime_price":   fenPtr(req.OnetimePrice),
 	}
-	p.MonthPrice = fenPtr(req.MonthPrice)
-	p.QuarterPrice = fenPtr(req.QuarterPrice)
-	p.HalfYearPrice = fenPtr(req.HalfYearPrice)
-	p.YearPrice = fenPtr(req.YearPrice)
-	p.OnetimePrice = fenPtr(req.OnetimePrice)
+	if req.IsShow != nil {
+		updates["is_show"] = *req.IsShow
+	}
 	if req.GroupIDs != nil {
 		b, _ := json.Marshal(req.GroupIDs)
-		p.GroupIDs = string(b)
+		updates["group_ids"] = string(b)
 	}
-	return s.repos.Plan.Update(s.db, p)
+	return s.repos.Plan.UpdateMap(s.db, id, updates)
 }
 
 func (s *AdminService) DeletePlan(ctx context.Context, id int64) error {
+	// 有订单引用的套餐禁止物理删除（历史订单详情依赖套餐名）
+	n, err := s.repos.Order.CountByPlan(s.db, id)
+	if err != nil {
+		return err
+	}
+	if n > 0 {
+		return errs.ErrPlanInUse
+	}
 	return s.repos.Plan.Delete(s.db, id)
 }
 
@@ -179,13 +188,26 @@ func (s *AdminService) CreateServer(ctx context.Context, req *model.AdminServerR
 }
 
 func (s *AdminService) UpdateServer(ctx context.Context, id int64, req *model.AdminServerReq) error {
-	srv, err := s.repos.Server.GetByID(s.db, id)
-	if err != nil {
+	if _, err := s.repos.Server.GetByID(s.db, id); err != nil {
 		return errs.ErrNotFound
 	}
-	updated := srvFromReq(req)
-	updated.ID = srv.ID
-	return s.repos.Server.Update(s.db, updated)
+	srv := srvFromReq(req)
+	updates := map[string]any{
+		"group_id": srv.GroupID,
+		"name":     srv.Name,
+		"type":     srv.Type,
+		"host":     srv.Host,
+		"port":     srv.Port,
+		"config":   srv.Config,
+		"rate":     srv.Rate,
+		"tags":     srv.Tags,
+		"status":   srv.Status,
+		"sort":     srv.Sort,
+	}
+	if req.IsShow != nil {
+		updates["is_show"] = *req.IsShow
+	}
+	return s.repos.Server.UpdateMap(s.db, id, updates)
 }
 
 func (s *AdminService) DeleteServer(ctx context.Context, id int64) error {
@@ -300,17 +322,18 @@ func (s *AdminService) CreateNotice(ctx context.Context, req *model.AdminNoticeR
 }
 
 func (s *AdminService) UpdateNotice(ctx context.Context, id int64, req *model.AdminNoticeReq) error {
-	n, err := s.repos.Notice.GetByID(s.db, id)
-	if err != nil {
+	if _, err := s.repos.Notice.GetByID(s.db, id); err != nil {
 		return errs.ErrNotFound
 	}
-	n.Title = sanitize.Text(req.Title)
-	n.Content = sanitize.Markdown(req.Content)
-	n.Sort = req.Sort
-	if req.IsShow != nil {
-		n.IsShow = *req.IsShow
+	updates := map[string]any{
+		"title":   sanitize.Text(req.Title),
+		"content": sanitize.Markdown(req.Content),
+		"sort":    req.Sort,
 	}
-	return s.repos.Notice.Update(s.db, n)
+	if req.IsShow != nil {
+		updates["is_show"] = *req.IsShow
+	}
+	return s.repos.Notice.UpdateMap(s.db, id, updates)
 }
 
 func (s *AdminService) DeleteNotice(ctx context.Context, id int64) error {
@@ -344,15 +367,17 @@ func (s *AdminService) UpdateKnowledge(ctx context.Context, id int64, req *model
 	if lang == "" {
 		lang = k.Language
 	}
-	k.Category = sanitize.Text(req.Category)
-	k.Title = sanitize.Text(req.Title)
-	k.Body = sanitize.Markdown(req.Body)
-	k.Language = lang
-	k.Sort = req.Sort
-	if req.IsShow != nil {
-		k.IsShow = *req.IsShow
+	updates := map[string]any{
+		"category": sanitize.Text(req.Category),
+		"title":    sanitize.Text(req.Title),
+		"body":     sanitize.Markdown(req.Body),
+		"language": lang,
+		"sort":     req.Sort,
 	}
-	return s.repos.Knowledge.Update(s.db, k)
+	if req.IsShow != nil {
+		updates["is_show"] = *req.IsShow
+	}
+	return s.repos.Knowledge.UpdateMap(s.db, id, updates)
 }
 
 func (s *AdminService) DeleteKnowledge(ctx context.Context, id int64) error {

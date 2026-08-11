@@ -80,6 +80,21 @@ func (UserRepo) Update(db *gorm.DB, u *model.User) error {
 	return db.Model(u).Updates(u).Error
 }
 
+// UpdateProfile 更新通知设置（map 更新，支持 false 值持久化）。
+func (UserRepo) UpdateProfile(db *gorm.DB, id int64, remindExpire, remindTraffic *bool) error {
+	updates := map[string]any{}
+	if remindExpire != nil {
+		updates["remind_expire"] = *remindExpire
+	}
+	if remindTraffic != nil {
+		updates["remind_traffic"] = *remindTraffic
+	}
+	if len(updates) == 0 {
+		return nil
+	}
+	return db.Model(&model.User{}).Where("id = ?", id).Updates(updates).Error
+}
+
 // Save 全字段保存（用于余额等可能为 0 的字段）。
 func (UserRepo) Save(db *gorm.DB, u *model.User) error { return db.Save(u).Error }
 

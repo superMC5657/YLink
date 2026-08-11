@@ -7,7 +7,7 @@ import { computed } from 'vue'
 import MarkdownIt from 'markdown-it'
 import DOMPurify from 'dompurify'
 import { useI18n } from 'vue-i18n'
-import { formatSpeed } from '@/utils/format'
+import { formatSpeed, periodLabel, planSavePercent } from '@/utils/format'
 import type { Plan, PlanPeriod } from '@/types/api'
 
 const props = defineProps<{
@@ -30,31 +30,12 @@ const currentPeriod = computed<PlanPeriod>(() => props.period ?? periods.value[0
 const price = computed(() => props.plan.prices[currentPeriod.value] ?? 0)
 
 /** 计算选中周期相对月付的折扣文案(季/年) */
-const savePercent = computed(() => {
-  const month = props.plan.prices.month
-  if (!month || currentPeriod.value === 'month') return null
-  const periodMonths: Record<string, number> = { quarter: 3, half_year: 6, year: 12, onetime: 12 }
-  const months = periodMonths[currentPeriod.value]
-  if (!months) return null
-  const raw = 1 - price.value / (month * months)
-  const pct = Math.round(raw * 100)
-  return pct > 0 ? pct : null
-})
+const savePercent = computed(() => planSavePercent(props.plan, currentPeriod.value))
 
 function renderContent(): string {
   return DOMPurify.sanitize(md.render(props.plan.content))
 }
 
-function periodLabel(p: PlanPeriod): string {
-  const map: Record<PlanPeriod, string> = {
-    month: '月付',
-    quarter: '季付',
-    half_year: '半年付',
-    year: '年付',
-    onetime: '一次性',
-  }
-  return map[p]
-}
 </script>
 
 <template>

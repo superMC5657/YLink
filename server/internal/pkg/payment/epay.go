@@ -66,6 +66,10 @@ func (e *Epay) VerifyNotify(r *http.Request) (*NotifyResult, error) {
 	if gotSign == "" || !e.verify(form, gotSign) {
 		return nil, fmt.Errorf("epay sign verify failed")
 	}
+	// 商户号校验：防止跨商户重放（若商户密钥被共用）
+	if form.Get("pid") != e.cfg.PID {
+		return nil, fmt.Errorf("epay pid mismatch")
+	}
 	amountFen, err := yuanStrToFen(form.Get("money"))
 	if err != nil {
 		return nil, fmt.Errorf("bad money: %w", err)

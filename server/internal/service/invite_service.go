@@ -50,34 +50,11 @@ func (s *InviteService) Summary(ctx context.Context, userID int64) (*model.Invit
 	}
 	return &model.InviteSummaryResp{
 		CommissionBalance: model.FenToYuan(user.CommissionBalance),
-		CommissionRate:    s.rateOf(user.Role),
+		CommissionRate:    commissionRateFor(s.db, user.Role),
 		RegisteredCount:   registered,
 		TotalCommission:   model.FenToYuan(total),
 		PendingCommission: model.FenToYuan(pending),
 	}, nil
-}
-
-// rateOf 用户佣金比例（代理商取 agent 比例）。
-func (s *InviteService) rateOf(role int) int {
-	type inviteCfg struct {
-		CommissionRate      int `json:"commission_rate"`
-		AgentCommissionRate int `json:"agent_commission_rate"`
-		InviteCodeLimit     int `json:"invite_code_limit"`
-	}
-	var cfg inviteCfg
-	if raw, err := s.repos.Setting.Get(s.db, "invite"); err == nil {
-		_ = json.Unmarshal([]byte(raw), &cfg)
-	}
-	if cfg.CommissionRate <= 0 {
-		cfg.CommissionRate = 40
-	}
-	if cfg.AgentCommissionRate <= 0 {
-		cfg.AgentCommissionRate = 50
-	}
-	if role == model.RoleAgent {
-		return cfg.AgentCommissionRate
-	}
-	return cfg.CommissionRate
 }
 
 func (s *InviteService) codeLimit() int {
@@ -222,11 +199,11 @@ func (s *InviteService) AgentStatus(ctx context.Context, userID int64) (*model.A
 	if err != nil {
 		return nil, errs.ErrNotFound
 	}
-	valid, err := s.repos.User.CountValidInvited(s.db, userID)
+	required, validDays := agentPolicy(s.db)
+	valid, err := s.repos.User.CountValidInvited(s.db, userID, validDays)
 	if err != nil {
 		return nil, err
 	}
-	required := s.agentRequired()
 	qualified := valid >= int64(required)
 
 	applyStatus := "none"
@@ -255,27 +232,35 @@ func (s *InviteService) AgentStatus(ctx context.Context, userID int64) (*model.A
 	}, nil
 }
 
-func (s *InviteService) agentRequired() int {
+// agentPolicy 读取代理商策略：required_valid_invites（默认 50）与 valid_invite_days（默认 3 天）。
+func agentPolicy(db *gorm.DB) (required, validDays int) {
+	required = 50
+	validDays = 3
 	type agentCfg struct {
 		RequiredValidInvites int `json:"required_valid_invites"`
+		ValidInviteDays      int `json:"valid_invite_days"`
 	}
 	var cfg agentCfg
-	if raw, err := s.repos.Setting.Get(s.db, "agent"); err == nil {
+	if raw, err := (repo.SettingRepo{}).Get(db, "agent"); err == nil {
 		_ = json.Unmarshal([]byte(raw), &cfg)
 	}
-	if cfg.RequiredValidInvites <= 0 {
-		return 50
+	if cfg.RequiredValidInvites > 0 {
+		required = cfg.RequiredValidInvites
 	}
-	return cfg.RequiredValidInvites
+	if cfg.ValidInviteDays > 0 {
+		validDays = cfg.ValidInviteDays
+	}
+	return
 }
 
 // ApplyAgent POST /agent/apply。
 func (s *InviteService) ApplyAgent(ctx context.Context, userID int64) (string, error) {
-	valid, err := s.repos.User.CountValidInvited(s.db, userID)
+	required, validDays := agentPolicy(s.db)
+	valid, err := s.repos.User.CountValidInvited(s.db, userID, validDays)
 	if err != nil {
 		return "", err
 	}
-	if valid < int64(s.agentRequired()) {
+	if valid < int64(required) {
 		return "", errs.ErrAgentNotQualified
 	}
 	apply, err := s.repos.AgentApply.GetByUser(s.db, userID)

@@ -77,6 +77,6 @@ type CheckoutReq struct {
 
 type CheckoutResp struct {
 	Type     string `json:"type"`
-	Content  string `json:"content"`
+	Content  *string `json:"content"`
 	ExpireIn int    `json:"expire_in"`
 }

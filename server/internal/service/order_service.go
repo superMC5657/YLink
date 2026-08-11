@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"net/http"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -226,6 +225,16 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID int64, idemKey st
 			if !ok {
 				return errs.ErrCoupon
 			}
+			// 每用户限次：Occupy 已锁 coupon 行串行化并发下单，再用锁定读校验
+			if coupon.LimitPerUser > 0 {
+				n, err := s.repos.Coupon.CountUsageLocked(tx, coupon.ID, userID)
+				if err != nil {
+					return err
+				}
+				if n >= int64(coupon.LimitPerUser) {
+					return errs.ErrCoupon
+				}
+			}
 			if err := s.repos.Coupon.RecordUsage(tx, coupon.ID, userID, order.OrderNo); err != nil {
 				return err
 			}
@@ -237,6 +246,12 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID int64, idemKey st
 		return s.repos.Order.Create(tx, order)
 	})
 	if err != nil {
+		// 幂等键并发竞争：唯一索引兜底，命中后返回首次创建的订单而非 500
+		if idemKey != "" && errors.Is(err, gorm.ErrDuplicatedKey) {
+			if existing, e2 := s.repos.Order.GetByIdempotencyKey(s.db, idemKey, userID); e2 == nil {
+				return s.toOrderResp(s.db, existing)
+			}
+		}
 		return nil, err
 	}
 	return s.toOrderResp(s.db, order)
@@ -303,10 +318,14 @@ func (s *OrderService) GetOrder(ctx context.Context, userID int64, orderNo strin
 	if err != nil {
 		return nil, errs.ErrNotFound
 	}
-	plan, _ := s.repos.Plan.GetByID(s.db, o.PlanID)
+	// 套餐可能已被删除：历史订单仍可查看，套餐名回退占位
+	planName := "已删除套餐"
+	if plan, err := s.repos.Plan.GetByID(s.db, o.PlanID); err == nil {
+		planName = plan.Name
+	}
 	resp := &model.OrderDetailResp{
 		OrderNo:        o.OrderNo,
-		PlanName:       plan.Name,
+		PlanName:       planName,
 		Period:         o.Period,
 		Amount:         model.FenToYuan(o.Amount),
 		DiscountAmount: model.FenToYuan(o.DiscountAmount),
@@ -318,8 +337,9 @@ func (s *OrderService) GetOrder(ctx context.Context, userID int64, orderNo strin
 		CreatedAt:      o.CreatedAt,
 	}
 	if o.CouponID != nil {
-		code := couponCode(s.db, *o.CouponID)
-		resp.CouponCode = &code
+		if code, err := couponCode(s.db, *o.CouponID); err == nil {
+			resp.CouponCode = &code
+		}
 	}
 	return resp, nil
 }
@@ -343,10 +363,7 @@ func (s *OrderService) CancelOrder(ctx context.Context, userID int64, orderNo st
 			return errs.ErrOrderStatus
 		}
 		if o.CouponID != nil {
-			if err := s.repos.Coupon.Release(tx, *o.CouponID); err != nil {
-				return err
-			}
-			if err := s.repos.Coupon.DeleteUsage(tx, *o.CouponID, userID, orderNo); err != nil {
+			if err := releaseCoupon(tx, *o.CouponID, userID, orderNo); err != nil {
 				return err
 			}
 		}
@@ -366,7 +383,7 @@ func (s *OrderService) CancelOrder(ctx context.Context, userID int64, orderNo st
 // ---- 收银台 ----
 
 // Checkout POST /orders/{no}/checkout 拉起支付或余额直付。
-func (s *OrderService) Checkout(ctx context.Context, userID int64, orderNo, method string, r *http.Request) (*model.CheckoutResp, error) {
+func (s *OrderService) Checkout(ctx context.Context, userID int64, orderNo, method string) (*model.CheckoutResp, error) {
 	order, err := s.repos.Order.GetByNoAndUser(s.db, orderNo, userID)
 	if err != nil {
 		return nil, errs.ErrNotFound
@@ -383,8 +400,8 @@ func (s *OrderService) Checkout(ctx context.Context, userID int64, orderNo, meth
 	if driver == nil {
 		return nil, errs.ErrPayMethod
 	}
-	// 30 分钟内重复 checkout 返回原支付单
-	cacheKey := redispkg.Key("order", "paying", orderNo)
+	// 30 分钟内同用户同渠道重复 checkout 返回原支付单（键含 method，避免换渠道拿到旧 URL）
+	cacheKey := redispkg.Key("order", "paying", fmt.Sprint(userID), orderNo, method)
 	if cached, err := s.rdb.Get(ctx, cacheKey).Bytes(); err == nil {
 		var res model.CheckoutResp
 		if json.Unmarshal(cached, &res) == nil {
@@ -414,7 +431,7 @@ func (s *OrderService) Checkout(ctx context.Context, userID int64, orderNo, meth
 	if err != nil {
 		return nil, errs.ErrInternal
 	}
-	res := &model.CheckoutResp{Type: result.Type, Content: result.Content, ExpireIn: result.ExpireIn}
+	res := &model.CheckoutResp{Type: result.Type, Content: &result.Content, ExpireIn: result.ExpireIn}
 	if b, err := json.Marshal(res); err == nil {
 		s.rdb.Set(ctx, cacheKey, b, 30*time.Minute)
 	}
@@ -442,6 +459,7 @@ func (s *OrderService) checkoutBalance(ctx context.Context, order *model.Order) 
 		if err := s.repos.User.Save(tx, user); err != nil {
 			return err
 		}
+		payAmount := locked.PayAmount
 		locked.BalanceUsed = locked.PayAmount
 		locked.PayAmount = 0
 		payMethod := "balance"
@@ -455,13 +473,13 @@ func (s *OrderService) checkoutBalance(ctx context.Context, order *model.Order) 
 		if err := s.applySubscription(tx, locked); err != nil {
 			return err
 		}
-		return s.grantCommission(tx, locked)
+		return s.grantCommission(tx, locked, payAmount)
 	})
 	if err != nil {
 		return nil, err
 	}
 	s.sendReceiptMailAsync(order.OrderNo)
-	return &model.CheckoutResp{Type: "paid", Content: "", ExpireIn: 0}, nil
+	return &model.CheckoutResp{Type: "paid", Content: nil, ExpireIn: 0}, nil
 }
 
 // ---- 支付回调 ----
@@ -506,7 +524,7 @@ func (s *OrderService) HandleNotify(ctx context.Context, method string, nr *paym
 		if err := s.applySubscription(tx, order); err != nil {
 			return err
 		}
-		return s.grantCommission(tx, order)
+		return s.grantCommission(tx, order, order.PayAmount)
 	})
 	if err == nil {
 		middleware.PaySuccessInc(method)
@@ -590,8 +608,8 @@ func (s *OrderService) applySubscription(tx *gorm.DB, order *model.Order) error 
 	return s.repos.User.Save(tx, user)
 }
 
-// grantCommission 下单支付成功后写佣金（确认中）。
-func (s *OrderService) grantCommission(tx *gorm.DB, order *model.Order) error {
+// grantCommission 下单支付成功后写佣金（确认中）。payAmount 为实际支付金额（余额支付为扣减前的应付额）。
+func (s *OrderService) grantCommission(tx *gorm.DB, order *model.Order, payAmount int64) error {
 	user, err := s.repos.User.GetByID(tx, order.UserID)
 	if err != nil {
 		return err
@@ -603,8 +621,8 @@ func (s *OrderService) grantCommission(tx *gorm.DB, order *model.Order) error {
 	if err != nil {
 		return nil // 邀请人异常不阻塞支付
 	}
-	rate := s.commissionRate(tx, inviter.Role)
-	amount := order.PayAmount * int64(rate) / 100
+	rate := commissionRateFor(tx, inviter.Role)
+	amount := payAmount * int64(rate) / 100
 	if amount <= 0 {
 		return nil
 	}
@@ -612,33 +630,11 @@ func (s *OrderService) grantCommission(tx *gorm.DB, order *model.Order) error {
 		InviteUserID: *user.InviteByID,
 		FromUserID:   user.ID,
 		OrderNo:      order.OrderNo,
-		OrderAmount:  order.PayAmount,
+		OrderAmount:  payAmount,
 		Rate:         rate,
 		Amount:       amount,
 		Status:       model.CommissionPending,
 	})
-}
-
-// commissionRate 取佣金比例（代理商取 agent 比例）。
-func (s *OrderService) commissionRate(tx *gorm.DB, inviterRole int) int {
-	type inviteCfg struct {
-		CommissionRate      int `json:"commission_rate"`
-		AgentCommissionRate int `json:"agent_commission_rate"`
-	}
-	var cfg inviteCfg
-	if raw, err := s.repos.Setting.Get(tx, "invite"); err == nil {
-		_ = json.Unmarshal([]byte(raw), &cfg)
-	}
-	if cfg.CommissionRate <= 0 {
-		cfg.CommissionRate = 40
-	}
-	if cfg.AgentCommissionRate <= 0 {
-		cfg.AgentCommissionRate = 50
-	}
-	if inviterRole == model.RoleAgent {
-		return cfg.AgentCommissionRate
-	}
-	return cfg.CommissionRate
 }
 
 // ---- 工具 ----
@@ -650,12 +646,21 @@ func genOrderNo() string {
 	return fmt.Sprintf("%s%013d", ts, n.Int64())
 }
 
-func couponCode(db *gorm.DB, id int64) string {
+func couponCode(db *gorm.DB, id int64) (string, error) {
 	var c struct {
 		Code string
 	}
-	db.Model(&model.Coupon{}).Select("code").Where("id = ?", id).Scan(&c)
-	return c.Code
+	err := db.Model(&model.Coupon{}).Select("code").Where("id = ?", id).Scan(&c).Error
+	return c.Code, err
+}
+
+// releaseCoupon 回退优惠券占用（取消/关闭/退款/超时关单共用，避免四处重复）。
+func releaseCoupon(db *gorm.DB, couponID, userID int64, orderNo string) error {
+	r := repo.CouponRepo{}
+	if err := r.Release(db, couponID); err != nil {
+		return err
+	}
+	return r.DeleteUsage(db, couponID, userID, orderNo)
 }
 
 func containsInt64(list []int64, v int64) bool {

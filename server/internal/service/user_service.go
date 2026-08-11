@@ -55,18 +55,21 @@ func (s *UserService) Stat(ctx context.Context, userID int64) (*model.UserStatRe
 
 // UpdateProfile PUT /user/profile 更新通知设置。
 func (s *UserService) UpdateProfile(ctx context.Context, userID int64, req *model.UpdateProfileReq) (*model.UserProfileResp, error) {
+	if err := s.repos.User.UpdateProfile(s.db, userID, req.RemindExpire, req.RemindTraffic); err != nil {
+		return nil, err
+	}
 	user, err := s.repos.User.GetByID(s.db, userID)
 	if err != nil {
 		return nil, errs.ErrNotFound
 	}
-	if req.RemindExpire != nil {
-		user.RemindExpire = *req.RemindExpire
-	}
-	if req.RemindTraffic != nil {
-		user.RemindTraffic = *req.RemindTraffic
-	}
-	if err := s.repos.User.Update(s.db, user); err != nil {
-		return nil, err
+	return &model.UserProfileResp{RemindExpire: user.RemindExpire, RemindTraffic: user.RemindTraffic}, nil
+}
+
+// Profile GET /user/profile 读取通知设置（前端挂载时回填）。
+func (s *UserService) Profile(ctx context.Context, userID int64) (*model.UserProfileResp, error) {
+	user, err := s.repos.User.GetByID(s.db, userID)
+	if err != nil {
+		return nil, errs.ErrNotFound
 	}
 	return &model.UserProfileResp{RemindExpire: user.RemindExpire, RemindTraffic: user.RemindTraffic}, nil
 }

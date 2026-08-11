@@ -9,6 +9,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
+	"ylink/internal/model"
 	redispkg "ylink/internal/pkg/redis"
 	"ylink/internal/repo"
 )
@@ -52,4 +53,27 @@ func (s *SettingService) GetJSON(ctx context.Context, key string, out any) error
 // Invalidate 配置变更后使缓存失效。
 func (s *SettingService) Invalidate(ctx context.Context, key string) {
 	s.rdb.Del(ctx, redispkg.Key("cache", "settings", key))
+}
+
+// commissionRateFor 取佣金比例（代理商取 agent 比例；invite 配置缺失时回退默认值）。
+// order 下单与 invite 总览共用，避免两处重复实现。
+func commissionRateFor(db *gorm.DB, inviterRole int) int {
+	type inviteCfg struct {
+		CommissionRate      int `json:"commission_rate"`
+		AgentCommissionRate int `json:"agent_commission_rate"`
+	}
+	var cfg inviteCfg
+	if raw, err := (repo.SettingRepo{}).Get(db, "invite"); err == nil {
+		_ = json.Unmarshal([]byte(raw), &cfg)
+	}
+	if cfg.CommissionRate <= 0 {
+		cfg.CommissionRate = 40
+	}
+	if cfg.AgentCommissionRate <= 0 {
+		cfg.AgentCommissionRate = 50
+	}
+	if inviterRole == model.RoleAgent {
+		return cfg.AgentCommissionRate
+	}
+	return cfg.CommissionRate
 }

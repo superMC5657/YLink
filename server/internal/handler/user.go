@@ -56,6 +56,22 @@ func (h *User) UpdateProfile(c *gin.Context) {
 	resp.OK(c, data)
 }
 
+// Profile 读取通知设置
+// @Summary 读取通知设置
+// @Tags 用户
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} resp.Body{data=model.UserProfileResp}
+// @Router /user/profile [get]
+func (h *User) Profile(c *gin.Context) {
+	data, err := h.svc.Profile(c.Request.Context(), middleware.UserID(c))
+	if err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.OK(c, data)
+}
+
 // ChangePassword 修改密码
 // @Summary 修改密码
 // @Tags 用户

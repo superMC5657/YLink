@@ -5,6 +5,7 @@
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/zh-cn'
+import type { PlanPeriod } from '@/types/api'
 
 dayjs.extend(relativeTime)
 
@@ -89,6 +90,27 @@ export function periodLabel(period: string): string {
     onetime: '一次性',
   }
   return map[period] ?? period
+}
+
+/** 套餐周期折扣:相对月付省 N%(无折扣返回 null) */
+export function planSavePercent(
+  plan: { prices: Partial<Record<PlanPeriod, number>> },
+  period: PlanPeriod,
+): number | null {
+  const month = plan.prices.month
+  if (!month || period === 'month') return null
+  const months: Record<PlanPeriod, number> = {
+    month: 1,
+    quarter: 3,
+    half_year: 6,
+    year: 12,
+    onetime: 12,
+  }
+  const m = months[period]
+  if (!m) return null
+  const price = plan.prices[period] ?? 0
+  const pct = Math.round((1 - price / (month * m)) * 100)
+  return pct > 0 ? pct : null
 }
 
 /** 订单状态 → 文案 */

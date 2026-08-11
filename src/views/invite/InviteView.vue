@@ -5,7 +5,6 @@
  */
 import { onMounted, ref } from 'vue'
 import { useInviteStore } from '@/stores/invite'
-import { useUserStore } from '@/stores/user'
 import { useMessage, useDialog } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import { useMediaQuery } from '@vueuse/core'
@@ -15,7 +14,6 @@ import StatNumber from '@/components/ui/StatNumber.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 
 const invite = useInviteStore()
-const user = useUserStore()
 const message = useMessage()
 const dialog = useDialog()
 const { t } = useI18n()
@@ -44,9 +42,8 @@ async function onTransfer() {
   }
   transferring.value = true
   try {
-    const data = await invite.transfer(amount)
+    await invite.transfer(amount)
     message.success(t('invite.transferSuccess'))
-    user.stat!.balance = data.balance
     showTransfer.value = false
     transferAmount.value = null
     await invite.fetchSummary()

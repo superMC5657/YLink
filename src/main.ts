@@ -1,7 +1,6 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
-import { createI18n } from 'vue-i18n'
 import {
   create,
   NConfigProvider,
@@ -29,6 +28,7 @@ import 'uno.css'
 import App from './App.vue'
 import router from './router'
 import { setupGuards } from './router/guards'
+import { i18n } from './i18n'
 import { useAppStore } from './stores/app'
 import { useAuthStore } from './stores/auth'
 import { setHttpLanguage } from './utils/http'
@@ -68,13 +68,6 @@ const naive = create({
     NTable,
     NDatePicker,
   ],
-})
-
-const i18n = createI18n({
-  legacy: false,
-  locale: 'zh-CN',
-  fallbackLocale: 'zh-CN',
-  messages: {},
 })
 
 const app = createApp(App)

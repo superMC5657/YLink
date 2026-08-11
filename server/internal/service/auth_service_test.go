@@ -114,6 +114,8 @@ func TestRegister(t *testing.T) {
 
 	// 预置验证码
 	require.NoError(t, e.mr.Set("captcha:email:register:new@b.com", "123456"))
+	// 读取 site 配置（无强制邀请 → 默认关闭）
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT `value` FROM `settings`")).WillReturnError(assert.AnError)
 	// 邮箱不存在
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT count(*) FROM `users`")).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
 	// 创建用户

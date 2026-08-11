@@ -9,6 +9,7 @@ import { useAuthStore } from '@/stores/auth'
 import type { AdminRole, AdminUserItem } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { useMessage, useDialog } from 'naive-ui'
+import { formatBytes } from '@/utils/format'
 
 const message = useMessage()
 const dialog = useDialog()
@@ -57,13 +58,6 @@ function onSearch() {
 function onPageChange(p: number) {
   page.value = p
   void load()
-}
-
-function formatTraffic(v: number): string {
-  if (v <= 0) return '-'
-  if (v >= 1024 ** 3) return `${(v / 1024 ** 3).toFixed(1)} GB`
-  if (v >= 1024 ** 2) return `${(v / 1024 ** 2).toFixed(0)} MB`
-  return `${v} B`
 }
 
 function toggleBan(u: AdminUserItem) {
@@ -186,7 +180,7 @@ onMounted(() => void load())
               <td class="num-font">{{ u.balance.toFixed(2) }}</td>
               <td class="num-font">{{ u.commission_balance.toFixed(2) }}</td>
               <td class="text-14 text-[var(--c-text-sub)]">
-                {{ formatTraffic(u.u) }} ↑ / {{ formatTraffic(u.d) }} ↓
+                {{ formatBytes(u.u) }} ↑ / {{ formatBytes(u.d) }} ↓
               </td>
               <td>
                 <StatusBadge :type="u.is_banned ? 'danger' : 'success'">

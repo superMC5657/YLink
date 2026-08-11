@@ -3,7 +3,6 @@ package redis
 
 import (
 	"context"
-	"time"
 
 	"github.com/redis/go-redis/v9"
 
@@ -34,9 +33,4 @@ func Key(parts ...string) string {
 		out += p
 	}
 	return out
-}
-
-// SetString 便捷写入带过期时间的字符串。
-func SetString(ctx context.Context, rdb *redis.Client, key, value string, ttl time.Duration) error {
-	return rdb.Set(ctx, key, value, ttl).Err()
 }

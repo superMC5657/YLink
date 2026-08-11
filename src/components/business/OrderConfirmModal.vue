@@ -10,8 +10,7 @@ import { useUserStore } from '@/stores/user'
 import { useConfigStore } from '@/stores/config'
 import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
-import { formatMoney } from '@/utils/format'
-import { apiCoupon } from '@/api/order'
+import { formatMoney, planSavePercent } from '@/utils/format'
 import PaymentModal from './PaymentModal.vue'
 import type { Plan, PlanPeriod } from '@/types/api'
 
@@ -45,15 +44,7 @@ const periods = computed<PlanPeriod[]>(() =>
 
 const price = computed(() => props.plan?.prices[period.value] ?? 0)
 
-const savePercent = computed(() => {
-  const month = props.plan?.prices.month
-  if (!month || period.value === 'month') return null
-  const months: Record<string, number> = { quarter: 3, half_year: 6, year: 12, onetime: 12 }
-  const m = months[period.value]
-  if (!m) return null
-  const pct = Math.round((1 - price.value / (month * m)) * 100)
-  return pct > 0 ? pct : null
-})
+const savePercent = computed(() => (props.plan ? planSavePercent(props.plan, period.value) : null))
 
 const discount = computed(() =>
   couponChecked.value && couponResult.value ? couponResult.value.discount_amount : 0,
@@ -104,7 +95,7 @@ async function checkCoupon() {
     return
   }
   try {
-    const resp = await apiCoupon.check({
+    const resp = await orderStore.checkCoupon({
       code: couponCode.value.trim(),
       plan_id: props.plan!.id,
       period: period.value,

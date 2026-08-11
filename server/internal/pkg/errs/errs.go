@@ -92,6 +92,7 @@ var (
 	ErrOrderStatus         = New(11003, "订单状态不允许该操作")
 	ErrBalanceInsufficient = New(11004, "余额不足")
 	ErrPayMethod           = New(11005, "支付渠道不可用")
+	ErrPlanInUse           = New(11006, "该套餐存在关联订单，无法删除")
 
 	ErrCoupon                 = New(12001, "优惠券无效或已过期")
 	ErrInviteMax              = New(13001, "邀请码数量已达上限")

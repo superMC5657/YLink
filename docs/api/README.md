@@ -19,7 +19,7 @@
 
 - 请求头：`Authorization: Bearer <access_token>`。
 - access_token 有效期 2h，refresh_token 14d；401 时前端用 refresh_token 调 `POST /auth/refresh` 静默换新（旋转机制，旧 refresh 立即作废）。
-- 免鉴权接口：`POST /captcha/email`、`POST /auth/*`（login/register/forgot/refresh）、`GET /config`、`GET /client/subscribe/{token}`（token 在路径中）、`POST /payment/notify/{method}`。
+- 免鉴权接口：`POST /captcha/email`、`POST /auth/*`（login/register/forgot/refresh）、`GET /config`、`GET /notices`、`GET /knowledges`、`GET /knowledges/{id}`、`GET /client/subscribe/{token}`（token 在路径中）、`POST /payment/notify/{method}`。
 
 ### 1.3 分页
 
@@ -188,7 +188,9 @@
   } }
 ```
 
-### 5.2 更新通知设置
+### 5.2 通知设置
+
+`GET /user/profile` — 读取通知设置；响应：`data` 为 `{ "remind_expire": bool, "remind_traffic": bool }`。
 
 `PUT /user/profile`
 

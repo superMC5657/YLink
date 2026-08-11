@@ -1,5 +1,6 @@
 import type { Router } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { i18n } from '@/i18n'
 
 /**
  * 登录守卫:
@@ -31,7 +32,8 @@ export function setupGuards(router: Router): void {
   })
 
   router.afterEach((to) => {
-    const title = to.meta.title
+    // meta.title 为 i18n key,翻译后写入标签页标题
+    const title = to.meta.title ? i18n.global.t(to.meta.title) : ''
     document.title = title
       ? `${import.meta.env.VITE_APP_NAME ?? 'YLink'} · ${title}`
       : (import.meta.env.VITE_APP_NAME ?? 'YLink')

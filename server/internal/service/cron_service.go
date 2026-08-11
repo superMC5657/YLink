@@ -82,10 +82,7 @@ func (s *CronService) CloseExpiredOrders(ctx context.Context) {
 			}
 			// 回退优惠券占用（防止券与配额永久残留）
 			if locked.CouponID != nil {
-				if err := s.repos.Coupon.Release(tx, *locked.CouponID); err != nil {
-					return err
-				}
-				if err := s.repos.Coupon.DeleteUsage(tx, *locked.CouponID, locked.UserID, locked.OrderNo); err != nil {
+				if err := releaseCoupon(tx, *locked.CouponID, locked.UserID, locked.OrderNo); err != nil {
 					return err
 				}
 			}
@@ -174,17 +171,30 @@ func (s *CronService) ConfirmCommissions(ctx context.Context) {
 	logger.L().Info("confirm commissions done", zapS("count", fmt.Sprint(len(list))))
 }
 
-// ExpireRemind 到期提醒（每日 10:00）：到期前 3 天内且开启提醒。
+// ExpireRemind 到期提醒（每日 10:00）：到期前 3 天与 1 天各发一次（按窗口去重）。
 func (s *CronService) ExpireRemind(ctx context.Context) {
 	var users []model.User
-	from := time.Now()
-	to := from.Add(72 * time.Hour)
-	if err := s.db.Where("remind_expire = 1 AND expired_at IS NOT NULL AND expired_at > ? AND expired_at <= ? AND is_banned = 0", from, to).Find(&users).Error; err != nil {
+	now := time.Now()
+	// 两个窗口：剩余 (48h, 72h] 视为「3 天」；(0, 24h] 视为「1 天」
+	if err := s.db.Where("remind_expire = 1 AND expired_at IS NOT NULL AND is_banned = 0 AND "+
+		"((expired_at > ? AND expired_at <= ?) OR (expired_at > ? AND expired_at <= ?))",
+		now.Add(48*time.Hour), now.Add(72*time.Hour), now, now.Add(24*time.Hour)).
+		Find(&users).Error; err != nil {
 		logger.L().Error("expire remind query", zapE(err))
 		return
 	}
 	for _, u := range users {
-		markKey := redispkg.Key("remind", "expire", fmt.Sprint(u.ID), fmt.Sprint(u.ExpiredAt.Unix()))
+		remaining := time.Until(*u.ExpiredAt)
+		var window string
+		switch {
+		case remaining > 48*time.Hour && remaining <= 72*time.Hour:
+			window = "3d"
+		case remaining > 0 && remaining <= 24*time.Hour:
+			window = "1d"
+		default:
+			continue
+		}
+		markKey := redispkg.Key("remind", "expire", fmt.Sprint(u.ID), fmt.Sprint(u.ExpiredAt.Unix()), window)
 		ok, _ := s.rdb.SetNX(ctx, markKey, "1", 30*24*time.Hour).Result()
 		if !ok {
 			continue
@@ -244,16 +254,7 @@ func (s *CronService) TrafficDaily(ctx context.Context) {
 
 // AgentAudit 代理商月度复核（core-flows 第 5 节）：有效邀请人数不满足阈值 → 降级 role=0。
 func (s *CronService) AgentAudit(ctx context.Context) {
-	required := 50
-	type agentCfg struct {
-		RequiredValidInvites int `json:"required_valid_invites"`
-	}
-	if raw, err := s.repos.Setting.Get(s.db, "agent"); err == nil {
-		var c agentCfg
-		if json.Unmarshal([]byte(raw), &c) == nil && c.RequiredValidInvites > 0 {
-			required = c.RequiredValidInvites
-		}
-	}
+	required, validDays := agentPolicy(s.db)
 	var agents []model.User
 	if err := s.db.Where("role = ?", model.RoleAgent).Find(&agents).Error; err != nil {
 		logger.L().Error("agent audit query", zapE(err))
@@ -261,7 +262,7 @@ func (s *CronService) AgentAudit(ctx context.Context) {
 	}
 	downgraded := 0
 	for _, a := range agents {
-		valid, err := s.repos.User.CountValidInvited(s.db, a.ID)
+		valid, err := s.repos.User.CountValidInvited(s.db, a.ID, validDays)
 		if err != nil {
 			continue
 		}

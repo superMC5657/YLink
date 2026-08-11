@@ -46,6 +46,7 @@ export const createOrder = (body: CreateOrderReq) => http.post<CreateOrderResp>(
 约定：
 - store 是唯一允许调用 api 模块的地方；页面组件读写 store，不直接发请求。
 - 轮询/定时器句柄存放在对应 store，路由离开时统一清理（`$reset` 或显式 stop）。
+- 例外（务实决策）：管理后台视图（`views/admin/*`）直接调用 `apiAdmin` 不经 store 中转——管理端数据一次性拉取、无跨页共享状态；用户端业务视图一律经 store（Profile / 下单弹窗已按此约定收敛）。
 
 ## 3. 持久化适配（`utils/storage.ts`）
 
@@ -61,12 +62,12 @@ export const createOrder = (body: CreateOrderReq) => http.post<CreateOrderResp>(
 | `formatMoney` | 元 number → `¥10.00`（千分位、两位小数） |
 | `formatTime` | RFC3339 → `YYYY/M/D HH:mm:ss`（截图风格）、相对时间（N 天前/已过期 N 天） |
 | `useCountdown` | 验证码 60s、支付二维码有效期倒计时 |
-| `usePolling` | 通用轮询（订单状态、节点状态），页面隐藏自动暂停（`document.visibilityState`） |
+| 轮询（手写） | 订单/节点轮询在对应 store 内手写实现（`setInterval`），未提供通用 `usePolling`；订单 5s、节点 60s，路由离开时统一 stop |
 | `useMediaQuery` | 断点判断，驱动布局降级 |
 
 ## 5. 国际化（vue-i18n）
 
-- 语言包按模块拆分：`locales/zh-CN/{common,auth,dashboard,order,invite,...}.ts`，懒加载。
+- 语言包为单文件扁平对象（`locales/zh-CN.ts` / `en-US.ts`），按需动态 import 懒加载（`src/i18n.ts`）。
 - 初始语言：持久化值 → 浏览器 `navigator.language` → 回退 `zh-CN`。
 - 后端多语言字段（知识库、公告）按当前语言参数请求，前端不做翻译。
 - 顶栏语言下拉切换后：更新 `Accept-Language`、重拉带语言的数据、持久化选择。

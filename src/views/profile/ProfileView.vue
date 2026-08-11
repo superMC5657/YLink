@@ -11,7 +11,6 @@ import { useI18n } from 'vue-i18n'
 import { openExternal } from '@/utils/platform'
 import { copyText } from '@/utils/platform'
 import BannerStatCard from '@/components/business/BannerStatCard.vue'
-import { apiUser } from '@/api/user'
 
 const user = useUserStore()
 const config = useConfigStore()
@@ -27,7 +26,7 @@ async function onNotifyChange() {
   if (savingNotify.value) return
   savingNotify.value = true
   try {
-    const data = await apiUser.updateProfile({
+    const data = await user.updateProfile({
       remind_expire: remindExpire.value,
       remind_traffic: remindTraffic.value,
     })
@@ -58,7 +57,7 @@ async function savePwd() {
   if (savingPwd.value) return
   savingPwd.value = true
   try {
-    await apiUser.changePassword({
+    await user.changePassword({
       old_password: pwdForm.value.old_password,
       new_password: pwdForm.value.new_password,
     })
@@ -85,7 +84,7 @@ async function onResetSubscribe() {
   }
   resetting.value = true
   try {
-    const data = await apiUser.resetSubscribe({ password: resetPwd.value })
+    const data = await user.resetSubscribe({ password: resetPwd.value })
     newSubscribeUrl.value = data.subscribe_url
     showResetModal.value = false
     resetPwd.value = ''
@@ -112,6 +111,12 @@ function openBot() {
 onMounted(() => {
   void user.fetchStat()
   void config.fetchConfig()
+  void user.fetchProfile().then((profile) => {
+    if (profile) {
+      remindExpire.value = profile.remind_expire
+      remindTraffic.value = profile.remind_traffic
+    }
+  })
 })
 </script>
 

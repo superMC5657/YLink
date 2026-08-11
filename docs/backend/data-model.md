@@ -103,7 +103,7 @@ erDiagram
 ### 2.5 coupons（优惠券）/ coupon_usages（使用记录）
 
 coupons：id、code UNIQUE、type（1=固定金额 2=百分比）、value（分 或 百分比整数）、min_spend（分，门槛）、limit_per_user、total_limit、valid_periods JSON（限定周期）、plan_ids JSON（NULL=全场）、started_at / ended_at、is_enable。
-coupon_usages：id、coupon_id、user_id、order_no，唯一索引 `(coupon_id, user_id, order_no)`。
+coupon_usages：id、coupon_id、user_id、order_no，唯一索引 `(coupon_id, user_id, order_no)`。`limit_per_user` 的并发控制：下单事务内先 `Occupy`（原子条件更新 total_limit）再对已用次数行加锁统计（`CountUsageLocked`，`SELECT ... FOR UPDATE`），配合唯一索引防止并发下单超过单人限额。
 
 ### 2.6 invite_codes（邀请码）
 

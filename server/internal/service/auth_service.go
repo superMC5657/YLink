@@ -93,7 +93,7 @@ func (s *AuthService) SendCaptcha(ctx context.Context, email, typ string) (*mode
 
 func (s *AuthService) sendCaptchaMail(email, code string) {
 	siteName := s.cfg.App.Name
-	tpl := mailer.Template(`您的验证码是 <b style="font-size:22px;color:#4f46e5">{code}</b>，10 分钟内有效。若非本人操作请忽略本邮件。`)
+	tpl := mailer.Template(`您的验证码是 <b style="font-size:22px;color:#4f46e5">{{.code}}</b>，10 分钟内有效。若非本人操作请忽略本邮件。`)
 	body, err := mailer.Render(tpl, siteName, map[string]string{"code": code})
 	if err != nil {
 		logger.L().Error("render captcha mail", zap.Error(err))
@@ -126,6 +126,14 @@ func (s *AuthService) verifyCaptcha(ctx context.Context, email, typ, code string
 
 // Register 注册：校验验证码 → 创建用户 → 邀请绑定 → 签发 token。
 func (s *AuthService) Register(ctx context.Context, req *model.AuthRegisterReq) (*model.TokenResp, error) {
+	// 站点开启强制邀请时，注册必须携带有效邀请码
+	if req.InviteCode == "" {
+		var site siteSettings
+		if err := s.repos.Setting.GetJSON(s.db, "site", &site); err == nil &&
+			site.InviteCodeRequired != nil && *site.InviteCodeRequired {
+			return nil, errs.ErrInviteCode
+		}
+	}
 	if err := s.verifyCaptcha(ctx, req.Email, "register", req.EmailCode); err != nil {
 		return nil, err
 	}

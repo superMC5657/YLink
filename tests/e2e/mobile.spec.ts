@@ -18,5 +18,7 @@ test('移动端仪表板渲染 + 底栏导航到购买订阅', async ({ authedPa
 
   // 抽屉菜单
   await authedPage.goto('/#/dashboard')
-  await authedPage.locator('button[title*="浅色"], button[title*="深色"]').first().isVisible()
+  await expect(
+    authedPage.locator('button[title*="浅色"], button[title*="深色"]').first(),
+  ).toBeVisible()
 })

@@ -162,7 +162,7 @@ func (h *Order) Checkout(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	data, err := h.svc.Checkout(c.Request.Context(), middleware.UserID(c), c.Param("order_no"), req.Method, c.Request)
+	data, err := h.svc.Checkout(c.Request.Context(), middleware.UserID(c), c.Param("order_no"), req.Method)
 	if err != nil {
 		resp.Fail(c, err)
 		return

@@ -2,7 +2,7 @@
 //! 见 docs/frontend/desktop-tauri.md §3-4。
 //!
 //! 插件注册:http / store / clipboard / opener / single-instance / autostart /
-//! notification / process / window-state / os(deep-link 与 updater 需要发布配置,接入时启用)。
+//! notification / process / window-state / os / deep-link(updater 需要发布配置,接入时启用)。
 //! 桌面专属能力(托盘/菜单/单实例/自启/窗口状态记忆)以 `#[cfg(desktop)]` 隔离,
 //! 移动端(Android/iOS)构建时自动排除,见 docs/frontend/desktop-tauri.md §9。
 
@@ -40,14 +40,15 @@ pub fn run() {
         .plugin(tauri_plugin_os::init())
         .invoke_handler(tauri::generate_handler![set_window_theme]);
 
-    // 桌面专属插件:开机自启 / 窗口状态记忆(移动端无对应概念,见 desktop-tauri.md §3)
+    // 桌面专属插件:开机自启 / 窗口状态记忆 / 深链接(移动端无对应概念,见 desktop-tauri.md §3)
     #[cfg(desktop)]
     let builder = builder
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
-        .plugin(tauri_plugin_window_state::Builder::default().build());
+        .plugin(tauri_plugin_window_state::Builder::default().build())
+        .plugin(tauri_plugin_deep_link::init());
 
     // 单实例:第二个实例启动时聚焦已有窗口并转发参数(deep-link 接入时转发 URL)
     #[cfg(desktop)]

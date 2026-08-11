@@ -161,7 +161,8 @@ func (s *SubscribeService) Generate(ctx context.Context, token, flag, userAgent 
 		return nil, errs.ErrUnauthorized
 	}
 	if user.IsBanned {
-		return nil, errs.ErrForbidden
+		// 契约 §15：token 无效/用户封禁 → 401 纯文本
+		return nil, errs.ErrUnauthorized
 	}
 
 	gen := pickGenerator(flag, userAgent)

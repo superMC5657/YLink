@@ -22,12 +22,12 @@ func (AgentApplyRepo) Create(db *gorm.DB, a *model.AgentApply) error { return db
 func (AgentApplyRepo) Save(db *gorm.DB, a *model.AgentApply) error { return db.Save(a).Error }
 
 // CountValidInvited 统计邀请的有效用户数：
-// invite_by_id=我 且（有已完成订单 或 注册满 3 天未封禁）。
-func (UserRepo) CountValidInvited(db *gorm.DB, inviterID int64) (int64, error) {
+// invite_by_id=我 且（有已完成订单 或 注册满 validDays 天未封禁）。
+func (UserRepo) CountValidInvited(db *gorm.DB, inviterID int64, validDays int) (int64, error) {
 	var n int64
 	err := db.Model(&model.User{}).
-		Where("invite_by_id = ? AND (is_banned = 0 AND created_at < DATE_SUB(NOW(), INTERVAL 3 DAY) "+
-			"OR EXISTS (SELECT 1 FROM orders o WHERE o.user_id = users.id AND o.status = 1))", inviterID).
+		Where("invite_by_id = ? AND (is_banned = 0 AND created_at < DATE_SUB(NOW(), INTERVAL ? DAY) "+
+			"OR EXISTS (SELECT 1 FROM orders o WHERE o.user_id = users.id AND o.status = 1))", inviterID, validDays).
 		Count(&n).Error
 	return n, err
 }

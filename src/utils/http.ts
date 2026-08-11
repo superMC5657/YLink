@@ -85,8 +85,10 @@ function refreshTokens(): Promise<boolean> {
 
 function redirectToLogin(): void {
   clearTokens()
-  const current = window.location.pathname + window.location.search
-  window.location.href = `/login?redirect=${encodeURIComponent(current)}`
+  // 应用使用 hash 路由(createWebHashHistory):跳转必须落在 hash 内,
+  // 否则 Tauri 自定义协议下 /login 不是真实文件,会出现空白页。
+  const current = window.location.hash.slice(1) || '/'
+  window.location.hash = `#/login?redirect=${encodeURIComponent(current)}`
 }
 
 // ---------- 请求核心 ----------

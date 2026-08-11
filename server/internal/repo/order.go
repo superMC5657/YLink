@@ -86,6 +86,13 @@ func (OrderRepo) ListPendingBefore(db *gorm.DB, before interface{}) ([]model.Ord
 	return list, err
 }
 
+// CountByPlan 统计引用某套餐的订单数（删除套餐前置校验）。
+func (OrderRepo) CountByPlan(db *gorm.DB, planID int64) (int64, error) {
+	var n int64
+	err := db.Model(&model.Order{}).Where("plan_id = ?", planID).Count(&n).Error
+	return n, err
+}
+
 // PaymentRepo 支付单数据访问。
 type PaymentRepo struct{}
 
@@ -116,15 +123,6 @@ func (PaymentRepo) ListPending(db *gorm.DB) ([]model.Payment, error) {
 	return list, err
 }
 
-// ListPendingWithPayments 有待支付支付单的待支付订单（cron 查单）。
-func (PaymentRepo) ListPendingOrderNos(db *gorm.DB) ([]string, error) {
-	var nos []string
-	err := db.Model(&model.Payment{}).
-		Where("status = ?", model.PayPending).
-		Distinct().Pluck("order_no", &nos).Error
-	return nos, err
-}
-
 // CouponRepo 优惠券数据访问。
 type CouponRepo struct{}
 
@@ -148,9 +146,12 @@ func (CouponRepo) CountUsage(db *gorm.DB, couponID, userID int64) (int64, error)
 	return n, err
 }
 
-func (CouponRepo) IncrUsed(db *gorm.DB, couponID int64) error {
-	return db.Model(&model.Coupon{}).Where("id = ?", couponID).
-		UpdateColumn("used_count", gorm.Expr("used_count + 1")).Error
+// CountUsageLocked 行锁统计用户使用次数（配合 Occupy 串行化并发下单，防 limit_per_user 超限）。
+func (CouponRepo) CountUsageLocked(db *gorm.DB, couponID, userID int64) (int64, error) {
+	var list []model.CouponUsage
+	err := db.Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("coupon_id = ? AND user_id = ?", couponID, userID).Find(&list).Error
+	return int64(len(list)), err
 }
 
 // Occupy 原子占用优惠券：仅当未超总限量时 used_count+1（防 TOCTOU 超发）。

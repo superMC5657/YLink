@@ -216,10 +216,7 @@ func (s *AdminService) CloseOrder(ctx context.Context, adminID int64, orderNo, r
 			return errs.ErrOrderStatus
 		}
 		if order.CouponID != nil {
-			if err := s.repos.Coupon.Release(tx, *order.CouponID); err != nil {
-				return err
-			}
-			if err := s.repos.Coupon.DeleteUsage(tx, *order.CouponID, order.UserID, orderNo); err != nil {
+			if err := releaseCoupon(tx, *order.CouponID, order.UserID, orderNo); err != nil {
 				return err
 			}
 		}
@@ -252,10 +249,7 @@ func (s *AdminService) Refund(ctx context.Context, adminID int64, orderNo, remar
 		}
 		// 优惠券占用回退
 		if order.CouponID != nil {
-			if err := s.repos.Coupon.Release(tx, *order.CouponID); err != nil {
-				return err
-			}
-			if err := s.repos.Coupon.DeleteUsage(tx, *order.CouponID, order.UserID, order.OrderNo); err != nil {
+			if err := releaseCoupon(tx, *order.CouponID, order.UserID, order.OrderNo); err != nil {
 				return err
 			}
 		}
@@ -311,9 +305,10 @@ func (s *AdminService) ListAgentApplies(ctx context.Context, status int, page, p
 		ids = append(ids, a.UserID)
 	}
 	emails := s.emailsOf(ids)
+	_, validDays := agentPolicy(s.db)
 	validCounts := map[int64]int64{}
 	for _, uid := range ids {
-		if n, err := s.repos.User.CountValidInvited(s.db, uid); err == nil {
+		if n, err := s.repos.User.CountValidInvited(s.db, uid, validDays); err == nil {
 			validCounts[uid] = n
 		}
 	}

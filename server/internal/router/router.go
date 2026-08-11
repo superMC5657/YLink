@@ -141,6 +141,7 @@ func registerUser(g *gin.RouterGroup, d Deps, a *app) {
 	authed.Use(middleware.Auth(d.JWT))
 	authed.POST("/auth/logout", a.authH.Logout)
 	authed.GET("/user/stat", a.userH.Stat)
+	authed.GET("/user/profile", a.userH.Profile)
 	authed.PUT("/user/profile", a.userH.UpdateProfile)
 	authed.POST("/user/password/change", a.userH.ChangePassword)
 	authed.GET("/servers", a.serverH.List)

@@ -48,8 +48,9 @@ func (PlanRepo) ListAll(db *gorm.DB) ([]model.Plan, error) {
 
 func (PlanRepo) Create(db *gorm.DB, p *model.Plan) error { return db.Create(p).Error }
 
-func (PlanRepo) Update(db *gorm.DB, p *model.Plan) error {
-	return db.Model(&model.Plan{}).Where("id = ?", p.ID).Updates(p).Error
+// UpdateMap 按 ID 更新指定列（map 更新，支持 false/空值落库）。
+func (PlanRepo) UpdateMap(db *gorm.DB, id int64, updates map[string]any) error {
+	return db.Model(&model.Plan{}).Where("id = ?", id).Updates(updates).Error
 }
 
 func (PlanRepo) Delete(db *gorm.DB, id int64) error {
@@ -74,8 +75,9 @@ func (ServerRepo) GetByID(db *gorm.DB, id int64) (*model.Server, error) {
 	return &s, nil
 }
 
-func (ServerRepo) Update(db *gorm.DB, s *model.Server) error {
-	return db.Model(&model.Server{}).Where("id = ?", s.ID).Updates(s).Error
+// UpdateMap 按 ID 更新指定列（map 更新，支持 false/空值落库）。
+func (ServerRepo) UpdateMap(db *gorm.DB, id int64, updates map[string]any) error {
+	return db.Model(&model.Server{}).Where("id = ?", id).Updates(updates).Error
 }
 
 func (ServerRepo) Delete(db *gorm.DB, id int64) error {
@@ -123,10 +125,6 @@ func (OrderRepo) ListByPage(db *gorm.DB, status *int, page, pageSize int) ([]mod
 	return list, total, err
 }
 
-func (OrderRepo) GetByNoAdmin(db *gorm.DB, orderNo string) (*model.Order, error) {
-	return (OrderRepo{}).GetByNo(db, orderNo)
-}
-
 // ---- 管理端 · 公告 / 知识库 ----
 
 func (NoticeRepo) Create(db *gorm.DB, n *model.Notice) error { return db.Create(n).Error }
@@ -139,8 +137,9 @@ func (NoticeRepo) GetByID(db *gorm.DB, id int64) (*model.Notice, error) {
 	return &n, nil
 }
 
-func (NoticeRepo) Update(db *gorm.DB, n *model.Notice) error {
-	return db.Model(&model.Notice{}).Where("id = ?", n.ID).Updates(n).Error
+// UpdateMap 按 ID 更新指定列（map 更新，支持 false/空值落库）。
+func (NoticeRepo) UpdateMap(db *gorm.DB, id int64, updates map[string]any) error {
+	return db.Model(&model.Notice{}).Where("id = ?", id).Updates(updates).Error
 }
 
 func (NoticeRepo) Delete(db *gorm.DB, id int64) error {
@@ -149,8 +148,9 @@ func (NoticeRepo) Delete(db *gorm.DB, id int64) error {
 
 func (KnowledgeRepo) Create(db *gorm.DB, k *model.Knowledge) error { return db.Create(k).Error }
 
-func (KnowledgeRepo) Update(db *gorm.DB, k *model.Knowledge) error {
-	return db.Model(&model.Knowledge{}).Where("id = ?", k.ID).Updates(k).Error
+// UpdateMap 按 ID 更新指定列（map 更新，支持 false/空值落库）。
+func (KnowledgeRepo) UpdateMap(db *gorm.DB, id int64, updates map[string]any) error {
+	return db.Model(&model.Knowledge{}).Where("id = ?", id).Updates(updates).Error
 }
 
 func (KnowledgeRepo) Delete(db *gorm.DB, id int64) error {

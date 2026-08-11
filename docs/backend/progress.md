@@ -2,7 +2,7 @@
 
 > 本文档记录 `server/` 目录 Go/Gin 后端的开发状态,是 docs/backend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-10(全部里程碑 B1–B7 实现完成;2026-08-10 全量核对:go build/vet/test 实测全绿,管理端 API 13 组、worker cron 7 项与文档一致;补正迁移表数 14→18、测试用例数 36+→47)
+> 最后更新:2026-08-11(全部里程碑 B1–B7 实现完成;2026-08-11 全量核对:go build/vet/test 实测全绿;全量审查 33 项修复完成,见「全量审查修复」)
 
 ---
 
@@ -82,7 +82,7 @@
 | `GET`/`POST /invite/codes` | 8 位随机码列表;生成超限 13001(上限取 settings) |
 | `GET /invite/records` | 仅展示已发放(status=1)佣金记录 |
 | `POST /invite/transfer` | 行锁事务:commission_balance → balance;不足 13002 |
-| `GET /agent/status` | 有效邀请统计(有已完成订单 或 注册满 3 天未封禁)、条件卡片、apply_status(none/pending/approved/rejected) |
+| `GET /agent/status` | 有效邀请统计(有已完成订单 或 注册满 N 天未封禁,N 取 settings `agent.valid_invite_days`,默认 3)、条件卡片、apply_status(none/pending/approved/rejected) |
 | `POST /agent/apply` | 达标校验 15001;审核中重复 15002;被拒后可重新提交 |
 
 ### B7 工单 + 定时任务(✅ 完成)
@@ -93,7 +93,7 @@
 | `GET /tickets/{id}` | 详情含消息流 |
 | `POST /tickets/{id}/reply` | 用户回复→状态回 0(待回复);已关闭 14001 |
 | `POST /tickets/{id}/close` | 关闭(14001 已关闭) |
-| worker cron | robfig/cron + Redis 分布式锁:`close-expired-orders`(5min,条件更新防竞态吞单)、`reconcile-payments`(10min,易支付主动查单补账)、`confirm-commissions`(每日 02:00)、`expire-remind`(10:00,前 3 天)、`traffic-remind`(10:30,≥80%)、`traffic-daily`(01:00,模式 B 空跑) |
+| worker cron | robfig/cron + Redis 分布式锁:`close-expired-orders`(5min,条件更新防竞态吞单)、`reconcile-payments`(10min,易支付主动查单补账)、`confirm-commissions`(每日 02:00)、`expire-remind`(10:00,前 3/1 天双窗口)、`traffic-remind`(10:30,≥80%)、`traffic-daily`(01:00,模式 B 空跑) |
 
 ### 审查修复(✅ 已修复,阻断项清零)
 
@@ -142,6 +142,27 @@
 | 佣金确认竞态 | `UpdateStatusIfPending`(0→1),已被退款撤销的佣金不再发放 |
 | 代理审批并发 | 行锁读取申请,重复审批返回 409 |
 | 审计日志 | `audit_logs` 已接入:调余额/退款/封禁/改角色/代理审批/流量导入 |
+
+### 全量审查修复(✅ 2026-08-11)
+
+第三轮全仓库审查(见 docs/reviews/review-0.2.0.md)的后端修复:
+
+| 项 | 说明 |
+|---|---|
+| 验证码邮件未替换 `{code}` | 模板占位符改 `{{.code}}`,注册/找回密码可收到验证码 |
+| 通知开关 false 不落库 | `UpdateProfile` 改 map 更新并回读;管理端 UpdatePlan/Server/Notice/Knowledge 同改 map 更新(支持 false/空值) |
+| 订单详情空指针(套餐被删) | 套餐名回退「已删除套餐」;`DeletePlan` 增加关联订单检查(11006 不可删) |
+| checkout 缓存键漏支付方式 | 缓存键含 `user_id+order_no+method`,切换支付方式不再命中旧结果 |
+| 优惠券 limit_per_user 非原子 | 事务内 `Occupy` 后 `CountUsageLocked`(`SELECT ... FOR UPDATE`)串行化;幂等键重复插入捕获后重查返回首单 |
+| 余额支付佣金按实付 | `grantCommission` 接收实付金额;封禁订阅改 401;注册强制邀请码按站点配置校验 |
+| 佣金比例逻辑重复 | 抽取 `commissionRateFor`(订单/邀请共用);优惠券释放 4 处抽取 `releaseCoupon` |
+| epay 回调缺 pid 校验 | `VerifyNotify` 验签后比对配置 pid |
+| 限流取 IP 不可靠 | 优先取 `X-Forwarded-For` 首跳 |
+| `couponCode` 吞错 | 改返回 `(string, error)` 显式处理 |
+| 到期提醒仅一次 | `ExpireRemind` 改为前 3 天与前 1 天双窗口(marker 区分) |
+| 代理有效注册天数写死 | 读 `agent.valid_invite_days`(默认 3),注册/代理审计/审批共用 |
+| 余额支付 content 空串 | `CheckoutResp.Content` 改 `*string`,余额支付返回 `null` |
+| 死代码清理 | 删除 `ListPendingOrderNos`/`GetByNoAdmin`/`IncrUsed`/`SetString` |
 
 ### 增强(✅ 完成)
 

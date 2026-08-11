@@ -40,11 +40,5 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
-  },
-  "plugins": {
-    "updater": {
-      "endpoints": ["https://example.com/latest.json"],
-      "pubkey": ""
-    }
   }
 }

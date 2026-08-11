@@ -1,6 +1,13 @@
 import { defineStore } from 'pinia'
-import { apiOrder } from '@/api/order'
-import type { CheckoutReq, CreateOrderReq, Order, OrderStatus, PageQuery } from '@/types/api'
+import { apiCoupon, apiOrder } from '@/api/order'
+import type {
+  CheckoutReq,
+  CouponCheckReq,
+  CreateOrderReq,
+  Order,
+  OrderStatus,
+  PageQuery,
+} from '@/types/api'
 
 interface OrderState {
   list: Order[]
@@ -49,6 +56,9 @@ export const useOrderStore = defineStore('order', {
     },
     async checkout(orderNo: string, body: CheckoutReq) {
       return apiOrder.checkout(orderNo, body)
+    },
+    async checkCoupon(body: CouponCheckReq) {
+      return apiCoupon.check(body)
     },
     async cancel(orderNo: string) {
       const updated = await apiOrder.cancel(orderNo)

@@ -2,7 +2,7 @@
 
 > 本文档记录 `src/` 目录 Vue 3 用户端应用的开发状态,是 docs/frontend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-10(M1–M8 已实现;2026-08-10 全量核对:typecheck/lint/build/vitest 31 用例/E2E 42 用例/cargo check 全部实测通过;管理后台核心 5 模块已完成,二期剩余 8 模块见第 2 节)
+> 最后更新:2026-08-11(M1–M8 已实现;2026-08-11 全量核对:typecheck/lint/vitest 31 用例通过;全量审查 33 项修复完成,见「全量审查修复」;管理后台 6 模块已完成,二期剩余 7 模块见第 2 节)
 
 ---
 
@@ -114,12 +114,13 @@
 | 项 | 说明 | 位置 |
 |---|---|---|
 | 角色区分基建 | auth store `isAdmin` getter;路由 meta `admin` 标志 + 守卫(非管理员访问 `/admin/*` 重定向 `/dashboard`);侧边栏/移动端抽屉按角色追加「管理后台」分组;顶栏用户下拉管理员增加「管理后台」入口 | `src/stores/auth.ts`、`src/router/*`、`components/app/*` |
-| 管理端契约 | `src/api/admin.ts` 封装 5 组端点;类型对齐后端 DTO(价格统一为元) | `src/api/admin.ts`、`src/types/api.d.ts` |
+| 管理端契约 | `src/api/admin.ts` 封装管理端全量端点;类型对齐后端 DTO(价格统一为元) | `src/api/admin.ts`、`src/types/api.d.ts` |
 | 总览 | 7 项运营统计卡 + 快捷入口 | `views/admin/AdminOverviewView.vue` |
 | 用户管理 | 搜索/分页/封禁/角色调整/调余额(均写审计) | `views/admin/AdminUsersView.vue` |
 | 套餐管理 | CRUD:周期定价(元)/流量/设备/限速/节点分组/上架/排序 | `views/admin/AdminPlansView.vue` |
 | 节点管理 | 分组 CRUD + 节点 CRUD(6 协议/地址/配置 JSON/倍率/状态/标签) | `views/admin/AdminNodesView.vue` |
 | 订单管理 | 状态筛选/分页/退款(余额退回+佣金回滚) | `views/admin/AdminOrdersView.vue` |
+| 工单管理 | 列表/详情/客服回复/关闭 | `views/admin/AdminTicketsView.vue` |
 | Mock + E2E | `mock/admin.ts` 管理端 Mock;`tests/e2e/admin.spec.ts` 角色区分 5 用例 × 双 project(管理员可见入口/普通用户不可见且访问被重定向) | `mock/*`、`tests/e2e/*` |
 
 ### 验证状态(✅,2026-08-10 全量实测)
@@ -127,8 +128,27 @@
 - `pnpm typecheck`(vue-tsc --noEmit)零错误
 - `pnpm build`(vue-tsc + vite build)成功,主包 gzip ≈ 253.3KB
 - `pnpm lint` 0 error 0 warning;`pnpm test` **31/31 通过**(此前文档记 29,系后续新增用例未同步)
-- `pnpm e2e`(Playwright)**42/42 通过**:登录 → 仪表板 → 套餐 → 下单(余额支付)→ 订单 → 8 页面可达性 → 暗色切换 → 移动端底栏导航 + **管理后台角色区分 10 例**(其中 2 例来自调试残留 `zz-errfail.spec.ts`,正式套件为 40 例,见第 2 节)
+- `pnpm e2e`(Playwright)**40 例通过**:登录 → 仪表板 → 套餐 → 下单(余额支付)→ 订单 → 8 页面可达性 → 暗色切换 → 移动端底栏导航 + **管理后台角色区分 10 例**(调试残留 `zz-errfail.spec.ts` 已移除)
 - `cargo check`(src-tauri)通过
+
+### 全量审查修复(✅ 2026-08-11)
+
+第三轮全仓库审查(见 docs/reviews/review-0.2.0.md)的前端修复:
+
+| 问题 | 修复 |
+|---|---|
+| 流量明细响应形状与契约不符(裸数组 vs `{list}`) | `src/api/user.ts` 类型改为 `{ list }`,`user store` 解析 `.list`,`mock/user.ts` 对齐契约 |
+| 会话过期跳转丢失 hash 路由 / Tauri 下 404 | `utils/http.ts` 改为 `location.hash = '#/login?redirect=…'` |
+| 标签页标题显示原始 i18n key | `router/guards.ts` 用 `i18n.global.t(title)` 翻译 |
+| FOUC 脚本读取错误形状 + 内联脚本被 CSP 拦截 | 内联脚本移至 `public/theme.js`(JSON.parse 直接取模式),满足 `script-src 'self'` |
+| 通知开关未回填 / 视图直调 api | `ProfileView` 挂载时 `fetchProfile` 回填,改用 `user store` actions;`OrderConfirmModal` 优惠券试算改走 `orderStore.checkCoupon`;`InviteView` 不再直改 store 状态 |
+| deep-link 插件未注册 | `Cargo.toml` 加 `tauri-plugin-deep-link`,`lib.rs` 注册,capabilities 加 `deep-link:default`;删除 `tauri.conf.json` updater 占位 |
+| 二维码 / ECharts 硬编码颜色 | `PaymentModal`、`TrafficView` 运行时读取 CSS 变量(设计规范 tokens.css) |
+| 省 N% 计算与周期文案重复 3 份 | 抽取共享工具 `planSavePercent` / `periodLabel`(`utils/format.ts`) |
+| `apiPlan.list` 死代码/类型矛盾 | 删除 |
+| CopyText 展示文本不响应 prop 变化 | 改用 `computed` |
+| AdminUsersView 重复实现 formatBytes | 删除本地实现,统一用 `formatBytes` |
+| E2E 调试残留 | 删除 `zz-errfail.spec.ts`;`mobile.spec.ts` 未断言调用改为 `expect(...).toBeVisible()` |
 
 ---
 
@@ -142,7 +162,7 @@
 | 插件接入(Rust) | ✅ http / store / clipboard / opener / single-instance / autostart / notification / process / window-state / os | capabilities 最小授权;http scope 限 `https://**` + localhost |
 | 平台适配层(前端) | ✅ `utils/platform.ts` 启用 Tauri 分支(clipboard/opener/deep-link 动态 import);`utils/http.ts` 走 plugin-http 原生 fetch;`stores/app.ts` applyTheme 同步窗口标题栏;`main.ts` 深链接路由跳转 | Web 端自动降级不受影响 |
 | 托盘/单实例 | ✅ 托盘菜单(显示主窗口/退出)+ single-instance 聚焦已有窗口 | lib.rs setup |
-| deep-link 注册 | ⚠️ 前端 onDeepLink 已实现,Rust 侧未注册插件、capabilities 未声明权限 | 需 Release 域名与 ylink:// 协议注册(desktop-tauri.md §3/§4) |
+| deep-link 注册 | ✅ `tauri-plugin-deep-link` 已注册(Rust `#[cfg(desktop)]` init)+ capabilities `deep-link:default`;前端 onDeepLink 路由跳转 | Release 域名与 `ylink://` 协议注册见 desktop-tauri.md §3/§4 |
 | 自动更新 | ⚠️ tauri.conf.json 有 updater 配置(空 pubkey/示例端点),Rust 与前端未接入 | 需 `tauri signer generate` + Release 流水线(desktop-tauri.md §5) |
 | 通知触发点 | ⚠️ 插件已注册,前端未实现到期/工单回复/支付成功本地通知 | 依赖轮询钩子(可后补) |
 | 三平台打包与 updater 签名 | ❌ 未配置 | 需 GitHub Actions Release + `TAURI_SIGNING_PRIVATE_KEY` |
@@ -153,7 +173,6 @@
 | 项 | 说明 |
 |---|---|
 | 组件测试 | 已建 Vitest 但仅覆盖 utils/store/composables;关键组件(StatCard/PlanCard/OrderTable)渲染测试未写(测试策略 frontend/README §9) |
-| E2E 调试残留 | `tests/e2e/zz-errfail.spec.ts`(无断言、纯日志抓取诊断脚本)仍在正式套件中,会被本地/CI 的 `pnpm e2e` 执行(占 2/32),应移出测试目录或按 tag 排除 |
 | husky + lint-staged + commitlint | 未配置(Conventional Commits 约定见 docs/README §5,尚未工具化) |
 | 移动端下拉刷新 / 加载更多 | pages.md §6.3 建议项,未实现(分页器在平板以上已可用) |
 | PWA | 手机端一期仅响应式 Web,未加 manifest/离线壳(desktop-tauri.md §9 标注可后补) |
@@ -163,7 +182,7 @@
 
 | 项 | 状态 | 依赖/说明 |
 |---|---|---|
-| 管理后台(二期剩余模块) | **核心 5 模块已实现**(总览/用户/套餐/节点/订单,见第 1 节 M8);剩余:优惠券/公告/知识库/工单/代理审批/佣金日志/流量导入/站点设置 | 后端 13 组 admin API 已全量就绪;契约见 [docs/api/README.md](../api/README.md) 第 16 节 |
+| 管理后台(二期剩余模块) | **核心 6 模块已实现**(总览/用户/套餐/节点/订单/工单,见第 1 节 M8);剩余:优惠券/公告/知识库/代理审批/佣金日志/流量导入/站点设置 | 后端 13 组 admin API 已全量就绪;契约见 [docs/api/README.md](../api/README.md) 第 16 节 |
 | 移动端深链/分享面板 | 未做 | 需 Tauri Mobile 评估(desktop-tauri.md §9) |
 | 更新卡片 UI | 未做 | 依赖 M6 updater 插件 |
 

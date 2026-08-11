@@ -62,22 +62,24 @@ func TestCreateCodeLimit(t *testing.T) {
 
 func TestApplyAgentNotQualified(t *testing.T) {
 	e, svc := newInviteEnv(t)
+	// 读取 agent 策略（required=50，valid_invite_days 缺省 3）
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT `value` FROM `settings`")).
+		WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow(`{"required_valid_invites":50}`))
 	// 有效邀请数 0 < 50
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT count(*) FROM `users`")).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT `value` FROM `settings`")).
-		WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow(`{"required_valid_invites":50}`))
 	_, err := svc.ApplyAgent(context.Background(), 1)
 	assert.Equal(t, 15001, codeOf(err))
 }
 
 func TestApplyAgentDuplicated(t *testing.T) {
 	e, svc := newInviteEnv(t)
+	// 读取 agent 策略
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT `value` FROM `settings`")).
+		WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow(`{"required_valid_invites":50}`))
 	// 有效邀请数达标
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT count(*) FROM `users`")).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(60))
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT `value` FROM `settings`")).
-		WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow(`{"required_valid_invites":50}`))
 	// 已有待审核申请
 	now := time.Now()
 	apply := &model.AgentApply{ID: 1, UserID: 1, Status: 0, CreatedAt: now}
@@ -94,12 +96,12 @@ func TestAgentStatus(t *testing.T) {
 	now := time.Now()
 	u := &model.User{ID: 1, Email: "a@b.com", Role: 0, CreatedAt: now, UpdatedAt: now}
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `users`")).WillReturnRows(userRow(u))
+	// settings agent：required=50，valid_invite_days 缺省 3
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT `value` FROM `settings`")).
+		WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow(`{"required_valid_invites":50}`))
 	// 有效邀请数
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT count(*) FROM `users`")).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(3))
-	// settings agent（无 → 默认 50）：查询返回空则走默认。这里 mock 返回 error 会怎样？
-	// Setting.Get 失败 → service 用默认 50。先 mock 一个空行集。
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT `value` FROM `settings`")).WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow(`{"required_valid_invites":50}`))
 	// agent_applies 无记录
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `agent_applies`")).WillReturnError(assert.AnError)
 

@@ -2,7 +2,7 @@
 /**
  * 可复制文本:省略显示 + 复制按钮 + 成功反馈。
  */
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { copyText } from '@/utils/platform'
 import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
@@ -35,7 +35,7 @@ async function onCopy() {
   }
 }
 
-const shown = computedDisplay()
+const shown = computed(() => computedDisplay())
 
 function computedDisplay(): string {
   if (!props.ellipsis) return props.text

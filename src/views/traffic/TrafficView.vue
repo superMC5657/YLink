@@ -57,21 +57,28 @@ const totalUpload = computed(() => user.trafficLogs.reduce((a, x) => a + x.u, 0)
 const totalDownload = computed(() => user.trafficLogs.reduce((a, x) => a + x.d, 0))
 const totalAll = computed(() => user.trafficLogs.reduce((a, x) => a + x.total, 0))
 
+/** 运行时读取 CSS 变量,避免硬编码主题色(设计规范 tokens.css) */
+function resolveCssVar(name: string, fallback: string): string {
+  if (typeof document === 'undefined') return fallback
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+  return v || fallback
+}
+
 function renderChart() {
   if (!chartRef.value) return
   if (!chart) {
     chart = echarts.init(chartRef.value)
   }
   const isDark = app.isDark
-  const axisColor = isDark ? '#9BA1B7' : '#8A8FA3'
-  const splitColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(23,25,66,0.06)'
+  const axisColor = resolveCssVar('--c-text-sub', isDark ? '#9BA1B7' : '#8A8FA3')
+  const splitColor = resolveCssVar('--c-border', isDark ? 'rgba(255,255,255,0.06)' : 'rgba(23,25,66,0.06)')
   chart.setOption({
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
-      backgroundColor: isDark ? '#171B26' : '#fff',
-      borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#EBECF4',
-      textStyle: { color: isDark ? '#E8EAF2' : '#1F2430', fontSize: 12 },
+      backgroundColor: resolveCssVar('--c-bg-card', isDark ? '#171B26' : '#fff'),
+      borderColor: resolveCssVar('--c-border', isDark ? 'rgba(255,255,255,0.1)' : '#EBECF4'),
+      textStyle: { color: resolveCssVar('--c-text', isDark ? '#E8EAF2' : '#1F2430'), fontSize: 12 },
       formatter: (params: { seriesName: string; value: number; axisValue: string }[]) => {
         const lines = params.map((p) => `${p.seriesName}: ${formatBytes(p.value)}`).join('<br/>')
         return `${params[0].axisValue}<br/>${lines}`
@@ -104,7 +111,7 @@ function renderChart() {
         type: 'bar',
         stack: 'traffic',
         data: user.trafficLogs.map((x) => x.u),
-        itemStyle: { color: '#6558F5', borderRadius: [3, 3, 0, 0] },
+        itemStyle: { color: resolveCssVar('--c-primary', '#6558F5'), borderRadius: [3, 3, 0, 0] },
         barMaxWidth: 18,
       },
       {
@@ -112,7 +119,7 @@ function renderChart() {
         type: 'bar',
         stack: 'traffic',
         data: user.trafficLogs.map((x) => x.d),
-        itemStyle: { color: '#8B5CF6', borderRadius: [3, 3, 0, 0] },
+        itemStyle: { color: resolveCssVar('--c-pink', '#8B5CF6'), borderRadius: [3, 3, 0, 0] },
         barMaxWidth: 18,
       },
     ],

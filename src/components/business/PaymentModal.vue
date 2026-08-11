@@ -36,6 +36,13 @@ const payMethodName = ref('')
 
 let pollTimer: ReturnType<typeof setInterval> | null = null
 
+/** 运行时读取 CSS 变量,避免硬编码主题色(设计规范 tokens.css) */
+function resolveCssVar(name: string, fallback: string): string {
+  if (typeof document === 'undefined') return fallback
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+  return v || fallback
+}
+
 const payMethodLabel = computed(() => {
   const map: Record<string, string> = {
     balance: '余额支付',
@@ -65,7 +72,10 @@ async function initCheckout() {
       const dataUrl = await QRCode.toDataURL(resp.content ?? '', {
         width: 220,
         margin: 1,
-        color: { dark: '#1F2430', light: '#FFFFFF' },
+        color: {
+          dark: resolveCssVar('--c-text', '#1F2430'),
+          light: resolveCssVar('--c-bg-card', '#FFFFFF'),
+        },
       })
       qrDataUrl.value = dataUrl
       phase.value = 'qrcode'

@@ -2,7 +2,7 @@
 
 > 本文档记录 `src/` 目录 Vue 3 用户端应用的开发状态,是 docs/frontend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-11(M1–M9 已实现;2026-08-11 全量核对:typecheck/lint/vitest 31 用例通过;全量审查 33 项修复完成,见「全量审查修复」;管理后台 13 模块全部完成,见 M8+M9)
+> 最后更新:2026-08-11(M1–M9 已实现;2026-08-11 全量核对:typecheck/lint/vitest 43 用例通过;全量审查 33 项修复完成,见「全量审查修复」;管理后台 13 模块全部完成,见 M8+M9;一期小缺口收尾完成,见「一期小缺口收尾」)
 
 ---
 
@@ -19,7 +19,7 @@
 | 国际化 | vue-i18n@11,zh-CN / en-US 按模块命名空间,`Accept-Language` 联动 | `src/locales/*` |
 | 环境变量 | `VITE_API_BASE_URL` / `VITE_USE_MOCK` / `VITE_APP_NAME`,运行时后端地址可改并持久化 | `.env.development`、`.env.production`、`utils/storage.ts` |
 | 防闪烁 | `index.html` 内联首帧脚本,渲染前读持久化主题写入 `data-theme` | `index.html` |
-| Mock | vite-plugin-mock,6 个模块(auth/business/config/order/server/user)严格按契约(含 401/错误码/支付自动完成模拟) | `mock/*.ts` |
+| Mock | vite-plugin-mock,6 个模块(auth/business/config/order/server/user)严格按契约(含 401/错误码/支付自动完成模拟);**2026-08-11 公告数据源合并至 `mock/notices.ts`(用户端 `GET /notices` 与管理端 `/admin/notices` CRUD 读写同一数组,修复管理后台发布的公告用户端不可见)** | `mock/*.ts` |
 
 ### M2 布局与设计系统(✅ 完成)
 
@@ -36,7 +36,7 @@
 
 | 页面 | 组件与交互 | 数据来源 |
 |---|---|---|
-| 仪表板 | Banner 统计卡(余额绿/佣金粉)、订阅卡(到期徽章/进度条 80%/95% 变色/五宫格)、公告手风琴(markdown-it + DOMPurify)、9 宫格快捷操作(一键导入/免费流量/APP 下载弹窗);窗口聚焦静默刷新 | `GET /user/stat`、`/user/subscribe`、`/notices` |
+| 仪表板 | Banner 统计卡(余额绿/佣金粉)、订阅卡(到期徽章/进度条 80%/95% 变色/五宫格)、公告手风琴(markdown-it + DOMPurify;**正文反引号包裹的优惠码渲染为高亮 chip,点击一键复制**,显示最新 10 条)、9 宫格快捷操作(一键导入/免费流量/APP 下载弹窗);窗口聚焦静默刷新 | `GET /user/stat`、`/user/subscribe`、`/notices` |
 | 使用文档 | 300ms 防抖搜索(前端过滤 + 传 keyword)、语言切换、分类分组、详情 markdown 渲染(代码块/强标记营销红) | `GET /knowledges`、`/knowledges/{id}` |
 | 我的订单 | 表格/卡片双视图切换、状态筛选、分页、详情弹窗(屏幕中央,全字段 + 支付入口 + 取消)、待支付 5s 轮询 | `GET /orders`、`/orders/{no}`、`cancel` |
 
@@ -45,7 +45,7 @@
 | 能力 | 说明 | 数据来源 |
 |---|---|---|
 | 套餐卡 | 3/2/1 列响应式网格、周期胶囊切换联动价格与「省 N%」、markdown 营销红字 | `GET /plans` |
-| 下单弹窗 | 周期选择 → 优惠券试算(成功显示减免/失败红字)→ 支付方式(余额不足置灰显差额)→ 费用明细 → 提交;`Idempotency-Key` 幂等建单 | `POST /coupons/check`、`POST /orders` |
+| 下单弹窗 | 周期选择 → 优惠券试算(成功显示减免/失败红字)→ **可用优惠券列表展示(点选自动填入试算, `GET /coupons/available`)** → 支付方式(余额不足置灰显差额)→ 费用明细 → 提交;`Idempotency-Key` 幂等建单 | `POST /coupons/check`、`POST /orders` |
 | 收银台 | 二维码(qrcode 库渲染)/ 跳转 URL 两种形态、1800s 倒计时、3s 轮询订单、支付成功结果卡、余额直付即完成 | `POST /orders/{no}/checkout`、`GET /orders/{no}` |
 | 一键导入 | 客户端选择弹窗(Clash/sing-box/Shadowrocket/v2rayNG 等 10 款),scheme 唤起 + 复制订阅链接兜底 | `utils/deeplink.ts` |
 
@@ -127,7 +127,7 @@
 
 | 模块 | 说明 | 位置 |
 |---|---|---|
-| 优惠券管理 | 列表/新建/编辑/删除:类型(固定金额/百分比)/面值/最低消费/每人限用/总量/适用周期/适用套餐/生效失效时间/启停 | `views/admin/AdminCouponsView.vue` |
+| 优惠券管理 | 列表/新建/编辑/删除:类型(固定金额/百分比)/面值/最低消费/每人限用/总量/适用周期/适用套餐/生效失效时间/启停;**一键公告(按优惠券生成公告草稿,标题/正文预填且可编辑,优惠码反引号包裹发布后用户端高亮可复制,调 `POST /admin/notices`)** | `views/admin/AdminCouponsView.vue` |
 | 公告管理 | 列表/发布/编辑/删除:标题/内容(Markdown)/展示开关/排序 | `views/admin/AdminNoticesView.vue` |
 | 知识库管理 | 列表(语言筛选+关键词搜索)/新建/编辑/删除:分类/标题/正文(Markdown)/语言/展示/排序 | `views/admin/AdminKnowledgesView.vue` |
 | 代理审批 | 状态筛选/分页/通过/拒绝(通过后升级代理商) | `views/admin/AdminAgentAppliesView.vue` |
@@ -143,11 +143,12 @@
 ### 验证状态(✅,2026-08-10 全量实测)
 
 - `pnpm typecheck`(vue-tsc --noEmit)零错误
-- `pnpm build`(vue-tsc + vite build)成功,主包 gzip ≈ 253.3KB
-- `pnpm lint` 0 error 0 warning;`pnpm test` **31/31 通过**(此前文档记 29,系后续新增用例未同步)
+- `pnpm build`(vue-tsc + vite build)成功,主包 gzip ≈ 254KB;PWA 产物:dist/sw.js(precache 62 项)+ manifest.webmanifest + registerSW.js
+- `pnpm lint` 0 error 0 warning;`pnpm test` **43/43 通过**(2026-08-11 一期小缺口收尾后:新增 PlanCard/OrderTable/BannerStatCard 组件测试 12 例)
 - `pnpm e2e`(Playwright)**42 例通过**(2026-08-11 `--list` 复核:21 用例 × 双 project):登录 → 仪表板 → 套餐 → 下单(余额支付)→ 订单 → 7 页面可达性 → 暗色切换 → 移动端底栏导航 + **管理后台角色区分 12 例**(6 用例 × 双 project;调试残留 `zz-errfail.spec.ts` 已移除)
 - `cargo check`(src-tauri)通过
 - **M9 二期 7 模块(2026-08-11)**:`pnpm typecheck` / `pnpm lint`(0 warning)/ `pnpm test`(31/31)/ `pnpm build` 全绿;后端 `go build`/`go vet`/`gofmt -l`(0 输出)/`go test`(47 函数)全绿;7 个新页面已注册路由 + 管理端菜单,交互验证待手动(Mock 管理员 `admin@example.com` / `Admin@123456`)
+- **一期小缺口收尾(2026-08-11)**:`pnpm typecheck`/`pnpm lint`/`pnpm test`(43/43)/`pnpm build`(含 PWA)全绿;commit-msg 钩子实测规范消息通过、无 type 消息被拒
 
 ### 全量审查修复(✅ 2026-08-11)
 
@@ -186,15 +187,22 @@
 | 三平台打包与 updater 签名 | ❌ 未配置 | 需 GitHub Actions Release + `TAURI_SIGNING_PRIVATE_KEY` |
 | 存储适配 | ⚠️ 一期统一 localStorage(WebView 持久化);plugin-store(JSON 文件)异步 API 与 persistedstate 同步接口冲突,迁移需异步化改造 | 见 storage.ts 注释 |
 
+### 一期小缺口收尾(✅ 2026-08-11)
+
+| 项 | 说明 | 位置 |
+|---|---|---|
+| 组件渲染测试 | 补关键业务组件测试:PlanCard(价格/周期切换/购买 emit/Markdown 净化)、OrderTable(行渲染/状态徽章/去支付条件/事件)、BannerStatCard(邮箱/金额/空态兜底);共享 i18n helper(语言包懒加载后 setLocaleMessage) | `src/components/business/__tests__/*` |
+| husky + lint-staged + commitlint | Conventional Commits 约定工具化:pre-commit 跑 lint-staged(eslint --fix + prettier 仅处理暂存文件),commit-msg 跑 commitlint(type-enum 白名单);配置为 ESM(项目 type: module) | `.husky/pre-commit`、`.husky/commit-msg`、`commitlint.config.js`、`package.json` |
+| 移动端下拉刷新 | `usePullToRefresh` composable:原生 touch 监听(passive:false,仅 scrollTop=0 且下拉时 preventDefault),MainLayout 集成指示器(下拉刷新/释放立即刷新/刷新中),触发与窗口聚焦一致的静默刷新仪表板 | `src/composables/usePullToRefresh.ts`、`layouts/MainLayout.vue` |
+| 订单加载更多 | 移动端卡片视图用「加载更多」翻页追加(store fetch 支持 append),桌面表格视图保留分页器 | `src/stores/order.ts`、`views/order/OrdersView.vue` |
+| PWA | vite-plugin-pwa@1.3:manifest(name/short_name/theme_color #6558F5/128-192-512 图标含 maskable)+ Workbox 离线壳(globPatterns 预缓存 62 项 + navigateFallback index.html);registerType autoUpdate + injectRegister script(非 inline,兼容 Tauri CSP script-src 'self');dev 不启用;Tauri 端不受影响 | `vite.config.ts`、`index.html`、`public/pwa-*.png` |
+
 ### 一期内已知缺口(可后补)
 
 | 项 | 说明 |
 |---|---|
-| 组件测试 | 已建 Vitest 但仅覆盖 utils/store/composables;关键组件(StatCard/PlanCard/OrderTable)渲染测试未写(测试策略 frontend/README §9) |
-| husky + lint-staged + commitlint | 未配置(Conventional Commits 约定见 docs/README §5,尚未工具化) |
-| 移动端下拉刷新 / 加载更多 | pages.md §6.3 建议项,未实现(分页器在平板以上已可用) |
-| PWA | 手机端一期仅响应式 Web,未加 manifest/离线壳(desktop-tauri.md §9 标注可后补) |
 | Stylelint | 未引入(可选,ESLint + Prettier 已覆盖) |
+| 既有 format:check 告警 | `pnpm format:check` 当前 58 个文件(含 M8/M9 遗留)不合 Prettier 3.9.6 格式,**与本次改动无关**(本次新增/修改文件已全部通过);如需全仓库达标需单独一次 `pnpm format` 提交 |
 
 ### 二期 / 明确标注待办
 

@@ -6,6 +6,7 @@
  */
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import AppSidebar from '@/components/app/AppSidebar.vue'
 import AppHeader from '@/components/app/AppHeader.vue'
 import MobileTabBar from '@/components/app/MobileTabBar.vue'
@@ -15,6 +16,7 @@ import { useMediaQuery } from '@vueuse/core'
 import { useAppStore } from '@/stores/app'
 import { useConfigStore } from '@/stores/config'
 import { useUserStore } from '@/stores/user'
+import { usePullToRefresh } from '@/composables/usePullToRefresh'
 
 const isDesktop = useMediaQuery('(min-width: 1024px)')
 const isMobile = useMediaQuery('(max-width: 767px)')
@@ -22,8 +24,15 @@ const app = useAppStore()
 const config = useConfigStore()
 const user = useUserStore()
 const route = useRoute()
+const { t } = useI18n()
 
 const drawerVisible = ref(false)
+const mainEl = ref<HTMLElement | null>(null)
+
+// 移动端下拉刷新（pages.md §6.3）：与窗口聚焦刷新一致，静默刷新仪表板数据
+const { pulling, refreshing, distance, threshold } = usePullToRefresh(mainEl, () =>
+  user.refreshDashboard(),
+)
 
 onMounted(() => {
   // 进入主布局:拉取站点配置与用户数据
@@ -69,13 +78,36 @@ watch(
       <AppHeader @toggle-drawer="drawerVisible = true" />
 
       <main
-        class="flex-1 overflow-y-auto overflow-x-hidden"
+        ref="mainEl"
+        class="relative flex-1 overflow-y-auto overflow-x-hidden"
         :class="isMobile ? 'px-4 pb-24 pt-4' : 'px-6 py-6 md:px-8'"
       >
-        <div
-          class="mx-auto w-full"
-          :class="isDesktop ? 'max-w-[1440px]' : 'max-w-none'"
-        >
+        <!-- 移动端下拉刷新指示器（仅触屏下拉时出现） -->
+        <transition name="fade">
+          <div
+            v-if="pulling || refreshing"
+            class="pointer-events-none fixed inset-x-0 top-2 z-50 flex justify-center"
+          >
+            <div
+              class="flex items-center gap-1.5 rounded-full bg-[var(--c-bg-elevated)] px-3 py-1 text-13 text-[var(--c-text-sub)] shadow-lg transition-transform"
+              :style="{ transform: `translateY(${distance}px)` }"
+            >
+              <span
+                class="h-3 w-3 rounded-full border-2 border-[var(--c-primary)] border-t-transparent"
+                :class="{ 'animate-spin': refreshing }"
+              />
+              {{
+                refreshing
+                  ? t('common.refreshing')
+                  : distance >= threshold
+                    ? t('common.releaseToRefresh')
+                    : t('common.pullToRefresh')
+              }}
+            </div>
+          </div>
+        </transition>
+
+        <div class="mx-auto w-full" :class="isDesktop ? 'max-w-[1440px]' : 'max-w-none'">
           <router-view v-slot="{ Component }">
             <transition name="fade-slide" mode="out-in">
               <component :is="Component" />

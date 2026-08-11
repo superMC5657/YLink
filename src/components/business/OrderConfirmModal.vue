@@ -12,7 +12,7 @@ import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import { formatMoney, planSavePercent } from '@/utils/format'
 import PaymentModal from './PaymentModal.vue'
-import type { Plan, PlanPeriod } from '@/types/api'
+import type { CouponItem, Plan, PlanPeriod } from '@/types/api'
 
 const props = defineProps<{
   show: boolean
@@ -32,6 +32,8 @@ const couponCode = ref('')
 const couponChecked = ref(false)
 const couponResult = ref<{ discount_amount: number; pay_amount: number } | null>(null)
 const couponError = ref('')
+const availableCoupons = ref<CouponItem[]>([])
+const couponsLoading = ref(false)
 const payMethod = ref('epay_alipay')
 const submitting = ref(false)
 
@@ -67,6 +69,8 @@ function reset() {
   couponChecked.value = false
   couponResult.value = null
   couponError.value = ''
+  availableCoupons.value = []
+  couponsLoading.value = false
   payMethod.value = 'epay_alipay'
   createdOrder.value = null
   showPayment.value = false
@@ -74,10 +78,26 @@ function reset() {
   idempotencyKey.value = crypto.randomUUID()
 }
 
+/** 拉取当前套餐+周期的可用优惠券（展示用，不校验） */
+async function loadAvailableCoupons() {
+  if (!props.plan) return
+  couponsLoading.value = true
+  try {
+    availableCoupons.value = await orderStore.fetchAvailableCoupons(props.plan.id, period.value)
+  } catch {
+    availableCoupons.value = []
+  } finally {
+    couponsLoading.value = false
+  }
+}
+
 watch(
   () => props.show,
   (v) => {
-    if (v) reset()
+    if (v) {
+      reset()
+      void loadAvailableCoupons()
+    }
   },
 )
 
@@ -86,6 +106,22 @@ function selectPeriod(p: PlanPeriod) {
   couponChecked.value = false
   couponResult.value = null
   couponError.value = ''
+  // 切换周期后可用券集合可能变化，重新拉取
+  void loadAvailableCoupons()
+}
+
+/** 点选可用券：填入输入框并立即试算 */
+function applyCoupon(c: CouponItem) {
+  couponCode.value = c.code
+  void checkCoupon()
+}
+
+/** 券的展示描述：减 ¥x / -x% / 满减门槛 */
+function couponDesc(c: CouponItem): string {
+  const amount = c.type === 1 ? `${formatMoney(c.value)}` : `-${c.value}%`
+  const gate =
+    c.min_spend > 0 ? `(${t('plan.couponGate', { amount: formatMoney(c.min_spend) })})` : ''
+  return `${c.code} ${amount}${gate}`
 }
 
 async function checkCoupon() {
@@ -204,6 +240,27 @@ async function submit() {
         {{ t('plan.couponApplied', { amount: formatMoney(couponResult.discount_amount) }) }}
       </p>
       <p v-if="couponError" class="mt-1.5 text-14 text-[var(--c-danger)]">{{ couponError }}</p>
+
+      <!-- 可用优惠券（GET /coupons/available）：点选自动填入并试算 -->
+      <div v-if="couponsLoading" class="mt-2 text-13 text-[var(--c-text-sub)]">
+        {{ t('common.loading') }}
+      </div>
+      <div v-else-if="availableCoupons.length" class="mt-2">
+        <div class="mb-1.5 text-13 text-[var(--c-text-sub)]">{{ t('plan.availableCoupons') }}</div>
+        <div class="flex flex-wrap gap-1.5">
+          <button
+            v-for="c in availableCoupons"
+            :key="c.code"
+            class="cursor-pointer rounded-[var(--r-pill)] border border-[var(--c-border)] bg-[var(--c-bg-card)] px-2.5 py-1 text-13 text-[var(--c-text-sub)] transition-colors hover:border-[var(--c-primary)] hover:text-[var(--c-primary-text)]"
+            :class="
+              couponCode === c.code ? 'border-[var(--c-primary)] text-[var(--c-primary-text)]' : ''
+            "
+            @click="applyCoupon(c)"
+          >
+            {{ couponDesc(c) }}
+          </button>
+        </div>
+      </div>
 
       <!-- 3. 支付方式 -->
       <div class="mt-5 mb-2 text-14 font-500 text-[var(--c-text)]">{{ t('plan.payment') }}</div>

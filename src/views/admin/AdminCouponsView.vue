@@ -5,7 +5,7 @@
  */
 import { computed, onMounted, reactive, ref } from 'vue'
 import { apiAdmin } from '@/api/admin'
-import type { AdminCouponItem, AdminCouponReq, AdminPlanItem } from '@/types/api'
+import type { AdminCouponItem, AdminCouponReq, AdminNoticeReq, AdminPlanItem } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { useMessage, useDialog } from 'naive-ui'
 import { formatTime } from '@/utils/format'
@@ -42,6 +42,52 @@ const form = reactive<AdminCouponReq>({
   ended_at: null,
   is_enable: true,
 })
+
+// 一键公告弹窗：为某张优惠券生成公告草稿并发布
+const noticeModal = ref(false)
+const noticeSaving = ref(false)
+const noticeFrom = ref<AdminCouponItem | null>(null)
+const noticeForm = reactive<AdminNoticeReq>({ title: '', content: '', is_show: true, sort: 0 })
+
+/** 依据优惠券生成公告草稿（优惠码用反引号包裹，用户端 NoticePanel 渲染为高亮可复制 chip） */
+function buildNoticeDraft(c: AdminCouponItem) {
+  const discount = c.type === 1 ? `立减 ${c.value.toFixed(2)} 元` : `享 ${c.value}% 折扣`
+  const gate = c.min_spend > 0 ? `（满 ${c.min_spend.toFixed(2)} 元可用）` : ''
+  const period = periodText(c.valid_periods)
+  const plan = planText(c.plan_ids)
+  return {
+    title: `限时福利:优惠码 ${c.code}`,
+    content:
+      `## 限时福利\n\n` +
+      `使用优惠码 **${c.code}** 下单${discount}${gate},适用${period}·${plan}。\n\n` +
+      `优惠码:\`${c.code}\`(点击复制,下单时输入或直接点选「可用优惠券」)`,
+  }
+}
+
+function openNotice(c: AdminCouponItem) {
+  noticeFrom.value = c
+  Object.assign(noticeForm, { is_show: true, sort: 0, ...buildNoticeDraft(c) })
+  noticeModal.value = true
+}
+
+async function publishNotice() {
+  if (!noticeForm.title.trim()) {
+    message.warning('请输入公告标题')
+    return
+  }
+  if (!noticeForm.content.trim()) {
+    message.warning('请输入公告内容')
+    return
+  }
+  noticeSaving.value = true
+  try {
+    await apiAdmin.createNotice({ ...noticeForm })
+    message.success(`公告已发布,用户端仪表板立即可见（含优惠码 ${noticeFrom.value?.code ?? ''}）`)
+    noticeModal.value = false
+  } finally {
+    noticeSaving.value = false
+  }
+}
 
 const typeLabel = computed(() => (form.type === 1 ? '固定金额' : '百分比'))
 
@@ -215,7 +261,12 @@ onMounted(() => void load())
               </td>
               <td>
                 <div class="flex gap-2">
-                  <button class="btn-soft-primary h-7 px-3 text-14" @click="openEdit(c)">编辑</button>
+                  <button class="btn-soft-primary h-7 px-3 text-14" @click="openEdit(c)">
+                    编辑
+                  </button>
+                  <button class="btn-soft-warning h-7 px-3 text-14" @click="openNotice(c)">
+                    发公告
+                  </button>
                   <button class="btn-danger h-7 px-3 text-14" @click="remove(c)">删除</button>
                 </div>
               </td>
@@ -294,6 +345,50 @@ onMounted(() => void load())
           <button class="btn-soft-neutral h-9 px-4 text-14" @click="modal = false">取消</button>
           <button class="btn-primary h-9 px-4 text-14" :disabled="saving" @click="save">
             保存
+          </button>
+        </div>
+      </template>
+    </n-modal>
+
+    <!-- 一键公告弹窗：为优惠券生成公告草稿，可编辑后发布 -->
+    <n-modal
+      v-model:show="noticeModal"
+      preset="card"
+      :title="`发布公告 · 优惠码 ${noticeFrom?.code ?? ''}`"
+      style="width: 640px"
+    >
+      <n-form label-placement="top">
+        <div class="grid grid-cols-2 gap-x-4">
+          <n-form-item label="标题">
+            <n-input v-model:value="noticeForm.title" placeholder="公告标题" />
+          </n-form-item>
+          <n-form-item label="排序">
+            <n-input-number v-model:value="noticeForm.sort" class="w-full" />
+          </n-form-item>
+        </div>
+        <n-form-item label="内容(Markdown,优惠码用反引号包裹会在用户端高亮可复制)">
+          <n-input
+            v-model:value="noticeForm.content"
+            type="textarea"
+            :rows="7"
+            placeholder="公告正文,支持 Markdown"
+          />
+        </n-form-item>
+        <n-form-item label="展示">
+          <n-switch v-model:value="noticeForm.is_show" />
+        </n-form-item>
+      </n-form>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <button class="btn-soft-neutral h-9 px-4 text-14" @click="noticeModal = false">
+            取消
+          </button>
+          <button
+            class="btn-primary h-9 px-4 text-14"
+            :disabled="noticeSaving"
+            @click="publishNotice"
+          >
+            发布公告
           </button>
         </div>
       </template>

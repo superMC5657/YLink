@@ -3,10 +3,12 @@ import { apiCoupon, apiOrder } from '@/api/order'
 import type {
   CheckoutReq,
   CouponCheckReq,
+  CouponItem,
   CreateOrderReq,
   Order,
   OrderStatus,
   PageQuery,
+  PlanPeriod,
 } from '@/types/api'
 
 interface OrderState {
@@ -17,6 +19,8 @@ interface OrderState {
   loading: boolean
   detail: Order | null
   pollTimer: ReturnType<typeof setInterval> | null
+  /** 当前用户可用优惠券（GET /coupons/available） */
+  availableCoupons: CouponItem[]
 }
 
 export const useOrderStore = defineStore('order', {
@@ -28,9 +32,10 @@ export const useOrderStore = defineStore('order', {
     loading: false,
     detail: null,
     pollTimer: null,
+    availableCoupons: [],
   }),
   actions: {
-    async fetch(query: PageQuery & { status?: OrderStatus | '' } = {}) {
+    async fetch(query: PageQuery & { status?: OrderStatus | '' } & { append?: boolean } = {}) {
       this.loading = true
       try {
         const data = await apiOrder.fetch({
@@ -38,7 +43,8 @@ export const useOrderStore = defineStore('order', {
           page_size: query.page_size ?? this.pageSize,
           status: query.status,
         })
-        this.list = data?.list ?? []
+        // append：移动端「加载更多」追加下一页；否则覆盖当前列表
+        this.list = query.append ? [...this.list, ...(data?.list ?? [])] : (data?.list ?? [])
         this.total = data.total
         this.page = data.page
       } finally {
@@ -59,6 +65,12 @@ export const useOrderStore = defineStore('order', {
     },
     async checkCoupon(body: CouponCheckReq) {
       return apiCoupon.check(body)
+    },
+    /** 拉取当前用户可用优惠券（按套餐/周期过滤） */
+    async fetchAvailableCoupons(planID: number, period?: PlanPeriod) {
+      const data = await apiCoupon.available({ plan_id: planID, period })
+      this.availableCoupons = data?.list ?? []
+      return this.availableCoupons
     },
     async cancel(orderNo: string) {
       const updated = await apiOrder.cancel(orderNo)

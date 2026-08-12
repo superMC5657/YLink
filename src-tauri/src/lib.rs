@@ -42,15 +42,19 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![set_window_theme]);
 
-    // 桌面专属插件:开机自启 / 窗口状态记忆 / 深链接(移动端无对应概念,见 desktop-tauri.md §3)
+    // 深链接:桌面 + 移动端都注册(Android 经 manifest intent-filter 接收 ylink://,
+    // iOS 经 Info.plist CFBundleURLTypes;桌面 Windows 注册表协议由插件管理)。
+    // 移动端 scheme 见 tauri.conf.json plugins.deep-link.mobile。
+    let builder = builder.plugin(tauri_plugin_deep_link::init());
+
+    // 桌面专属插件:开机自启 / 窗口状态记忆
     #[cfg(desktop)]
     let builder = builder
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
-        .plugin(tauri_plugin_window_state::Builder::default().build())
-        .plugin(tauri_plugin_deep_link::init());
+        .plugin(tauri_plugin_window_state::Builder::default().build());
 
     // 单实例:第二个实例启动时聚焦已有窗口,并把 argv 中的深链接 URL 转发给已有实例。
     // 事件名与 deep-link 插件一致(`deep-link://new-url`,payload 为 URL 数组),

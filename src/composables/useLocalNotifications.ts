@@ -7,6 +7,7 @@ import { useI18n } from 'vue-i18n'
 import { apiTicket } from '@/api/ticket'
 import { useUserStore } from '@/stores/user'
 import { notify } from '@/utils/notify'
+import { getItem, setItem } from '@/utils/storage'
 
 const TICKET_KEY = 'notify:ticket-status:v1'
 const EXPIRE_KEY = 'notify:expire'
@@ -22,8 +23,8 @@ export function useLocalNotifications() {
     const days = sub.expired_days
     if (days < 0 || days > 3) return
     const key = `${EXPIRE_KEY}:${sub.expired_at.slice(0, 10)}`
-    if (localStorage.getItem(key)) return
-    localStorage.setItem(key, '1')
+    if (getItem(key)) return
+    setItem(key, '1')
     await notify(t('notify.expireTitle'), t('notify.expireBody', { days }))
   }
 
@@ -34,7 +35,7 @@ export function useLocalNotifications() {
       const list = data?.list ?? []
       if (list.length === 0) return
       let prev: Record<number, number> = {}
-      const raw = localStorage.getItem(TICKET_KEY)
+      const raw = getItem<string>(TICKET_KEY)
       if (raw) {
         try {
           prev = JSON.parse(raw) as Record<number, number>
@@ -50,7 +51,7 @@ export function useLocalNotifications() {
           await notify(t('notify.ticketReplied'), tk.subject)
         }
       }
-      localStorage.setItem(TICKET_KEY, JSON.stringify(cur))
+      setItem(TICKET_KEY, JSON.stringify(cur))
     } catch {
       // 网络失败静默,下次轮询再试
     }

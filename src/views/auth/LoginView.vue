@@ -8,7 +8,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import type { FormInst, FormRules } from 'naive-ui'
-import { removeItem } from '@/utils/storage'
+import { getApiBase, removeItem } from '@/utils/storage'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -22,7 +22,7 @@ const loading = ref(false)
 const form = ref({ email: '', password: '' })
 
 /** localStorage 残留过自定义后端地址时,显示「重置后端地址」自救入口 */
-const hasCustomApiBase = computed(() => localStorage.getItem('app:apiBase') !== null)
+const hasCustomApiBase = computed(() => getApiBase() !== null)
 
 function resetApiBase() {
   removeItem('apiBase')

@@ -104,7 +104,7 @@
 | Prettier 3 | 全仓格式化 + format:check | `.prettierrc.json`、`.prettierignore` |
 | Vitest 单测 | jsdom,**43 用例**(格式化/http 401 刷新重放/invite store/倒计时 + PlanCard/OrderTable/BannerStatCard 组件测试 12 例),v8 覆盖率 | `vitest.config.ts`、`src/**/__tests__/*` |
 | Playwright E2E | 正式套件 42 例(21 用例 × 桌面/移动双 project、webServer 自动起 Mock),替代原冒烟脚本 | `playwright.config.ts`、`tests/e2e/*` |
-| CI | PR/push 双触发 3 job:`frontend-quality`(lint→typecheck→format:check→test→build:web)+ `frontend-e2e`(失败上传报告)+ `rust`(webkit2gtk 系统依赖 → build:web → cargo check);Go 后端不走 Actions(项目决策) | `.github/workflows/ci.yml` |
+| CI | PR/push 双触发 3 job:`frontend-quality`(lint→typecheck→format:check→test→build:web)+ `frontend-e2e`(失败上传报告)+ `rust`(windows-latest:build:web → cargo check);Go 后端不走 Actions(项目决策) | `.github/workflows/ci.yml` |
 | i18n 懒加载 | 语言包按需动态 import,useLocale 统一切换 | `src/locales/index.ts`、`src/composables/useLocale.ts` |
 | 注册页强制邀请码 | 站点 `invite_code_required=true` 时校验必填 | `src/views/auth/RegisterView.vue` |
 | 离线横幅 | 顶部红色常驻横幅 + 恢复 toast | `src/components/app/ToastBridge.vue` |
@@ -217,7 +217,7 @@
 
 | 项 | 状态 | 说明 |
 |---|---|---|
-| 后端 CI / Rust CI | Rust ✅ 已接入(2026-08-12);Go 后端 ❌ 不接入(项目决策:后端不走 Actions) | `.github/workflows/ci.yml` `rust` job(ubuntu-24.04 装 webkit2gtk 等系统依赖 → 先 `pnpm build:web` 生成 dist → `cargo check`);`backend` job 已删除(2026-08-12),后端由本地 make/手动构建 |
+| 后端 CI / Rust CI | Rust ✅ 已接入(2026-08-12;2026-08-12 迁至 windows-latest 与打包平台一致);Go 后端 ❌ 不接入(项目决策:后端不走 Actions) | `.github/workflows/ci.yml` `rust` job(windows-latest:先 `pnpm build:web` 生成 dist → `cargo check`);`backend` job 已删除(2026-08-12),后端由本地 make/手动构建 |
 | Release / updater(仅 Windows 打包) | ✅ 已接入(2026-08-12,公开产物仓库方案;2026-08-12 收窄为仅 Windows) | 代码仓库 private;`.github/workflows/release-tauri.yml`:tag `v*` / 手动触发 → guard(tag 校验)→ 单平台构建(windows-latest `pnpm tauri build --bundles nsis`,TAURI_SIGNING_PRIVATE_KEY 自动签名 .sig)→ `scripts/build-latest-json.mjs` 合并 latest.json(url 加 `gh-proxy.com` 前缀)→ `gh release` 推送到**公开产物仓库** `superMC5657/ylink-releases`(`RELEASES_PAT` secret);`tauri-plugin-updater` 已注册 + pubkey 写入 + capabilities 补 `updater:default`;updater endpoints = gh-proxy 优先 + 直连兑底;前端更新卡片入口仍待做(见下行) |
 | 自启 / 通知 / 更新卡片前端入口 | ❌ 未做 | `src/` 无对应调用代码;deep-link 前端监听已就绪(`utils/platform.ts` `onDeepLink` + `main.ts` 路由跳转) |
 | 单实例深链接转发 | ⚠️ 部分 | Rust `lib.rs` 单实例回调仅 `set_focus()` + 打日志,未把 argv/深链 URL 转发已有实例;端到端未验证 |

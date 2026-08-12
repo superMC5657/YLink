@@ -58,6 +58,15 @@ function onClose() {
   })
 }
 
+async function onReopen() {
+  try {
+    await ticket.reopen()
+    message.success(t('ticket.reopened'))
+  } catch (e) {
+    message.error((e as Error).message)
+  }
+}
+
 onMounted(async () => {
   const id = Number(route.params.id)
   try {
@@ -97,6 +106,14 @@ onMounted(async () => {
         @click="onClose"
       >
         {{ t('ticket.closeTicket') }}
+      </button>
+      <!-- 已关闭且未重开过:显示「重新打开」(core-flows §7:仅可重开一次) -->
+      <button
+        v-else-if="detail && detail.reopen_count === 0"
+        class="btn-soft-neutral h-8 shrink-0 px-3 text-14"
+        @click="onReopen"
+      >
+        {{ t('ticket.reopen') }}
       </button>
     </div>
 

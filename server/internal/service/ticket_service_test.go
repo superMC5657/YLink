@@ -24,8 +24,8 @@ func newTicketEnv(t *testing.T) (*testEnv, *TicketService) {
 
 func ticketRow(t *model.Ticket) *sqlmock.Rows {
 	return sqlmock.NewRows([]string{
-		"id", "user_id", "subject", "level", "status", "last_reply_at", "created_at",
-	}).AddRow(t.ID, t.UserID, t.Subject, t.Level, t.Status, t.LastReplyAt, t.CreatedAt)
+		"id", "user_id", "subject", "level", "status", "reopen_count", "last_reply_at", "created_at",
+	}).AddRow(t.ID, t.UserID, t.Subject, t.Level, t.Status, t.ReopenCount, t.LastReplyAt, t.CreatedAt)
 }
 
 func TestTicketCreate(t *testing.T) {
@@ -66,6 +66,55 @@ func TestTicketReply(t *testing.T) {
 
 	err := svc.Reply(context.Background(), 1, 7, "补充说明")
 	require.NoError(t, err)
+}
+
+func TestTicketReopen(t *testing.T) {
+	e, svc := newTicketEnv(t)
+	now := time.Now()
+	tk := &model.Ticket{ID: 7, UserID: 1, Subject: "s", Level: 1, Status: 2, ReopenCount: 0, CreatedAt: now}
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `tickets`")).WillReturnRows(ticketRow(tk))
+	e.mock.ExpectBegin()
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `tickets`")).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectCommit()
+
+	resp, err := svc.Reopen(context.Background(), 1, 7)
+	require.NoError(t, err)
+	assert.Equal(t, 0, resp.Status) // 重开后回「待回复」
+	assert.Equal(t, 1, resp.ReopenCount)
+}
+
+func TestTicketReopenNotClosed(t *testing.T) {
+	e, svc := newTicketEnv(t)
+	now := time.Now()
+	tk := &model.Ticket{ID: 7, UserID: 1, Subject: "s", Level: 1, Status: 0, ReopenCount: 0, CreatedAt: now}
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `tickets`")).WillReturnRows(ticketRow(tk))
+
+	_, err := svc.Reopen(context.Background(), 1, 7)
+	assert.Equal(t, 40900, codeOf(err)) // 未关闭不可重开
+}
+
+func TestTicketReopenLimit(t *testing.T) {
+	e, svc := newTicketEnv(t)
+	now := time.Now()
+	tk := &model.Ticket{ID: 7, UserID: 1, Subject: "s", Level: 1, Status: 2, ReopenCount: 1, CreatedAt: now}
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `tickets`")).WillReturnRows(ticketRow(tk))
+
+	_, err := svc.Reopen(context.Background(), 1, 7)
+	assert.Equal(t, 14002, codeOf(err)) // 仅可重开一次
+}
+
+func TestTicketReopenConcurrentUpdateZero(t *testing.T) {
+	e, svc := newTicketEnv(t)
+	now := time.Now()
+	// 读到的快照 reopen_count=0,但条件更新命中 0 行(并发下已被重开)→ 仍按 14002 拒绝
+	tk := &model.Ticket{ID: 7, UserID: 1, Subject: "s", Level: 1, Status: 2, ReopenCount: 0, CreatedAt: now}
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `tickets`")).WillReturnRows(ticketRow(tk))
+	e.mock.ExpectBegin()
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `tickets`")).WillReturnResult(sqlmock.NewResult(0, 0))
+	e.mock.ExpectCommit()
+
+	_, err := svc.Reopen(context.Background(), 1, 7)
+	assert.Equal(t, 14002, codeOf(err))
 }
 
 func TestConfirmCommissions(t *testing.T) {

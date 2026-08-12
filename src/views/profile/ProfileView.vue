@@ -10,6 +10,8 @@ import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import { openExternal } from '@/utils/platform'
 import { copyText } from '@/utils/platform'
+import { isTauri } from '@/utils/platform'
+import { checkForUpdate, requestCheckUpdate } from '@/utils/updater'
 import BannerStatCard from '@/components/business/BannerStatCard.vue'
 
 const user = useUserStore()
@@ -108,6 +110,25 @@ function openBot() {
   openExternal(config.config?.telegram?.bot_url ?? '')
 }
 
+// ---------- 关于与更新(仅桌面端) ----------
+const appVersion = ref('')
+const checkingUpdate = ref(false)
+
+async function onCheckUpdate() {
+  if (checkingUpdate.value) return
+  checkingUpdate.value = true
+  try {
+    const update = await checkForUpdate()
+    if (update) {
+      requestCheckUpdate()
+    } else {
+      message.success(t('update.upToDate'))
+    }
+  } finally {
+    checkingUpdate.value = false
+  }
+}
+
 onMounted(() => {
   void user.fetchStat()
   void config.fetchConfig()
@@ -117,6 +138,12 @@ onMounted(() => {
       remindTraffic.value = profile.remind_traffic
     }
   })
+  // 桌面端展示当前应用版本(Web 端无此概念,保持空)
+  if (isTauri()) {
+    void import('@tauri-apps/api/app').then(({ getVersion }) => {
+      void getVersion().then((v) => (appVersion.value = v))
+    })
+  }
 })
 </script>
 
@@ -275,6 +302,23 @@ onMounted(() => {
           <button class="btn-danger h-10 w-full text-14" @click="showResetModal = true">
             <AppIcon name="refresh" :size="15" />
             {{ t('profile.resetSubscribeBtn') }}
+          </button>
+        </div>
+
+        <!-- 关于与更新(仅桌面端) -->
+        <div v-if="isTauri()" class="card-base p-5 md:p-6">
+          <h3 class="mb-4 text-16 font-600 text-[var(--c-text)]">{{ t('update.checkUpdate') }}</h3>
+          <div class="mb-4 flex items-center justify-between text-14">
+            <span class="text-[var(--c-text-sub)]">{{ t('update.currentVersion') }}</span>
+            <span class="num text-[var(--c-text)]">{{ appVersion || '--' }}</span>
+          </div>
+          <button
+            class="btn-primary h-10 w-full text-14"
+            :disabled="checkingUpdate"
+            @click="onCheckUpdate"
+          >
+            <AppIcon name="download" :size="15" />
+            {{ t('update.checkUpdate') }}
           </button>
         </div>
       </div>

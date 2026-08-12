@@ -94,6 +94,7 @@
 | `GET /tickets/{id}` | 详情含消息流 |
 | `POST /tickets/{id}/reply` | 用户回复→状态回 0(待回复);已关闭 14001 |
 | `POST /tickets/{id}/close` | 关闭(14001 已关闭) |
+| `POST /tickets/{id}/reopen` | **重开一次(2026-08-12)**:仅已关闭且未重开过可重开,状态回 0、`reopen_count+1`;未关闭 40900、已重开 14002;迁移 `0003_ticket_reopen` |
 | worker cron | robfig/cron + Redis 分布式锁:`close-expired-orders`(5min,条件更新防竞态吞单)、`reconcile-payments`(10min,易支付主动查单补账)、`confirm-commissions`(每日 02:00)、`expire-remind`(10:00,前 3/1 天双窗口)、`traffic-remind`(10:30,≥80%)、`traffic-daily`(01:00,模式 B 空跑) |
 
 ### 审查修复(✅ 已修复,阻断项清零)
@@ -191,7 +192,7 @@
 |---|---|---|
 | 流量模式 A(节点上报 `POST /node/report`) | 未实现,一期为模式 B(手工导入) | 需节点 agent 端实现与节点密钥鉴权 |
 | 移动端深链/一键导入(前端侧) | 属于前端,后端无需改动 | 订阅端点已就绪 |
-| 订阅「重开一次」工单 | 未实现(core-flows 第 7 节标注二期可做) | — |
+| 订阅「重开一次」工单 | ~~未实现~~ **✅ 已实现(2026-08-12)**:`POST /tickets/{id}/reopen` + `reopen_count` 字段(迁移 0003);前端详情页已关闭且未重开时显示「重新打开」 | core-flows 第 7 节 |
 | 订单超时主动查单后关闭待支付支付单 | 查单兜底已实现;查单失败/支付单长期待支付的关闭策略可二期完善 | — |
 | 工单用户侧「已回复」桌面端本地通知 | 前端轮询已具备数据(状态变化),本地通知属前端 | — |
 | Grafana 看板 | `/metrics` 已暴露,看板配置未做 | 依赖运维侧导入 dashboards |

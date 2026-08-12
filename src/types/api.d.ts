@@ -369,6 +369,7 @@ export interface Ticket {
   subject: string
   level: TicketLevel
   status: TicketStatus
+  reopen_count: number
   last_reply_at: string | null
   created_at: string
 }
@@ -391,6 +392,7 @@ export interface TicketDetail {
   subject: string
   level: TicketLevel
   status: TicketStatus
+  reopen_count: number
   created_at: string
   messages: TicketMessage[]
 }
@@ -562,6 +564,7 @@ export interface AdminTicketItem {
   subject: string
   level: TicketLevel
   status: TicketStatus
+  reopen_count: number
   last_reply_at: string | null
   created_at: string
 }

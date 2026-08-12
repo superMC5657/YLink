@@ -18,4 +18,5 @@ export const apiTicket = {
   reply: (id: number, body: TicketReplyReq) =>
     http.post<TicketDetail>(`/tickets/${id}/reply`, { body }),
   close: (id: number) => http.post<Ticket>(`/tickets/${id}/close`),
+  reopen: (id: number) => http.post<Ticket>(`/tickets/${id}/reopen`),
 }

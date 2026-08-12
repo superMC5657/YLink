@@ -17,6 +17,7 @@ import { useAppStore } from '@/stores/app'
 import { useConfigStore } from '@/stores/config'
 import { useUserStore } from '@/stores/user'
 import { usePullToRefresh } from '@/composables/usePullToRefresh'
+import { useLocalNotifications } from '@/composables/useLocalNotifications'
 
 const isDesktop = useMediaQuery('(min-width: 1024px)')
 const isMobile = useMediaQuery('(max-width: 767px)')
@@ -25,9 +26,13 @@ const config = useConfigStore()
 const user = useUserStore()
 const route = useRoute()
 const { t } = useI18n()
+const { checkExpire, checkTickets } = useLocalNotifications()
 
 const drawerVisible = ref(false)
 const mainEl = ref<HTMLElement | null>(null)
+
+// 本地通知轮询(desktop-tauri.md §4):工单已回复每 60s 检查一次
+let notifyTimer: ReturnType<typeof setInterval> | null = null
 
 // 移动端下拉刷新（pages.md §6.3）：与窗口聚焦刷新一致，静默刷新仪表板数据
 const { pulling, refreshing, distance, threshold } = usePullToRefresh(mainEl, () =>
@@ -37,7 +42,8 @@ const { pulling, refreshing, distance, threshold } = usePullToRefresh(mainEl, ()
 onMounted(() => {
   // 进入主布局:拉取站点配置与用户数据
   void config.fetchConfig()
-  void user.refreshDashboard()
+  void user.refreshDashboard().then(() => void checkExpire())
+  void checkTickets()
   app.initSystemThemeListener()
   // 1024-1279px 窄桌面:默认折叠侧边栏,给内容区留更多横向空间
   if (window.innerWidth >= 1024 && window.innerWidth < 1280) {
@@ -46,18 +52,28 @@ onMounted(() => {
   // 窗口聚焦静默刷新
   window.addEventListener('focus', onFocus)
   window.addEventListener('visibilitychange', onVisibility)
+  // 工单已回复本地通知:60s 轮询(桌面端;Web 端内部自动降级)
+  notifyTimer = setInterval(() => void checkTickets(), 60_000)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('focus', onFocus)
   window.removeEventListener('visibilitychange', onVisibility)
+  if (notifyTimer) {
+    clearInterval(notifyTimer)
+    notifyTimer = null
+  }
 })
 
 function onFocus() {
-  if (document.visibilityState === 'visible') void user.refreshDashboard()
+  if (document.visibilityState === 'visible') {
+    void user.refreshDashboard().then(() => void checkExpire())
+  }
 }
 function onVisibility() {
-  if (document.visibilityState === 'visible') void user.refreshDashboard()
+  if (document.visibilityState === 'visible') {
+    void user.refreshDashboard().then(() => void checkExpire())
+  }
 }
 
 // 路由切换关闭抽屉

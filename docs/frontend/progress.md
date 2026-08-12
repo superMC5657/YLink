@@ -85,7 +85,7 @@
 | vite-plugin-mock 按文件隔离编译,跨文件 sessions Map 不共享导致 401 | token 校验改无状态格式匹配(`Bearer mock-access-*`) |
 | 冒烟访问 `/plans` 被重定向到 dashboard | hash 路由下脚本改用 `/#/` 前缀 |
 
-### M6 桌面化(Tauri 2 骨架)(✅ 骨架完成,发布能力见第 2 节)
+### M6 桌面化(Tauri 2)(✅ 骨架 + 发布能力完成,2026-08-12)
 
 | 项 | 说明 | 位置 |
 |---|---|---|
@@ -95,6 +95,14 @@
 | 图标 | `pnpm tauri icon` 从脚本生成源图产出全套(ico/icns/png/Android) | `src-tauri/icons/`、`scripts/gen-icon.py` |
 | 前端适配 | platform.ts(clipboard/opener/deep-link 动态 import)、http.ts(plugin-http 原生 fetch)、app.ts(applyTheme 同步窗口标题栏)、main.ts(深链接路由跳转) | `src/utils/*`、`src/stores/app.ts`、`src/main.ts` |
 | 验证 | `cargo check` 通过(首次编译约 5 分钟);Web 构建不受动态 import 影响 | — |
+
+### M6 发布能力收尾(✅ 2026-08-12,更新卡片 / 单实例深链转发 / 本地通知)
+
+| 项 | 说明 | 位置 |
+|---|---|---|
+| 更新卡片 UI | `utils/updater.ts`(checkForUpdate / downloadAndInstall,动态 import,Web 端自动降级)+ `components/app/UpdateCard.vue`(右下角浮动卡片:版本号 + 更新日志 + 下载进度 + 立即更新/稍后,监听 `app:check-update` 事件)+ App.vue 挂载启动静默检查 + 设置页「检查更新」入口(仅 Tauri 显示,含当前版本号);失败静默忽略 | `src/utils/updater.ts`、`src/components/app/UpdateCard.vue`、`src/App.vue`、`views/profile/ProfileView.vue` |
+| 单实例深链接转发 | `lib.rs` 单实例回调从 argv 提取 `ylink://` URL,用 deep-link 插件同名事件 `deep-link://new-url`(payload URL 数组)emit 给已有实例,前端 `onOpenUrl` 直接路由跳转;端到端链路打通 | `src-tauri/src/lib.rs`(Emitter) |
+| 本地通知触发点 | `utils/notify.ts` 统一封装(Tauri plugin-notification / Web Notification API 降级);触发点:支付成功(PaymentModal)、工单已回复(MainLayout 60s 轮询 + 状态快照去重)、订阅到期 ≤3 天(窗口聚焦刷新检测 + 按到期日去重) | `src/utils/notify.ts`、`src/composables/useLocalNotifications.ts`、`layouts/MainLayout.vue`、`components/business/PaymentModal.vue` |
 
 ### 工程化与质量门禁(✅ 完成)
 
@@ -149,6 +157,7 @@
 - `cargo check`(src-tauri)通过
 - **M9 二期 7 模块(2026-08-11)**:`pnpm typecheck` / `pnpm lint`(0 warning)/ `pnpm test`(31/31)/ `pnpm build` 全绿;后端 `go build`/`go vet`/`gofmt -l`(0 输出)/`go test`(47 函数)全绿;7 个新页面已注册路由 + 管理端菜单,交互验证待手动(Mock 管理员 `admin@example.com` / `Admin@123456`)
 - **一期小缺口收尾(2026-08-11)**:`pnpm typecheck`/`pnpm lint`/`pnpm test`(43/43)/`pnpm build`(含 PWA)全绿;commit-msg 钩子实测规范消息通过、无 type 消息被拒
+- **M6 发布能力收尾(2026-08-12)**:更新卡片 UI / 单实例深链转发 / 本地通知三项完成(见第 1 节);`pnpm typecheck`/`pnpm lint`(0 warning)/`pnpm test`(43/43)/`pnpm build`(含 PWA)/`pnpm format:check` 全绿;`cargo check` 通过;后端 `go build`/`go vet`/`gofmt -l`(0 输出)/`go test`(**64 函数**)全绿(含工单重开 4 例);桌面端交互(更新卡片/深链唤起/本地通知)待手动实测
 
 ### 全量审查修复(✅ 2026-08-11)
 
@@ -173,7 +182,7 @@
 
 ## 2. 未完成项
 
-### M6 桌面化(Tauri 2)—— 骨架完成,发布能力待接入
+### M6 桌面化(Tauri 2)—— 发布能力已收尾(✅ 2026-08-12)
 
 | 项 | 状态 | 依赖/说明 |
 |---|---|---|
@@ -181,9 +190,9 @@
 | 插件接入(Rust) | ✅ http / store / clipboard / opener / single-instance / autostart / notification / process / window-state / os | capabilities 最小授权;http scope 限 `https://**` + localhost |
 | 平台适配层(前端) | ✅ `utils/platform.ts` 启用 Tauri 分支(clipboard/opener/deep-link 动态 import);`utils/http.ts` 走 plugin-http 原生 fetch;`stores/app.ts` applyTheme 同步窗口标题栏;`main.ts` 深链接路由跳转 | Web 端自动降级不受影响 |
 | 托盘/单实例 | ✅ 托盘菜单(显示主窗口/退出)+ single-instance 聚焦已有窗口 | lib.rs setup |
-| deep-link 注册 | ✅ 插件已注册(Rust `#[cfg(desktop)]` init)+ capabilities `deep-link:default`;前端 `onDeepLink` 路由跳转已就绪(main.ts) | ⚠️ Rust 单实例尚未转发 argv/深链 URL,端到端未验证;Release 域名与 `ylink://` 注册见 desktop-tauri.md §3/§4/§5 |
-| 自动更新 | ⚠️ 后端已就绪(2026-08-12):Rust 已注册 updater、`tauri.conf.json` 已配 pubkey+endpoints、Release 流水线产出 `latest.json`;前端无更新卡片仍待做 | 前端需实现 check/download/install 调用(见 desktop-tauri.md §5) |
-| 通知触发点 | ⚠️ 插件已注册,前端未实现到期/工单回复/支付成功本地通知 | 依赖轮询钩子(可后补) |
+| deep-link 注册 | ✅ 插件已注册(Rust `#[cfg(desktop)]` init)+ capabilities `deep-link:default`;前端 `onDeepLink` 路由跳转已就绪(main.ts);**2026-08-12 单实例已转发 argv/深链 URL**(见第 1 节 M6 发布能力收尾) | Release 域名与 `ylink://` 注册见 desktop-tauri.md §3/§4/§5 |
+| 自动更新 | ✅ 已全部就绪(2026-08-12):Rust 已注册 updater、`tauri.conf.json` 已配 pubkey+endpoints、Release 流水线产出 `latest.json`,前端更新卡片已实现(见第 1 节 M6 发布能力收尾) | desktop-tauri.md §5 |
+| 通知触发点 | ✅ 已实现(2026-08-12):到期/工单回复/支付成功本地通知(见第 1 节 M6 发布能力收尾) | — |
 | Windows 打包与 updater 签名 | ✅ 已配置(2026-08-12):Release 流水线 + 签名密钥已生成;2026-08-12 收窄为仅 Windows 打包 | `.github/workflows/release-tauri.yml` + `TAURI_SIGNING_PRIVATE_KEY`(见 desktop-tauri.md §5/§7) |
 | 存储适配 | ⚠️ 一期统一 localStorage(WebView 持久化);plugin-store(JSON 文件)异步 API 与 persistedstate 同步接口冲突,迁移需异步化改造 | 见 storage.ts 注释 |
 
@@ -211,7 +220,7 @@
 | 项 | 状态 | 依赖/说明 |
 |---|---|---|
 | 移动端深链/分享面板 | 未做 | 需 Tauri Mobile 评估(desktop-tauri.md §9) |
-| 更新卡片 UI | 未做 | 依赖 M6 updater 插件(尚未接入 Rust/前端,见 desktop-tauri.md §5 待办) |
+| ~~更新卡片 UI~~ | **已实现(2026-08-12)**,见第 1 节 M6 发布能力收尾 | — |
 
 ### 工程化与待办(2026-08-11 核对)
 
@@ -219,8 +228,8 @@
 |---|---|---|
 | 后端 CI / Rust CI | Rust ✅ 已接入(2026-08-12;2026-08-12 迁至 windows-latest 与打包平台一致);Go 后端 ❌ 不接入(项目决策:后端不走 Actions) | `.github/workflows/ci.yml` `rust` job(windows-latest:先 `pnpm build:web` 生成 dist → `cargo check`);`backend` job 已删除(2026-08-12),后端由本地 make/手动构建 |
 | Release / updater(仅 Windows 打包) | ✅ 已接入(2026-08-12,公开产物仓库方案;2026-08-12 收窄为仅 Windows) | 代码仓库 private;`.github/workflows/release-tauri.yml`:tag `v*` / 手动触发 → guard(tag 校验)→ 单平台构建(windows-latest `pnpm tauri build --bundles nsis`,TAURI_SIGNING_PRIVATE_KEY 自动签名 .sig)→ `scripts/build-latest-json.mjs` 合并 latest.json(url 加 `gh-proxy.com` 前缀)→ `gh release` 推送到**公开产物仓库** `superMC5657/ylink-releases`(`RELEASES_PAT` secret);`tauri-plugin-updater` 已注册 + pubkey 写入 + capabilities 补 `updater:default`;updater endpoints = gh-proxy 优先 + 直连兑底;前端更新卡片入口仍待做(见下行) |
-| 自启 / 通知 / 更新卡片前端入口 | ❌ 未做 | `src/` 无对应调用代码;deep-link 前端监听已就绪(`utils/platform.ts` `onDeepLink` + `main.ts` 路由跳转) |
-| 单实例深链接转发 | ⚠️ 部分 | Rust `lib.rs` 单实例回调仅 `set_focus()` + 打日志,未把 argv/深链 URL 转发已有实例;端到端未验证 |
+| 自启 / 通知 / 更新卡片前端入口 | 自启 ❌ 未做(autostart 插件前端入口缺失);**通知/更新卡片 ✅ 已实现(2026-08-12)**,见第 1 节 M6 发布能力收尾 | deep-link 前端监听已就绪(`utils/platform.ts` `onDeepLink` + `main.ts` 路由跳转) |
+| 单实例深链接转发 | ✅ 已实现(2026-08-12) | Rust `lib.rs` 单实例回调提取 argv 中 `ylink://` URL,emit `deep-link://new-url` 转发已有实例(见第 1 节 M6 发布能力收尾) |
 | 移动端深链 `ylink://` | ❌ 未接入 | Android manifest 未声明(desktop-tauri.md §9.5) |
 
 ---

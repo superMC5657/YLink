@@ -9,6 +9,7 @@ type TicketListItem struct {
 	Subject     string     `json:"subject"`
 	Level       int        `json:"level"`
 	Status      int        `json:"status"`
+	ReopenCount int        `json:"reopen_count"`
 	LastReplyAt *time.Time `json:"last_reply_at"`
 	CreatedAt   time.Time  `json:"created_at"`
 }
@@ -24,12 +25,13 @@ type ReplyTicketReq struct {
 }
 
 type TicketDetailResp struct {
-	ID        int64           `json:"id"`
-	Subject   string          `json:"subject"`
-	Level     int             `json:"level"`
-	Status    int             `json:"status"`
-	CreatedAt time.Time       `json:"created_at"`
-	Messages  []TicketMsgResp `json:"messages"`
+	ID          int64           `json:"id"`
+	Subject     string          `json:"subject"`
+	Level       int             `json:"level"`
+	Status      int             `json:"status"`
+	ReopenCount int             `json:"reopen_count"`
+	CreatedAt   time.Time       `json:"created_at"`
+	Messages    []TicketMsgResp `json:"messages"`
 }
 
 type TicketMsgResp struct {

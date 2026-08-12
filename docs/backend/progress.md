@@ -14,7 +14,7 @@
 |---|---|---|
 | 工程初始化 | `go.mod`(module `ylink`)、双入口 `cmd/server` + `cmd/worker` | `server/go.mod` |
 | 配置加载 | Viper:`configs/config.yaml` + `APP_` 前缀环境变量覆盖(点转下划线) | `internal/config/config.go` |
-| 日志 | zap JSON + lumberjack 按天切割,双输出(stdout + 文件) | `internal/pkg/logger/logger.go` |
+| 日志 | zap JSON + lumberjack 按天切割,双输出(stdout + 文件);GORM 慢查询/错误日志关闭 ANSI 颜色,避免重定向到文件出现 ESC 乱码 | `internal/pkg/logger/logger.go`、`internal/repo/repo.go` |
 | 中间件链 | RequestID → Recovery → AccessLog → CORS → RateLimit → [Auth] → [Idempotency] | `internal/middleware/*` |
 | 统一响应 | envelope `{code,message,data}` + 分页;错误码与 HTTP 映射对齐契约第 2 节 | `internal/pkg/resp`、`internal/pkg/errs` |
 | 参数校验 | binding 错误统一转 40000 + 字段级文案 | `internal/pkg/validate` |

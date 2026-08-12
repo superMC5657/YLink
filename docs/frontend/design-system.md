@@ -117,7 +117,7 @@
 
 1. **机制**：`<html data-theme="light|dark">` + CSS 变量切换；Naive UI 同步传入 `darkTheme` 与 `themeOverrides`（主色/圆角/卡片底均引用同一套令牌，避免两套视觉漂移）。
 2. **三种模式**：跟随系统 / 浅色 / 深色，设置持久化（Tauri Store / localStorage）。跟随系统用 `prefers-color-scheme` 监听，系统切换时实时响应。
-3. **防闪烁**：SPA 入口 `index.html` 内联一段首帧脚本，在渲染前读持久化值并写入 `data-theme`，避免亮暗闪烁（FOUC）。
+3. **防闪烁**：SPA 入口 `src/index.html` 以外链引入 `public/theme.js`（独立文件满足 CSP `script-src 'self'`），在渲染前读持久化值并写入 `data-theme`，避免亮暗闪烁（FOUC）。
 4. **联动项**：
    - ECharts：按主题切换 `light/dark` 主题并刷新实例；
    - 图片：Banner 插画暗色加遮罩层；纯黑描边图标一律使用 Iconify 线性图标（随 `currentColor` 变色），不使用位图图标；

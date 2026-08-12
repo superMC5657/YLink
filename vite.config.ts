@@ -11,7 +11,10 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
   const useMock = env.VITE_USE_MOCK !== 'false'
 
   return {
+    root: 'src',
     base: './',
+    publicDir: '../public',
+    envDir: '..',
     plugins: [
       vue(),
       UnoCSS(),
@@ -61,6 +64,7 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
       host: true,
     },
     build: {
+      outDir: '../dist',
       target: 'es2020',
       chunkSizeWarningLimit: 1500,
     },

@@ -21,7 +21,11 @@ await page.goto(BASE + '/#/login', { waitUntil: 'domcontentloaded' })
 await page.evaluate(() => {
   localStorage.setItem(
     'app:auth',
-    JSON.stringify({ accessToken: 'mock-access-shot', refreshToken: 'r', user: { id: 1, email: 'a@b.com', role: 0 } }),
+    JSON.stringify({
+      accessToken: 'mock-access-shot',
+      refreshToken: 'r',
+      user: { id: 1, email: 'a@b.com', role: 0 },
+    }),
   )
 })
 await page.reload({ waitUntil: 'domcontentloaded' })
@@ -43,7 +47,11 @@ await mob.goto(BASE + '/#/login', { waitUntil: 'domcontentloaded' })
 await mob.evaluate(() => {
   localStorage.setItem(
     'app:auth',
-    JSON.stringify({ accessToken: 'mock-access-shot', refreshToken: 'r', user: { id: 1, email: 'a@b.com', role: 0 } }),
+    JSON.stringify({
+      accessToken: 'mock-access-shot',
+      refreshToken: 'r',
+      user: { id: 1, email: 'a@b.com', role: 0 },
+    }),
   )
 })
 await mob.reload({ waitUntil: 'domcontentloaded' })

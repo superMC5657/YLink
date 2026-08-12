@@ -15,7 +15,20 @@ const RESOLUTIONS = [
   { name: '2560x1440', width: 2560, height: 1440 },
 ]
 
-const ROUTES = ['/#/dashboard', '/#/plans', '/#/orders', '/#/invite', '/#/agent', '/#/nodes', '/#/profile', '/#/tickets', '/#/traffic', '/#/docs', '/#/tickets/7', '/#/docs/31']
+const ROUTES = [
+  '/#/dashboard',
+  '/#/plans',
+  '/#/orders',
+  '/#/invite',
+  '/#/agent',
+  '/#/nodes',
+  '/#/profile',
+  '/#/tickets',
+  '/#/traffic',
+  '/#/docs',
+  '/#/tickets/7',
+  '/#/docs/31',
+]
 
 const browser = await chromium.launch({ channel: 'chrome' })
 
@@ -76,7 +89,9 @@ async function measure(page, route) {
       horizontalOverflow: doc.scrollWidth > doc.clientWidth,
       mainWidth: main ? Math.round(main.getBoundingClientRect().width) : 0,
       contentWidth: content ? Math.round(content.getBoundingClientRect().width) : 0,
-      contentMaxWidth: content ? Math.round(parseFloat(getComputedStyle(content).maxWidth) || 0) : 0,
+      contentMaxWidth: content
+        ? Math.round(parseFloat(getComputedStyle(content).maxWidth) || 0)
+        : 0,
       sidebarWidth: sidebar ? Math.round(sidebar.getBoundingClientRect().width) : 0,
       overflowEls: overflowEls.slice(0, 6),
       tables: Array.from(document.querySelectorAll('table')).map((t) => {
@@ -115,9 +130,9 @@ for (const res of RESOLUTIONS) {
         // 表格在 overflow-x-auto 容器内滚动属设计内行为,不视为页面级溢出
         if (t.w > t.parentW + 2 && !t.inScrollWrap) issues.push(`表格#${i}溢出 ${t.w}>${t.parentW}`)
       })
-      m.overflowEls.slice(0, 2).forEach((o) =>
-        issues.push(`溢出<${o.tag}> ${o.cls} right=${o.right}`),
-      )
+      m.overflowEls
+        .slice(0, 2)
+        .forEach((o) => issues.push(`溢出<${o.tag}> ${o.cls} right=${o.right}`))
       const status = issues.length ? issues.join(' | ') : '✓'
       console.log(`  ${route.padEnd(14)} 内容=${String(m.contentWidth).padStart(5)}px ${status}`)
       if (issues.length) failed++

@@ -16,7 +16,10 @@ const page = ref(1)
 const pageSize = 10
 const statusFilter = ref<'' | CommissionStatus>('')
 
-const STATUS_TEXT: Record<CommissionStatus, { text: string; type: 'warning' | 'success' | 'danger' }> = {
+const STATUS_TEXT: Record<
+  CommissionStatus,
+  { text: string; type: 'warning' | 'success' | 'danger' }
+> = {
   0: { text: '确认中', type: 'warning' },
   1: { text: '已发放', type: 'success' },
   2: { text: '已撤销', type: 'danger' },

@@ -71,7 +71,10 @@ function renderChart() {
   }
   const isDark = app.isDark
   const axisColor = resolveCssVar('--c-text-sub', isDark ? '#9BA1B7' : '#8A8FA3')
-  const splitColor = resolveCssVar('--c-border', isDark ? 'rgba(255,255,255,0.06)' : 'rgba(23,25,66,0.06)')
+  const splitColor = resolveCssVar(
+    '--c-border',
+    isDark ? 'rgba(255,255,255,0.06)' : 'rgba(23,25,66,0.06)',
+  )
   chart.setOption({
     backgroundColor: 'transparent',
     tooltip: {

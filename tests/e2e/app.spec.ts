@@ -61,9 +61,7 @@ test.describe('购买套餐(交易闭环)', () => {
     await authedPage.locator('input[placeholder*="优惠码"]').fill('BADCODE')
     await authedPage.locator('button', { hasText: '校验' }).click()
     // 内联错误(限定弹窗内,避免与全局 toast 文案冲突)
-    await expect(
-      authedPage.getByRole('dialog').getByText('优惠券无效或已过期'),
-    ).toBeVisible()
+    await expect(authedPage.getByRole('dialog').getByText('优惠券无效或已过期')).toBeVisible()
   })
 })
 
@@ -103,11 +101,15 @@ test.describe('页面可达性', () => {
 test.describe('暗色模式', () => {
   test('三态切换到达 dark', async ({ authedPage }) => {
     await authedPage.goto('/#/dashboard')
-    const toggle = authedPage.locator('button[title*="浅色"], button[title*="深色"], button[title*="跟随系统"]').first()
+    const toggle = authedPage
+      .locator('button[title*="浅色"], button[title*="深色"], button[title*="跟随系统"]')
+      .first()
     let theme = 'light'
     for (let i = 0; i < 3; i++) {
       await toggle.click()
-      theme = (await authedPage.evaluate(() => document.documentElement.getAttribute('data-theme'))) ?? 'light'
+      theme =
+        (await authedPage.evaluate(() => document.documentElement.getAttribute('data-theme'))) ??
+        'light'
       if (theme === 'dark') break
     }
     expect(theme).toBe('dark')

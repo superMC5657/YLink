@@ -5,7 +5,18 @@
 import { chromium } from 'playwright'
 
 const BASE = 'http://localhost:5174'
-const ROUTES = ['/#/dashboard', '/#/plans', '/#/orders', '/#/invite', '/#/agent', '/#/nodes', '/#/profile', '/#/tickets', '/#/traffic', '/#/docs']
+const ROUTES = [
+  '/#/dashboard',
+  '/#/plans',
+  '/#/orders',
+  '/#/invite',
+  '/#/agent',
+  '/#/nodes',
+  '/#/profile',
+  '/#/tickets',
+  '/#/traffic',
+  '/#/docs',
+]
 
 const browser = await chromium.launch({ channel: 'chrome' })
 
@@ -14,7 +25,11 @@ async function injectAuth(page) {
   await page.evaluate(() => {
     localStorage.setItem(
       'app:auth',
-      JSON.stringify({ accessToken: 'mock-access-font-' + Date.now(), refreshToken: 'r', user: { id: 1, email: 'a@b.com', role: 0 } }),
+      JSON.stringify({
+        accessToken: 'mock-access-font-' + Date.now(),
+        refreshToken: 'r',
+        user: { id: 1, email: 'a@b.com', role: 0 },
+      }),
     )
   })
   await page.reload({ waitUntil: 'domcontentloaded' })
@@ -38,7 +53,11 @@ async function measure(page, route) {
       const rounded = Math.round(fs)
       counts.set(rounded, (counts.get(rounded) ?? 0) + 1)
       if (samples.length < 400) {
-        samples.push({ fs: rounded, text: text.slice(0, 14), cls: (el.className || '').toString().slice(0, 30) })
+        samples.push({
+          fs: rounded,
+          text: text.slice(0, 14),
+          cls: (el.className || '').toString().slice(0, 30),
+        })
       }
     }
     return {

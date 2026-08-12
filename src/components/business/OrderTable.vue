@@ -45,18 +45,21 @@ function statusType(status: Order['status']) {
         >
           <td class="whitespace-nowrap text-14 font-500 text-[var(--c-text)]">{{ o.plan_name }}</td>
           <td class="whitespace-nowrap"><CopyText :text="o.order_no" :max-chars="12" /></td>
-          <td class="whitespace-nowrap text-14 text-[var(--c-text-sub)]">{{ periodLabel(o.period) }}</td>
-          <td class="num whitespace-nowrap text-14 font-600 text-[var(--c-text)]">{{ formatMoney(o.pay_amount) }}</td>
+          <td class="whitespace-nowrap text-14 text-[var(--c-text-sub)]">
+            {{ periodLabel(o.period) }}
+          </td>
+          <td class="num whitespace-nowrap text-14 font-600 text-[var(--c-text)]">
+            {{ formatMoney(o.pay_amount) }}
+          </td>
           <td class="whitespace-nowrap">
             <StatusBadge :type="statusType(o.status)">{{ orderStatusLabel(o.status) }}</StatusBadge>
           </td>
-          <td class="whitespace-nowrap text-14 text-[var(--c-text-sub)]">{{ formatTime(o.created_at, false) }}</td>
+          <td class="whitespace-nowrap text-14 text-[var(--c-text-sub)]">
+            {{ formatTime(o.created_at, false) }}
+          </td>
           <td class="whitespace-nowrap">
             <div class="flex items-center gap-2">
-              <button
-                class="btn-soft-blue h-7 px-3 text-14"
-                @click="emit('view', o)"
-              >
+              <button class="btn-soft-blue h-7 px-3 text-14" @click="emit('view', o)">
                 {{ $t('common.viewDetail') }}
               </button>
               <button

@@ -35,7 +35,6 @@ const savePercent = computed(() => planSavePercent(props.plan, currentPeriod.val
 function renderContent(): string {
   return DOMPurify.sanitize(md.render(props.plan.content))
 }
-
 </script>
 
 <template>

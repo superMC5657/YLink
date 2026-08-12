@@ -20,7 +20,10 @@ const page = ref(1)
 const pageSize = 10
 const statusFilter = ref<'' | AdminApplyStatus>('')
 
-const STATUS_TEXT: Record<AdminApplyStatus, { text: string; type: 'warning' | 'success' | 'danger' }> = {
+const STATUS_TEXT: Record<
+  AdminApplyStatus,
+  { text: string; type: 'warning' | 'success' | 'danger' }
+> = {
   0: { text: '待审核', type: 'warning' },
   1: { text: '已通过', type: 'success' },
   2: { text: '已拒绝', type: 'danger' },
@@ -118,7 +121,8 @@ onMounted(() => void load())
               </td>
               <td class="text-14 text-[var(--c-text-sub)]">{{ formatTime(a.created_at) }}</td>
               <td>
-                <div v-if="a.status === 0" class="flex gap-2">                  <button class="btn-soft-success h-7 px-3 text-14" @click="review(a, true)">
+                <div v-if="a.status === 0" class="flex gap-2">
+                  <button class="btn-soft-success h-7 px-3 text-14" @click="review(a, true)">
                     通过
                   </button>
                   <button class="btn-soft-danger h-7 px-3 text-14" @click="review(a, false)">

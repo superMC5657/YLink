@@ -13,10 +13,34 @@ const data = ref<AdminOverviewResp | null>(null)
 
 // 快捷操作入口:与仪表盘 QuickActionGrid 同风格——每个入口不同彩色浅底 + 彩色图标
 const quickEntries = [
-  { to: '/admin/users', icon: 'users', label: '用户管理', color: 'var(--c-primary)', bg: 'var(--c-primary-soft)' },
-  { to: '/admin/plans', icon: 'zap', label: '套餐管理', color: 'var(--c-warning)', bg: 'var(--c-warning-bg)' },
-  { to: '/admin/nodes', icon: 'server', label: '节点管理', color: 'var(--c-blue)', bg: 'var(--c-blue-bg)' },
-  { to: '/admin/orders', icon: 'order', label: '订单管理', color: 'var(--c-olive)', bg: 'var(--c-olive-bg)' },
+  {
+    to: '/admin/users',
+    icon: 'users',
+    label: '用户管理',
+    color: 'var(--c-primary)',
+    bg: 'var(--c-primary-soft)',
+  },
+  {
+    to: '/admin/plans',
+    icon: 'zap',
+    label: '套餐管理',
+    color: 'var(--c-warning)',
+    bg: 'var(--c-warning-bg)',
+  },
+  {
+    to: '/admin/nodes',
+    icon: 'server',
+    label: '节点管理',
+    color: 'var(--c-blue)',
+    bg: 'var(--c-blue-bg)',
+  },
+  {
+    to: '/admin/orders',
+    icon: 'order',
+    label: '订单管理',
+    color: 'var(--c-olive)',
+    bg: 'var(--c-olive-bg)',
+  },
 ]
 
 async function load() {

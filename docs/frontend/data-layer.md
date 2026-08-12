@@ -51,6 +51,7 @@ export const createOrder = (body: CreateOrderReq) => http.post<CreateOrderResp>(
 ## 3. 持久化适配（`utils/storage.ts`）
 
 - 接口：`getItem / setItem / removeItem`，内部 Tauri → `@tauri-apps/plugin-store`（`app-settings.json`），浏览器 → `localStorage`。
+- 实现（2026-08-13 迁移完成）：plugin-store 为异步 API、persistedstate 为同步 StorageLike，`storage.ts` 用「同步 facade + 异步落盘」桥接——`initStorage()` 启动预载全部键到内存 Map，getItem/setItem 同步走内存，写操作排队异步落盘（插件 autoSave 兜底）；`storageLike` 供 persistedstate，业务层 `getItem/setItem/removeItem` 统一 JSON 序列化。所有直接 localStorage 调用点（stores/app·auth persist、http.ts token、useLocalNotifications、LoginView apiBase）已统一走 storage 层。
 - 持久化内容：token 对、主题模式、语言、侧边栏折叠、后端地址、站点配置缓存。
 - 注意：token 不落盘日志、不参与 URL；桌面端如需更高安全可后续换 keyring 存储（接口保持兼容）。
 

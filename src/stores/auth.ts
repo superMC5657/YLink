@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { apiAuth } from '@/api/auth'
 import type { UserBrief } from '@/types/api'
 import { clearTokens, readTokens, writeTokens } from '@/utils/http'
+import { storageLike } from '@/utils/storage'
 
 interface AuthState {
   accessToken: string
@@ -66,9 +67,6 @@ export const useAuthStore = defineStore('auth', {
   persist: {
     key: 'auth',
     pick: ['accessToken', 'refreshToken', 'user'],
-    storage: {
-      getItem: (k) => window.localStorage.getItem(`app:${k}`),
-      setItem: (k, v) => window.localStorage.setItem(`app:${k}`, v),
-    },
+    storage: storageLike,
   },
 })

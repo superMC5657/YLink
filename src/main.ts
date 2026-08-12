@@ -33,6 +33,7 @@ import { useAppStore } from './stores/app'
 import { useAuthStore } from './stores/auth'
 import { setHttpLanguage } from './utils/http'
 import { onDeepLink } from './utils/platform'
+import { initStorage } from './utils/storage'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
@@ -93,6 +94,9 @@ app.component('UiCard', UiCard)
  * 注意:router 在此安装,确保守卫先于初始导航注册。
  */
 async function bootstrap() {
+  // 持久化层:Tauri 预载 plugin-store 到内存(Web 端 no-op)
+  await initStorage()
+
   const auth = useAuthStore()
   auth.restore()
 

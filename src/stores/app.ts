@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import type { ThemeMode } from '@/utils/storage'
-import { getThemeMode, setThemeMode, setApiBase, getApiBase } from '@/utils/storage'
+import { getThemeMode, setThemeMode, setApiBase, getApiBase, storageLike } from '@/utils/storage'
 
 interface AppState {
   sidebarCollapsed: boolean
@@ -67,9 +67,6 @@ export const useAppStore = defineStore('app', {
   persist: {
     key: 'app',
     pick: ['sidebarCollapsed', 'themeMode', 'language', 'apiBase'],
-    storage: {
-      getItem: (k) => window.localStorage.getItem(`app:${k}`),
-      setItem: (k, v) => window.localStorage.setItem(`app:${k}`, v),
-    },
+    storage: storageLike,
   },
 })

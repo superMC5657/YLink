@@ -220,8 +220,10 @@
 
 | 项 | 状态 | 依赖/说明 |
 |---|---|---|
-| 移动端深链/分享面板 | 未做 | 需 Tauri Mobile 评估(desktop-tauri.md §9) |
+| 移动端深链/分享面板 | **深链 ✅ 已接入(2026-08-13)**,分享面板未做 | deep-link 注册移出 cfg(desktop) + tauri.conf.json `plugins.deep-link.mobile`(scheme ylink) + Android manifest intent-filter(gen/ 不入库,本地构建生效) |
 | ~~更新卡片 UI~~ | **已实现(2026-08-12)**,见第 1 节 M6 发布能力收尾 | — |
+| ~~开机自启~~ | **需求已移除(2026-08-13)**:不再提供开机自启开关;`utils/platform.ts` 自启封装与设置页入口已还原(autostart 插件仍注册于 Rust 侧,前端不暴露) | — |
+| ~~存储适配 plugin-store~~ | **已实现(2026-08-13)**：`utils/storage.ts` 同步 facade(内存 Map + 异步落盘 `app-settings.json`),`initStorage()` 启动预载,persistedstate 与全部 localStorage 调用点统一走 storage 层 | — |
 
 ### 工程化与待办(2026-08-11 核对)
 
@@ -229,9 +231,9 @@
 |---|---|---|
 | 后端 CI / Rust CI | Rust ✅ 已接入(2026-08-12;2026-08-12 迁至 windows-latest 与打包平台一致);Go 后端 ❌ 不接入(项目决策:后端不走 Actions) | `.github/workflows/ci.yml` `rust` job(windows-latest:先 `pnpm build:web` 生成 dist → `cargo check`);`backend` job 已删除(2026-08-12),后端由本地 make/手动构建 |
 | Release / updater(仅 Windows 打包) | ✅ 已接入(2026-08-12,公开产物仓库方案;2026-08-12 收窄为仅 Windows) | 代码仓库 private;`.github/workflows/release-tauri.yml`:tag `v*` / 手动触发 → guard(tag 校验)→ 单平台构建(windows-latest `pnpm tauri build --bundles nsis`,TAURI_SIGNING_PRIVATE_KEY 自动签名 .sig)→ `scripts/build-latest-json.mjs` 合并 latest.json(url 加 `gh-proxy.com` 前缀)→ `gh release` 推送到**公开产物仓库** `superMC5657/ylink-releases`(`RELEASES_PAT` secret);`tauri-plugin-updater` 已注册 + pubkey 写入 + capabilities 补 `updater:default`;updater endpoints = gh-proxy 优先 + 直连兑底;前端更新卡片入口仍待做(见下行) |
-| 自启 / 通知 / 更新卡片前端入口 | 自启 ❌ 未做(autostart 插件前端入口缺失);**通知/更新卡片 ✅ 已实现(2026-08-12)**,见第 1 节 M6 发布能力收尾 | deep-link 前端监听已就绪(`utils/platform.ts` `onDeepLink` + `main.ts` 路由跳转) |
+| 自启 / 通知 / 更新卡片前端入口 | **自启 ❌ 需求已移除(2026-08-13)**(不再提供开关,autostart 插件仍注册于 Rust 侧但前端不暴露);通知/更新卡片 ✅ 已实现(2026-08-12),见第 1 节 M6 发布能力收尾 | deep-link 前端监听已就绪(`utils/platform.ts` `onDeepLink` + `main.ts` 路由跳转) |
 | 单实例深链接转发 | ✅ 已实现(2026-08-12) | Rust `lib.rs` 单实例回调提取 argv 中 `ylink://` URL,emit `deep-link://new-url` 转发已有实例(见第 1 节 M6 发布能力收尾) |
-| 移动端深链 `ylink://` | ❌ 未接入 | Android manifest 未声明(desktop-tauri.md §9.5) |
+| 移动端深链 `ylink://` | ✅ 已接入(2026-08-13) | deep-link 注册移出 cfg(desktop)+ `tauri.conf.json` `plugins.deep-link.mobile`(scheme ylink)+ Android manifest intent-filter(gen/ 不入库,本地构建生效;desktop-tauri.md §9.5 已更新) |
 
 ---
 

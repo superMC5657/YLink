@@ -210,7 +210,7 @@
 
 | 项 | 说明 |
 |---|---|
-| 既有 format:check 告警(前端) | 属前端仓库状态,见 docs/frontend/progress.md;后端 `gofmt -l` 0 输出 |
+| ~~既有 format:check 告警(前端)~~ | **已解决(2026-08-12)**：前端 `pnpm format:check` 全仓通过(见 docs/reviews/review-0.4.0.md)；后端 `gofmt -l` 0 输出 |
 
 ---
 

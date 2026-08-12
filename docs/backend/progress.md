@@ -124,7 +124,7 @@
 | `GET /admin/stat/overview` | 用户/代理/订单/收入(总额+今日)/在售套餐统计 |
 | `GET /admin/users`、`PUT /admin/users/{id}`、`POST /admin/users/{id}/balance` | 列表/封禁与角色(禁止操作自己)/调余额(审计) |
 | `GET/POST/PUT/DELETE /admin/plans`、`/admin/servers`、`/admin/server-groups` | 套餐与节点 CRUD(写入侧 XSS 清洗;响应经 `AdminPlanView`/`AdminServerView` DTO,价格统一为元并展开 group_ids/is_show/host/port/config) |
-| `GET /admin/orders`、`POST /admin/orders/{no}/refund` | 订单列表;退款(余额退回+**收回订阅**+优惠券回退+佣金回滚+审计,行锁) |
+| `GET /admin/orders`、`POST /admin/orders/{no}/refund` | 订单列表(**2026-08-13 增 `commission_amount` 列:按订单号批量查佣金映射,余额支付恒 null**);退款(余额退回+**收回订阅**+优惠券回退+佣金回滚+审计,行锁) |
 | `GET/POST/PUT/DELETE /admin/coupons` | 优惠券 CRUD(列表返回 `AdminCouponView`:展开 type/value(元)/min_spend(元)/used_count/valid_periods/plan_ids,见 dto_admin.go) |
 | `GET/POST/PUT/DELETE /admin/notices`、`/admin/knowledges` | 公告/知识库 CRUD(bluemonday 清洗;**GET 列表含隐藏**,2026-08-11 补齐) |
 | `GET /admin/tickets`、`GET /admin/tickets/{id}`、`POST /admin/tickets/{id}/reply|close` | 工单管理(客服回复→已回复) |
@@ -132,6 +132,12 @@
 | `GET /admin/commission-logs` | 佣金日志(含用户邮箱) |
 | `POST /admin/traffic/import` | 模式 B 流量导入(audit 审计) |
 | `GET/PUT /admin/settings` | 站点配置读写(写后失效 Redis 缓存) |
+
+### 第四轮评审（v0.5.0，2026-08-13）
+
+| 项 | 状态 | 说明 |
+|---|---|---|
+| 管理端订单佣金查询失败透传 | ⚠️ 未完成 | `ListOrders` 当前静默忽略批量佣金查询错误，失败时可能把 `commission_amount: null` 当作有效结果返回；详见 [review-0.5.0](../reviews/zh-cn/review-0.5.0.md)。 |
 
 ### 安全与一致性加固(✅ 完成)
 
@@ -168,6 +174,12 @@
 | 退款未收回订阅 | `Refund` 原只退余额/回退券/撤佣金,未处理 `users` 订阅字段,退款后用户仍可使用已退款订阅;新增 `revokeSubscriptionOnRefund`:onetime 扣回流量(下限 0),周期套餐且当前生效订阅正是该订单套餐时清除订阅(plan_id/expired_at 置空、流量清零、限速/设备清空);不同套餐/续期叠加场景行为见方法注释,补 3 个测试 |
 | 死代码清理 | 删除 `ListPendingOrderNos`/`GetByNoAdmin`/`IncrUsed`/`SetString` |
 
+### 0.5.0 审查修复(✅ 2026-08-13,见 docs/reviews/review-0.5.0.md)
+
+| 项 | 说明 |
+|---|---|
+| 佣金批量查询失败被静默忽略 | `ListOrders` 原 `if comms, err := ...; err == nil` 吞掉 `ListByOrderNos` 错误,查询失败仍返回成功响应、`commission_amount` 全 null,把数据缺失误显示为「无佣金」;改为失败即返回错误,补 `TestAdminListOrdersCommissionQueryError` 回归 |
+
 ### 增强(✅ 完成)
 
 | 项 | 说明 |
@@ -180,7 +192,7 @@
 ### 测试状态(✅ 更新,2026-08-11 实测)
 
 - `go build ./...` / `go vet ./...` / `gofmt -l`(0 输出)全部通过
-- `go test ./... -count=1` 全绿;**65 个测试函数**(2026-08-12 实测:源码 `func Test` 65 个,含新增工单重开 4 例 + 优惠券每人限用 1 例,0 失败/跳过),覆盖:错误码映射、JWT(含 SV 会话版本号)、密码、验证码限频/已注册、注册/登录锁定/刷新旋转、优惠券试算(固定/百分比/封顶)/超限 12001/原子占用/**每人限用(同用户同券第二次下单被拒)**、下单幂等、续期状态机、回调幂等、epay 验签与篡改拒绝、订阅生成(3 格式)、佣金划转、代理申请、工单流转、**工单重开(重开成功/未关闭拒绝/仅一次 14002/并发 0 行拒绝)**、佣金确认竞态、超时关单(含优惠券回退)、取消并发已支付回滚、**退款(余额/券/佣金/订阅收回/onetime/异套餐)**,代理审批、bluemonday 清洗、Auth 中间件(无头/无效/refresh 混用/SV 匹配/bump 立即失效)、余额调整负值拒绝
+- `go test ./... -count=1` 全绿;**68 个测试函数**(2026-08-13 实测:源码 `func Test` 68 个,含工单重开 4 例 + 优惠券每人限用 1 例 + 0.5.0 佣金查询失败回归 1 例,0 失败/跳过),覆盖:错误码映射、JWT(含 SV 会话版本号)、密码、验证码限频/已注册、注册/登录锁定/刷新旋转、优惠券试算(固定/百分比/封顶)/超限 12001/原子占用/**每人限用(同用户同券第二次下单被拒)**、下单幂等、续期状态机、回调幂等、epay 验签与篡改拒绝、订阅生成(3 格式)、佣金划转、代理申请、工单流转、**工单重开(重开成功/未关闭拒绝/仅一次 14002/并发 0 行拒绝)**、佣金确认竞态、超时关单(含优惠券回退)、取消并发已支付回滚、**退款(余额/券/佣金/订阅收回/onetime/异套餐)**,代理审批、bluemonday 清洗、Auth 中间件(无头/无效/refresh 混用/SV 匹配/bump 立即失效)、余额调整负值拒绝、**管理端订单佣金查询(成功映射/失败上抛)**
 
 ---
 

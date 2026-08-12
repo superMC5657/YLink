@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"ylink/internal/config"
 	"ylink/internal/model"
 	redispkg "ylink/internal/pkg/redis"
 	"ylink/internal/pkg/sanitize"
@@ -368,4 +369,89 @@ func TestAdminRefundKeepsOtherPlanSubscription(t *testing.T) {
 
 	err := svc.Refund(context.Background(), 1, "O3", "退其他套餐单", "127.0.0.1")
 	require.NoError(t, err)
+}
+
+// TestAdminListOrdersCommission:管理端订单列表返回佣金金额(批量查 commission_logs 映射)。
+func TestAdminListOrdersCommission(t *testing.T) {
+	e := newTestEnv(t)
+	repos := &repo.Repos{}
+	set := NewSettingService(e.db, e.rdb, repos)
+	svc := NewAdminService(e.db, e.rdb, repos, &config.Config{}, set)
+	now := time.Now()
+	pm := "epay_alipay"
+	o := &model.Order{ID: 1, OrderNo: "O2026", UserID: 7, PlanID: 1, Period: "month",
+		Amount: 1000, PayAmount: 1000, Status: 1, PayMethod: &pm, PaidAt: &now, CreatedAt: now, UpdatedAt: now}
+
+	// 分页计数
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT count(*) FROM `orders`")).
+		WillReturnRows(sqlmock.NewRows([]string{"count(*)"}).AddRow(1))
+	// 分页列表
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `orders`")).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "order_no", "user_id", "plan_id", "period", "amount", "discount_amount",
+			"balance_used", "pay_amount", "coupon_id", "status", "pay_method", "paid_at",
+			"idempotency_key", "created_at", "updated_at",
+		}).AddRow(o.ID, o.OrderNo, o.UserID, o.PlanID, o.Period, o.Amount, o.DiscountAmount,
+			o.BalanceUsed, o.PayAmount, o.CouponID, o.Status, o.PayMethod, o.PaidAt,
+			o.IdempotencyKey, o.CreatedAt, o.UpdatedAt))
+	// emailsOf:按 user_id 查邮箱
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email FROM `users`")).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "email"}).AddRow(7, "u7@b.com"))
+	// ListByOrderNos:批量查佣金
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `commission_logs` WHERE order_no IN")).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "invite_user_id", "from_user_id", "order_no", "order_amount", "rate", "amount", "status", "confirmed_at", "created_at",
+		}).AddRow(1, 9, 7, "O2026", 1000, 40, 400, 0, nil, now))
+	// plan 名(GetByID 按主键查)
+	p := &model.Plan{ID: 1, Name: "白羊座", TrafficGB: 300, CreatedAt: now, UpdatedAt: now}
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `plans` WHERE `plans`.`id` = ? ORDER BY `plans`.`id` LIMIT ?")).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "name", "content", "month_price", "quarter_price", "half_year_price", "year_price",
+			"onetime_price", "traffic_gb", "speed_limit", "device_limit", "group_ids", "is_show", "sort",
+			"created_at", "updated_at",
+		}).AddRow(p.ID, p.Name, p.Content, p.MonthPrice, p.QuarterPrice, p.HalfYearPrice, p.YearPrice,
+			p.OnetimePrice, p.TrafficGB, p.SpeedLimit, p.DeviceLimit, p.GroupIDs, p.IsShow, p.Sort,
+			p.CreatedAt, p.UpdatedAt))
+
+	status := 1
+	list, total, err := svc.ListOrders(context.Background(), &status, 1, 10)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), total)
+	require.Len(t, list, 1)
+	require.NotNil(t, list[0].CommissionAmount)
+	assert.Equal(t, 4.00, *list[0].CommissionAmount) // 400 分 → 4 元
+}
+
+// TestAdminListOrdersCommissionQueryError:佣金批量查询失败时 ListOrders 必须上抛错误,
+// 不得静默返回 commission_amount 全 null 的成功响应(review-0.5.0 P2 回归)。
+func TestAdminListOrdersCommissionQueryError(t *testing.T) {
+	e := newTestEnv(t)
+	repos := &repo.Repos{}
+	set := NewSettingService(e.db, e.rdb, repos)
+	svc := NewAdminService(e.db, e.rdb, repos, &config.Config{}, set)
+	now := time.Now()
+	pm := "epay_alipay"
+	o := &model.Order{ID: 1, OrderNo: "O2026", UserID: 7, PlanID: 1, Period: "month",
+		Amount: 1000, PayAmount: 1000, Status: 1, PayMethod: &pm, PaidAt: &now, CreatedAt: now, UpdatedAt: now}
+
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT count(*) FROM `orders`")).
+		WillReturnRows(sqlmock.NewRows([]string{"count(*)"}).AddRow(1))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `orders`")).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "order_no", "user_id", "plan_id", "period", "amount", "discount_amount",
+			"balance_used", "pay_amount", "coupon_id", "status", "pay_method", "paid_at",
+			"idempotency_key", "created_at", "updated_at",
+		}).AddRow(o.ID, o.OrderNo, o.UserID, o.PlanID, o.Period, o.Amount, o.DiscountAmount,
+			o.BalanceUsed, o.PayAmount, o.CouponID, o.Status, o.PayMethod, o.PaidAt,
+			o.IdempotencyKey, o.CreatedAt, o.UpdatedAt))
+	// emailsOf
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email FROM `users`")).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "email"}).AddRow(7, "u7@b.com"))
+	// 佣金查询失败
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `commission_logs` WHERE order_no IN")).
+		WillReturnError(assert.AnError)
+
+	status := 1
+	_, _, err := svc.ListOrders(context.Background(), &status, 1, 10)
+	require.Error(t, err, "佣金查询失败时 ListOrders 必须返回错误,不得静默成功")
 }

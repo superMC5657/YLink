@@ -50,6 +50,17 @@ export const useTicketStore = defineStore('ticket', {
       if (this.detail) this.detail.status = updated.status
       return updated
     },
+    async reopen() {
+      if (!this.detail) return
+      const updated = await apiTicket.reopen(this.detail.id)
+      const idx = this.list.findIndex((t) => t.id === updated.id)
+      if (idx >= 0) this.list[idx] = updated
+      if (this.detail) {
+        this.detail.status = updated.status
+        this.detail.reopen_count = updated.reopen_count
+      }
+      return updated
+    },
     levelOf(t: Ticket | TicketDetail): TicketLevel {
       return t.level
     },

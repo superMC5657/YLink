@@ -287,6 +287,7 @@ export default {
     closeTicket: '关闭工单',
     closeConfirm: '确定关闭该工单吗?',
     reopen: '重新打开',
+    reopened: '工单已重新打开',
     closedTip: '该工单已关闭',
     empty: '暂无工单',
   },
@@ -309,5 +310,22 @@ export default {
   network: {
     offline: '网络已断开,正在尝试重连…',
     online: '网络已恢复',
+  },
+  update: {
+    available: '发现新版本',
+    install: '立即更新',
+    later: '稍后再说',
+    downloading: '正在下载更新…',
+    installFailed: '更新下载失败,请稍后重试',
+    installFailedTip: '更新失败,请检查网络后重试',
+    checkUpdate: '检查更新',
+    upToDate: '已是最新版本',
+    currentVersion: '当前版本',
+  },
+  notify: {
+    expireTitle: '订阅即将到期',
+    expireBody: '你的订阅将在 {days} 天后到期,请及时续费',
+    ticketReplied: '工单有新回复',
+    paySuccess: '支付成功',
   },
 }

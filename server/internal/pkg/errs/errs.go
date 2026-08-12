@@ -27,7 +27,7 @@ func httpStatus(code int) int {
 		return http.StatusOK
 	case 10003:
 		return http.StatusTooManyRequests
-	case 11003, 14001, 15002:
+	case 11003, 14001, 14002, 15002:
 		return http.StatusConflict
 	}
 	switch code / 100 {
@@ -98,7 +98,8 @@ var (
 	ErrInviteMax              = New(13001, "邀请码数量已达上限")
 	ErrCommissionInsufficient = New(13002, "可划转佣金不足")
 
-	ErrTicketClosed = New(14001, "工单已关闭")
+	ErrTicketClosed      = New(14001, "工单已关闭")
+	ErrTicketReopenLimit = New(14002, "工单仅可重开一次")
 
 	ErrAgentNotQualified = New(15001, "暂不满足代理申请条件")
 	ErrAgentDuplicated   = New(15002, "代理申请审核中，请勿重复提交")

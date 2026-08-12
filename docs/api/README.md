@@ -78,6 +78,7 @@
 | 13001 | 400 | 邀请码数量已达上限 |
 | 13002 | 400 | 可划转佣金不足 |
 | 14001 | 409 | 工单已关闭 |
+| 14002 | 409 | 工单仅可重开一次 |
 | 15001 | 400 | 不满足代理申请条件 |
 | 15002 | 409 | 代理申请审核中，请勿重复提交 |
 
@@ -501,10 +502,11 @@ status：0=确认中 1=已发放 2=已撤销；列表页只展示已发放（sta
 { "code": 0, "message": "ok",
   "data": { "total": 1, "page": 1, "page_size": 10,
     "list": [ { "id": 7, "subject": "无法连接节点", "level": 1, "status": 1,
+                "reopen_count": 0,
                 "last_reply_at": "2026-07-01T12:00:00+08:00", "created_at": "2026-06-30T09:00:00+08:00" } ] } }
 ```
 
-status：0=待回复 1=已回复 2=已关闭；level：0=低 1=中 2=高。
+status：0=待回复 1=已回复 2=已关闭；level：0=低 1=中 2=高；reopen_count：已重开次数（0/1，最多一次）。
 
 `POST /tickets`
 
@@ -520,13 +522,14 @@ status：0=待回复 1=已回复 2=已关闭；level：0=低 1=中 2=高。
 
 ```json
 { "code": 0, "message": "ok",
-  "data": { "id": 7, "subject": "无法连接节点", "level": 1, "status": 1, "created_at": "…",
+  "data": { "id": 7, "subject": "无法连接节点", "level": 1, "status": 1, "reopen_count": 0, "created_at": "…",
             "messages": [ { "id": 1, "sender_type": 0, "message": "详细描述…", "created_at": "…" },
                           { "id": 2, "sender_type": 1, "message": "请尝试切换节点…", "created_at": "…" } ] } }
 ```
 
 `POST /tickets/{id}/reply`：`{ "message": "…" }`；已关闭返回 14001。回复后状态：用户回复→0，客服回复→1。
 `POST /tickets/{id}/close`：返回更新后工单。
+`POST /tickets/{id}/reopen`：重新打开工单（状态回 0，reopen_count+1）。仅已关闭且未重开过（reopen_count=0）可重开，未关闭返回 40900，已重开过返回 14002；返回更新后工单。
 
 ---
 

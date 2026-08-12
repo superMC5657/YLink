@@ -134,3 +134,26 @@ func (h *Ticket) Close(c *gin.Context) {
 	}
 	resp.OK(c, data)
 }
+
+// Reopen 重新打开工单(关闭后最多一次)
+// @Summary 重新打开工单
+// @Tags 工单
+// @Security BearerAuth
+// @Produce json
+// @Param id path int true "工单 ID"
+// @Success 200 {object} resp.Body{data=model.TicketListItem}
+// @Failure 409 {object} resp.Body
+// @Router /tickets/{id}/reopen [post]
+func (h *Ticket) Reopen(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		resp.FailWithCode(c, 40000, "参数校验失败: id 不合法")
+		return
+	}
+	data, err := h.svc.Reopen(c.Request.Context(), middleware.UserID(c), id)
+	if err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.OK(c, data)
+}

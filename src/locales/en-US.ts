@@ -288,6 +288,7 @@ export default {
     closeTicket: 'Close ticket',
     closeConfirm: 'Close this ticket?',
     reopen: 'Reopen',
+    reopened: 'Ticket reopened',
     closedTip: 'This ticket is closed',
     empty: 'No tickets',
   },
@@ -310,5 +311,22 @@ export default {
   network: {
     offline: 'Network disconnected, reconnecting…',
     online: 'Network restored',
+  },
+  update: {
+    available: 'Update available',
+    install: 'Update now',
+    later: 'Later',
+    downloading: 'Downloading update…',
+    installFailed: 'Update download failed, please retry later',
+    installFailedTip: 'Update failed, check your network and retry',
+    checkUpdate: 'Check for updates',
+    upToDate: 'You are up to date',
+    currentVersion: 'Current version',
+  },
+  notify: {
+    expireTitle: 'Subscription expiring soon',
+    expireBody: 'Your subscription expires in {days} day(s), please renew',
+    ticketReplied: 'Ticket has a new reply',
+    paySuccess: 'Payment successful',
   },
 }

@@ -114,6 +114,7 @@ const tickets: Ticket[] = [
     subject: '无法连接香港节点',
     level: 1,
     status: 1,
+    reopen_count: 0,
     last_reply_at: '2026-06-30T10:30:00+08:00',
     created_at: '2026-06-30T09:00:00+08:00',
   },
@@ -122,6 +123,7 @@ const tickets: Ticket[] = [
     subject: '咨询年付套餐发票事宜',
     level: 0,
     status: 0,
+    reopen_count: 0,
     last_reply_at: null,
     created_at: '2026-07-05T14:00:00+08:00',
   },
@@ -130,6 +132,7 @@ const tickets: Ticket[] = [
     subject: '流量统计不准确',
     level: 2,
     status: 2,
+    reopen_count: 0,
     last_reply_at: '2026-06-20T16:00:00+08:00',
     created_at: '2026-06-19T11:00:00+08:00',
   },
@@ -301,6 +304,7 @@ export default [
         subject: body?.subject ?? '未命名工单',
         level: (body?.level ?? 1) as Ticket['level'],
         status: 0,
+        reopen_count: 0,
         last_reply_at: null,
         created_at: dayjs().toISOString(),
       }
@@ -360,6 +364,22 @@ export default [
       const t = tickets.find((x) => x.id === id)
       if (!t) return { code: 40400, message: '工单不存在', data: null }
       t.status = 2
+      return ok(t)
+    },
+  },
+  {
+    url: '/api/v1/tickets/:id/reopen',
+    method: 'post',
+    response: ({ headers, query }: { headers: Record<string, string>; query: { id?: string } }) => {
+      if (!verifyAccess(headers)) return unauthorized()
+      const id = Number(query.id)
+      const t = tickets.find((x) => x.id === id)
+      if (!t) return { code: 40400, message: '工单不存在', data: null }
+      if (t.status !== 2) return { code: 40900, message: '状态冲突', data: null }
+      if (t.reopen_count >= 1) return { code: 14002, message: '工单仅可重开一次', data: null }
+      t.status = 0
+      t.reopen_count += 1
+      t.last_reply_at = dayjs().toISOString()
       return ok(t)
     },
   },

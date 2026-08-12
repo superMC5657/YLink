@@ -145,7 +145,7 @@ knowledges：id、category（如 `防失联/安卓配置教程/...`，字符串�
 
 ### 2.10 tickets（工单）/ ticket_messages（消息）
 
-tickets：id、user_id INDEX、subject、level（0=低 1=中 2=高）、status（0=待回复 1=已回复 2=已关闭）、last_reply_at、created_at。
+tickets：id、user_id INDEX、subject、level（0=低 1=中 2=高）、status（0=待回复 1=已回复 2=已关闭）、reopen_count（已重开次数，最多一次，2026-08-12 迁移 0003 新增）、last_reply_at、created_at。
 ticket_messages：id、ticket_id INDEX、sender_type（0=用户 1=客服）、sender_id、message TEXT、created_at。
 
 ### 2.11 traffic_logs（流量日明细）

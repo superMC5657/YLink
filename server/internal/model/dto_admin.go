@@ -218,6 +218,7 @@ type AdminTicketItem struct {
 	Subject     string     `json:"subject"`
 	Level       int        `json:"level"`
 	Status      int        `json:"status"`
+	ReopenCount int        `json:"reopen_count"`
 	LastReplyAt *time.Time `json:"last_reply_at"`
 	CreatedAt   time.Time  `json:"created_at"`
 }

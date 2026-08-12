@@ -260,6 +260,7 @@ type Ticket struct {
 	Subject     string     `gorm:"size:128" json:"subject"`
 	Level       int        `json:"level"`
 	Status      int        `gorm:"default:0" json:"status"`
+	ReopenCount int        `gorm:"default:0" json:"reopen_count"` // 已重开次数(最多一次)
 	LastReplyAt *time.Time `json:"last_reply_at"`
 	CreatedAt   time.Time  `json:"created_at"`
 }

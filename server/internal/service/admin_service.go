@@ -507,7 +507,7 @@ func (s *AdminService) ListTickets(ctx context.Context, page, pageSize int) ([]m
 	for _, t := range list {
 		out = append(out, model.AdminTicketItem{
 			ID: t.ID, UserID: t.UserID, UserEmail: emails[t.UserID], Subject: t.Subject,
-			Level: t.Level, Status: t.Status, LastReplyAt: t.LastReplyAt, CreatedAt: t.CreatedAt,
+			Level: t.Level, Status: t.Status, ReopenCount: t.ReopenCount, LastReplyAt: t.LastReplyAt, CreatedAt: t.CreatedAt,
 		})
 	}
 	return out, total, nil

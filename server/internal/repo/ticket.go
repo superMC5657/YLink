@@ -58,6 +58,23 @@ func (TicketRepo) UpdateStatus(db *gorm.DB, id int64, status int) error {
 	return db.Model(&model.Ticket{}).Where("id = ?", id).Update("status", status).Error
 }
 
+// UpdateReopen 重开工单:状态回「待回复」、reopen_count+1、刷新最近回复时间。
+// 带条件原子更新(status=2 且 reopen_count=0),并发下只允许一次成功,
+// 返回是否实际更新(0 行=已被并发重开/已重开过)。
+func (TicketRepo) UpdateReopen(db *gorm.DB, id int64, at time.Time) (bool, error) {
+	res := db.Model(&model.Ticket{}).
+		Where("id = ? AND status = 2 AND reopen_count = 0", id).
+		Updates(map[string]any{
+			"status":        0,
+			"reopen_count":  gorm.Expr("reopen_count + 1"),
+			"last_reply_at": at,
+		})
+	if res.Error != nil {
+		return false, res.Error
+	}
+	return res.RowsAffected > 0, nil
+}
+
 func (TicketRepo) UpdateLastReplyAt(db *gorm.DB, id int64, at time.Time) error {
 	return db.Model(&model.Ticket{}).Where("id = ?", id).Update("last_reply_at", at).Error
 }

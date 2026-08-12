@@ -28,7 +28,7 @@ src-tauri/
 | `beforeBuildCommand` / `frontendDist` | `pnpm build` / `../dist` | 打包联动 |
 | `app.security.csp` | `default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'` | 接口走 http 插件，无需放宽 connect-src |
 | `bundle.targets` | `nsis`（Win）/ `dmg`（macOS）/ `appimage, deb`（Linux） | 当前为 `"targets": "nsis"`（仅 Windows NSIS，不产 MSI；Android APK 由 `tauri android build` 独立控制，不受此影响） |
-| `plugins.updater.endpoints` | 已配置（含 pubkey；endpoints 指向公开产物仓库 `superMC5657/ylink-releases` 的 latest.json，gh-proxy.com 优先 + 直连兑底） | updater 已接入（见 §5）；前端更新卡片仍待做 |
+| `plugins.updater.endpoints` | 已配置（含 pubkey；endpoints 指向公开产物仓库 `superMC5657/ylink-releases` 的 latest.json，gh-proxy.com 优先 + 直连兑底） | updater 已接入（见 §5）；前端更新卡片已实现（2026-08-12，见 §5） |
 
 ## 3. 插件清单与用途
 
@@ -52,16 +52,14 @@ capabilities/default.json 采用最小授权：逐项声明上述插件权限，
 
 - **窗口**：单主窗口；关闭即退出（未做最小化到托盘设置）；托盘菜单：显示主窗口 / 退出（检查更新未接入，见 §5）。
 - **主题跟随**：监听前端主题切换事件（`emit` 到 Rust），调用窗口 `set_theme` 让标题栏亮暗一致；托盘图标按系统主题切换亮暗两套资源。
-- **单实例 + 深链接**：Rust 侧单实例已注册但回调仅 `set_focus()` + 打日志，**尚未把 argv/深链接 URL 转发给已有实例**；前端 `onDeepLink` 监听 `new-url` 事件已就绪，端到端未验证（见 §5 待办）。
-- **通知触发点**：触发逻辑**尚未实现**（插件已注册）；规划为订阅剩余 ≤3 天、工单状态变为已回复、订单支付成功时，由前端轮询发现后触发本地通知。
+- **单实例 + 深链接**：✅ 已实现（2026-08-12）——Rust 单实例回调把 argv 中的 `ylink://` URL 用 deep-link 插件同名事件 `deep-link://new-url`（payload 为 URL 数组）转发给已有实例，前端 `onOpenUrl`（`utils/platform.ts` onDeepLink）直接收到并路由跳转；`lib.rs` 单实例回调已落地。
+- **通知触发点**：✅ 已实现（2026-08-12）——前端统一封装 `utils/notify.ts`（Tauri 走 plugin-notification，Web 端 Notification API 自动降级）；触发点：订单支付成功（PaymentModal）、工单状态变为已回复（MainLayout 60s 轮询，状态快照去重）、订阅剩余 ≤3 天（窗口聚焦刷新时检测，按到期日去重）。
 
-## 5. 自动更新（后端已就绪 / 前端待做）
+## 5. 自动更新（✅ 已全部就绪，2026-08-12）
 
-> 2026-08-12 核对：**updater 后端侧已接入**——`tauri-plugin-updater` 已注册（`src-tauri/Cargo.toml` + `lib.rs`），`tauri.conf.json` 已配 `plugins.updater`（pubkey 已写入，endpoints = gh-proxy.com 优先 + 直连兑底），capabilities 已补 `updater:default`，Release 流水线已配置（见 §7）。**前端更新卡片尚未实现**。
+> 2026-08-12 核对：**updater 全链路已就绪**——`tauri-plugin-updater` 已注册（`src-tauri/Cargo.toml` + `lib.rs`），`tauri.conf.json` 已配 `plugins.updater`（pubkey 已写入，endpoints = gh-proxy.com 优先 + 直连兑底），capabilities 已补 `updater:default`，Release 流水线已配置（见 §7）。**前端更新卡片已实现（2026-08-12）**：`utils/updater.ts`（checkForUpdate / downloadAndInstall，动态 import，Web 端自动降级）+ `components/app/UpdateCard.vue`（右下角浮动卡片：版本号 + 更新日志 + 下载进度 + 立即更新/稍后；App.vue 挂载，启动静默检查）+ 设置页「检查更新」入口（`views/profile/ProfileView.vue`，仅 Tauri 显示，含当前版本号）。
 
-剩余待办：
-1. 前端实现更新卡片（版本号 + 更新日志，确认后下载/校验/安装并重启）与设置页「检查更新」入口。
-2. 降级策略：更新检查失败静默忽略，不打扰用户。
+降级策略：更新检查失败静默忽略，不打扰用户；Web 端无更新能力，全部动态 import 保证不进 Web 产物。
 
 签名密钥：密钥对有密码（**`TAURI_SIGNING_PRIVATE_KEY_PASSWORD` 必填**，见 `.env.production`）。私钥字符串（base64）配置为 GitHub secret `TAURI_SIGNING_PRIVATE_KEY`，密码配置为 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`（CI 读不到本地 `.env.production`，两个都必须配）；公钥已写入 `tauri.conf.json` 并与密钥验签匹配（2026-08-12 已校验）。注意：key 与 password 务必备份，丢失将无法再签名更新。
 

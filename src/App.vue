@@ -8,6 +8,7 @@ import type { GlobalTheme } from 'naive-ui'
 import { useAppStore } from '@/stores/app'
 import { darkThemeOverrides, lightThemeOverrides } from '@/styles/theme'
 import ToastBridge from '@/components/app/ToastBridge.vue'
+import UpdateCard from '@/components/app/UpdateCard.vue'
 
 const app = useAppStore()
 
@@ -22,6 +23,8 @@ const themeOverrides = computed(() => (app.isDark ? darkThemeOverrides : lightTh
         <ToastBridge>
           <router-view />
         </ToastBridge>
+        <!-- 桌面端更新卡片(仅 Tauri;Web 端内部自动降级不渲染) -->
+        <UpdateCard />
       </n-dialog-provider>
     </n-message-provider>
   </n-config-provider>

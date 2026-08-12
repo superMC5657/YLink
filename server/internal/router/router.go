@@ -173,6 +173,7 @@ func registerUser(g *gin.RouterGroup, d Deps, a *app) {
 	authed.GET("/tickets/:id", a.ticketH.Detail)
 	authed.POST("/tickets/:id/reply", a.ticketH.Reply)
 	authed.POST("/tickets/:id/close", a.ticketH.Close)
+	authed.POST("/tickets/:id/reopen", a.ticketH.Reopen)
 }
 
 // registerAdmin 管理端 API（role=admin）。

@@ -13,6 +13,7 @@ use tauri::Manager;
 use tauri::{
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
+    Emitter,
 };
 
 /// 主题切换监听:前端 `theme-changed` 事件 → 设置窗口标题栏亮暗。
@@ -51,11 +52,23 @@ pub fn run() {
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_deep_link::init());
 
-    // 单实例:第二个实例启动时聚焦已有窗口并转发参数(deep-link 接入时转发 URL)
+    // 单实例:第二个实例启动时聚焦已有窗口,并把 argv 中的深链接 URL 转发给已有实例。
+    // 事件名与 deep-link 插件一致(`deep-link://new-url`,payload 为 URL 数组),
+    // 前端 onOpenUrl(见 utils/platform.ts onDeepLink)无需改动即可收到,
+    // 实现「重复启动/协议唤起时定位到已有窗口对应页面」(desktop-tauri.md §4)。
     #[cfg(desktop)]
     let builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
         if let Some(window) = app.get_webview_window("main") {
             let _ = window.set_focus();
+            let urls: Vec<String> = argv
+                .iter()
+                .skip(1) // argv[0] 为可执行文件路径
+                .filter(|a| a.starts_with("ylink://"))
+                .cloned()
+                .collect();
+            if !urls.is_empty() {
+                let _ = window.emit("deep-link://new-url", urls);
+            }
         }
         log::info!("second instance argv: {:?}", argv);
     }));

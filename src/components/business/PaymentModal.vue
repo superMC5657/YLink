@@ -10,6 +10,7 @@ import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import { useCountdown } from '@/composables/useCountdown'
 import { openExternal } from '@/utils/platform'
+import { notify } from '@/utils/notify'
 import { formatMoney, formatTime } from '@/utils/format'
 import QRCode from 'qrcode'
 import type { Order } from '@/types/api'
@@ -61,6 +62,7 @@ async function initCheckout() {
     if (resp.type === 'paid') {
       phase.value = 'paid'
       emit('paid')
+      void notifyPaid()
       void userStore.refreshDashboard()
       return
     }
@@ -98,6 +100,7 @@ function startPolling() {
         phase.value = 'paid'
         emit('paid')
         stopPolling()
+        void notifyPaid()
         void userStore.refreshDashboard()
       }
     } catch {
@@ -115,6 +118,11 @@ function stopPolling() {
 
 function goUrl() {
   if (checkoutUrl.value) openExternal(checkoutUrl.value)
+}
+
+/** 支付成功本地通知(desktop-tauri.md §4) */
+async function notifyPaid() {
+  await notify(t('notify.paySuccess'), props.order?.order_no)
 }
 
 watch(

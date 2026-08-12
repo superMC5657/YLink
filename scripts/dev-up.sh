@@ -15,7 +15,7 @@ DEMO_EMAIL="demo@test.com"
 DEMO_PASSWORD="Passw0rd"
 JWT_SECRET="dev-join-test-secret-32bytes-key!!"
 
-mkdir -p "$RUN_DIR" "$SERVER/logs"
+mkdir -p "$RUN_DIR"
 
 say() { printf '\n[%s] %s\n' "$(date +%H:%M:%S)" "$*"; }
 
@@ -132,20 +132,20 @@ if [ "$API_ALREADY" = 0 ]; then
   echo "  构建完成:$RUN_DIR/server.exe $RUN_DIR/worker.exe"
   (
     cd "$SERVER"
-    nohup "$RUN_DIR/server.exe" >> "$SERVER/logs/api.log" 2>&1 &
+    nohup "$RUN_DIR/server.exe" >> "$RUN_DIR/api.log" 2>&1 &
     echo $! > "$RUN_DIR/api.pid"
   )
   (
     cd "$SERVER"
-    nohup "$RUN_DIR/worker.exe" >> "$SERVER/logs/worker.log" 2>&1 &
+    nohup "$RUN_DIR/worker.exe" >> "$RUN_DIR/worker.log" 2>&1 &
     echo $! > "$RUN_DIR/worker.pid"
   )
   for i in $(seq 1 30); do
     curl -s -o /dev/null http://localhost:8081/healthz 2>/dev/null && break
-    [ $i -eq 30 ] && { echo "错误:api 启动超时,查看 $SERVER/logs/api.log"; exit 1; }
+    [ $i -eq 30 ] && { echo "错误:api 启动超时,查看 $RUN_DIR/api.log"; exit 1; }
     sleep 2
   done
-  echo "  api 就绪(http://localhost:8081),日志:server/logs/api.log"
+  echo "  api 就绪(http://localhost:8081),日志:$RUN_DIR/api.log"
 else
   echo "  跳过(已在运行)"
 fi
@@ -155,7 +155,8 @@ say "[4/4] 启动前端 dev(真实后端,http://localhost:5174)..."
 if [ "$VITE_ALREADY" = 0 ]; then
   (
     cd "$ROOT"
-    nohup pnpm dev >> "$RUN_DIR/vite.log" 2>&1 &
+    # NO_COLOR=1:重定向到日志文件时禁用 ANSI 颜色码,避免 vite.log 出现 ESC 乱码
+    NO_COLOR=1 nohup pnpm dev >> "$RUN_DIR/vite.log" 2>&1 &
     echo $! > "$RUN_DIR/vite.pid"
   )
   for i in $(seq 1 30); do
@@ -163,7 +164,7 @@ if [ "$VITE_ALREADY" = 0 ]; then
     [ $i -eq 30 ] && { echo "错误:前端启动超时,查看 $RUN_DIR/vite.log"; exit 1; }
     sleep 2
   done
-  echo "  前端就绪(http://localhost:5174),日志:.dev/vite.log"
+  echo "  前端就绪(http://localhost:5174),日志:$RUN_DIR/vite.log"
 else
   echo "  跳过(已在运行)"
 fi

@@ -2,6 +2,8 @@
 package repo
 
 import (
+	"log"
+	"os"
 	"time"
 
 	"gorm.io/driver/mysql"
@@ -11,10 +13,24 @@ import (
 	"ylink/internal/config"
 )
 
+// newLogger 返回 GORM 日志器：Warn 级别、慢查询阈值 200ms，关闭 ANSI 颜色
+// （日志可能被重定向到文件，颜色转义序列会造成乱码）。
+func newLogger() gormlogger.Interface {
+	return gormlogger.New(
+		log.New(os.Stdout, "\r\n", log.LstdFlags),
+		gormlogger.Config{
+			SlowThreshold:             200 * time.Millisecond,
+			LogLevel:                  gormlogger.Warn,
+			IgnoreRecordNotFoundError: false,
+			Colorful:                  false,
+		},
+	)
+}
+
 // NewDB 初始化 GORM 连接；慢查询（>200ms）与错误写入日志。
 func NewDB(cfg config.DatabaseConfig) (*gorm.DB, error) {
 	db, err := gorm.Open(mysql.Open(cfg.DSN), &gorm.Config{
-		Logger:  gormlogger.Default.LogMode(gormlogger.Warn),
+		Logger:  newLogger(),
 		NowFunc: func() time.Time { return time.Now() },
 	})
 	if err != nil {

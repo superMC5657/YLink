@@ -15,13 +15,14 @@ import (
 
 // newLogger 返回 GORM 日志器：Warn 级别、慢查询阈值 200ms，关闭 ANSI 颜色
 // （日志可能被重定向到文件，颜色转义序列会造成乱码）。
+// IgnoreRecordNotFoundError 保持 GORM Default 日志器行为（true）：记录未找到属正常 404，不应刷 Error 日志。
 func newLogger() gormlogger.Interface {
 	return gormlogger.New(
 		log.New(os.Stdout, "\r\n", log.LstdFlags),
 		gormlogger.Config{
 			SlowThreshold:             200 * time.Millisecond,
 			LogLevel:                  gormlogger.Warn,
-			IgnoreRecordNotFoundError: false,
+			IgnoreRecordNotFoundError: true,
 			Colorful:                  false,
 		},
 	)

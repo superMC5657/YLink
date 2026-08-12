@@ -32,14 +32,24 @@ function parseArgs(argv) {
   return args
 }
 
-const { repo, tag, assets: assetsJson, dir = '.', output = 'latest.json' } = parseArgs(process.argv.slice(2))
+const {
+  repo,
+  tag,
+  assets: assetsJson,
+  dir = '.',
+  output = 'latest.json',
+} = parseArgs(process.argv.slice(2))
 
 if (!repo || !tag || !assetsJson) {
-  console.error('用法: node scripts/build-latest-json.mjs --repo <owner/repo> --tag <vX.Y.Z> --assets <json> [--dir artifacts] [--output latest.json]')
+  console.error(
+    '用法: node scripts/build-latest-json.mjs --repo <owner/repo> --tag <vX.Y.Z> --assets <json> [--dir artifacts] [--output latest.json]',
+  )
   process.exit(1)
 }
 if (repo.includes('<') || repo.includes('>')) {
-  console.error(`错误: --repo 仍是占位符 "${repo}",请替换为真实产物仓库(如 myname/ylink-releases)后再发布`)
+  console.error(
+    `错误: --repo 仍是占位符 "${repo}",请替换为真实产物仓库(如 myname/ylink-releases)后再发布`,
+  )
   process.exit(1)
 }
 
@@ -82,4 +92,8 @@ const latest = {
 }
 
 writeFileSync(resolve(output), JSON.stringify(latest, null, 2))
-console.log(`已生成 ${output}:${Object.keys(platforms).map((k) => `\n  ${k} -> ${platforms[k].url}`).join('')}`)
+console.log(
+  `已生成 ${output}:${Object.keys(platforms)
+    .map((k) => `\n  ${k} -> ${platforms[k].url}`)
+    .join('')}`,
+)

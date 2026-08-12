@@ -141,7 +141,11 @@ func (s *OrderService) AvailableCoupons(ctx context.Context, userID, planID int6
 		// 每人限用（limit=0 不限）
 		if c.LimitPerUser > 0 {
 			n, err := s.repos.Coupon.CountUsage(s.db, c.ID, userID)
-			if err == nil && n >= int64(c.LimitPerUser) {
+			// 查询失败保守过滤,不展示该券
+			if err != nil {
+				continue
+			}
+			if n >= int64(c.LimitPerUser) {
 				continue
 			}
 		}
@@ -211,7 +215,11 @@ func (s *OrderService) validateCoupon(db *gorm.DB, userID int64, code string, pl
 	}
 	if coupon.LimitPerUser > 0 {
 		n, err := s.repos.Coupon.CountUsage(db, coupon.ID, userID)
-		if err == nil && n >= int64(coupon.LimitPerUser) {
+		if err != nil {
+			// 查询失败保守拒绝,不跳过限用校验
+			return nil, 0, errs.ErrCoupon
+		}
+		if n >= int64(coupon.LimitPerUser) {
 			return nil, 0, errs.ErrCoupon
 		}
 	}

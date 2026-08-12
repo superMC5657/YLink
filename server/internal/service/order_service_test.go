@@ -343,3 +343,54 @@ func TestCouponCheckPercentCapped(t *testing.T) {
 	assert.Equal(t, 10.00, resp.DiscountAmount)
 	assert.Equal(t, 0.00, resp.PayAmount)
 }
+
+// TestCreateOrderCouponPerUserLimit:同一用户同一张券连续下单两次,limit_per_user=1
+// 时第二次必须被拒(12001),防止「一个人可以使用多次」的回归。
+func TestCreateOrderCouponPerUserLimit(t *testing.T) {
+	e, svc := newOrderEnv(t)
+	ctx := context.Background()
+	now := time.Now()
+	mPrice := int64(1000)
+	p := &model.Plan{ID: 1, Name: "白羊座", MonthPrice: &mPrice, TrafficGB: 300, IsShow: true, CreatedAt: now, UpdatedAt: now}
+	cp := &model.Coupon{ID: 9, Code: "ONCE", Type: 1, Value: 200, MinSpend: 0, LimitPerUser: 1, TotalLimit: 0, UsedCount: 0, IsEnable: true, CreatedAt: now, UpdatedAt: now}
+	couponRows := sqlmock.NewRows([]string{
+		"id", "code", "type", "value", "min_spend", "limit_per_user", "total_limit", "used_count",
+		"valid_periods", "plan_ids", "started_at", "ended_at", "is_enable", "created_at", "updated_at",
+	}).AddRow(cp.ID, cp.Code, cp.Type, cp.Value, cp.MinSpend, cp.LimitPerUser, cp.TotalLimit, cp.UsedCount,
+		cp.ValidPeriods, cp.PlanIDs, cp.StartedAt, cp.EndedAt, cp.IsEnable, now, now)
+
+	// ---- 第一次下单:校验通过,占用 + 记账 ----
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `plans`")).WillReturnRows(planRow(p))
+	e.mock.ExpectBegin()
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `coupons`")).WillReturnRows(couponRows)
+	// validateCoupon 内的 CountUsage(非锁定):当前该用户 0 次
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT count(*) FROM `coupon_usages`")).
+		WillReturnRows(sqlmock.NewRows([]string{"count(*)"}).AddRow(0))
+	// Occupy 原子占用
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `coupons` SET `used_count`=used_count + 1")).WillReturnResult(sqlmock.NewResult(0, 1))
+	// CountUsageLocked(锁定读,当前无记录)
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `coupon_usages`")).WillReturnRows(sqlmock.NewRows([]string{}))
+	// RecordUsage 落账
+	e.mock.ExpectExec(regexp.QuoteMeta("INSERT INTO `coupon_usages`")).WillReturnResult(sqlmock.NewResult(1, 1))
+	// 建单
+	e.mock.ExpectExec(regexp.QuoteMeta("INSERT INTO `orders`")).WillReturnResult(sqlmock.NewResult(1, 1))
+	e.mock.ExpectCommit()
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `plans`")).WillReturnRows(planRow(p)) // toOrderResp
+
+	resp, err := svc.CreateOrder(ctx, 7, "", &model.CreateOrderReq{PlanID: 1, Period: "month", CouponCode: "ONCE"})
+	require.NoError(t, err)
+	assert.Equal(t, 8.00, resp.PayAmount)
+
+	// ---- 第二次下单:validateCoupon 发现该用户已用满 → 拒绝 ----
+	cp.UsedCount = 1
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `plans`")).WillReturnRows(planRow(p))
+	e.mock.ExpectBegin()
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `coupons`")).WillReturnRows(couponRows)
+	// validateCoupon 内的 CountUsage(非锁定):该用户已用 1 次
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT count(*) FROM `coupon_usages`")).
+		WillReturnRows(sqlmock.NewRows([]string{"count(*)"}).AddRow(1))
+	e.mock.ExpectRollback()
+
+	_, err = svc.CreateOrder(ctx, 7, "", &model.CreateOrderReq{PlanID: 1, Period: "month", CouponCode: "ONCE"})
+	assert.Equal(t, 12001, codeOf(err), "同一用户同一张券 limit_per_user=1 时第二次下单必须被拒")
+}

@@ -18,7 +18,7 @@
 | 状态管理 | Pinia + persistedstate,12 个业务 store | `src/stores/*` |
 | 国际化 | vue-i18n@11,zh-CN / en-US 按模块命名空间,`Accept-Language` 联动 | `src/locales/*` |
 | 环境变量 | `VITE_API_BASE_URL` / `VITE_USE_MOCK` / `VITE_APP_NAME`,运行时后端地址可改并持久化 | `.env.development`、`.env.production`、`utils/storage.ts` |
-| 防闪烁 | `index.html` 内联首帧脚本,渲染前读持久化主题写入 `data-theme` | `index.html` |
+| 防闪烁 | `public/theme.js` 独立首帧脚本(外链满足 CSP script-src 'self'),渲染前读持久化主题写入 `data-theme` | `public/theme.js`、`src/index.html` |
 | Mock | vite-plugin-mock,8 个模块文件(auth/business/config/order/server/user/notices/admin)严格按契约(含 401/错误码/支付自动完成模拟);**2026-08-11 公告数据源合并至 `mock/notices.ts`(用户端 `GET /notices` 与管理端 `/admin/notices` CRUD 读写同一数组,修复管理后台发布的公告用户端不可见);管理端 Mock 在 `mock/admin.ts`(13 模块端点)** | `mock/*.ts` |
 
 ### M2 布局与设计系统(✅ 完成)
@@ -197,7 +197,7 @@
 > **修复(2026-08-12)**:`.husky/` 钩子文件此前缺失(仅剩 `git config core.hooksPath=.husky/_` 指向,提交时钩子静默不生效)。已重建 `.husky/pre-commit`(`npx lint-staged`)、`.husky/commit-msg`(`npx --no -- commitlint --edit "$1"`)并入库;`pnpm prepare` 重建 `.husky/_/` stub。验证:合法 commit 消息通过、非法消息被拦截(exit 1),pre-commit 桥接 lint-staged 正常。
 | 移动端下拉刷新 | `usePullToRefresh` composable:原生 touch 监听(passive:false,仅 scrollTop=0 且下拉时 preventDefault),MainLayout 集成指示器(下拉刷新/释放立即刷新/刷新中),触发与窗口聚焦一致的静默刷新仪表板 | `src/composables/usePullToRefresh.ts`、`layouts/MainLayout.vue` |
 | 订单加载更多 | 移动端卡片视图用「加载更多」翻页追加(store fetch 支持 append),桌面表格视图保留分页器 | `src/stores/order.ts`、`views/order/OrdersView.vue` |
-| PWA | vite-plugin-pwa@1.3:manifest(name/short_name/theme_color #6558F5/128-192-512 图标含 maskable)+ Workbox 离线壳(globPatterns 预缓存 62 项 + navigateFallback index.html);registerType autoUpdate + injectRegister script(非 inline,兼容 Tauri CSP script-src 'self');dev 不启用;Tauri 端不受影响 | `vite.config.ts`、`index.html`、`public/pwa-*.png` |
+| PWA | vite-plugin-pwa@1.3:manifest(name/short_name/theme_color #6558F5/128-192-512 图标含 maskable)+ Workbox 离线壳(globPatterns 预缓存 + navigateFallback index.html);registerType autoUpdate + injectRegister script(非 inline,兼容 Tauri CSP script-src 'self');dev 不启用;Tauri 端不受影响 | `vite.config.ts`、`src/index.html`、`public/pwa-*.png` |
 
 ### 一期内已知缺口(可后补)
 

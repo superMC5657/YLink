@@ -80,6 +80,7 @@ proxy-seller-web/
 │   ├── types/                # api.d.ts（契约类型）models.d.ts
 │   ├── utils/                # http.ts platform.ts storage.ts format.ts deeplink.ts
 │   ├── views/                # 页面（见 pages.md）
+│   ├── index.html            # SPA 入口（root: src，构建输出 dist/index.html）
 │   ├── App.vue / main.ts
 ├── src-tauri/                # Tauri 2 Rust 工程（见 desktop-tauri.md）
 ├── mock/                     # vite-plugin-mock 数据（严格按契约）

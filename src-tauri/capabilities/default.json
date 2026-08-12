@@ -22,9 +22,14 @@
     "os:default",
     "window-state:default",
     "deep-link:default",
+    "updater:default",
     {
       "identifier": "http:default",
-      "allow": [{ "url": "https://**" }, { "url": "http://localhost:**" }, { "url": "http://127.0.0.1:**" }]
+      "allow": [
+        { "url": "https://**" },
+        { "url": "http://localhost:**" },
+        { "url": "http://127.0.0.1:**" }
+      ]
     },
     {
       "identifier": "store:default",

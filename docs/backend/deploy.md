@@ -126,11 +126,13 @@ Caddyfile：`api.example.com { reverse_proxy api:8081 }`（自动 HTTPS）。Web
 - Redis：验证码/缓存类可丢，开启 AOF everysec 即可；refresh 白名单丢失的最坏结果是用户重新登录，可接受。
 - 恢复演练：每月一次把备份恢复到临时库并跑 `SELECT` 抽检。
 
-## 7. 发布与回滚
+## 7. 发布与回滚（手动流程）
 
-- CI 构建镜像打 `git sha` 与 `latest` 双标签；发布 = 更新 compose 镜像 tag + `up -d`（滚动期间短暂 502 由 Caddy 重试掩盖，或双实例蓝绿，二期；⚠ 后端 CI 当前未接入 GitHub Actions，见 progress.md §2）。
-- 数据库迁移只向前兼容（新增列可空、不删旧列），保证回滚旧版本仍可运行；破坏性变更分两次发布（先加后删）。
-- 回滚：切回上一镜像 tag；若已执行不兼容迁移，用对应 `.down.sql` 回退（迁移设计时保证 down 可用）。
+> 2026-08-12 项目决策：后端**不接入 GitHub Actions**（无 CI job、无镜像构建/部署流水线），发布走本机手动流程。
+
+- **构建**：`make build` 产出 `bin/server` 与 `bin/worker`；或用 `docker compose up -d --build` 走 §3 编排（api/worker 由 Dockerfile 构建，镜像 tag 由服务器本地管理）。
+- **发布**：更新代码 → `make build`（或 `docker compose build api worker`）→ 重启容器 `docker compose up -d api worker`；滚动期间短暂 502 由 Caddy 重试掩盖，或双实例蓝绿（二期）。
+- **回滚**：切回上一版本二进制/上一镜像 tag；数据库迁移只向前兼容（新增列可空、不删旧列），破坏性变更分两次发布（先加后删）；已执行不兼容迁移用对应 `.down.sql` 回退。
 
 ## 8. 环境清单
 

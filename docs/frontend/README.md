@@ -11,9 +11,10 @@
 - 与 Go/Gin 后端通过 [../api/README.md](../api/README.md) 契约对接。
 
 ### 非目标（一期不做）
-- 管理后台前端：**核心 6 模块已随主 SPA 实现**（总览/用户/套餐/节点/订单/工单，M8，2026-08-10）；剩余 7 模块（优惠券/公告/知识库/代理审批/佣金日志/流量导入/站点设置）二期补全。
 - 内置代理内核（本应用是「面板客户端」，代理连接由本机 Clash/sing-box 等客户端完成，App 只负责一键导入）。
 - Tauri 移动端：Android APK 打包已启用（见 [desktop-tauri.md](desktop-tauri.md) 第 9 节）；iOS 不打包（需 Apple 开发者账号与审核，代理类应用上架风险高）。
+
+> 管理后台前端已随主 SPA 实现全部 13 模块（M8 核心 6 模块 + M9 二期 7 模块，2026-08-11），不再是「非目标」；详见 [progress.md](progress.md) §1 M8/M9。
 
 ## 2. 技术选型
 
@@ -85,7 +86,7 @@ proxy-seller-web/
 ├── docs/                     # 本文档目录
 ├── .env / .env.development / .env.production
 ├── vite.config.ts / uno.config.ts / package.json
-└── .github/workflows/        # CI：前端 lint+typecheck+test+build+e2e（后端/Rust/Release 未接入）
+└── .github/workflows/        # CI：前端 quality+e2e、Rust check；CD：Tauri Release → 公开产物仓库（gh-proxy 加速更新）
 ```
 
 ## 5. 环境变量
@@ -120,7 +121,7 @@ proxy-seller-web/
 ## 8. 工程化与代码规范
 
 - **包管理**：pnpm；Node >= 20，Rust >= 1.77.2（`src-tauri/Cargo.toml` rust-version）。
-- **质量门禁**：ESLint 9（flat config）+ Prettier + `vue-tsc --noEmit`；Stylelint、husky/lint-staged、commitlint **未引入**（CI 已在 GitHub Actions 强制 lint/typecheck/format/test/build）。
+- **质量门禁**：ESLint 9（flat config）+ Prettier + `vue-tsc --noEmit`；husky/lint-staged（pre-commit 仅处理暂存文件）+ commitlint（commit-msg 校验 Conventional Commits）已接入（CI 另在 GitHub Actions 强制 lint/typecheck/format/test/build）；Stylelint 未引入。
 - **命名**：组件 PascalCase；composable `useXxx`；store `useXxxStore`；api 模块按业务域小写命名；CSS 变量 `--c-*` 颜色、`--r-*` 圆角、`--s-*` 阴影、`--t-*` 动效。
 - **样式**：优先 UnoCSS 原子类；组件私有样式用 `<style scoped>`；主题相关一律使用 CSS 变量，禁止写死颜色（保证暗色模式正确）。
 - **注释**：业务组件顶部注明对应截图页面与契约接口；复杂逻辑写「为什么」而非「做什么」。

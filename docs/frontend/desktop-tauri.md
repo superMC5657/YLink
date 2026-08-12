@@ -28,7 +28,7 @@ src-tauri/
 | `beforeBuildCommand` / `frontendDist` | `pnpm build` / `../dist` | 打包联动 |
 | `app.security.csp` | `default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'` | 接口走 http 插件，无需放宽 connect-src |
 | `bundle.targets` | `nsis`（Win）/ `dmg`（macOS）/ `appimage, deb`（Linux） | —（tauri.conf.json 当前为 `"targets": "all"`，含移动端，实际打包按需指定） |
-| `plugins.updater.endpoints` | 未配置 | updater 未接入（`tauri.conf.json` 无 updater 节点，见 §5 待办） |
+| `plugins.updater.endpoints` | 已配置（含 pubkey；endpoints 中 `<YOUR-GITHUB-OWNER>` 发布前须替换为真实 owner） | updater 已接入（见 §5）；前端更新卡片仍待做 |
 
 ## 3. 插件清单与用途
 
@@ -55,16 +55,16 @@ capabilities/default.json 采用最小授权：逐项声明上述插件权限，
 - **单实例 + 深链接**：Rust 侧单实例已注册但回调仅 `set_focus()` + 打日志，**尚未把 argv/深链接 URL 转发给已有实例**；前端 `onDeepLink` 监听 `new-url` 事件已就绪，端到端未验证（见 §5 待办）。
 - **通知触发点**：触发逻辑**尚未实现**（插件已注册）；规划为订阅剩余 ≤3 天、工单状态变为已回复、订单支付成功时，由前端轮询发现后触发本地通知。
 
-## 5. 自动更新（未实现 / 待办）
+## 5. 自动更新（后端已就绪 / 前端待做）
 
-> 2026-08-11 核对：**updater 尚未接入**。Rust 未注册 `tauri-plugin-updater`（见 `src-tauri/Cargo.toml`），`tauri.conf.json` 无 updater 配置，前端无更新卡片入口，CI 无 Release 流水线。
+> 2026-08-12 核对：**updater 后端侧已接入**——`tauri-plugin-updater` 已注册（`src-tauri/Cargo.toml` + `lib.rs`），`tauri.conf.json` 已配 `plugins.updater`（pubkey 已写入，endpoints = gh-proxy.com 优先 + 直连兑底），capabilities 已补 `updater:default`，Release 流水线已配置（见 §7）。**前端更新卡片尚未实现**。
 
-待办清单（按依赖顺序）：
-1. Rust 侧注册 `tauri-plugin-updater`（process 已注册），capabilities 补 `updater:default`。
-2. `tauri signer generate` 生成签名密钥对；私钥存 CI Secret（`TAURI_SIGNING_PRIVATE_KEY` + 密码），公钥与更新端点写入 `tauri.conf.json` 的 `plugins.updater`。
-3. 配置 Release 流水线：打 tag `v*` 触发矩阵构建（windows/macos/linux），`tauri-action` 产出 NSIS/DMG/AppImage/deb + `latest.json`（版本、各平台产物 URL、签名），上传 GitHub Release 或自建静态服务。
-4. 前端实现更新卡片（版本号 + 更新日志，确认后下载/校验/安装并重启）与设置页「检查更新」入口。
-5. 降级策略：更新检查失败静默忽略，不打扰用户。
+剩余待办：
+1. 前端实现更新卡片（版本号 + 更新日志，确认后下载/校验/安装并重启）与设置页「检查更新」入口。
+2. 降级策略：更新检查失败静默忽略，不打扰用户。
+3. 发布前替换占位符：`<RELEASES_REPO>`（`.github/workflows/release-tauri.yml` 的 publish job env + `tauri.conf.json` `plugins.updater.endpoints`）→ 真实公开产物仓库（如 `myname/ylink-releases`）；guard job 会强制拦截未替换的发布。
+
+签名密钥：密钥对有密码（**`TAURI_SIGNING_PRIVATE_KEY_PASSWORD` 必填**，见 `.env.production`）。私钥字符串（base64）配置为 GitHub secret `TAURI_SIGNING_PRIVATE_KEY`，密码配置为 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`（CI 读不到本地 `.env.production`，两个都必须配）；公钥已写入 `tauri.conf.json` 并与密钥验签匹配（2026-08-12 已校验）。注意：key 与 password 务必备份，丢失将无法再签名更新。
 
 ## 6. 安全要点
 
@@ -75,10 +75,11 @@ capabilities/default.json 采用最小授权：逐项声明上述插件权限，
 
 ## 7. 构建与发布流水线（GitHub Actions）
 
-> 2026-08-11 核对：当前 `.github/workflows/ci.yml` **仅前端 quality（lint/typecheck/format/test/build）+ e2e 两个 job**；Rust `cargo check` 与三平台 Release **均未接入**。
+> 2026-08-12 核对：`.github/workflows/ci.yml` 已含 `frontend-quality` + `frontend-e2e` + `rust`（cargo check）三个 job；Go 后端按项目决策不走 Actions。`.github/workflows/release-tauri.yml` 已配置公开产物仓库方案的三平台 Release。
 
-- **PR CI（现状）**：前端 quality + e2e（Playwright · Mock）。Rust 侧 `cargo check` 待接入（可加独立 job，如 `cargo check` + `cargo clippy`）。
-- **Release（待办，打 tag `v*` 触发）**：矩阵构建（windows-latest / macos-latest / ubuntu-latest），`tauri-action` 产出 NSIS/DMG/AppImage/deb + updater 签名产物，上传 GitHub Release 并生成 `latest.json`（依赖 §5 updater 配置）。
+- **PR/push CI**：前端 quality + e2e（Playwright · Mock）；Rust `cargo check`（ubuntu-24.04 装 webkit2gtk 系统依赖，先 `pnpm build:web` 生成 dist）。Go 后端不走 GitHub Actions。
+- **Release（已配置，打 tag `v*` 或手动触发）**：`.github/workflows/release-tauri.yml`——guard（占位符拦截）→ 三平台矩阵（windows nsis / macos app / linux deb，`pnpm tauri build --bundles ...`，TAURI_SIGNING_PRIVATE_KEY 自动签名 .sig）→ `scripts/build-latest-json.mjs` 合并 `latest.json`（资产 url 加 `gh-proxy.com` 前缀）→ `gh release` 推送到**公开产物仓库**（`RELEASES_PAT` secret）。
+- **产物仓库**：代码仓库 private（不开源），产物发到公开仓库保证匿名下载 + gh-proxy 加速可行；`<RELEASES_REPO>` 占位符需替换（guard 强制，tauri.conf.json endpoints 同步替换）。
 - **macOS 公证**（可选二期）：Apple 证书 + notarize 步骤；无证书时文档注明用户需在「安全性与隐私」中放行。
 - 版本号策略：语义化版本，`package.json`、`Cargo.toml`、`tauri.conf.json` 三处由脚本同步。
 

@@ -51,6 +51,7 @@ capabilities/default.json 采用最小授权：逐项声明上述插件权限，
 ## 4. 窗口、托盘与系统行为
 
 - **窗口**：单主窗口；关闭即退出（未做最小化到托盘设置）；托盘菜单：显示主窗口 / 退出（检查更新未接入，见 §5）。
+- **托盘双图标修复（2026-08-13）**：此前 `tauri.conf.json` 配了 `app.trayIcon`（Tauri 自动创建、无菜单）且 `lib.rs` setup 又手动创建带菜单托盘 → 托盘区显示两个图标，无菜单那个点击无反应。已删除配置中的 `app.trayIcon`，仅保留代码手动创建（`TrayIconBuilder::with_id("main-tray")` + 菜单）。
 - **主题跟随**：监听前端主题切换事件（`emit` 到 Rust），调用窗口 `set_theme` 让标题栏亮暗一致；托盘图标按系统主题切换亮暗两套资源。
 - **单实例 + 深链接**：✅ 已实现（2026-08-12）——Rust 单实例回调把 argv 中的 `ylink://` URL 用 deep-link 插件同名事件 `deep-link://new-url`（payload 为 URL 数组）转发给已有实例，前端 `onOpenUrl`（`utils/platform.ts` onDeepLink）直接收到并路由跳转；`lib.rs` 单实例回调已落地。
 - **通知触发点**：✅ 已实现（2026-08-12）——前端统一封装 `utils/notify.ts`（Tauri 走 plugin-notification，Web 端 Notification API 自动降级）；触发点：订单支付成功（PaymentModal）、工单状态变为已回复（MainLayout 60s 轮询，状态快照去重）、订阅剩余 ≤3 天（窗口聚焦刷新时检测，按到期日去重）。

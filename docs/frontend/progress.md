@@ -90,7 +90,7 @@
 | 项 | 说明 | 位置 |
 |---|---|---|
 | Rust 工程 | Cargo.toml(10 个插件 crate)/ build.rs / main.rs / lib.rs(插件注册 + 托盘 + 单实例) | `src-tauri/` |
-| 配置 | tauri.conf.json(1280×800 主窗、CSP、bundle targets all) | `src-tauri/tauri.conf.json` |
+| 配置 | tauri.conf.json(1280×800 主窗、CSP、bundle targets nsis 仅 Windows) | `src-tauri/tauri.conf.json` |
 | 权限 | capabilities/default.json 最小授权(核心 + 10 插件,http scope 限 https/localhost) | `src-tauri/capabilities/default.json` |
 | 图标 | `pnpm tauri icon` 从脚本生成源图产出全套(ico/icns/png/Android) | `src-tauri/icons/`、`scripts/gen-icon.py` |
 | 前端适配 | platform.ts(clipboard/opener/deep-link 动态 import)、http.ts(plugin-http 原生 fetch)、app.ts(applyTheme 同步窗口标题栏)、main.ts(深链接路由跳转) | `src/utils/*`、`src/stores/app.ts`、`src/main.ts` |

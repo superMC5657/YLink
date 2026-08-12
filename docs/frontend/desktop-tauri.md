@@ -27,7 +27,7 @@ src-tauri/
 | `beforeDevCommand` / `devUrl` | `pnpm dev` / `http://localhost:5174` | 开发联动 |
 | `beforeBuildCommand` / `frontendDist` | `pnpm build` / `../dist` | 打包联动 |
 | `app.security.csp` | `default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'` | 接口走 http 插件，无需放宽 connect-src |
-| `bundle.targets` | `nsis`（Win）/ `dmg`（macOS）/ `appimage, deb`（Linux） | —（tauri.conf.json 当前为 `"targets": "all"`，含移动端，实际打包按需指定） |
+| `bundle.targets` | `nsis`（Win）/ `dmg`（macOS）/ `appimage, deb`（Linux） | 当前为 `"targets": "nsis"`（仅 Windows NSIS，不产 MSI；Android APK 由 `tauri android build` 独立控制，不受此影响） |
 | `plugins.updater.endpoints` | 已配置（含 pubkey；endpoints 指向公开产物仓库 `superMC5657/ylink-releases` 的 latest.json，gh-proxy.com 优先 + 直连兑底） | updater 已接入（见 §5）；前端更新卡片仍待做 |
 
 ## 3. 插件清单与用途

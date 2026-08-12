@@ -103,6 +103,42 @@ function scheduleAutoPay(orderNo: string) {
   }, 8000)
 }
 
+/**
+ * 优惠券每人限用次数(Mock 单用户演示,语义对齐真实后端 limit_per_user)。
+ * 修复「同一人可无限次使用同一张券」的 Mock 缺陷:下单即占用,用满后
+ * /coupons/available 不再展示、/coupons/check 与 /orders 拒绝。
+ */
+const couponLimitPerUser: Record<string, number> = {
+  '618SALE': 2,
+  NEW10: 1,
+  WELCOME: 1,
+}
+
+/** 优惠码折扣(元):/coupons/check 与 /orders 共用,避免两处口径不一致 */
+const couponDiscount: Record<string, number> = {
+  '618SALE': 2.0,
+  NEW10: 1.5,
+  WELCOME: 5.0,
+}
+
+/** 各优惠码已用次数:初始按种子订单统计(下单即占用,与真实后端 RecordUsage 一致) */
+const couponUsage: Record<string, number> = orders
+  .filter((o) => o.coupon_code)
+  .reduce<Record<string, number>>((acc, o) => {
+    const code = (o.coupon_code ?? '').toUpperCase()
+    if (code) acc[code] = (acc[code] ?? 0) + 1
+    return acc
+  }, {})
+
+/** 优惠码是否已被当前用户用满(每人限用) */
+function couponExhausted(code?: string | null): boolean {
+  if (!code) return false
+  const c = code.toUpperCase()
+  const limit = couponLimitPerUser[c]
+  if (!limit || limit <= 0) return false
+  return (couponUsage[c] ?? 0) >= limit
+}
+
 export default [
   {
     url: '/api/v1/coupons/available',
@@ -110,22 +146,13 @@ export default [
     response: ({ headers }: { headers: Record<string, string> }) => {
       if (!verifyAccess(headers)) return unauthorized()
       // 与 /coupons/check 的 discountMap 保持一致（Mock 内存态，契约字段对齐 AdminCouponView 展开）
+      // 过滤「每人限用已满」的券（NEW10 种子订单已用满,不再展示）
       return ok({
         list: [
           {
             code: '618SALE',
             type: 1,
             value: 2.0,
-            min_spend: 0,
-            valid_periods: ['month', 'quarter', 'half_year', 'year'],
-            plan_ids: [],
-            started_at: null,
-            ended_at: null,
-          },
-          {
-            code: 'NEW10',
-            type: 2,
-            value: 10,
             min_spend: 0,
             valid_periods: ['month', 'quarter', 'half_year', 'year'],
             plan_ids: [],
@@ -142,7 +169,7 @@ export default [
             started_at: null,
             ended_at: null,
           },
-        ],
+        ].filter((c) => !couponExhausted(c.code)),
       })
     },
   },
@@ -159,15 +186,14 @@ export default [
       if (!verifyAccess(headers)) return unauthorized()
       const code = body?.code ?? ''
       if (!code) return { code: 12001, message: '请输入优惠码', data: null }
-      const discountMap: Record<string, number> = {
-        '618SALE': 2.0,
-        NEW10: 1.5,
-        WELCOME: 5.0,
-      }
-      if (!discountMap[code.toUpperCase()]) {
+      const c = code.toUpperCase()
+      if (!couponDiscount[c]) {
         return { code: 12001, message: '优惠券无效或已过期', data: null }
       }
-      return ok({ valid: true, discount_amount: discountMap[code.toUpperCase()], pay_amount: 0 })
+      if (couponExhausted(c)) {
+        return { code: 12001, message: '该优惠券每人限用次数已用完', data: null }
+      }
+      return ok({ valid: true, discount_amount: couponDiscount[c], pay_amount: 0 })
     },
   },
   {
@@ -189,7 +215,17 @@ export default [
       }
       const planName = planNameMap[body?.plan_id ?? -1] ?? '白羊座'
       const price = priceMap[body?.plan_id ?? 1]?.[body?.period ?? 'month'] ?? 10
-      const discount = body?.coupon_code ? (body.coupon_code === '618SALE' ? 2 : 1.5) : 0
+      // 每人限用校验:用满的券拒绝下单(与 /coupons/check 口径一致)
+      const couponCode = body?.coupon_code?.toUpperCase() ?? ''
+      if (couponCode && !couponDiscount[couponCode]) {
+        return { code: 12001, message: '优惠券无效或已过期', data: null }
+      }
+      if (couponExhausted(couponCode)) {
+        return { code: 12001, message: '该优惠券每人限用次数已用完', data: null }
+      }
+      const discount = couponCode ? couponDiscount[couponCode] : 0
+      // 下单即占用:与真实后端 RecordUsage 语义一致
+      if (couponCode) couponUsage[couponCode] = (couponUsage[couponCode] ?? 0) + 1
       const order: Order = {
         order_no: makeOrderNo(),
         plan_name: planName,

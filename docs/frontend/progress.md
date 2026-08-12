@@ -177,6 +177,7 @@
 | CopyText 展示文本不响应 prop 变化 | 改用 `computed` |
 | AdminUsersView 重复实现 formatBytes | 删除本地实现,统一用 `formatBytes` |
 | E2E 调试残留 | 删除 `zz-errfail.spec.ts`;`mobile.spec.ts` 未断言调用改为 `expect(...).toBeVisible()` |
+| Mock 优惠券可无限次使用(2026-08-12) | `mock/order.ts` 的 `POST /orders` 原先无任何限用校验,任意用户可无限次用同一张券下单;补齐「每人限用」:`couponLimitPerUser`/`couponUsage`(下单即占用,种子订单计入) + `/coupons/available` 过滤已用满 + `/coupons/check` 与 `/orders` 拒绝 12001;同时统一三处折扣口径(couponDiscount 共享),修掉 WELCOME 在 check=5.0 与 orders=1.5 不一致;真实后端校验本就完整,另把 `validateCoupon`/`AvailableCoupons` 中 `err == nil &&` 的宽松判断改为查询失败保守拒绝/过滤 |
 
 ---
 

@@ -18,7 +18,10 @@ test('移动端仪表板渲染 + 底栏导航到购买订阅', async ({ authedPa
 
   // 抽屉菜单
   await authedPage.goto('/#/dashboard')
+  // 主题按钮 title 三态:浅色 / 深色 / 跟随系统(默认 system)
   await expect(
-    authedPage.locator('button[title*="浅色"], button[title*="深色"]').first(),
+    authedPage
+      .locator('button[title*="浅色"], button[title*="深色"], button[title*="跟随系统"]')
+      .first(),
   ).toBeVisible()
 })

@@ -34,7 +34,8 @@ Thumbs.db
 # Tauri 生成物
 src-tauri/target/
 src-tauri/gen/
-src-tauri/icons/icon.png
+# 注意:src-tauri/icons/icon.png 是托盘图标(tauri.conf.json trayIcon.iconPath),必须入库,
+# 否则 CI 干净 checkout 后 generate_context! 宏编译期找不到该文件而失败
 app-icon.png
 
 # 测试与覆盖率

@@ -547,6 +547,7 @@ export interface AdminOrderItem {
   discount_amount: number
   balance_used: number
   pay_amount: number
+  commission_amount: number | null
   status: OrderStatus
   pay_method: string | null
   paid_at: string | null

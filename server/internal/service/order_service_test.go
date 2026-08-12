@@ -394,3 +394,14 @@ func TestCreateOrderCouponPerUserLimit(t *testing.T) {
 	_, err = svc.CreateOrder(ctx, 7, "", &model.CreateOrderReq{PlanID: 1, Period: "month", CouponCode: "ONCE"})
 	assert.Equal(t, 12001, codeOf(err), "同一用户同一张券 limit_per_user=1 时第二次下单必须被拒")
 }
+
+// TestGrantCommissionBalanceSkipped:余额支付订单不产生佣金(grantCommission 直接跳过,
+// 不做任何用户/佣金查询;sqlmock 未设期望,若有查询会报 unexpected call 而失败)。
+func TestGrantCommissionBalanceSkipped(t *testing.T) {
+	e, svc := newOrderEnv(t)
+	pm := "balance"
+	o := &model.Order{OrderNo: "O1", UserID: 7, PayMethod: &pm}
+	err := svc.grantCommission(e.db, o, 1000)
+	require.NoError(t, err)
+	require.NoError(t, e.mock.ExpectationsWereMet(), "余额支付不应产生任何 DB 查询(不写佣金)")
+}

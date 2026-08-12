@@ -112,7 +112,7 @@
 | Prettier 3 | 全仓格式化 + format:check | `.prettierrc.json`、`.prettierignore` |
 | Vitest 单测 | jsdom,**43 用例**(格式化/http 401 刷新重放/invite store/倒计时 + PlanCard/OrderTable/BannerStatCard 组件测试 12 例),v8 覆盖率 | `vitest.config.ts`、`src/**/__tests__/*` |
 | Playwright E2E | 正式套件 42 例(21 用例 × 桌面/移动双 project、webServer 自动起 Mock),替代原冒烟脚本 | `playwright.config.ts`、`tests/e2e/*` |
-| CI | PR/push 双触发 3 job:`frontend-quality`(lint→typecheck→format:check→test→build:web)+ `frontend-e2e`(失败上传报告)+ `rust`(windows-latest:build:web → cargo check);Go 后端不走 Actions(项目决策) | `.github/workflows/ci.yml` |
+| CI | 仅发布 tag(`v*`)触发 3 job(2026-08-12 调整:此前 push main/PR 每次提交都跑,改后日常检查走本地 `pnpm lint/typecheck/test/format:check`):`frontend-quality`(lint→typecheck→format:check→test→build:web)+ `frontend-e2e`(失败上传报告)+ `rust`(windows-latest:build:web → cargo check);Go 后端不走 Actions(项目决策) | `.github/workflows/ci.yml` |
 | i18n 懒加载 | 语言包按需动态 import,useLocale 统一切换 | `src/locales/index.ts`、`src/composables/useLocale.ts` |
 | 注册页强制邀请码 | 站点 `invite_code_required=true` 时校验必填 | `src/views/auth/RegisterView.vue` |
 | 离线横幅 | 顶部红色常驻横幅 + 恢复 toast | `src/components/app/ToastBridge.vue` |

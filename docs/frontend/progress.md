@@ -204,7 +204,7 @@
 | 项 | 说明 |
 |---|---|
 | Stylelint | 未引入(可选,ESLint + Prettier 已覆盖) |
-| 既有 format:check 告警 | `pnpm format:check` 当前 58 个文件(含 M8/M9 遗留)不合 Prettier 3.9.6 格式,**与本次改动无关**(本次新增/修改文件已全部通过);如需全仓库达标需单独一次 `pnpm format` 提交 |
+| ~~既有 format:check 告警~~ | **已解决(2026-08-12)**：`0ac021c` 全量格式化修复 23 个不合规文件，review-0.4.0 补格式化 `scripts/build-latest-json.mjs` 后，`pnpm format:check` 全仓通过(见 docs/reviews/review-0.4.0.md) |
 
 ### 二期 / 明确标注待办
 

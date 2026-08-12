@@ -125,6 +125,15 @@ func (PaymentRepo) ListPending(db *gorm.DB) ([]model.Payment, error) {
 	return list, err
 }
 
+// ClosePendingByOrderNo 将该订单所有待支付支付单置为已关闭(订单超时关单/已取消时清理,
+// 避免残留 pending 支付单被查单任务反复轮询)。返回受影响行数。
+func (PaymentRepo) ClosePendingByOrderNo(db *gorm.DB, orderNo string) (int64, error) {
+	res := db.Model(&model.Payment{}).
+		Where("order_no = ? AND status = ?", orderNo, model.PayPending).
+		Update("status", model.PayClosed)
+	return res.RowsAffected, res.Error
+}
+
 // CouponRepo 优惠券数据访问。
 type CouponRepo struct{}
 

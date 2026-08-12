@@ -80,6 +80,10 @@ func (s *CronService) CloseExpiredOrders(ctx context.Context) {
 			if err := s.repos.Order.UpdateStatus(tx, o.OrderNo, model.OrderCanceled); err != nil {
 				return err
 			}
+			// 同步关闭该订单残留的待支付支付单,避免查单任务反复轮询已取消订单(二期完善)
+			if _, err := s.repos.Payment.ClosePendingByOrderNo(tx, o.OrderNo); err != nil {
+				return err
+			}
 			// 回退优惠券占用（防止券与配额永久残留）
 			if locked.CouponID != nil {
 				if err := releaseCoupon(tx, *locked.CouponID, locked.UserID, locked.OrderNo); err != nil {
@@ -106,6 +110,14 @@ func (s *CronService) ReconcilePayments(ctx context.Context) {
 	}
 	confirmed := 0
 	for _, p := range payments {
+		// 订单已非待支付（超时关闭/已取消/已退款）:支付单关闭,不再查单(二期完善)
+		order, err := s.repos.Order.GetByNo(s.db, p.OrderNo)
+		if err == nil && order.Status != model.OrderPending {
+			if _, cerr := s.repos.Payment.ClosePendingByOrderNo(s.db, p.OrderNo); cerr != nil {
+				logger.L().Error("reconcile close orphan payment", zapS("order_no", p.OrderNo), zapE(cerr))
+			}
+			continue
+		}
 		driver := payment.Get(p.Method)
 		if driver == nil {
 			continue

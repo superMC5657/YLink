@@ -48,7 +48,9 @@
 
   /* 字体:未内置任何 webfont,Inter/HarmonyOS 均未加载,Windows 英文回退到 Segoe UI(偏锐)。
      优先使用系统圆润字体:微软雅黑 UI(Windows)/苹方(macOS),中文英文一体渲染更柔和。 */
-  --font-ui: 'Microsoft YaHei UI', 'Microsoft YaHei', 'PingFang SC', 'HarmonyOS Sans SC', system-ui, sans-serif;
+  --font-ui:
+    'Microsoft YaHei UI', 'Microsoft YaHei', 'PingFang SC', 'HarmonyOS Sans SC', system-ui,
+    sans-serif;
   --font-num: 'DIN Alternate', 'Bahnschrift', 'Microsoft YaHei UI', sans-serif;
 }
 

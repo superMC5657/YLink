@@ -76,7 +76,13 @@ const actions = computed<Action[]>(() => [
     color: 'var(--c-olive)',
     bg: 'var(--c-olive-bg)',
   },
-  { key: 'profile', icon: 'user', label: t('dashboard.profile'), color: 'var(--c-pink)', bg: 'var(--c-pink-bg)' },
+  {
+    key: 'profile',
+    icon: 'user',
+    label: t('dashboard.profile'),
+    color: 'var(--c-pink)',
+    bg: 'var(--c-pink-bg)',
+  },
   {
     key: 'subscribe-link',
     icon: 'link',

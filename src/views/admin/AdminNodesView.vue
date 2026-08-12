@@ -218,7 +218,9 @@ onMounted(() => void load())
           <button class="btn-soft-neutral h-9 px-3 text-14" @click="load">
             <AppIcon name="refresh" :size="15" /> 刷新
           </button>
-          <button class="btn-soft-primary h-9 px-4 text-14" @click="openGroupCreate">新建分组</button>
+          <button class="btn-soft-primary h-9 px-4 text-14" @click="openGroupCreate">
+            新建分组
+          </button>
           <button class="btn-primary h-9 px-4 text-14" @click="openNodeCreate">
             <AppIcon name="plus" :size="15" /> 新建节点
           </button>
@@ -264,7 +266,9 @@ onMounted(() => void load())
               <td class="num-font">{{ s.sort }}</td>
               <td>
                 <div class="flex gap-2">
-                  <button class="btn-soft-primary h-7 px-3 text-14" @click="openNodeEdit(s)">编辑</button>
+                  <button class="btn-soft-primary h-7 px-3 text-14" @click="openNodeEdit(s)">
+                    编辑
+                  </button>
                   <button class="btn-danger h-7 px-3 text-14" @click="removeNode(s)">删除</button>
                 </div>
               </td>
@@ -297,7 +301,9 @@ onMounted(() => void load())
             </div>
           </div>
           <div class="flex gap-2">
-            <button class="btn-soft-primary h-7 px-2.5 text-14" @click="openGroupEdit(g)">编辑</button>
+            <button class="btn-soft-primary h-7 px-2.5 text-14" @click="openGroupEdit(g)">
+              编辑
+            </button>
             <button class="btn-danger h-7 px-2.5 text-14" @click="removeGroup(g)">删除</button>
           </div>
         </div>
@@ -397,7 +403,9 @@ onMounted(() => void load())
       </n-form>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <button class="btn-soft-neutral h-9 px-4 text-14" @click="groupModal = false">取消</button>
+          <button class="btn-soft-neutral h-9 px-4 text-14" @click="groupModal = false">
+            取消
+          </button>
           <button class="btn-primary h-9 px-4 text-14" :disabled="groupSaving" @click="saveGroup">
             保存
           </button>

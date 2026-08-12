@@ -101,7 +101,9 @@ describe('http 封装', () => {
   it('401 时用 refresh_token 静默换新并重放原请求', async () => {
     writeTokens({ accessToken: 'expired', refreshToken: 'valid-refresh' })
     vi.mocked(fetch)
-      .mockResolvedValueOnce(jsonResponse({ code: 40100, message: 'unauthorized', data: null }, 401))
+      .mockResolvedValueOnce(
+        jsonResponse({ code: 40100, message: 'unauthorized', data: null }, 401),
+      )
       .mockResolvedValueOnce(
         jsonResponse({
           code: 0,

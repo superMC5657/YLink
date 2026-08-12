@@ -171,7 +171,9 @@ onMounted(() => void load())
             <tr v-for="k in filtered" :key="k.id">
               <td class="num-font">{{ k.id }}</td>
               <td>
-                <span class="rounded bg-[var(--c-primary-soft)] px-2 py-0.5 text-13 text-[var(--c-primary)]">
+                <span
+                  class="rounded bg-[var(--c-primary-soft)] px-2 py-0.5 text-13 text-[var(--c-primary)]"
+                >
                   {{ k.category }}
                 </span>
               </td>
@@ -186,7 +188,9 @@ onMounted(() => void load())
               <td class="text-14 text-[var(--c-text-sub)]">{{ formatTime(k.updated_at) }}</td>
               <td>
                 <div class="flex gap-2">
-                  <button class="btn-soft-primary h-7 px-3 text-14" @click="openEdit(k)">编辑</button>
+                  <button class="btn-soft-primary h-7 px-3 text-14" @click="openEdit(k)">
+                    编辑
+                  </button>
                   <button class="btn-danger h-7 px-3 text-14" @click="remove(k)">删除</button>
                 </div>
               </td>

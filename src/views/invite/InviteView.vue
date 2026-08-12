@@ -146,10 +146,7 @@ onMounted(() => {
                   </td>
                   <td>
                     <div class="flex items-center gap-3">
-                      <button
-                        class="btn-soft-blue h-7 px-2.5 text-14"
-                        @click="copyCode(c.code)"
-                      >
+                      <button class="btn-soft-blue h-7 px-2.5 text-14" @click="copyCode(c.code)">
                         <AppIcon name="copy" :size="13" />
                         {{ t('common.copy') }}
                       </button>

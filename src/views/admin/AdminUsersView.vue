@@ -192,8 +192,12 @@ onMounted(() => void load())
               </td>
               <td>
                 <div class="flex gap-2">
-                  <button class="btn-soft-primary h-7 px-3 text-14" @click="changeRole(u)">角色</button>
-                  <button class="btn-soft-warning h-7 px-3 text-14" @click="openBalance(u)">调余额</button>
+                  <button class="btn-soft-primary h-7 px-3 text-14" @click="changeRole(u)">
+                    角色
+                  </button>
+                  <button class="btn-soft-warning h-7 px-3 text-14" @click="openBalance(u)">
+                    调余额
+                  </button>
                   <button
                     class="h-7 px-3 text-14"
                     :class="u.is_banned ? 'btn-soft-success' : 'btn-danger'"
@@ -239,7 +243,9 @@ onMounted(() => void load())
       </n-form>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <button class="btn-soft-neutral h-9 px-4 text-14" @click="balanceModal = false">取消</button>
+          <button class="btn-soft-neutral h-9 px-4 text-14" @click="balanceModal = false">
+            取消
+          </button>
           <button
             class="btn-primary h-9 px-4 text-14"
             :disabled="balanceSaving"

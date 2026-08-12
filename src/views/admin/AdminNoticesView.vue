@@ -136,7 +136,9 @@ onMounted(() => void load())
               <td class="text-14 text-[var(--c-text-sub)]">{{ formatTime(n.created_at) }}</td>
               <td>
                 <div class="flex gap-2">
-                  <button class="btn-soft-primary h-7 px-3 text-14" @click="openEdit(n)">编辑</button>
+                  <button class="btn-soft-primary h-7 px-3 text-14" @click="openEdit(n)">
+                    编辑
+                  </button>
                   <button class="btn-danger h-7 px-3 text-14" @click="remove(n)">删除</button>
                 </div>
               </td>

@@ -18,7 +18,10 @@ const activeKey = ref('site')
 const draft = ref('')
 
 const KEY_META: Record<string, { label: string; desc: string }> = {
-  site: { label: '站点信息', desc: '站点名称、Logo、注册开关、邀请码强制、APP 下载、Telegram、客服链接、语言' },
+  site: {
+    label: '站点信息',
+    desc: '站点名称、Logo、注册开关、邀请码强制、APP 下载、Telegram、客服链接、语言',
+  },
   payment: { label: '支付方式', desc: '支付渠道列表(enabled 控制是否展示)' },
   invite: { label: '邀请与佣金', desc: '佣金比例、确认天数、邀请码上限' },
   agent: { label: '代理政策', desc: '代理门槛、特权文案与注意事项' },

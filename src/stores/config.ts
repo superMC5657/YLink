@@ -33,7 +33,12 @@ export const useConfigStore = defineStore('config', {
     /** 启动拉取,带 60s 本地缓存;force=true 强制刷新(政策/开关类展示页用) */
     async fetchConfig(force = false) {
       const cached = getItem<ConfigCache>('configCache')
-      if (!force && cached?.config && cached.version === CACHE_VERSION && Date.now() - cached.loadedAt < CACHE_TTL) {
+      if (
+        !force &&
+        cached?.config &&
+        cached.version === CACHE_VERSION &&
+        Date.now() - cached.loadedAt < CACHE_TTL
+      ) {
         this.config = cached.config
         this.loadedAt = cached.loadedAt
         return

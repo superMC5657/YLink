@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import type { ThemeMode } from '@/utils/storage'
-import { getThemeMode, setThemeMode, setApiBase, getApiBase, storageLike } from '@/utils/storage'
+import { getThemeMode, setThemeMode, setApiBase, storageLike, flushStorage } from '@/utils/storage'
+import { getApiBaseUrl } from '@/utils/http'
 
 interface AppState {
   sidebarCollapsed: boolean
@@ -21,7 +22,7 @@ export const useAppStore = defineStore('app', {
     sidebarCollapsed: false,
     themeMode: getThemeMode(),
     language: 'zh-CN',
-    apiBase: getApiBase() ?? import.meta.env.VITE_API_BASE_URL ?? '/api/v1',
+    apiBase: getApiBaseUrl(),
   }),
   getters: {
     isDark: (s) => resolveTheme(s.themeMode) === 'dark',
@@ -52,9 +53,11 @@ export const useAppStore = defineStore('app', {
     setLanguage(lang: string) {
       this.language = lang
     },
-    setApiBase(url: string) {
+    async setApiBase(url: string) {
       this.apiBase = url
       setApiBase(url)
+      // Tauri 下 plugin-store 异步落盘,先 flush 再 reload,避免新地址未落地就销毁页面
+      await flushStorage()
       window.location.reload()
     },
     /** 系统主题变化时实时响应 */

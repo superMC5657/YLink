@@ -20,8 +20,14 @@ export interface RefreshTokens {
   refreshToken: string
 }
 
-const API_BASE: string =
-  getItem<string>('apiBase') ?? import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
+/**
+ * 惰性解析 API 基址:每次请求时读取,而不是模块导入时。
+ * 否则 Tauri 下 http.ts 被 import 时 initStorage() 尚未执行,持久化的自定义 apiBase 读不到,
+ * 整个会话会错误地使用环境变量/默认地址(见 docs/reviews/review-0.6.0.md P1)。
+ */
+function resolveApiBase(): string {
+  return getItem<string>('apiBase') ?? import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
+}
 
 /** 令牌读写(与 useAuthStore 持久化共用 localStorage 'app:auth') */
 export function readTokens(): RefreshTokens | null {
@@ -53,7 +59,7 @@ async function doRefresh(): Promise<boolean> {
     const tokens = readTokens()
     if (!tokens?.refreshToken) return false
     const fetcher = await resolveFetcher()
-    const resp = await fetcher(`${API_BASE}/auth/refresh`, {
+    const resp = await fetcher(`${resolveApiBase()}/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: tokens.refreshToken }),
@@ -146,7 +152,7 @@ async function request<T>(method: string, url: string, opts: HttpOptions = {}): 
   let resp: Response
   const fetcher = await resolveFetcher()
   try {
-    resp = await fetcher(API_BASE + url + queryStr, {
+    resp = await fetcher(resolveApiBase() + url + queryStr, {
       method,
       headers,
       body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
@@ -177,7 +183,7 @@ async function request<T>(method: string, url: string, opts: HttpOptions = {}): 
     if (ok) {
       const retryTokens = readTokens()
       if (retryTokens?.accessToken) headers.Authorization = `Bearer ${retryTokens.accessToken}`
-      resp = await fetcher(API_BASE + url + queryStr, {
+      resp = await fetcher(resolveApiBase() + url + queryStr, {
         method,
         headers,
         body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
@@ -215,4 +221,7 @@ export const http = {
   delete: <T>(url: string, opts?: HttpOptions) => request<T>('DELETE', url, opts),
 }
 
-export { API_BASE }
+/** 供外部读取当前解析后的 API 基址(与请求层一致) */
+export function getApiBaseUrl(): string {
+  return resolveApiBase()
+}

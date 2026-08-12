@@ -137,7 +137,7 @@
 
 | 项 | 状态 | 说明 |
 |---|---|---|
-| 管理端订单佣金查询失败透传 | ⚠️ 未完成 | `ListOrders` 当前静默忽略批量佣金查询错误，失败时可能把 `commission_amount: null` 当作有效结果返回；详见 [review-0.5.0](../reviews/zh-cn/review-0.5.0.md)。 |
+| 管理端订单佣金查询失败透传 | ✅ 已修复(2026-08-13) | `ListOrders` 原静默忽略批量佣金查询错误,现改为失败即上抛,不再返回 `commission_amount` 全 null 的成功响应;补回归测试 `TestAdminListOrdersCommissionQueryError`;详见 [review-0.5.0](../reviews/zh-cn/review-0.5.0.md)。 |
 
 ### 安全与一致性加固(✅ 完成)
 

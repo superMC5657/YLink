@@ -224,6 +224,7 @@
 | ~~更新卡片 UI~~ | **已实现(2026-08-12)**,见第 1 节 M6 发布能力收尾 | — |
 | ~~开机自启~~ | **需求已移除(2026-08-13)**:不再提供开机自启开关;`utils/platform.ts` 自启封装与设置页入口已还原(autostart 插件仍注册于 Rust 侧,前端不暴露) | — |
 | ~~存储适配 plugin-store~~ | **已实现(2026-08-13)**：`utils/storage.ts` 同步 facade(内存 Map + 异步落盘 `app-settings.json`),`initStorage()` 启动预载,persistedstate 与全部 localStorage 调用点统一走 storage 层 | — |
+| ~~存储适配评审修复(review-0.6.0 P1/P2)~~ | **已修复(2026-08-13)**：① `http.ts` 的 `API_BASE` 改为请求时惰性解析(`resolveApiBase()`),持久化自定义 apiBase 在 `initStorage()` 后生效;② `initStorage()` 增加一次性迁移,将旧 WebView `localStorage`(`app:` 前缀)导入 plugin-store,已有键不覆盖、`app:_legacy:migrated:v1` 标记保证一次性。单测:http.spec.ts + 新增 storage.spec.ts | 见 review-0.6.0.md |
 
 ### 工程化与待办(2026-08-11 核对)
 

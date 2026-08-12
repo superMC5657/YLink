@@ -8,7 +8,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import type { FormInst, FormRules } from 'naive-ui'
-import { getApiBase, removeItem } from '@/utils/storage'
+import { getApiBase, removeItem, flushStorage } from '@/utils/storage'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -24,8 +24,10 @@ const form = ref({ email: '', password: '' })
 /** localStorage 残留过自定义后端地址时,显示「重置后端地址」自救入口 */
 const hasCustomApiBase = computed(() => getApiBase() !== null)
 
-function resetApiBase() {
+async function resetApiBase() {
   removeItem('apiBase')
+  // Tauri 下 plugin-store 异步落盘,先 flush 再 reload,避免残留旧地址
+  await flushStorage()
   window.location.reload()
 }
 

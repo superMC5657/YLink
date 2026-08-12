@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ApiErrorImpl, http, setToastProvider, writeTokens } from '../http'
+import { ApiErrorImpl, getApiBaseUrl, http, setToastProvider, writeTokens } from '../http'
+import { setItem } from '../storage'
 import type { ApiEnvelope } from '@/types/api'
 
 /** 构造 envelope 响应 */
@@ -30,6 +31,32 @@ describe('http 封装', () => {
     const [url, init] = vi.mocked(fetch).mock.calls[0]
     expect(url).toBe('/api/v1/plans')
     expect((init?.headers as Record<string, string>).Accept).toBe('application/json')
+  })
+
+  it('持久化自定义 apiBase 后,请求与 refresh 使用该地址(惰性读取,非模块加载时)', async () => {
+    // 模拟 bootstrap() 完成 initStorage() 后持久化值已就绪
+    setItem('apiBase', 'https://api.example.com/api/v1')
+    expect(getApiBaseUrl()).toBe('https://api.example.com/api/v1')
+
+    writeTokens({ accessToken: 'expired', refreshToken: 'valid-refresh' })
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        jsonResponse({ code: 40100, message: 'unauthorized', data: null }, 401),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          code: 0,
+          message: 'ok',
+          data: { access_token: 'new-access', refresh_token: 'new-refresh' },
+        }),
+      )
+      .mockResolvedValueOnce(jsonResponse({ code: 0, message: 'ok', data: { ok: true } }))
+
+    await http.get('/user/stat')
+    const refreshCall = vi.mocked(fetch).mock.calls[1]
+    expect(refreshCall[0]).toBe('https://api.example.com/api/v1/auth/refresh')
+    const replayCall = vi.mocked(fetch).mock.calls[2]
+    expect(replayCall[0]).toBe('https://api.example.com/api/v1/user/stat')
   })
 
   it('业务错误抛 ApiError 并携带 code/message', async () => {

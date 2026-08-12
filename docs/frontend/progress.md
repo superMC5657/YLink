@@ -184,7 +184,7 @@
 | deep-link 注册 | ✅ 插件已注册(Rust `#[cfg(desktop)]` init)+ capabilities `deep-link:default`;前端 `onDeepLink` 路由跳转已就绪(main.ts) | ⚠️ Rust 单实例尚未转发 argv/深链 URL,端到端未验证;Release 域名与 `ylink://` 注册见 desktop-tauri.md §3/§4/§5 |
 | 自动更新 | ⚠️ 后端已就绪(2026-08-12):Rust 已注册 updater、`tauri.conf.json` 已配 pubkey+endpoints、Release 流水线产出 `latest.json`;前端无更新卡片仍待做 | 前端需实现 check/download/install 调用(见 desktop-tauri.md §5) |
 | 通知触发点 | ⚠️ 插件已注册,前端未实现到期/工单回复/支付成功本地通知 | 依赖轮询钩子(可后补) |
-| 三平台打包与 updater 签名 | ✅ 已配置(2026-08-12):Release 流水线 + 签名密钥已生成 | `.github/workflows/release-tauri.yml` + `TAURI_SIGNING_PRIVATE_KEY`(见 desktop-tauri.md §5/§7) |
+| Windows 打包与 updater 签名 | ✅ 已配置(2026-08-12):Release 流水线 + 签名密钥已生成;2026-08-12 收窄为仅 Windows 打包 | `.github/workflows/release-tauri.yml` + `TAURI_SIGNING_PRIVATE_KEY`(见 desktop-tauri.md §5/§7) |
 | 存储适配 | ⚠️ 一期统一 localStorage(WebView 持久化);plugin-store(JSON 文件)异步 API 与 persistedstate 同步接口冲突,迁移需异步化改造 | 见 storage.ts 注释 |
 
 ### 一期小缺口收尾(✅ 2026-08-11)
@@ -218,7 +218,7 @@
 | 项 | 状态 | 说明 |
 |---|---|---|
 | 后端 CI / Rust CI | Rust ✅ 已接入(2026-08-12);Go 后端 ❌ 不接入(项目决策:后端不走 Actions) | `.github/workflows/ci.yml` `rust` job(ubuntu-24.04 装 webkit2gtk 等系统依赖 → 先 `pnpm build:web` 生成 dist → `cargo check`);`backend` job 已删除(2026-08-12),后端由本地 make/手动构建 |
-| 三平台 Release / updater | ✅ 已接入(2026-08-12,公开产物仓库方案) | 代码仓库 private;`.github/workflows/release-tauri.yml`:tag `v*` / 手动触发 → guard(占位符拦截)→ 三平台矩阵 `pnpm tauri build --bundles nsis/deb/app`(TAURI_SIGNING_PRIVATE_KEY 自动签名 .sig)→ `scripts/build-latest-json.mjs` 合并 latest.json(url 加 `gh-proxy.com` 前缀)→ `gh release` 推送到**公开产物仓库**(`RELEASES_PAT` secret);`tauri-plugin-updater` 已注册 + pubkey 写入 + capabilities 补 `updater:default`;updater endpoints = gh-proxy 优先 + 直连兑底;待替换占位符 `<RELEASES_REPO>`(workflow env + tauri.conf.json endpoints);前端更新卡片入口仍待做(见下行) |
+| Release / updater(仅 Windows 打包) | ✅ 已接入(2026-08-12,公开产物仓库方案;2026-08-12 收窄为仅 Windows) | 代码仓库 private;`.github/workflows/release-tauri.yml`:tag `v*` / 手动触发 → guard(tag 校验)→ 单平台构建(windows-latest `pnpm tauri build --bundles nsis`,TAURI_SIGNING_PRIVATE_KEY 自动签名 .sig)→ `scripts/build-latest-json.mjs` 合并 latest.json(url 加 `gh-proxy.com` 前缀)→ `gh release` 推送到**公开产物仓库** `superMC5657/ylink-releases`(`RELEASES_PAT` secret);`tauri-plugin-updater` 已注册 + pubkey 写入 + capabilities 补 `updater:default`;updater endpoints = gh-proxy 优先 + 直连兑底;前端更新卡片入口仍待做(见下行) |
 | 自启 / 通知 / 更新卡片前端入口 | ❌ 未做 | `src/` 无对应调用代码;deep-link 前端监听已就绪(`utils/platform.ts` `onDeepLink` + `main.ts` 路由跳转) |
 | 单实例深链接转发 | ⚠️ 部分 | Rust `lib.rs` 单实例回调仅 `set_focus()` + 打日志,未把 argv/深链 URL 转发已有实例;端到端未验证 |
 | 移动端深链 `ylink://` | ❌ 未接入 | Android manifest 未声明(desktop-tauri.md §9.5) |

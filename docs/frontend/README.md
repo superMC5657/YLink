@@ -87,7 +87,7 @@ proxy-seller-web/
 ├── docs/                     # 本文档目录
 ├── .env / .env.development / .env.production
 ├── vite.config.ts / uno.config.ts / package.json
-└── .github/workflows/        # CI：前端 quality+e2e、Rust check；CD：Tauri Release → 公开产物仓库（gh-proxy 加速更新）
+└── .github/workflows/        # CI：前端 quality+e2e、Rust check；CD：Tauri Windows Release → 公开产物仓库（gh-proxy 加速更新）
 ```
 
 ## 5. 环境变量

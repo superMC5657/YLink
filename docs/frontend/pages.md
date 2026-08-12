@@ -27,6 +27,13 @@
 | `/admin/nodes` | 管理后台·节点 | MainLayout | 管理员 | 侧边栏-管理后台 |
 | `/admin/orders` | 管理后台·订单 | MainLayout | 管理员 | 侧边栏-管理后台 |
 | `/admin/tickets` | 管理后台·工单 | MainLayout | 管理员 | 侧边栏-管理后台 |
+| `/admin/coupons` | 管理后台·优惠券 | MainLayout | 管理员 | 侧边栏-管理后台 |
+| `/admin/notices` | 管理后台·公告 | MainLayout | 管理员 | 侧边栏-管理后台 |
+| `/admin/knowledges` | 管理后台·知识库 | MainLayout | 管理员 | 侧边栏-管理后台 |
+| `/admin/agent-applies` | 管理后台·代理审批 | MainLayout | 管理员 | 侧边栏-管理后台 |
+| `/admin/commission-logs` | 管理后台·佣金日志 | MainLayout | 管理员 | 侧边栏-管理后台 |
+| `/admin/traffic-import` | 管理后台·流量导入 | MainLayout | 管理员 | 侧边栏-管理后台 |
+| `/admin/settings` | 管理后台·站点设置 | MainLayout | 管理员 | 侧边栏-管理后台 |
 | `/:pathMatch(.*)*` | 404 | MainLayout | — | — |
 
 守卫规则：
@@ -181,7 +188,9 @@ DashboardPage
 
 - 404 页：插画 + 返回首页按钮；接口异常统一 toast；网络断开顶部横幅提示（`navigator.onLine` 监听），恢复自动重试关键数据。
 
-### 3.14 管理后台 `/admin/*`（M8，role=1）
+### 3.14 管理后台 `/admin/*`（M8 + M9，13 模块，role=1）
+
+M8 核心 6 模块：
 
 - 总览 `/admin/overview`：7 项运营统计卡（用户/代理/订单/收入/在售套餐）+ 快捷入口。
 - 用户 `/admin/users`：搜索/分页、封禁/角色调整、调余额（均写审计）。
@@ -189,7 +198,18 @@ DashboardPage
 - 节点 `/admin/nodes`：分组 CRUD + 节点 CRUD（6 协议/地址/配置 JSON/倍率/状态/标签）。
 - 订单 `/admin/orders`：状态筛选/分页、退款（余额退回+佣金回滚）、关闭待支付订单。
 - 工单 `/admin/tickets`：列表/详情、客服回复、关闭。
-- 数据来源：`api/admin.ts` 封装已实现 6 模块端点（总览/用户/套餐/节点/订单/工单，契约第 16 节）；优惠券/公告/知识库/代理审批/佣金/流量导入/站点设置 7 组端点未封装（见 progress.md §2 待办）；管理后台视图直调 `apiAdmin` 不经 store（文档化例外，见 data-layer.md §2）。
+
+M9 二期 7 模块（2026-08-11）：
+
+- 优惠券 `/admin/coupons`：列表/新建/编辑/删除（固定金额/百分比、面值/最低消费/限用/适用周期/套餐/生效时间/启停），一键公告（生成公告草稿，优惠码反引号包裹）。
+- 公告 `/admin/notices`：列表/发布/编辑/删除（Markdown 正文、展示开关、排序）。
+- 知识库 `/admin/knowledges`：列表（语言筛选+搜索）/新建/编辑/删除（分类/正文/语言/展示/排序）。
+- 代理审批 `/admin/agent-applies`：状态筛选/分页、通过/拒绝（通过后升级代理商）。
+- 佣金日志 `/admin/commission-logs`：状态筛选/分页，展示邀请人/被邀请人/订单/比例/佣金。
+- 流量导入 `/admin/traffic-import`：模式 B 手工导入（user_id/date/u/d 字节，批量提交写审计）。
+- 站点设置 `/admin/settings`：按 key（site/payment/invite/agent/order/templates）编辑配置 JSON，保存后缓存失效。
+
+- 数据来源：`api/admin.ts` 封装 13 组端点（M8 6 组 + M9 7 组，契约第 16 节）；管理后台视图直调 `apiAdmin` 不经 store（文档化例外，见 data-layer.md §2）。
 
 ## 4. 弹窗与全局组件清单
 

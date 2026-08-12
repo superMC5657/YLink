@@ -118,19 +118,20 @@ type AdminServerReq struct {
 // ---- 管理端 · 订单 ----
 
 type AdminOrderItem struct {
-	OrderNo        string     `json:"order_no"`
-	UserID         int64      `json:"user_id"`
-	UserEmail      string     `json:"user_email"`
-	PlanName       string     `json:"plan_name"`
-	Period         string     `json:"period"`
-	Amount         float64    `json:"amount"`
-	DiscountAmount float64    `json:"discount_amount"`
-	BalanceUsed    float64    `json:"balance_used"`
-	PayAmount      float64    `json:"pay_amount"`
-	Status         int        `json:"status"`
-	PayMethod      *string    `json:"pay_method"`
-	PaidAt         *time.Time `json:"paid_at"`
-	CreatedAt      time.Time  `json:"created_at"`
+	OrderNo          string     `json:"order_no"`
+	UserID           int64      `json:"user_id"`
+	UserEmail        string     `json:"user_email"`
+	PlanName         string     `json:"plan_name"`
+	Period           string     `json:"period"`
+	Amount           float64    `json:"amount"`
+	DiscountAmount   float64    `json:"discount_amount"`
+	BalanceUsed      float64    `json:"balance_used"`
+	PayAmount        float64    `json:"pay_amount"`
+	CommissionAmount *float64   `json:"commission_amount"` // 该订单产生的佣金(元);nil=无佣金记录
+	Status           int        `json:"status"`
+	PayMethod        *string    `json:"pay_method"`
+	PaidAt           *time.Time `json:"paid_at"`
+	CreatedAt        time.Time  `json:"created_at"`
 }
 
 type RefundReq struct {

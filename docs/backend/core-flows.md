@@ -95,6 +95,7 @@ sequenceDiagram
 
 - 佣金比例：默认取 settings `invite_commission_rate`（如 40%）；代理商（role=2）取 `agent_commission_rate`，可不同。
 - 循环佣金：被邀请人每次付费（含续费）都产生佣金，截图中「40%（循环）」即此语义。
+- **余额支付不产生佣金（2026-08-13 需求变更）**：仅在线支付渠道（epay 等）支付成功后写佣金；`grantCommission` 对 `pay_method = balance` 的订单直接跳过。历史已产生的余额支付佣金不受影响。
 
 ## 5. 代理商申请
 

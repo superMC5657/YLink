@@ -219,6 +219,16 @@ func (CommissionRepo) GetByOrderNo(db *gorm.DB, orderNo string) (*model.Commissi
 	return &cl, nil
 }
 
+// ListByOrderNos 按订单号批量查佣金记录(管理端订单列表展示佣金用,一个订单至多一条)。
+func (CommissionRepo) ListByOrderNos(db *gorm.DB, orderNos []string) ([]model.CommissionLog, error) {
+	if len(orderNos) == 0 {
+		return nil, nil
+	}
+	var list []model.CommissionLog
+	err := db.Where("order_no IN ?", orderNos).Find(&list).Error
+	return list, err
+}
+
 func (CommissionRepo) ListByInvite(db *gorm.DB, inviteUserID int64, page, pageSize int) ([]model.CommissionLog, int64, error) {
 	var list []model.CommissionLog
 	var total int64

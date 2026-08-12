@@ -135,6 +135,7 @@ onMounted(() => void load())
               <th>周期</th>
               <th>金额(元)</th>
               <th>实付(元)</th>
+              <th>佣金(元)</th>
               <th>状态</th>
               <th>支付方式</th>
               <th>创建时间</th>
@@ -149,6 +150,14 @@ onMounted(() => void load())
               <td class="text-14">{{ o.period }}</td>
               <td class="num-font">{{ o.amount.toFixed(2) }}</td>
               <td class="num-font font-600 text-[var(--c-olive)]">{{ o.pay_amount.toFixed(2) }}</td>
+              <td
+                class="num-font"
+                :class="
+                  o.commission_amount ? 'text-[var(--c-primary-text)]' : 'text-[var(--c-text-sub)]'
+                "
+              >
+                {{ o.commission_amount != null ? o.commission_amount.toFixed(2) : '-' }}
+              </td>
               <td>
                 <StatusBadge :type="STATUS_TEXT[o.status]?.type ?? 'neutral'">
                   {{ STATUS_TEXT[o.status]?.text ?? o.status }}
@@ -179,7 +188,7 @@ onMounted(() => void load())
               </td>
             </tr>
             <tr v-if="!loading && list.length === 0">
-              <td colspan="10"><EmptyState text="暂无订单" /></td>
+              <td colspan="11"><EmptyState text="暂无订单" /></td>
             </tr>
           </tbody>
         </n-table>

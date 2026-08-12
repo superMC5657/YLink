@@ -666,7 +666,11 @@ func (s *OrderService) applySubscription(tx *gorm.DB, order *model.Order) error 
 }
 
 // grantCommission 下单支付成功后写佣金（确认中）。payAmount 为实际支付金额（余额支付为扣减前的应付额）。
+// 余额支付不产生佣金（2026-08-12 需求变更）：仅在线支付渠道(epay 等)写佣金。
 func (s *OrderService) grantCommission(tx *gorm.DB, order *model.Order, payAmount int64) error {
+	if order.PayMethod != nil && *order.PayMethod == "balance" {
+		return nil
+	}
 	user, err := s.repos.User.GetByID(tx, order.UserID)
 	if err != nil {
 		return err

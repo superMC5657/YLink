@@ -189,6 +189,13 @@ func (s *AdminService) ListOrders(ctx context.Context, status *int, page, pageSi
 	}
 	emails := s.emailsOf(userIDsOf(list))
 	planNames := map[int64]string{}
+	// 批量查佣金:order_no → amount(一个订单至多一条佣金记录,uniqueIndex)
+	commissionByOrder := map[string]float64{}
+	if comms, err := s.repos.Commission.ListByOrderNos(s.db, orderNosOf(list)); err == nil {
+		for _, cl := range comms {
+			commissionByOrder[cl.OrderNo] = model.FenToYuan(cl.Amount)
+		}
+	}
 	out := make([]model.AdminOrderItem, 0, len(list))
 	for _, o := range list {
 		name, ok := planNames[o.PlanID]
@@ -198,11 +205,16 @@ func (s *AdminService) ListOrders(ctx context.Context, status *int, page, pageSi
 				planNames[o.PlanID] = name
 			}
 		}
+		var commission *float64
+		if v, has := commissionByOrder[o.OrderNo]; has {
+			commission = &v
+		}
 		out = append(out, model.AdminOrderItem{
 			OrderNo: o.OrderNo, UserID: o.UserID, UserEmail: emails[o.UserID], PlanName: name,
 			Period: o.Period, Amount: model.FenToYuan(o.Amount), DiscountAmount: model.FenToYuan(o.DiscountAmount),
 			BalanceUsed: model.FenToYuan(o.BalanceUsed), PayAmount: model.FenToYuan(o.PayAmount),
-			Status: o.Status, PayMethod: o.PayMethod, PaidAt: o.PaidAt, CreatedAt: o.CreatedAt,
+			CommissionAmount: commission,
+			Status:           o.Status, PayMethod: o.PayMethod, PaidAt: o.PaidAt, CreatedAt: o.CreatedAt,
 		})
 	}
 	return out, total, nil
@@ -589,4 +601,12 @@ func userIDsOf(list []model.Order) []int64 {
 		ids = append(ids, o.UserID)
 	}
 	return ids
+}
+
+func orderNosOf(list []model.Order) []string {
+	nos := make([]string, 0, len(list))
+	for _, o := range list {
+		nos = append(nos, o.OrderNo)
+	}
+	return nos
 }

@@ -1,12 +1,12 @@
 # CI:前端 quality + e2e、Rust/Tauri 检查
-# 触发:push 到 main / PR(与 docs/frontend/progress.md §CI 约定一致)
+# 触发:仅发布 tag(v*)(2026-08-12 调整:此前 push main/PR 每次提交都跑,日常开发
+# 检查改为本地 pnpm lint/typecheck/test/format:check;只有打 tag 发布时才在 CI 全量检查)
 # 注:Go 后端按项目决策不走 GitHub Actions(见 docs/backend/README.md §9)
 name: CI
 
 on:
   push:
-    branches: [main]
-  pull_request:
+    tags: ['v*']
 
 concurrency:
   group: ci-${{ github.ref }}

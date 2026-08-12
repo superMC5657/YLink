@@ -40,7 +40,7 @@ src-tauri/
 | `tauri-plugin-opener` | 打开外部 URL 与自定义 scheme | TG 链接、支付跳转、一键导入 |
 | `tauri-plugin-deep-link` | 注册 `ylink://` 协议 | 从网页/TG 唤起 App 并定位页面（如 `ylink://plans`） |
 | `tauri-plugin-single-instance` | 单实例运行（仅桌面） | 重复启动聚焦已有窗口并转发深链接参数 |
-| `tauri-plugin-autostart` | 开机自启（仅桌面） | 设置页开关（默认关） |
+| `tauri-plugin-autostart` | 开机自启（仅桌面） | 已注册但**前端不暴露开关**（2026-08-13 需求移除） |
 | `tauri-plugin-notification` | 系统通知 | 订阅到期、工单回复提醒（轮询发现变化时触发） |
 | `tauri-plugin-updater` + `tauri-plugin-process` | 检查更新、下载安装、重启（⚠ updater 未接入，仅 process 已注册） | 启动时静默检查 + 设置页手动检查（待办，见 §5） |
 | `tauri-plugin-window-state` | 记忆窗口尺寸/位置（仅桌面） | 体验细节 |
@@ -126,7 +126,7 @@ capabilities/default.json 采用最小授权：逐项声明上述插件权限，
 
 ### 9.3 平台差异与适配
 
-- **Rust 侧桌面专属能力已用 `#[cfg(desktop)]` 隔离**（见 `src-tauri/src/lib.rs`）：托盘/菜单、单实例、开机自启、窗口状态记忆。移动端构建自动排除，不影响桌面行为。
+- **Rust 侧桌面专属能力已用 `#[cfg(desktop)]` 隔离**（见 `src-tauri/src/lib.rs`）：托盘/菜单、单实例、开机自启、窗口状态记忆。移动端构建自动排除，不影响桌面行为。深链接插件注册在 desktop-only 之外（2026-08-13 起桌面 + 移动端都注册，Android 经 manifest intent-filter 接收 `ylink://`）。
 - **移动端入口**：`run()` 标注 `#[cfg_attr(mobile, tauri::mobile_entry_point)]`，由 `MainActivity` 经 JNI 调用；桌面入口仍在 `main.rs`。
 - **前端能力适配**：`utils/platform.ts` 已抽象，`isTauri()` 分支覆盖剪贴板/打开链接/深链接；桌面专属入口（托盘/自启/更新卡片）在移动端自动隐藏。`set_window_theme` 在移动端为 no-op（无标题栏）。
 - **后端 API 走 `tauri-plugin-http`**（原生栈），Android 无需 CORS；manifest 已含 `INTERNET` 权限，debug 构建允许明文流量（`usesCleartextTraffic`），release 关闭。
@@ -147,4 +147,4 @@ capabilities/default.json 采用最小授权：逐项声明上述插件权限，
 
 - identifier 为 `com.ylink.app`（以 `.app` 结尾会触发 macOS 分发警告，与 Android 无关，暂不改动）。
 - 通知插件在 Android 12+ 需运行时权限，由系统授权弹窗处理（能力降级逻辑在前端）。
-- 深链接插件（`ylink://`）尚未接入 Android manifest，如需移动端唤起，另接 `tauri-plugin-deep-link` 并重新 `tauri android init` 或手改 manifest。
+- 深链接插件（`ylink://`）**已接入 Android manifest（2026-08-13）**：`tauri.conf.json` `plugins.deep-link.mobile` 配置 scheme `ylink`，AndroidManifest.xml 增加 VIEW/BROWSABLE intent-filter。注意 `src-tauri/gen/` 不入库，`tauri android init` 重建后需重新手改 manifest；iOS 需在 Info.plist 配置 `CFBundleURLTypes`（项目未打包 iOS）。

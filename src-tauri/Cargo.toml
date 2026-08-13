@@ -1,6 +1,6 @@
 [package]
 name = "YLink"
-version = "0.2.0"
+version = "0.3.0"
 description = "代理订阅售卖系统 · 用户端桌面壳"
 authors = ["superMC"]
 edition = "2021"

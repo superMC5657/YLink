@@ -24,7 +24,7 @@ function makeStore(initial: Record<string, unknown> = {}, opts: { failSetOnce?: 
 async function loadTauriStorage(
   initial: Record<string, unknown> | ReturnType<typeof makeStore> = {},
 ) {
-  const store = ('map' in initial ? (initial as ReturnType<typeof makeStore>) : makeStore(initial))
+  const store = 'map' in initial ? (initial as ReturnType<typeof makeStore>) : makeStore(initial)
   vi.resetModules()
   // 注意:mock 路径须与 storage.ts 内部解析结果一致(相对 src/utils),否则 isTauri mock 不生效
   vi.doMock('@/utils/platform', () => ({ isTauri: () => true }))

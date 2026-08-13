@@ -2,7 +2,7 @@
 
 > 本文档记录 `server/` 目录 Go/Gin 后端的开发状态,是 docs/backend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-13(数据库 MySQL 8 → PostgreSQL 16 切换完成,端口 5433:5433,见 §1 里程碑;测试函数 60 个全绿;全部里程碑 B1–B7 + 管理端 API 完成)
+> 最后更新:2026-08-13(数据库 MySQL 8 → PostgreSQL 16 切换完成,端口 5433:5433,见 §1 里程碑;测试函数 60 个全绿;全部里程碑 B1–B7 + 管理端 API 完成;0.7.0 评审 2×P2 + 3×P3 已全部修复,见 docs/reviews/review-0.7.0.md)
 
 ---
 
@@ -218,6 +218,7 @@
 | 余额负值保护 | `AdjustBalance` 服务层拒绝调整后余额为负(40000)+ 迁移 `0002_balance_check` 加 `CHECK (balance >= 0)`(PostgreSQL CHECK 强制执行);佣金回滚减 `commission_balance` 不受约束 |
 | 迁移 | `server/migrations/0002_balance_check.{up,down}.sql`(golang-migrate 格式,新增约束/回滚) |
 | 测试 | 新增 `middleware/auth_test.go`(6 场景:无头/无效/refresh 混用/有效/SV 匹配/bump 后立即失效+重新签发恢复)、admin_service 3 例(负值拒绝/封禁 bump/角色 bump);**测试函数 47 → 60 全绿** |
+| 既有 format:check 告警(前端) | **已解决(2026-08-12)**：前端 `pnpm format:check` 全仓通过(见 docs/reviews/review-0.4.0.md)；后端 `gofmt -l` 0 输出 |
 
 ### 数据库切换:MySQL → PostgreSQL(✅ 2026-08-13)
 
@@ -240,11 +241,16 @@
 | DSN 差异 | dev 的 api/worker 为宿主机进程(DSN 127.0.0.1:5433,dev.sh 显式 export 覆盖);release 容器内用服务名 `host=postgres`;`APP_ENV` 分别 development/production(控制 Swagger/debug) |
 | 验证 | `docker compose --env-file .env.dev config` 与 `ENV_FILE=.env.release docker compose config` 均正确解析对应环境变量 |
 
-### 一期内已知缺口(可后补)
+### 0.7.0 评审（✅ 2026-08-13 出评审;发现 2×P2 + 3×P3 已全部修复,见 docs/reviews/review-0.7.0.md）
 
-| 项 | 说明 |
-|---|---|
-| ~~既有 format:check 告警(前端)~~ | **已解决(2026-08-12)**：前端 `pnpm format:check` 全仓通过(见 docs/reviews/review-0.4.0.md)；后端 `gofmt -l` 0 输出 |
+| 项 | 说明 | 状态 |
+|---|---|---|
+| 评审范围 | commit `6f9b8d5`（MySQL→PostgreSQL 16 + dev.sh 合并）+ `8a62f74`（server dev/release 环境拆分）;`go test ./...` 60/60 全绿;compose config 解析正常 | ✅ 已完成 |
+| [P2] release 模板 `APP_ENV=development` | `.env.example` 复制为 `.env.release` 后仍为 development,生产会开 Swagger/debug(`router.New` 仅 production 关闭) | ✅ 已修复(2026-08-13):模板默认 `APP_ENV=production`,dev.sh 强制宿主机进程 `export APP_ENV=development`,deploy.md 同步说明 |
+| [P2] deploy.md 迁移顺序 | §4 步骤 1 在 postgres 启动前执行 `make migrate`,新主机 5433 无监听、迁移失败且容器不自动迁移 | ✅ 已修复(2026-08-13):§4 重排为先起 postgres/redis → 迁移 → 起全部服务 |
+| [P3] dev.sh 缺 `.env.dev` 兜底失效 | `docker compose --env-file` 对缺失文件直接报错(实测 `couldn't find env file`),与注释承诺不符,`-stop` 同样受影响 | ✅ 已修复(2026-08-13):缺失时生成 `$RUN_DIR/env.fallback`(默认基础设施变量)并让 compose 指向它,启动/-stop 均生效 |
+| [P3] dev.sh `-stop` 停全项目 | `docker compose stop` 无服务参数,会连 api/worker/caddy 一起停 | ✅ 已修复(2026-08-13):改为 `stop postgres redis` |
+| [P3] docs/README.md 架构图错行 | Redis 行与「拉取节点」行合并,框线排版错乱 | ✅ 已修复(2026-08-13):拆回两行,框线对齐恢复 |
 
 ---
 

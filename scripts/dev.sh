@@ -42,6 +42,16 @@ JWT_SECRET="dev-join-test-secret-32bytes-key!!"
 
 mkdir -p "$RUN_DIR"
 
+# compose 的 --env-file 要求文件必须存在;server/.env.dev 缺失时生成兜底文件(仅基础设施插值变量),
+# 保证脚本在全新检出后可直接运行,密钥类变量参考 server/.env.example 补齐。
+if [ ! -f "$ENV_FILE" ]; then
+  FALLBACK_ENV="$RUN_DIR/env.fallback"
+  printf 'POSTGRES_USER=%s\nPOSTGRES_PASSWORD=%s\nPOSTGRES_DB=%s\nREDIS_PASSWORD=%s\n' \
+    "$PG_USER" "$PG_PASS" "$PG_DB" "$REDIS_PASS" > "$FALLBACK_ENV"
+  echo "  $ENV_FILE 不存在,已用默认值生成 $FALLBACK_ENV(基础设施可运行;真实密钥请参考 server/.env.example 补齐)"
+  ENV_FILE="$FALLBACK_ENV"
+fi
+
 # ---------- 0b. 关闭模式 ----------
 if [ "${1:-}" = "-stop" ]; then
   echo "关闭 YLink 本地服务..."
@@ -50,7 +60,7 @@ if [ "${1:-}" = "-stop" ]; then
   stop_pid "$RUN_DIR/worker.pid" "后端 worker"
   # 关闭 docker compose 服务(postgres/redis;volume 数据保留,下次启动自动重建)
   if docker info >/dev/null 2>&1; then
-    (cd "$SERVER" && docker compose --env-file "$ENV_FILE" stop) && echo "  已关闭 postgres/redis 容器(docker compose stop,volume 数据保留)"
+    (cd "$SERVER" && docker compose --env-file "$ENV_FILE" stop postgres redis) && echo "  已关闭 postgres/redis 容器(docker compose stop,volume 数据保留)"
   else
     echo "  Docker daemon 未运行,跳过容器关闭"
   fi
@@ -129,6 +139,8 @@ fi
 
 # ---------- 3. 后端 api + worker ----------
 say "[3/4] 启动后端 api + worker..."
+# APP_ENV 强制 development:模板(server/.env.example)默认 production,本地联调需开 Swagger/debug
+export APP_ENV=development
 export APP_DATABASE_DSN="host=127.0.0.1 port=5433 user=${PG_USER} password=${PG_PASS} dbname=${PG_DB} sslmode=disable TimeZone=Asia/Shanghai"
 export APP_REDIS_ADDR=127.0.0.1:6379
 export APP_REDIS_PASSWORD="$REDIS_PASS"

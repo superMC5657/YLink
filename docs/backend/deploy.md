@@ -109,11 +109,13 @@ Caddyfile：`api.example.com { reverse_proxy api:8081 }`（自动 HTTPS）。Web
 
 ## 4. 上线步骤
 
-1. 准备环境文件：本地开发 `cp .env.example .env.dev`（scripts/dev.sh 读取，DSN 会被脚本覆盖为宿主机 127.0.0.1:5433）；生产 `cp .env.example .env.release` 并填写真实 DB/Redis/JWT/SMTP/EPAY 密钥（两者均被 .gitignore 忽略）。首次启动前执行迁移：`DB_URL='postgres://ylink:ylink_root@127.0.0.1:5433/ylink-backend?sslmode=disable' make migrate`（DSN 必须带 `postgres://` 前缀，否则 migrate CLI 报 `unknown driver`；`-tags 'postgres'` 已内置在 Makefile）。
-2. 生产启动 `ENV_FILE=.env.release docker compose up -d`（api/worker 的 env_file 由该变量切换），验证 `GET /healthz` 返回 200、`GET /api/v1/config` 返回站点配置。
-3. 登录管理接口创建/核对：节点分组与节点、套餐、支付渠道、SMTP 测试邮件。
-4. 前端 `VITE_API_BASE_URL` 指向 `https://api.example.com/api/v1` 打包部署；Tauri 端构建发布。
-5. 支付网关后台配置异步通知地址：`https://api.example.com/api/v1/payment/notify/{method}`。
+1. 准备环境文件：本地开发 `cp .env.example .env.dev`（scripts/dev.sh 读取，DSN 会被脚本覆盖为宿主机 127.0.0.1:5433）；生产 `cp .env.example .env.release` 并填写真实 DB/Redis/JWT/SMTP/EPAY 密钥（两者均被 .gitignore 忽略）。模板默认 `APP_ENV=production`（关 Swagger/debug，生产保持默认即可；本地开发由 dev.sh 强制覆盖为 development）。**存量部署升级**：确认已有 `.env.release` 中 `APP_ENV=production`（旧模板为 development，生产会误开 Swagger/debug）。
+2. 首次启动先拉起数据库容器：`ENV_FILE=.env.release docker compose up -d postgres redis`，等待 `docker compose ps` 显示 postgres/redis healthy。
+3. 数据库迁移（新主机首次部署必做，api/worker 容器不会自动迁移）：`DB_URL='postgres://ylink:ylink_root@127.0.0.1:5433/ylink-backend?sslmode=disable' make migrate`（DSN 必须带 `postgres://` 前缀，否则 migrate CLI 报 `unknown driver`；`-tags 'postgres'` 已内置在 Makefile）。此时宿主机 127.0.0.1:5433 已由 postgres 容器监听，迁移才能连通。
+4. 启动全部服务 `ENV_FILE=.env.release docker compose up -d`（api/worker 的 env_file 由该变量切换），验证 `GET /healthz` 返回 200、`GET /api/v1/config` 返回站点配置。
+5. 登录管理接口创建/核对：节点分组与节点、套餐、支付渠道、SMTP 测试邮件。
+6. 前端 `VITE_API_BASE_URL` 指向 `https://api.example.com/api/v1` 打包部署；Tauri 端构建发布。
+7. 支付网关后台配置异步通知地址：`https://api.example.com/api/v1/payment/notify/{method}`。
 
 ## 5. 健康检查与可观测
 
@@ -141,6 +143,6 @@ Caddyfile：`api.example.com { reverse_proxy api:8081 }`（自动 HTTPS）。Web
 
 | 环境 | 用途 | 说明 |
 |---|---|---|
-| local | 开发本机 | `server/.env.dev`（gitignore）;compose 起 postgres/redis;`app.env=development` 开 Swagger |
+| local | 开发本机 | `server/.env.dev`（gitignore）;compose 起 postgres/redis;dev.sh 启动 api/worker 时强制 `APP_ENV=development` 开 Swagger |
 | staging | 预发 | 与生产同构,复制 `.env.release` 改网关为沙箱/0.01 元实测 |
 | production | 正式 | `server/.env.release`（gitignore,真实密钥）;`ENV_FILE=.env.release docker compose up -d`;关 Swagger/debug,严格 CORS 白名单与限流 |

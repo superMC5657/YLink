@@ -20,13 +20,13 @@
 
 ## 发现
 
-### [P1] 在解析 API 地址前初始化存储 — src/utils/storage.ts:35-39
+~~### [P1] 在解析 API 地址前初始化存储 — src/utils/storage.ts:35-39~~
 
 **状态：** 已修复（2026-08-13）。`API_BASE` 替换为惰性求值的 `resolveApiBase()`，在请求时（`initStorage()` 执行后）读取持久化的 `apiBase`；主请求路径与 401 静默刷新路径（`/auth/refresh`）均使用它。由 `src/utils/__tests__/http.spec.ts` 覆盖（持久化自定义 apiBase 用于请求与刷新）。
 
-### [P2] 将已有 WebView 存储迁移到 plugin-store — src/utils/storage.ts:38-43
+~~### [P2] 将已有 WebView 存储迁移到 plugin-store — src/utils/storage.ts:38-43~~
 
-迁移前，Tauri 用户的 token 和设置保存在 WebView `localStorage` 中。新的初始化逻辑只读取 `app-settings.json`，没有导入这些已有 key。现有用户首次升级后可能丢失登录会话和持久化设置。
+~~迁移前，Tauri 用户的 token 和设置保存在 WebView `localStorage` 中。新的初始化逻辑只读取 `app-settings.json`，没有导入这些已有 key。现有用户首次升级后可能丢失登录会话和持久化设置。~~
 
 **状态：** 已修复（2026-08-13）。`initStorage()` 预载 `app-settings.json` 后调用 `migrateLegacyLocalStorage()`：WebView `localStorage` 中残留的每个 `app:` 前缀键都会导入 plugin-store（经异步 facade 落盘），除非该键已存在；`app:_legacy:migrated:v1` 标记保证迁移一次性。由 `src/utils/__tests__/storage.spec.ts` 覆盖。
 

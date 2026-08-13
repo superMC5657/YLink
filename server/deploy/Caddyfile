@@ -1,5 +1,23 @@
+# 生产网关(打进 ylink-web 镜像):自动 HTTPS
+#   api.example.com   -> 后端 API 反代(Tauri 桌面端与 Web 前端均调用)
+#   panel.example.com -> Web 前端 SPA 静态托管(dist 在镜像内 /srv/panel)
+# 部署前把 example.com 替换为真实域名,并确保 A 记录指向本机。
+
 api.example.com {
 	reverse_proxy api:8081
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+	}
+}
+
+panel.example.com {
+	root * /srv/panel
+	encode gzip
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
 	header {
 		X-Content-Type-Options nosniff
 		Referrer-Policy no-referrer

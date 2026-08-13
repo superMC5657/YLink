@@ -1,0 +1,25 @@
+# 生产 override:与 server/docker-compose.yml 叠加使用
+#   ENV_FILE=.env.release docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# 与 dev 模式(.dev/docker-compose.dev.yml,dev-docker.sh 用)互不干扰:
+#   基础 compose 保留 postgres/redis/api 的宿主端口映射,dev.sh/dev-docker.sh 依赖;生产在此清掉。
+name: ylink
+
+services:
+  # 生产仅容器内网互访;postgres 保留 127.0.0.1:5433 供宿主机 make migrate(deploy.md §4)
+  postgres:
+    ports:
+      - "127.0.0.1:5433:5433"
+  # !reset 清空父级 ports(compose 对 ports 是追加合并,空数组不清空)
+  redis:
+    ports: !reset []
+  api:
+    ports: !reset []
+  # caddy 由镜像改为本地构建:前端 dist + 生产 Caddyfile 打进 ylink-web 镜像
+  # (api.example.com 反代 API / panel.example.com 托管前端,自动 HTTPS)
+  caddy:
+    build:
+      context: ..
+      dockerfile: server/deploy/Dockerfile.web
+    image: ylink-web:latest
+    volumes:
+      - caddy_data:/data

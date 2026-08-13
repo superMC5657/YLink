@@ -105,16 +105,48 @@ services:
 volumes: { postgres_data: {}, redis_data: {}, caddy_data: {} }
 ```
 
-Caddyfile：`api.example.com { reverse_proxy api:8081 }`（自动 HTTPS）。Web 版前端静态资源可同机 Caddy 托管或独立 CDN。
+Caddyfile：`api.example.com { reverse_proxy api:8081 }`（自动 HTTPS）。Web 版前端由**同一 Caddy 实例托管**（`panel.example.com` 静态 + SPA 回退），见下方 §3.1 生产 override。
+
+### 3.1 生产 override（docker-compose.prod.yml）
+
+基础 compose 保留 postgres/redis/api 的宿主端口映射——**dev.sh / dev-docker.sh 依赖**（宿主机进程连 127.0.0.1:5433/6379、宿主机直连 :8081）。生产叠加 `-f docker-compose.prod.yml`：
+
+```bash
+cd server
+pnpm build   # 先在仓库根生成前端 dist/(.gitignore 忽略,不进 git)
+ENV_FILE=.env.release docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+```
+
+prod override 做的事：
+
+| 服务 | 生产变化 | 原因 |
+|---|---|---|
+| redis / api | `ports: !reset []` 清空宿主端口 | 仅容器内网互访;Caddy 内网反代 api:8081,无需宿主暴露 |
+| postgres | 保留 `127.0.0.1:5433:5433` | 宿主机 `make migrate` 需经该端口(deploy.md §4 步骤 3) |
+| caddy | `image: caddy:2-alpine` → `build: server/deploy/Dockerfile.web`(产出 `ylink-web:latest`) | 前端 dist + 生产 Caddyfile **打进镜像**,不可变发布;`deploy/Caddyfile` 不再 bind mount |
+
+`server/deploy/Dockerfile.web`（build context = 仓库根）：
+```dockerfile
+FROM caddy:2-alpine
+COPY dist/ /srv/panel
+COPY server/deploy/Caddyfile /etc/caddy/Caddyfile
+```
+
+生产 Caddyfile（双域名，自动 HTTPS）：
+```caddyfile
+api.example.com   { reverse_proxy api:8081 }                        # API(Tauri 端 + Web 端调用)
+panel.example.com { root * /srv/panel; try_files {path} /index.html; file_server }  # Web SPA
+```
+部署前把 `example.com` 替换为真实域名并配好 A 记录;`cors.allow_origins` 需含 `https://panel.example.com`(config.yaml,生产改后重建 api 镜像)。
 
 ## 4. 上线步骤
 
 1. 准备环境文件：本地开发 `cp .env.example .env.dev`（scripts/dev.sh 读取，DSN 会被脚本覆盖为宿主机 127.0.0.1:5433）；生产 `cp .env.example .env.release` 并填写真实 DB/Redis/JWT/SMTP/EPAY 密钥（两者均被 .gitignore 忽略）。模板默认 `APP_ENV=production`（关 Swagger/debug，生产保持默认即可；本地开发由 dev.sh 强制覆盖为 development）。**存量部署升级**：确认已有 `.env.release` 中 `APP_ENV=production`（旧模板为 development，生产会误开 Swagger/debug）。
 2. 首次启动先拉起数据库容器：`ENV_FILE=.env.release docker compose up -d postgres redis`，等待 `docker compose ps` 显示 postgres/redis healthy。
 3. 数据库迁移（新主机首次部署必做，api/worker 容器不会自动迁移）：`DB_URL='postgres://ylink:ylink_root@127.0.0.1:5433/ylink-backend?sslmode=disable' make migrate`（DSN 必须带 `postgres://` 前缀，否则 migrate CLI 报 `unknown driver`；`-tags 'postgres'` 已内置在 Makefile）。此时宿主机 127.0.0.1:5433 已由 postgres 容器监听，迁移才能连通。
-4. 启动全部服务 `ENV_FILE=.env.release docker compose up -d`（api/worker 的 env_file 由该变量切换），验证 `GET /healthz` 返回 200、`GET /api/v1/config` 返回站点配置。
+4. 启动全部服务 `ENV_FILE=.env.release docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build`（api/worker 的 env_file 由该变量切换;caddy 构建 ylink-web 镜像含前端与生产 Caddyfile）。api 宿主端口已清空,**验证改走域名**:`curl https://api.example.com/healthz` 返回 200、`GET https://api.example.com/api/v1/config` 返回站点配置。
 5. 登录管理接口创建/核对：节点分组与节点、套餐、支付渠道、SMTP 测试邮件。
-6. 前端 `VITE_API_BASE_URL` 指向 `https://api.example.com/api/v1` 打包部署；Tauri 端构建发布。
+6. 前端打包：`VITE_API_BASE_URL=https://api.example.com/api/v1 pnpm build` 生成 `dist/`（.gitignore 忽略）→ 已被 §3.1 的 `--build` 打进 `ylink-web` 镜像;Tauri 端构建发布。
 7. 支付网关后台配置异步通知地址：`https://api.example.com/api/v1/payment/notify/{method}`。
 
 ## 5. 健康检查与可观测

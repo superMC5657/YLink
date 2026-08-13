@@ -64,13 +64,13 @@ jobs:
     #   并补回对应平台的系统依赖安装步骤与 runs-on: ${{ matrix.platform }}。
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 10
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -108,7 +108,7 @@ jobs:
           echo "file=$(basename "$FILE")" >> "$GITHUB_OUTPUT"
           echo "sig=$([ -f "$FILE.sig" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           # 不带尾斜杠,保留 <target>/ 子目录,供 publish 按平台合并
           name: dist-windows-x86_64
@@ -122,9 +122,10 @@ jobs:
     env:
       TAG: ${{ github.event.inputs.tag || github.ref_name }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/download-artifact@v4
+      # v8 起默认校验 artifact digest(不匹配即失败,官方安全默认;如需旧宽松行为可加 digest-mismatch: warn)
+      - uses: actions/download-artifact@v8
         with:
           path: artifacts
           merge-multiple: true

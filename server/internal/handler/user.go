@@ -3,11 +3,11 @@ package handler
 import (
 	"github.com/gin-gonic/gin"
 
-	"ylink/internal/middleware"
-	"ylink/internal/model"
-	"ylink/internal/pkg/resp"
-	"ylink/internal/pkg/validate"
-	"ylink/internal/service"
+	"ylink-backend/internal/middleware"
+	"ylink-backend/internal/model"
+	"ylink-backend/internal/pkg/resp"
+	"ylink-backend/internal/pkg/validate"
+	"ylink-backend/internal/service"
 )
 
 // User 用户端点。

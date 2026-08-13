@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
 
-	"ylink/internal/config"
+	"ylink-backend/internal/config"
 )
 
 var std *zap.Logger

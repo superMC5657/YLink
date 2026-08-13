@@ -1,12 +1,12 @@
 # YLink API 配置（敏感项只经环境变量注入，见 docs/backend/deploy.md）
 app:
-  name: ylink-api
+  name: ylink-backend
   env: development            # development / production
   addr: ":8081"
   base_url: "http://localhost:8081"   # 用于拼接订阅链接/支付回调地址
 
 database:
-  dsn: "root:root@tcp(127.0.0.1:3306)/ylink?charset=utf8mb4&parseTime=true&loc=Local"
+  dsn: "root:root@tcp(127.0.0.1:3306)/ylink-backend?charset=utf8mb4&parseTime=true&loc=Local"
   max_open: 50
   max_idle: 10
 

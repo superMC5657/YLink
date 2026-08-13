@@ -9,15 +9,15 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"gorm.io/gorm"
 
-	_ "ylink/docs"
+	_ "ylink-backend/docs"
 
-	"ylink/internal/config"
-	"ylink/internal/handler"
-	"ylink/internal/middleware"
-	jwtpkg "ylink/internal/pkg/jwt"
-	"ylink/internal/pkg/mailer"
-	"ylink/internal/repo"
-	"ylink/internal/service"
+	"ylink-backend/internal/config"
+	"ylink-backend/internal/handler"
+	"ylink-backend/internal/middleware"
+	jwtpkg "ylink-backend/internal/pkg/jwt"
+	"ylink-backend/internal/pkg/mailer"
+	"ylink-backend/internal/repo"
+	"ylink-backend/internal/service"
 )
 
 // Deps 为路由组装所需的全部依赖。

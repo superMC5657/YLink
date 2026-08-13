@@ -5,11 +5,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"ylink/internal/middleware"
-	"ylink/internal/pkg/errs"
-	"ylink/internal/pkg/resp"
-	"ylink/internal/pkg/validate"
-	"ylink/internal/service"
+	"ylink-backend/internal/middleware"
+	"ylink-backend/internal/pkg/errs"
+	"ylink-backend/internal/pkg/resp"
+	"ylink-backend/internal/pkg/validate"
+	"ylink-backend/internal/service"
 )
 
 // Subscribe 订阅端点。

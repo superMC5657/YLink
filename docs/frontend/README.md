@@ -61,7 +61,7 @@ views/ 页面 ──► components/ 业务组件 ──► composables/ 逻辑�
 ## 4. 目录结构
 
 ```
-proxy-seller-web/
+YLink/
 ├── src/
 │   ├── api/                  # 接口模块：auth.ts user.ts order.ts plan.ts
 │   │                         #   invite.ts knowledge.ts ticket.ts server.ts config.ts

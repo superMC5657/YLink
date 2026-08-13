@@ -10,10 +10,10 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"ylink/internal/config"
-	"ylink/internal/model"
-	"ylink/internal/pkg/errs"
-	"ylink/internal/repo"
+	"ylink-backend/internal/config"
+	"ylink-backend/internal/model"
+	"ylink-backend/internal/pkg/errs"
+	"ylink-backend/internal/repo"
 )
 
 // InviteService 营销域：邀请码、佣金、划转、代理申请。

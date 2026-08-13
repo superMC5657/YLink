@@ -8,7 +8,7 @@ import (
 
 	"gopkg.in/gomail.v2"
 
-	"ylink/internal/config"
+	"ylink-backend/internal/config"
 )
 
 // Mailer 为邮件发送器。

@@ -10,7 +10,7 @@ import (
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
 
-	"ylink/internal/config"
+	"ylink-backend/internal/config"
 )
 
 // newLogger 返回 GORM 日志器：Warn 级别、慢查询阈值 200ms，关闭 ANSI 颜色

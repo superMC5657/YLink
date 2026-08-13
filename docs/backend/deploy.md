@@ -4,13 +4,13 @@
 
 ```yaml
 app:
-  name: ylink-api
+  name: ylink-backend
   env: production            # development / production
   addr: ":8081"
   base_url: "https://api.example.com"   # 用于拼接订阅链接/支付回调地址
 
 database:
-  dsn: "${DB_DSN}"           # user:pass@tcp(mysql:3306)/ylink?charset=utf8mb4&parseTime=true&loc=Local
+  dsn: "${DB_DSN}"           # user:pass@tcp(mysql:3306)/ylink-backend?charset=utf8mb4&parseTime=true&loc=Local
   max_open: 50
   max_idle: 10
 
@@ -73,7 +73,7 @@ ENTRYPOINT ["/app/bin/server"]   # worker 容器覆盖为 /app/bin/worker
 services:
   mysql:
     image: mysql:8.0
-    environment: { MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS}, MYSQL_DATABASE: ylink }
+    environment: { MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS}, MYSQL_DATABASE: ylink-backend }
     volumes: ["mysql_data:/var/lib/mysql"]
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
 
@@ -106,7 +106,7 @@ Caddyfile：`api.example.com { reverse_proxy api:8081 }`（自动 HTTPS）。Web
 
 ## 4. 上线步骤
 
-1. 准备 `.env`（DB/Redis/JWT/SMTP/EPAY 密钥），首次启动前执行迁移：`DB_URL='mysql://user:pass@tcp(host:3306)/ylink?charset=utf8mb4&parseTime=true&loc=Local' make migrate`（DSN 必须带 `mysql://` 前缀，否则 migrate CLI 报 `unknown driver`；`-tags 'mysql'` 已内置在 Makefile）。
+1. 准备 `.env`（DB/Redis/JWT/SMTP/EPAY 密钥），首次启动前执行迁移：`DB_URL='mysql://user:pass@tcp(host:3306)/ylink-backend?charset=utf8mb4&parseTime=true&loc=Local' make migrate`（DSN 必须带 `mysql://` 前缀，否则 migrate CLI 报 `unknown driver`；`-tags 'mysql'` 已内置在 Makefile）。
 2. `docker compose up -d`，验证 `GET /healthz` 返回 200、`GET /api/v1/config` 返回站点配置。
 3. 登录管理接口创建/核对：节点分组与节点、套餐、支付渠道、SMTP 测试邮件。
 4. 前端 `VITE_API_BASE_URL` 指向 `https://api.example.com/api/v1` 打包部署；Tauri 端构建发布。

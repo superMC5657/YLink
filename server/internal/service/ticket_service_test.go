@@ -10,10 +10,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"ylink/internal/config"
-	"ylink/internal/model"
-	"ylink/internal/pkg/mailer"
-	"ylink/internal/repo"
+	"ylink-backend/internal/config"
+	"ylink-backend/internal/model"
+	"ylink-backend/internal/pkg/mailer"
+	"ylink-backend/internal/repo"
 )
 
 func newTicketEnv(t *testing.T) (*testEnv, *TicketService) {

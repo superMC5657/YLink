@@ -1,4 +1,4 @@
-# Code Review — proxy-seller-web v0.4.0 (CI/CD, Build Config & Logging)
+# Code Review — YLink v0.4.0 (CI/CD, Build Config & Logging)
 
 - **Version:** 0.4.0
 - **Date:** 2026-08-12

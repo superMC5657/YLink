@@ -77,7 +77,7 @@ capabilities/default.json 采用最小授权：逐项声明上述插件权限，
 
 - **PR/push CI**：~~PR/push 双触发~~ **2026-08-12 起仅发布 tag(`v*`)触发**：`frontend-quality`（lint→typecheck→format:check→test→build:web）+ `frontend-e2e`（Playwright · Mock，失败上传报告）+ `rust`（windows-latest，先 `pnpm build:web` 生成 dist → `cargo check`——打包仅支持 Windows，Rust 检查与打包平台一致）。日常开发检查走本地 `pnpm lint/typecheck/test/format:check`。Go 后端不走 GitHub Actions。
 - **Release（已配置，打 tag `v*` 或手动触发）**：`.github/workflows/release-tauri.yml`——guard（tag 格式校验）→ 单平台构建（windows-latest `pnpm tauri build --bundles nsis`，TAURI_SIGNING_PRIVATE_KEY 自动签名 .sig）→ `scripts/build-latest-json.mjs` 合并 `latest.json`（资产 url 加 `gh-proxy.com` 前缀）→ `gh release` 推送到**公开产物仓库**（`RELEASES_PAT` secret）。恢复 macOS/Linux 时往 build job 加回平台矩阵即可（文件内有注释）。
-- **产物仓库**：代码仓库 `superMC5657/proxy-seller-web`（private，不开源）；产物发布到公开仓库 `superMC5657/ylink-releases` 保证匿名下载 + gh-proxy 加速可行（publish job 与 `tauri.conf.json` updater endpoints 均已指向该仓库）。
+- **产物仓库**：代码仓库 `superMC5657/YLink`（private，不开源）；产物发布到公开仓库 `superMC5657/ylink-releases` 保证匿名下载 + gh-proxy 加速可行（publish job 与 `tauri.conf.json` updater endpoints 均已指向该仓库）。
 - **macOS 公证**（可选二期）：Apple 证书 + notarize 步骤；无证书时文档注明用户需在「安全性与隐私」中放行。⚠ 当前只打包 Windows，此条暂不适用，恢复 macOS 打包时再启用。
 - 版本号策略：语义化版本，`package.json`、`Cargo.toml`、`tauri.conf.json` 三处由脚本同步。
 

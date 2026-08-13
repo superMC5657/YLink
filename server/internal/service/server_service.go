@@ -7,9 +7,9 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"ylink/internal/model"
-	"ylink/internal/pkg/errs"
-	"ylink/internal/repo"
+	"ylink-backend/internal/model"
+	"ylink-backend/internal/pkg/errs"
+	"ylink-backend/internal/repo"
 )
 
 // ServerService 节点列表：仅返回当前用户套餐可见分组（不返回连接参数）。

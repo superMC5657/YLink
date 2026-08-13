@@ -5,7 +5,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"ylink/internal/model"
+	"ylink-backend/internal/model"
 )
 
 // TicketRepo 工单数据访问。

@@ -12,7 +12,7 @@
 
 | 项 | 说明 | 位置 |
 |---|---|---|
-| 工程初始化 | `go.mod`(module `ylink`)、双入口 `cmd/server` + `cmd/worker` | `server/go.mod` |
+| 工程初始化 | `go.mod`(module `ylink-backend`)、双入口 `cmd/server` + `cmd/worker` | `server/go.mod` |
 | 配置加载 | Viper:`configs/config.yaml` + `APP_` 前缀环境变量覆盖(点转下划线) | `internal/config/config.go` |
 | 日志 | zap JSON + lumberjack 按天切割,双输出(stdout + 文件);GORM 慢查询/错误日志关闭 ANSI 颜色,避免重定向到文件出现 ESC 乱码 | `internal/pkg/logger/logger.go`、`internal/repo/repo.go` |
 | 中间件链 | RequestID → Recovery → AccessLog → CORS → RateLimit → [Auth] → [Idempotency] | `internal/middleware/*` |
@@ -234,7 +234,7 @@
 | 前置 | 说明 |
 |---|---|
 | Go ≥ 1.26.1（`go.mod` 声明） | ✅ 已满足:本机 1.26.1(2026-08-12 实测) |
-| MySQL 8.0 | ⚠️ 运行时前置,2026-08-12 本机实测 **3306 未监听且 `mysql` 命令不在 PATH**,需先启动本地 MySQL 实例;库 `ylink`(utf8mb4);DSN 见 `configs/config.yaml` 或 `APP_DATABASE_DSN`;本机有 Docker 时可用 `server/docker-compose.yml` 一键起(含 Redis) |
+| MySQL 8.0 | ⚠️ 运行时前置,2026-08-12 本机实测 **3306 未监听且 `mysql` 命令不在 PATH**,需先启动本地 MySQL 实例;库 `ylink-backend`(utf8mb4);DSN 见 `configs/config.yaml` 或 `APP_DATABASE_DSN`;本机有 Docker 时可用 `server/docker-compose.yml` 一键起(含 Redis) |
 | Redis 7 | ⚠️ 运行时前置,2026-08-12 本机实测 **6379 未监听且 `redis-server` 命令不在 PATH**,需先启动本地 Redis;本地 `127.0.0.1:6379`(默认无密码);生产必须设密码;`server/docker-compose.yml` 可一键起 |
 | 迁移 | `DB_URL='...' make migrate` 执行 `migrations/0001_init.*`、`0002_balance_check.*`;或 docker-compose 内首启前执行 |
 | SMTP | 验证码/提醒邮件需要可用 SMTP;未配置时**注册/找回流程无法完成**(验证码发送失败仅记日志) |

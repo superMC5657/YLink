@@ -13,15 +13,15 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
-	"ylink/internal/config"
-	"ylink/internal/middleware"
-	"ylink/internal/model"
-	"ylink/internal/pkg/errs"
-	"ylink/internal/pkg/logger"
-	"ylink/internal/pkg/mailer"
-	"ylink/internal/pkg/payment"
-	redispkg "ylink/internal/pkg/redis"
-	"ylink/internal/repo"
+	"ylink-backend/internal/config"
+	"ylink-backend/internal/middleware"
+	"ylink-backend/internal/model"
+	"ylink-backend/internal/pkg/errs"
+	"ylink-backend/internal/pkg/logger"
+	"ylink-backend/internal/pkg/mailer"
+	"ylink-backend/internal/pkg/payment"
+	redispkg "ylink-backend/internal/pkg/redis"
+	"ylink-backend/internal/repo"
 )
 
 // OrderService 交易域：套餐、优惠券、下单、收银台、支付回调、开通/续期。

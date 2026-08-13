@@ -5,7 +5,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	redispkg "ylink/internal/pkg/redis"
+	redispkg "ylink-backend/internal/pkg/redis"
 )
 
 // sessionVersion 读取用户当前会话版本号；Key 不存在视为 0。

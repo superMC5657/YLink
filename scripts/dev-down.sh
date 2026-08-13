@@ -32,7 +32,7 @@ stop_pid "$RUN_DIR/worker.pid" "后端 worker"
 
 if [ "${1:-}" = "--containers" ]; then
   echo "停止 MySQL/Redis 容器(数据保留在 volume)..."
-  docker stop yl-mysql yl-redis >/dev/null 2>&1 && echo "  已停止 yl-mysql yl-redis"
+  docker stop yl-backend-mysql yl-backend-redis >/dev/null 2>&1 && echo "  已停止 yl-backend-mysql yl-backend-redis"
 fi
 
 echo "完成。如需重启:bash scripts/dev-up.sh"

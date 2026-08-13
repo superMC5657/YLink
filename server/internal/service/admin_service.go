@@ -9,11 +9,11 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"ylink/internal/config"
-	"ylink/internal/model"
-	"ylink/internal/pkg/errs"
-	"ylink/internal/pkg/sanitize"
-	"ylink/internal/repo"
+	"ylink-backend/internal/config"
+	"ylink-backend/internal/model"
+	"ylink-backend/internal/pkg/errs"
+	"ylink-backend/internal/pkg/sanitize"
+	"ylink-backend/internal/repo"
 )
 
 // AdminService 管理端 API（/api/v1/admin，role=admin）。

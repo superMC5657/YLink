@@ -55,7 +55,7 @@ pnpm tauri:build     # 三平台打包（Windows nsis / macOS app / Linux deb，
 ## 目录结构
 
 ```
-proxy-seller-web/
+YLink/
 ├── src/            # Vue 3 SPA（api/components/composables/layouts/stores/views/...）
 ├── src-tauri/      # Tauri 2 Rust 工程（托盘/深链接/updater 等插件）
 ├── mock/           # vite-plugin-mock 数据（严格按契约）

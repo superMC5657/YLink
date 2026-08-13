@@ -1,4 +1,4 @@
-# Code Review — proxy-seller-web v0.5.0 (Admin Order Commission Data)
+# Code Review — YLink v0.5.0 (Admin Order Commission Data)
 
 - **Version:** 0.5.0
 - **Date:** 2026-08-13

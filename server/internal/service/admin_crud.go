@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 
-	"ylink/internal/model"
-	"ylink/internal/pkg/errs"
-	"ylink/internal/pkg/sanitize"
+	"ylink-backend/internal/model"
+	"ylink-backend/internal/pkg/errs"
+	"ylink-backend/internal/pkg/sanitize"
 )
 
 // ---- 管理端 · 套餐 CRUD ----

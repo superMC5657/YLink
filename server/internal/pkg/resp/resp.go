@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"ylink/internal/pkg/errs"
+	"ylink-backend/internal/pkg/errs"
 )
 
 // Body 为统一信封。

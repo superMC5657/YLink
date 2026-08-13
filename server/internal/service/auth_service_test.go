@@ -14,14 +14,14 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 
-	"ylink/internal/config"
-	"ylink/internal/model"
-	"ylink/internal/pkg/errs"
-	jwtpkg "ylink/internal/pkg/jwt"
-	"ylink/internal/pkg/logger"
-	"ylink/internal/pkg/mailer"
-	"ylink/internal/pkg/passwd"
-	"ylink/internal/repo"
+	"ylink-backend/internal/config"
+	"ylink-backend/internal/model"
+	"ylink-backend/internal/pkg/errs"
+	jwtpkg "ylink-backend/internal/pkg/jwt"
+	"ylink-backend/internal/pkg/logger"
+	"ylink-backend/internal/pkg/mailer"
+	"ylink-backend/internal/pkg/passwd"
+	"ylink-backend/internal/repo"
 )
 
 func init() { logger.Nop() }

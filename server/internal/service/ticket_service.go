@@ -7,10 +7,10 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"ylink/internal/model"
-	"ylink/internal/pkg/errs"
-	"ylink/internal/pkg/sanitize"
-	"ylink/internal/repo"
+	"ylink-backend/internal/model"
+	"ylink-backend/internal/pkg/errs"
+	"ylink-backend/internal/pkg/sanitize"
+	"ylink-backend/internal/repo"
 )
 
 // TicketService 工单域。

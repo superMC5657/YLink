@@ -5,9 +5,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"ylink/internal/middleware"
-	"ylink/internal/pkg/resp"
-	"ylink/internal/service"
+	"ylink-backend/internal/middleware"
+	"ylink-backend/internal/pkg/resp"
+	"ylink-backend/internal/service"
 )
 
 // Content 站点配置/公告/知识库端点。

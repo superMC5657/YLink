@@ -3,7 +3,7 @@ package repo
 import (
 	"gorm.io/gorm"
 
-	"ylink/internal/model"
+	"ylink-backend/internal/model"
 )
 
 // TrafficLogRepo 流量日明细数据访问。

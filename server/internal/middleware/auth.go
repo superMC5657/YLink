@@ -6,9 +6,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 
-	"ylink/internal/pkg/errs"
-	jwtpkg "ylink/internal/pkg/jwt"
-	redispkg "ylink/internal/pkg/redis"
+	"ylink-backend/internal/pkg/errs"
+	jwtpkg "ylink-backend/internal/pkg/jwt"
+	redispkg "ylink-backend/internal/pkg/redis"
 )
 
 const (

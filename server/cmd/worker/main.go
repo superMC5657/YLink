@@ -12,12 +12,12 @@ import (
 	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
 
-	"ylink/internal/config"
-	"ylink/internal/pkg/logger"
-	"ylink/internal/pkg/mailer"
-	"ylink/internal/pkg/redis"
-	"ylink/internal/repo"
-	"ylink/internal/service"
+	"ylink-backend/internal/config"
+	"ylink-backend/internal/pkg/logger"
+	"ylink-backend/internal/pkg/mailer"
+	"ylink-backend/internal/pkg/redis"
+	"ylink-backend/internal/repo"
+	"ylink-backend/internal/service"
 )
 
 func main() {

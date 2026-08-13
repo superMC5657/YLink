@@ -3,7 +3,7 @@ package repo
 import (
 	"gorm.io/gorm"
 
-	"ylink/internal/model"
+	"ylink-backend/internal/model"
 )
 
 // NoticeRepo 公告数据访问。

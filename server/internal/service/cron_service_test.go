@@ -9,9 +9,9 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/require"
 
-	"ylink/internal/config"
-	"ylink/internal/model"
-	"ylink/internal/repo"
+	"ylink-backend/internal/config"
+	"ylink-backend/internal/model"
+	"ylink-backend/internal/repo"
 )
 
 // TestCronCloseExpiredOrdersClosesPayments:超时关单时同步关闭该订单残留的待支付支付单,

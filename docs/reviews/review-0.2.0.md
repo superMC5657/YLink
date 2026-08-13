@@ -1,4 +1,4 @@
-# Code Review — proxy-seller-web v0.2.0 (Full Repository)
+# Code Review — YLink v0.2.0 (Full Repository)
 
 - **Version:** 0.2.0
 - **Date:** 2026-08-11

@@ -6,9 +6,9 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"ylink/internal/model"
-	"ylink/internal/pkg/errs"
-	"ylink/internal/repo"
+	"ylink-backend/internal/model"
+	"ylink-backend/internal/pkg/errs"
+	"ylink-backend/internal/repo"
 )
 
 // 站点配置默认值兜底

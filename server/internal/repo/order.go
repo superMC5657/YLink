@@ -6,7 +6,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	"ylink/internal/model"
+	"ylink-backend/internal/model"
 )
 
 // OrderRepo 订单数据访问。

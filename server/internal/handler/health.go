@@ -9,7 +9,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"ylink/internal/pkg/resp"
+	"ylink-backend/internal/pkg/resp"
 )
 
 // Health 提供健康检查端点。

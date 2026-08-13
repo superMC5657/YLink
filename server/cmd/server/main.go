@@ -22,14 +22,14 @@ import (
 
 	"go.uber.org/zap"
 
-	"ylink/internal/config"
-	jwtpkg "ylink/internal/pkg/jwt"
-	"ylink/internal/pkg/logger"
-	"ylink/internal/pkg/mailer"
-	"ylink/internal/pkg/payment"
-	"ylink/internal/pkg/redis"
-	"ylink/internal/repo"
-	"ylink/internal/router"
+	"ylink-backend/internal/config"
+	jwtpkg "ylink-backend/internal/pkg/jwt"
+	"ylink-backend/internal/pkg/logger"
+	"ylink-backend/internal/pkg/mailer"
+	"ylink-backend/internal/pkg/payment"
+	"ylink-backend/internal/pkg/redis"
+	"ylink-backend/internal/repo"
+	"ylink-backend/internal/router"
 )
 
 func main() {

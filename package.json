@@ -1,6 +1,6 @@
 {
-  "name": "proxy-seller-web",
-  "version": "0.1.0",
+  "name": "YLink",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "代理订阅售卖系统 · 用户端(响应式 Web + Tauri 2)",

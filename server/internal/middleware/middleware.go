@@ -11,8 +11,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"ylink/internal/pkg/logger"
-	"ylink/internal/pkg/resp"
+	"ylink-backend/internal/pkg/logger"
+	"ylink-backend/internal/pkg/resp"
 )
 
 // RequestID 生成/透传 X-Request-Id。

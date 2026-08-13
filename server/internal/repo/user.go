@@ -6,7 +6,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	"ylink/internal/model"
+	"ylink-backend/internal/model"
 )
 
 // SettingRepo 站点配置数据访问。

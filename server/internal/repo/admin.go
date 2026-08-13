@@ -7,8 +7,8 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	"ylink/internal/model"
-	"ylink/internal/pkg/passwd"
+	"ylink-backend/internal/model"
+	"ylink-backend/internal/pkg/passwd"
 )
 
 // ---- 管理端 · 用户 ----

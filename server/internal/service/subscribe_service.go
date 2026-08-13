@@ -11,13 +11,13 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"ylink/internal/config"
-	"ylink/internal/model"
-	"ylink/internal/pkg/errs"
-	"ylink/internal/pkg/passwd"
-	redispkg "ylink/internal/pkg/redis"
-	"ylink/internal/pkg/subscribe"
-	"ylink/internal/repo"
+	"ylink-backend/internal/config"
+	"ylink-backend/internal/model"
+	"ylink-backend/internal/pkg/errs"
+	"ylink-backend/internal/pkg/passwd"
+	redispkg "ylink-backend/internal/pkg/redis"
+	"ylink-backend/internal/pkg/subscribe"
+	"ylink-backend/internal/repo"
 )
 
 // SubscribeService 订阅域：当前订阅、重置、流量明细、配置下发。

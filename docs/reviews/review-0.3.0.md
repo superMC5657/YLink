@@ -1,4 +1,4 @@
-# Code Review — proxy-seller-web Admin Modules (Incremental, post-0.2.0)
+# Code Review — YLink Admin Modules (Incremental, post-0.2.0)
 
 - **Date:** 2026-08-11
 - **Scope:** Incremental — admin-module commits since the v0.2.0 review (`7949622..a8295ce`): new admin modules (coupons, traffic import), mocks, tests, cache and port changes

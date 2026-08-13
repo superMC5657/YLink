@@ -3,7 +3,7 @@ package repo
 import (
 	"gorm.io/gorm"
 
-	"ylink/internal/model"
+	"ylink-backend/internal/model"
 )
 
 // AgentApplyRepo 代理商申请数据访问。

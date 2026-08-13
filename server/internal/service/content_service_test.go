@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"ylink/internal/model"
-	"ylink/internal/repo"
+	"ylink-backend/internal/model"
+	"ylink-backend/internal/repo"
 )
 
 func newContentEnv(t *testing.T) (*testEnv, *ContentService) {

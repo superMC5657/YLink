@@ -14,8 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	jwtpkg "ylink/internal/pkg/jwt"
-	redispkg "ylink/internal/pkg/redis"
+	jwtpkg "ylink-backend/internal/pkg/jwt"
+	redispkg "ylink-backend/internal/pkg/redis"
 )
 
 func newAuthEnv(t *testing.T) (*jwtpkg.Manager, *redis.Client) {

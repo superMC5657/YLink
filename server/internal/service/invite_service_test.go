@@ -10,9 +10,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"ylink/internal/config"
-	"ylink/internal/model"
-	"ylink/internal/repo"
+	"ylink-backend/internal/config"
+	"ylink-backend/internal/model"
+	"ylink-backend/internal/repo"
 )
 
 func newInviteEnv(t *testing.T) (*testEnv, *InviteService) {

@@ -10,11 +10,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"ylink/internal/config"
-	"ylink/internal/model"
-	redispkg "ylink/internal/pkg/redis"
-	"ylink/internal/pkg/sanitize"
-	"ylink/internal/repo"
+	"ylink-backend/internal/config"
+	"ylink-backend/internal/model"
+	redispkg "ylink-backend/internal/pkg/redis"
+	"ylink-backend/internal/pkg/sanitize"
+	"ylink-backend/internal/repo"
 )
 
 func TestSanitize(t *testing.T) {

@@ -10,13 +10,13 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
-	"ylink/internal/config"
-	"ylink/internal/model"
-	"ylink/internal/pkg/logger"
-	"ylink/internal/pkg/mailer"
-	"ylink/internal/pkg/payment"
-	redispkg "ylink/internal/pkg/redis"
-	"ylink/internal/repo"
+	"ylink-backend/internal/config"
+	"ylink-backend/internal/model"
+	"ylink-backend/internal/pkg/logger"
+	"ylink-backend/internal/pkg/mailer"
+	"ylink-backend/internal/pkg/payment"
+	redispkg "ylink-backend/internal/pkg/redis"
+	"ylink-backend/internal/repo"
 )
 
 // CronService 定时任务（worker 进程调度；所有任务由 worker 加分布式锁）。

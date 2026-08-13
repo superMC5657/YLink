@@ -6,8 +6,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"ylink/internal/pkg/errs"
-	"ylink/internal/pkg/resp"
+	"ylink-backend/internal/pkg/errs"
+	"ylink-backend/internal/pkg/resp"
 )
 
 // CORS 白名单域名；订阅端点由路由层单独放行任意来源。

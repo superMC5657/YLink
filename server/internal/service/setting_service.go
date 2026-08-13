@@ -9,9 +9,9 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"ylink/internal/model"
-	redispkg "ylink/internal/pkg/redis"
-	"ylink/internal/repo"
+	"ylink-backend/internal/model"
+	redispkg "ylink-backend/internal/pkg/redis"
+	"ylink-backend/internal/repo"
 )
 
 const settingsCacheTTL = 60 * time.Second

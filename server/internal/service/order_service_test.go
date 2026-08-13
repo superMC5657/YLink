@@ -16,10 +16,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"ylink/internal/config"
-	"ylink/internal/model"
-	"ylink/internal/pkg/payment"
-	"ylink/internal/repo"
+	"ylink-backend/internal/config"
+	"ylink-backend/internal/model"
+	"ylink-backend/internal/pkg/payment"
+	"ylink-backend/internal/repo"
 )
 
 func planRow(p *model.Plan) *sqlmock.Rows {

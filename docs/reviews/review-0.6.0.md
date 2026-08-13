@@ -1,4 +1,4 @@
-# Code Review — proxy-seller-web v0.6.0 (Tauri Storage Initialization and Migration)
+# Code Review — YLink v0.6.0 (Tauri Storage Initialization and Migration)
 
 - **Version:** 0.6.0
 - **Date:** 2026-08-13

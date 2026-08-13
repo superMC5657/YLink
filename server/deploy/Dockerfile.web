@@ -1,0 +1,6 @@
+# Web 前端 + Caddy 网关:前端 dist 与生产 Caddyfile 一起打进镜像,不可变发布
+# 构建前需先在仓库根执行 pnpm build 生成 dist/(被 .gitignore 忽略,不入库)
+# 用法(docker-compose.prod.yml 内):build: { context: .., dockerfile: server/deploy/Dockerfile.web }
+FROM caddy:2-alpine
+COPY dist/ /srv/panel
+COPY server/deploy/Caddyfile /etc/caddy/Caddyfile

@@ -38,7 +38,9 @@ cd server
 cp .env.example .env.dev     # 本地开发（.env.dev/.env.release 均被 gitignore,不入库）
 make migrate                 # 执行迁移
 make run                     # API 服务（:8081）
-# 生产发布: cp .env.example .env.release 并填写密钥,ENV_FILE=.env.release docker compose up -d
+# 生产发布: cp .env.example .env.release 并填写密钥;先 pnpm build 生成前端 dist(打进 ylink-web 镜像);
+# ENV_FILE=.env.release docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# 详见 docs/backend/deploy.md
 ```
 
 ### Tauri 桌面端

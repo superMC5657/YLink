@@ -263,6 +263,7 @@
 | Go ≥ 1.26.1（`go.mod` 声明） | ✅ 已满足:本机 1.26.1(2026-08-12 实测) |
 | PostgreSQL 16 | ⚠️ 运行时前置(2026-08-13 起由 MySQL 8 切换),端口 **5433**(容器内 5433:5433);库 `ylink-backend`(默认用户 `ylink`/密码 `ylink_root`);DSN 见 `configs/config.yaml` 或 `APP_DATABASE_DSN`;本机有 Docker 时 `bash scripts/dev.sh` 经 `server/docker-compose.yml` 编排 postgres+redis(**变量读 `server/.env.dev`**,`docker compose --env-file`) |
 | Redis 7 | ⚠️ 运行时前置,2026-08-12 本机实测 **6379 未监听且 `redis-server` 命令不在 PATH**,需先启动本地 Redis;本地 `127.0.0.1:6379`(默认无密码);生产必须设密码;`server/docker-compose.yml` 可一键起 |
+| 全容器联调 | `bash scripts/dev-docker.sh`(2026-08-14 新增):**api/worker 也跑 Docker compose**,前端 `pnpm build` 产物由 Caddy 容器托管(`http://localhost` 静态 + `/api/*` 同域反代 api:8081);与 dev.sh(宿主机进程 + Vite dev)二选一;`-stop` 停全部容器;容器模式 env 生成于 `.dev/env.docker`(DSN 用服务名 `host=postgres`/`redis:6379`),`server/.env.dev` 仅作密钥源。网络与构建加固(2026-08-14):预拉镜像统一走 daoCloud 加速源,`golang:1.26-alpine`/`alpine:3.20` 构建基础镜像已纳入预拉;本机 Docker Desktop `daemon.json` 已配 `registry-mirrors: https://docker.m.daocloud.io`(重启 Docker Desktop 后全局生效,备份 `daemon.json.bak-20260814-012449`);`server/Dockerfile` 修复:①`COPY go.mod go.sum ./ && RUN go mod download` 同行错误拆分(COPY 与 RUN 不可用 `&&` 同行,原写法会把 `download` 误当 COPY 目标报 `cannot copy to non-directory`),②构建镜像 `golang:1.24-alpine` → `golang:1.26-alpine`(与 go.mod `go 1.26.1` 匹配),③`ENV GOPROXY=https://goproxy.cn,direct`(容器内直连 proxy.golang.org 超时);新增 `server/.dockerignore`(排除 `.env*` 密钥/`.codegraph`/`logs` 等,构建上下文 6.15MB → 5KB);④Caddyfile.dev 补 `root * /srv/panel`(缺 root 时 file_server 从工作目录 /srv 找文件,前端实际 404;加后 http://localhost/ 实测 200) |
 | 迁移 | `DB_URL='...' make migrate` 执行 `migrations/0001_init.*`、`0002_balance_check.*`;或 docker-compose 内首启前执行 |
 | SMTP | 验证码/提醒邮件需要可用 SMTP;未配置时**注册/找回流程无法完成**(验证码发送失败仅记日志) |
 | 管理员账号 | 启动时经环境变量 `ADMIN_EMAIL`/`ADMIN_PASSWORD` 幂等创建首个 role=1 用户 |
@@ -290,7 +291,8 @@
 |---|---|
 | 密钥注入 | DB/Redis/JWT(≥32 字节)/SMTP/EPAY 全部经环境变量或 secret,不进 git(见 `.env.example`) |
 | TLS | Caddy 反代终止 HTTPS;`app.env=production` 关闭 Swagger/debug |
-| CORS 白名单 | `cors.allow_origins` 配 Web 版域名(订阅端点已豁免任意来源) |
+| Web 前端托管 | (2026-08-14 落地)双域名:`api.example.com` 反代 api:8081 + `panel.example.com` 托管 SPA;`docker-compose.prod.yml` override(清 redis/api 宿主端口、caddy 改 build `deploy/Dockerfile.web` 把 dist+Caddyfile 打进 ylink-web 镜像);部署命令 `ENV_FILE=.env.release docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build`,先 `pnpm build` 生成 dist |
+| CORS 白名单 | `cors.allow_origins` 配 Web 版域名 `https://panel.example.com`(config.yaml,生产改后重建 api 镜像;订阅端点已豁免任意来源) |
 | worker 单实例 | cron 已带 Redis 分布式锁,多实例部署安全 |
 | 备份 | 按 deploy.md 第 6 节:pg_dump -Fc 全量 + WAL 归档保留 14 天,Redis AOF everysec |
 

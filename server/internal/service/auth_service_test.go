@@ -11,7 +11,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
 	"ylink-backend/internal/config"
@@ -37,7 +37,7 @@ type testEnv struct {
 func newTestEnv(t *testing.T) *testEnv {
 	sqlDB, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	db, err := gorm.Open(mysql.New(mysql.Config{Conn: sqlDB, SkipInitializeWithVersion: true}), &gorm.Config{})
+	db, err := gorm.Open(postgres.New(postgres.Config{Conn: sqlDB, PreferSimpleProtocol: true}), &gorm.Config{})
 	require.NoError(t, err)
 	mr := miniredis.RunT(t)
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
@@ -66,11 +66,11 @@ func userRow(u *model.User) *sqlmock.Rows {
 }
 
 func (e *testEnv) expectUserByEmail(u *model.User) {
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `users`")).WillReturnRows(userRow(u))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"users\"")).WillReturnRows(userRow(u))
 }
 
 func (e *testEnv) expectUserByID(u *model.User) {
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `users`")).WillReturnRows(userRow(u))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"users\"")).WillReturnRows(userRow(u))
 }
 
 func codeOf(err error) int {
@@ -87,7 +87,7 @@ func TestSendCaptcha(t *testing.T) {
 	e := newTestEnv(t)
 	ctx := context.Background()
 
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT count(*) FROM `users`")).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT count(*) FROM \"users\"")).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
 	data, err := e.svc.SendCaptcha(ctx, "a@b.com", "register")
 	require.NoError(t, err)
 	assert.Equal(t, 600, data.ExpireIn)
@@ -103,7 +103,7 @@ func TestSendCaptcha(t *testing.T) {
 
 func TestSendCaptchaEmailTaken(t *testing.T) {
 	e := newTestEnv(t)
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT count(*) FROM `users`")).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT count(*) FROM \"users\"")).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
 	_, err := e.svc.SendCaptcha(context.Background(), "taken@b.com", "register")
 	assert.Equal(t, 10001, codeOf(err))
 }
@@ -115,13 +115,13 @@ func TestRegister(t *testing.T) {
 	// 预置验证码
 	require.NoError(t, e.mr.Set("captcha:email:register:new@b.com", "123456"))
 	// 读取 site 配置（无强制邀请 → 默认关闭）
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT `value` FROM `settings`")).WillReturnError(assert.AnError)
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT \"value\" FROM \"settings\"")).WillReturnError(assert.AnError)
 	// 邮箱不存在
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT count(*) FROM `users`")).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT count(*) FROM \"users\"")).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
 	// 创建用户
 	e.mock.ExpectBegin()
-	e.mock.ExpectExec(regexp.QuoteMeta("INSERT INTO `users`")).
-		WillReturnResult(sqlmock.NewResult(10086, 1))
+	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"users\"")).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(10086))
 	e.mock.ExpectCommit()
 
 	resp, err := e.svc.Register(ctx, &model.AuthRegisterReq{Email: "new@b.com", Password: "Passw0rd!", EmailCode: "123456"})

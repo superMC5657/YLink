@@ -1,5 +1,5 @@
 -- 0002_balance_check.up.sql
--- 余额负值强约束（MySQL 8.0.16+ 强制执行 CHECK）：
+-- 余额负值强约束（PostgreSQL CHECK 约束）：
 -- 用户钱包 balance 不允许为负。所有余额路径均已做服务层保护：
 --   划转（commission_balance → balance）与余额支付在行锁内校验充足性；
 --   管理员调余额拒绝调整后为负（service 层 40000）；

@@ -31,8 +31,8 @@ func ticketRow(t *model.Ticket) *sqlmock.Rows {
 func TestTicketCreate(t *testing.T) {
 	e, svc := newTicketEnv(t)
 	e.mock.ExpectBegin()
-	e.mock.ExpectExec(regexp.QuoteMeta("INSERT INTO `tickets`")).WillReturnResult(sqlmock.NewResult(7, 1))
-	e.mock.ExpectExec(regexp.QuoteMeta("INSERT INTO `ticket_messages`")).WillReturnResult(sqlmock.NewResult(1, 1))
+	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"tickets\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(7))
+	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"ticket_messages\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
 	resp, err := svc.Create(context.Background(), 1, &model.CreateTicketReq{Subject: "无法连接节点", Level: 1, Message: "详细描述"})
@@ -46,7 +46,7 @@ func TestTicketReplyClosed(t *testing.T) {
 	now := time.Now()
 	closed := 2
 	tk := &model.Ticket{ID: 7, UserID: 1, Subject: "s", Level: 1, Status: closed, CreatedAt: now}
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `tickets`")).WillReturnRows(ticketRow(tk))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"tickets\"")).WillReturnRows(ticketRow(tk))
 
 	err := svc.Reply(context.Background(), 1, 7, "再问")
 	assert.Equal(t, 14001, codeOf(err))
@@ -57,11 +57,11 @@ func TestTicketReply(t *testing.T) {
 	now := time.Now()
 	lastReply := now.Add(-time.Hour)
 	tk := &model.Ticket{ID: 7, UserID: 1, Subject: "s", Level: 1, Status: 1, LastReplyAt: &lastReply, CreatedAt: now}
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `tickets`")).WillReturnRows(ticketRow(tk))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"tickets\"")).WillReturnRows(ticketRow(tk))
 	e.mock.ExpectBegin()
-	e.mock.ExpectExec(regexp.QuoteMeta("INSERT INTO `ticket_messages`")).WillReturnResult(sqlmock.NewResult(2, 1))
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `tickets`")).WillReturnResult(sqlmock.NewResult(0, 1))
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `tickets`")).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"ticket_messages\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(2))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"tickets\"")).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"tickets\"")).WillReturnResult(sqlmock.NewResult(0, 1))
 	e.mock.ExpectCommit()
 
 	err := svc.Reply(context.Background(), 1, 7, "补充说明")
@@ -72,9 +72,9 @@ func TestTicketReopen(t *testing.T) {
 	e, svc := newTicketEnv(t)
 	now := time.Now()
 	tk := &model.Ticket{ID: 7, UserID: 1, Subject: "s", Level: 1, Status: 2, ReopenCount: 0, CreatedAt: now}
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `tickets`")).WillReturnRows(ticketRow(tk))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"tickets\"")).WillReturnRows(ticketRow(tk))
 	e.mock.ExpectBegin()
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `tickets`")).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"tickets\"")).WillReturnResult(sqlmock.NewResult(0, 1))
 	e.mock.ExpectCommit()
 
 	resp, err := svc.Reopen(context.Background(), 1, 7)
@@ -87,7 +87,7 @@ func TestTicketReopenNotClosed(t *testing.T) {
 	e, svc := newTicketEnv(t)
 	now := time.Now()
 	tk := &model.Ticket{ID: 7, UserID: 1, Subject: "s", Level: 1, Status: 0, ReopenCount: 0, CreatedAt: now}
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `tickets`")).WillReturnRows(ticketRow(tk))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"tickets\"")).WillReturnRows(ticketRow(tk))
 
 	_, err := svc.Reopen(context.Background(), 1, 7)
 	assert.Equal(t, 40900, codeOf(err)) // 未关闭不可重开
@@ -97,7 +97,7 @@ func TestTicketReopenLimit(t *testing.T) {
 	e, svc := newTicketEnv(t)
 	now := time.Now()
 	tk := &model.Ticket{ID: 7, UserID: 1, Subject: "s", Level: 1, Status: 2, ReopenCount: 1, CreatedAt: now}
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `tickets`")).WillReturnRows(ticketRow(tk))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"tickets\"")).WillReturnRows(ticketRow(tk))
 
 	_, err := svc.Reopen(context.Background(), 1, 7)
 	assert.Equal(t, 14002, codeOf(err)) // 仅可重开一次
@@ -108,9 +108,9 @@ func TestTicketReopenConcurrentUpdateZero(t *testing.T) {
 	now := time.Now()
 	// 读到的快照 reopen_count=0,但条件更新命中 0 行(并发下已被重开)→ 仍按 14002 拒绝
 	tk := &model.Ticket{ID: 7, UserID: 1, Subject: "s", Level: 1, Status: 2, ReopenCount: 0, CreatedAt: now}
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `tickets`")).WillReturnRows(ticketRow(tk))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"tickets\"")).WillReturnRows(ticketRow(tk))
 	e.mock.ExpectBegin()
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `tickets`")).WillReturnResult(sqlmock.NewResult(0, 0))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"tickets\"")).WillReturnResult(sqlmock.NewResult(0, 0))
 	e.mock.ExpectCommit()
 
 	_, err := svc.Reopen(context.Background(), 1, 7)
@@ -125,22 +125,22 @@ func TestConfirmCommissions(t *testing.T) {
 	cronSvc := NewCronService(e.db, e.rdb, repos, &config.Config{}, mailer.New(config.SMTPConfig{}), orders)
 	now := time.Now()
 	// settings invite（确认期 3 天）
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT `value` FROM `settings`")).
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT \"value\" FROM \"settings\"")).
 		WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow(`{"commission_confirm_days":3}`))
 	// 待确认佣金列表
 	cl := &model.CommissionLog{ID: 1, InviteUserID: 9, FromUserID: 2, OrderNo: "O1", OrderAmount: 1000, Rate: 40, Amount: 400, Status: 0, CreatedAt: now}
 	clRows := sqlmock.NewRows([]string{
 		"id", "invite_user_id", "from_user_id", "order_no", "order_amount", "rate", "amount", "status", "confirmed_at", "created_at",
 	}).AddRow(cl.ID, cl.InviteUserID, cl.FromUserID, cl.OrderNo, cl.OrderAmount, cl.Rate, cl.Amount, cl.Status, cl.ConfirmedAt, cl.CreatedAt)
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `commission_logs`")).WillReturnRows(clRows)
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"commission_logs\"")).WillReturnRows(clRows)
 
 	// 事务：条件更新佣金(status=0→1) → 锁邀请人 → 更新余额 → 更新佣金 confirmed_at → 提交
 	inviter := &model.User{ID: 9, Email: "inv@b.com", CommissionBalance: 0, CreatedAt: now, UpdatedAt: now}
 	e.mock.ExpectBegin()
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `commission_logs`")).WillReturnResult(sqlmock.NewResult(0, 1))
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `users`")).WillReturnRows(userRow(inviter))
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `users`")).WillReturnResult(sqlmock.NewResult(0, 1))
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `commission_logs`")).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"commission_logs\"")).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"users\"")).WillReturnRows(userRow(inviter))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"users\"")).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"commission_logs\"")).WillReturnResult(sqlmock.NewResult(0, 1))
 	e.mock.ExpectCommit()
 
 	cronSvc.ConfirmCommissions(context.Background())
@@ -156,15 +156,15 @@ func TestCloseExpiredOrders(t *testing.T) {
 	now := time.Now()
 	old := now.Add(-time.Hour)
 	// settings order
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT `value` FROM `settings`")).
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT \"value\" FROM \"settings\"")).
 		WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow(`{"expire_minutes":30}`))
 	// 超时待支付订单（列表）
 	o := &model.Order{ID: 1, OrderNo: "O1", UserID: 2, PlanID: 1, Period: "month", Amount: 1000, PayAmount: 1000, Status: 0, CreatedAt: old, UpdatedAt: old}
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `orders`")).WillReturnRows(orderRow(o))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"orders\"")).WillReturnRows(orderRow(o))
 	// 事务：行锁读订单 → 状态仍待支付 → 关单 → 提交
 	e.mock.ExpectBegin()
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `orders`")).WillReturnRows(orderRow(o))
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `orders` SET `status`")).
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"orders\"")).WillReturnRows(orderRow(o))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"orders\" SET \"status\"")).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	e.mock.ExpectCommit()
 
@@ -180,19 +180,19 @@ func TestCloseExpiredOrdersReleasesCoupon(t *testing.T) {
 
 	now := time.Now()
 	old := now.Add(-time.Hour)
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT `value` FROM `settings`")).
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT \"value\" FROM \"settings\"")).
 		WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow(`{"expire_minutes":30}`))
 	couponID := int64(9)
 	o := &model.Order{ID: 1, OrderNo: "O2", UserID: 2, PlanID: 1, Period: "month", Amount: 1000, PayAmount: 800, CouponID: &couponID, Status: 0, CreatedAt: old, UpdatedAt: old}
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `orders`")).WillReturnRows(orderRow(o))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"orders\"")).WillReturnRows(orderRow(o))
 	// 事务：行锁读 → 关单 → 回退优惠券 used_count → 删使用流水 → 提交
 	e.mock.ExpectBegin()
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `orders`")).WillReturnRows(orderRow(o))
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `orders` SET `status`")).
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"orders\"")).WillReturnRows(orderRow(o))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"orders\" SET \"status\"")).
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `coupons` SET `used_count`=used_count - 1 WHERE")).
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"coupons\" SET \"used_count\"=used_count - 1 WHERE")).
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	e.mock.ExpectExec(regexp.QuoteMeta("DELETE FROM `coupon_usages`")).
+	e.mock.ExpectExec(regexp.QuoteMeta("DELETE FROM \"coupon_usages\"")).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	e.mock.ExpectCommit()
 
@@ -209,8 +209,8 @@ func TestCancelOrderConcurrentPaid(t *testing.T) {
 	o := &model.Order{ID: 1, OrderNo: "O1", UserID: 7, PlanID: 1, Period: "month", Amount: 1000, PayAmount: 800, CouponID: &couponID, Status: 0, CreatedAt: now, UpdatedAt: now}
 	// 事务：读订单 → 条件更新影响行数 0（并发已被支付完成）→ 回滚，不释放优惠券
 	e.mock.ExpectBegin()
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `orders`")).WillReturnRows(orderRow(o))
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `orders` SET `status`")).
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"orders\"")).WillReturnRows(orderRow(o))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"orders\" SET \"status\"")).
 		WillReturnResult(sqlmock.NewResult(0, 0)) // 0 行：状态已非待支付
 	e.mock.ExpectRollback()
 

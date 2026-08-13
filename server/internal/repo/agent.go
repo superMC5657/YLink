@@ -26,7 +26,7 @@ func (AgentApplyRepo) Save(db *gorm.DB, a *model.AgentApply) error { return db.S
 func (UserRepo) CountValidInvited(db *gorm.DB, inviterID int64, validDays int) (int64, error) {
 	var n int64
 	err := db.Model(&model.User{}).
-		Where("invite_by_id = ? AND (is_banned = 0 AND created_at < DATE_SUB(NOW(), INTERVAL ? DAY) "+
+		Where("invite_by_id = ? AND (is_banned = false AND created_at < now() - (? * interval '1 day') "+
 			"OR EXISTS (SELECT 1 FROM orders o WHERE o.user_id = users.id AND o.status = 1))", inviterID, validDays).
 		Count(&n).Error
 	return n, err

@@ -188,7 +188,7 @@ func (s *CronService) ExpireRemind(ctx context.Context) {
 	var users []model.User
 	now := time.Now()
 	// 两个窗口：剩余 (48h, 72h] 视为「3 天」；(0, 24h] 视为「1 天」
-	if err := s.db.Where("remind_expire = 1 AND expired_at IS NOT NULL AND is_banned = 0 AND "+
+	if err := s.db.Where("remind_expire = true AND expired_at IS NOT NULL AND is_banned = false AND "+
 		"((expired_at > ? AND expired_at <= ?) OR (expired_at > ? AND expired_at <= ?))",
 		now.Add(48*time.Hour), now.Add(72*time.Hour), now, now.Add(24*time.Hour)).
 		Find(&users).Error; err != nil {
@@ -235,7 +235,7 @@ func (s *CronService) sendExpireMail(u model.User) {
 // TrafficRemind 流量提醒（每日 10:00）：用量 ≥80% 且开启提醒。
 func (s *CronService) TrafficRemind(ctx context.Context) {
 	var users []model.User
-	if err := s.db.Where("remind_traffic = 1 AND transfer_enable > 0 AND is_banned = 0").Find(&users).Error; err != nil {
+	if err := s.db.Where("remind_traffic = true AND transfer_enable > 0 AND is_banned = false").Find(&users).Error; err != nil {
 		logger.L().Error("traffic remind query", zapE(err))
 		return
 	}

@@ -93,7 +93,7 @@ type Plan struct {
 	TrafficGB     int       `json:"traffic_gb"`
 	SpeedLimit    *int      `json:"speed_limit"`
 	DeviceLimit   *int      `json:"device_limit"`
-	GroupIDs      string    `gorm:"type:json" json:"-"`
+	GroupIDs      string    `gorm:"type:jsonb" json:"-"`
 	IsShow        bool      `gorm:"default:true" json:"-"`
 	Sort          int       `gorm:"default:0" json:"sort"`
 	CreatedAt     time.Time `json:"-"`
@@ -151,8 +151,8 @@ type Coupon struct {
 	LimitPerUser int        `gorm:"default:0" json:"-"`
 	TotalLimit   int        `gorm:"default:0" json:"-"`
 	UsedCount    int        `gorm:"default:0" json:"-"`
-	ValidPeriods *string    `gorm:"type:json" json:"-"`
-	PlanIDs      *string    `gorm:"type:json" json:"-"`
+	ValidPeriods *string    `gorm:"type:jsonb" json:"-"`
+	PlanIDs      *string    `gorm:"type:jsonb" json:"-"`
 	StartedAt    *time.Time `json:"-"`
 	EndedAt      *time.Time `json:"-"`
 	IsEnable     bool       `gorm:"default:true" json:"-"`
@@ -217,9 +217,9 @@ type Server struct {
 	Type    string  `gorm:"size:32" json:"type"`
 	Host    string  `gorm:"size:255" json:"-"`
 	Port    int     `json:"-"`
-	Config  string  `gorm:"type:json" json:"-"`
+	Config  string  `gorm:"type:jsonb" json:"-"`
 	Rate    float64 `gorm:"type:decimal(3,1);default:1.0" json:"rate"`
-	Tags    *string `gorm:"type:json" json:"tags"`
+	Tags    *string `gorm:"type:jsonb" json:"tags"`
 	Status  int     `gorm:"default:1" json:"status"`
 	IsShow  bool    `gorm:"default:true" json:"-"`
 	Sort    int     `gorm:"default:0" json:"-"`
@@ -231,7 +231,7 @@ func (Server) TableName() string { return "servers" }
 type Notice struct {
 	ID        int64     `gorm:"primaryKey" json:"id"`
 	Title     string    `gorm:"size:128" json:"title"`
-	Content   string    `gorm:"type:mediumtext" json:"content"`
+	Content   string    `gorm:"type:text" json:"content"`
 	IsShow    bool      `gorm:"default:true" json:"-"`
 	Sort      int       `gorm:"default:0" json:"-"`
 	CreatedAt time.Time `json:"created_at"`
@@ -244,7 +244,7 @@ type Knowledge struct {
 	ID        int64     `gorm:"primaryKey" json:"id"`
 	Category  string    `gorm:"size:64" json:"category"`
 	Title     string    `gorm:"size:128" json:"title"`
-	Body      string    `gorm:"type:mediumtext" json:"body,omitempty"`
+	Body      string    `gorm:"type:text" json:"body,omitempty"`
 	Language  string    `gorm:"size:10;default:zh-CN" json:"language,omitempty"`
 	IsShow    bool      `gorm:"default:true" json:"-"`
 	Sort      int       `gorm:"default:0" json:"-"`
@@ -293,7 +293,7 @@ func (TrafficLog) TableName() string { return "traffic_logs" }
 // Setting 对应 settings 表。
 type Setting struct {
 	Key   string `gorm:"primaryKey;size:64" json:"key"`
-	Value string `gorm:"type:json" json:"value"`
+	Value string `gorm:"type:jsonb" json:"value"`
 }
 
 func (Setting) TableName() string { return "settings" }
@@ -304,7 +304,7 @@ type AuditLog struct {
 	AdminID   int64     `json:"-"`
 	Action    string    `gorm:"size:64" json:"-"`
 	Target    *string   `gorm:"size:128" json:"-"`
-	Detail    *string   `gorm:"type:json" json:"-"`
+	Detail    *string   `gorm:"type:jsonb" json:"-"`
 	IP        *string   `gorm:"size:64" json:"-"`
 	CreatedAt time.Time `json:"-"`
 }

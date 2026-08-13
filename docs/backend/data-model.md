@@ -1,6 +1,6 @@
 # 后端开发文档 · 数据模型
 
-> MySQL 8（InnoDB / utf8mb4），金额字段一律 `BIGINT` 存「分」，流量字段一律 `BIGINT` 存「字节」。所有表含 `created_at` / `updated_at`（DATETIME(3)），软删除仅在标注的表使用。迁移用 golang-migrate 顺序执行。
+> PostgreSQL 16，金额字段一律 `BIGINT` 存「分」，流量字段一律 `BIGINT` 存「字节」。所有表含 `created_at` / `updated_at`（TIMESTAMP(3)），软删除仅在标注的表使用。迁移用 golang-migrate 顺序执行。
 
 ## 1. ER 概览
 
@@ -25,19 +25,19 @@ erDiagram
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| id | BIGINT PK AI | — |
+| id | BIGSERIAL PK | — |
 | email | VARCHAR(190) UNIQUE NOT NULL | 登录账号 |
 | password_hash | VARCHAR(255) NOT NULL | bcrypt cost=12（`internal/pkg/passwd`） |
-| role | TINYINT NOT NULL DEFAULT 0 | 0=用户 1=管理员 2=代理商 |
+| role | SMALLINT NOT NULL DEFAULT 0 | 0=用户 1=管理员 2=代理商 |
 | balance | BIGINT NOT NULL DEFAULT 0 | 钱包余额（分） |
 | commission_balance | BIGINT NOT NULL DEFAULT 0 | 可划转佣金（分） |
 | invite_by_id | BIGINT NULL | 邀请人 user id |
-| is_banned | TINYINT(1) NOT NULL DEFAULT 0 | 封禁标记（封禁即拒绝登录与订阅下发） |
-| remind_expire | TINYINT(1) NOT NULL DEFAULT 1 | 到期邮件提醒开关 |
-| remind_traffic | TINYINT(1) NOT NULL DEFAULT 0 | 流量邮件提醒开关 |
+| is_banned | BOOLEAN NOT NULL DEFAULT 0 | 封禁标记（封禁即拒绝登录与订阅下发） |
+| remind_expire | BOOLEAN NOT NULL DEFAULT 1 | 到期邮件提醒开关 |
+| remind_traffic | BOOLEAN NOT NULL DEFAULT 0 | 流量邮件提醒开关 |
 | telegram_id | BIGINT NULL | TG 绑定（预留） |
 | plan_id | BIGINT NULL | 当前订阅套餐（无订阅为 NULL） |
-| expired_at | DATETIME(3) NULL | 订阅到期时间 |
+| expired_at | TIMESTAMP(3) NULL | 订阅到期时间 |
 | transfer_enable | BIGINT NOT NULL DEFAULT 0 | 套餐总流量（字节） |
 | u | BIGINT NOT NULL DEFAULT 0 | 已用上行（字节） |
 | d | BIGINT NOT NULL DEFAULT 0 | 已用下行（字节） |
@@ -53,7 +53,7 @@ erDiagram
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| id | BIGINT PK AI | — |
+| id | BIGSERIAL PK | — |
 | name | VARCHAR(64) NOT NULL | 如「白羊座」 |
 | content | TEXT | 描述富文本/Markdown（含营销文案，入库前清洗） |
 | month_price | BIGINT NULL | 月付价（分），NULL=不支持该周期 |
@@ -61,15 +61,15 @@ erDiagram
 | traffic_gb | INT NOT NULL | 每周期流量 GB |
 | speed_limit | INT NULL | 限速 Mbps，NULL=不限制 |
 | device_limit | INT NULL | 同时在线设备数 |
-| group_ids | JSON NOT NULL | 可用节点分组 id 数组 |
-| is_show | TINYINT(1) DEFAULT 1 | 是否上架 |
+| group_ids | JSONB NOT NULL | 可用节点分组 id 数组 |
+| is_show | BOOLEAN DEFAULT 1 | 是否上架 |
 | sort | INT DEFAULT 0 | 排序 |
 
 ### 2.3 orders（订单）
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| id | BIGINT PK AI | — |
+| id | BIGSERIAL PK | — |
 | order_no | VARCHAR(32) UNIQUE NOT NULL | 订单号（日期+随机，如 `2026062400063525438887716`） |
 | user_id | BIGINT NOT NULL INDEX | — |
 | plan_id | BIGINT NOT NULL | — |
@@ -79,9 +79,9 @@ erDiagram
 | balance_used | BIGINT NOT NULL DEFAULT 0 | 余额抵扣（分） |
 | pay_amount | BIGINT NOT NULL | 应付（分）= amount − discount − balance_used |
 | coupon_id | BIGINT NULL | 使用的优惠券 |
-| status | TINYINT NOT NULL DEFAULT 0 | 0=待支付 1=已完成 2=已取消 3=已退款 |
+| status | SMALLINT NOT NULL DEFAULT 0 | 0=待支付 1=已完成 2=已取消 3=已退款 |
 | pay_method | VARCHAR(32) NULL | `balance / epay_alipay / epay_wxpay ...` |
-| paid_at | DATETIME(3) NULL | — |
+| paid_at | TIMESTAMP(3) NULL | — |
 | idempotency_key | VARCHAR(64) NULL UNIQUE | 下单幂等键 |
 
 索引：`(user_id, status, created_at)`。状态机：0→1（支付成功）/ 0→2（取消或超时关闭）/ 1→3（管理端退款）。
@@ -90,51 +90,51 @@ erDiagram
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| id | BIGINT PK AI | — |
+| id | BIGSERIAL PK | — |
 | order_no | VARCHAR(32) NOT NULL INDEX | 关联订单 |
 | user_id | BIGINT NOT NULL | — |
 | method | VARCHAR(32) NOT NULL | 支付渠道码 |
 | amount | BIGINT NOT NULL | 实收（分） |
 | trade_no | VARCHAR(64) NULL UNIQUE | 网关流水号（回调幂等约束） |
-| status | TINYINT NOT NULL DEFAULT 0 | 0=待支付 1=成功 2=失败/关闭 |
+| status | SMALLINT NOT NULL DEFAULT 0 | 0=待支付 1=成功 2=失败/关闭 |
 | notify_payload | TEXT NULL | 回调原文（排障） |
-| paid_at | DATETIME(3) NULL | — |
+| paid_at | TIMESTAMP(3) NULL | — |
 
 ### 2.5 coupons（优惠券）/ coupon_usages（使用记录）
 
-coupons：id、code UNIQUE、type（1=固定金额 2=百分比）、value（分 或 百分比整数）、min_spend（分，门槛）、limit_per_user、total_limit、valid_periods JSON（限定周期）、plan_ids JSON（NULL=全场）、started_at / ended_at、is_enable。
+coupons：id、code UNIQUE、type（1=固定金额 2=百分比）、value（分 或 百分比整数）、min_spend（分，门槛）、limit_per_user、total_limit、valid_periods JSONB（限定周期）、plan_ids JSONB（NULL=全场）、started_at / ended_at、is_enable。
 coupon_usages：id、coupon_id、user_id、order_no，唯一索引 `(coupon_id, user_id, order_no)`。`limit_per_user` 的并发控制：下单事务内先 `Occupy`（原子条件更新 total_limit）再对已用次数行加锁统计（`CountUsageLocked`，`SELECT ... FOR UPDATE`），配合唯一索引防止并发下单超过单人限额。
 
 ### 2.6 invite_codes（邀请码）
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| id | BIGINT PK AI | — |
+| id | BIGSERIAL PK | — |
 | user_id | BIGINT NOT NULL INDEX | 拥有者 |
 | code | VARCHAR(32) UNIQUE NOT NULL | 8 位随机 |
-| status | TINYINT DEFAULT 1 | 1=有效 0=停用 |
+| status | SMALLINT DEFAULT 1 | 1=有效 0=停用 |
 | used_count | INT DEFAULT 0 | 已使用次数 |
 
 ### 2.7 commission_logs（佣金记录）
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| id | BIGINT PK AI | — |
+| id | BIGSERIAL PK | — |
 | invite_user_id | BIGINT NOT NULL INDEX | 获得佣金的邀请人 |
 | from_user_id | BIGINT NOT NULL | 下单用户 |
 | order_no | VARCHAR(32) NOT NULL UNIQUE | 一单一笔（防重） |
 | order_amount | BIGINT NOT NULL | 订单实付（分） |
 | rate | INT NOT NULL | 佣金比例 %（下单时快照） |
 | amount | BIGINT NOT NULL | 佣金（分） |
-| status | TINYINT NOT NULL DEFAULT 0 | 0=确认中 1=已发放 2=已撤销（退款时） |
-| confirmed_at | DATETIME(3) NULL | — |
+| status | SMALLINT NOT NULL DEFAULT 0 | 0=确认中 1=已发放 2=已撤销（退款时） |
+| confirmed_at | TIMESTAMP(3) NULL | — |
 
 确认中的佣金计入「确认中」统计；cron 在 T+N 天后转「已发放」并累加 `users.commission_balance`；「累计获得佣金」= 已发放 sum。
 
 ### 2.8 servers（节点）/ server_groups（节点分组）
 
 server_groups：id、name、sort。
-servers：id、group_id INDEX、name、type（`shadowsocks/vmess/vless/trojan/hysteria2/tuic`）、host、port、config JSON（协议私有参数：密码/SNI/ALPN 等）、rate DECIMAL(3,1) DEFAULT 1.0（流量倍率）、tags JSON、status TINYINT（1=正常 2=拥挤 3=维护）、is_show、sort。
+servers：id、group_id INDEX、name、type（`shadowsocks/vmess/vless/trojan/hysteria2/tuic`）、host、port、config JSONB（协议私有参数：密码/SNI/ALPN 等）、rate DECIMAL(3,1) DEFAULT 1.0（流量倍率）、tags JSONB、status SMALLINT（1=正常 2=拥挤 3=维护）、is_show、sort。
 说明：host/port/config 仅用于订阅生成，`GET /servers` 用户接口只输出 name/type/rate/status/tags。
 
 ### 2.9 notices（公告）/ knowledges（知识库）
@@ -152,7 +152,7 @@ ticket_messages：id、ticket_id INDEX、sender_type（0=用户 1=客服）、se
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| id | BIGINT PK AI | — |
+| id | BIGSERIAL PK | — |
 | user_id | BIGINT NOT NULL | — |
 | date | DATE NOT NULL | 按天聚合 |
 | u / d | BIGINT NOT NULL DEFAULT 0 | 当日上行/下行（字节，已乘倍率） |
@@ -161,8 +161,8 @@ ticket_messages：id、ticket_id INDEX、sender_type（0=用户 1=客服）、se
 
 ### 2.12 settings（站点配置）/ audit_logs（审计）
 
-settings：`key` VARCHAR(64) PK、`value` JSON（站点名、logo、TG 链接、客服地址、佣金比例、代理条件、支付开关、SMTP 模板等）。
-audit_logs：id、admin_id、action（如 `adjust_balance/refund/ban_user`）、target、detail JSON、ip、created_at。
+settings：`key` VARCHAR(64) PK、`value` JSONB（站点名、logo、TG 链接、客服地址、佣金比例、代理条件、支付开关、SMTP 模板等）。
+audit_logs：id、admin_id、action（如 `adjust_balance/refund/ban_user`）、target、detail JSONB、ip、created_at。
 
 ## 3. Redis Key 设计
 

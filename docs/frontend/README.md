@@ -118,7 +118,7 @@ YLink/
 1. 使用 `vite-plugin-mock`，`mock/` 目录按契约逐接口造数，覆盖空态/多页/异常（401、限流）场景。
 2. 开发流程：契约评审通过 → 前端 Mock 并行开发 → 后端 Swagger 就绪后切换 `VITE_USE_MOCK=false` 联调。
 3. E2E（Playwright）固定跑在 Mock 环境，保证 CI 稳定。
-4. 本地联调日志（`.dev/vite.log` 与 `.dev/api.log` 等）已禁用 ANSI 颜色码，避免 ESC 转义序列造成的乱码（`scripts/dev-up.sh` 为 vite 设置 `NO_COLOR=1`，GORM 日志 `Colorful: false`）。
+4. 本地联调日志（`.dev/vite.log` 与 `.dev/api.log` 等）已禁用 ANSI 颜色码，避免 ESC 转义序列造成的乱码（`scripts/dev.sh` 为 vite 设置 `NO_COLOR=1`，GORM 日志 `Colorful: false`）。
 
 ## 8. 工程化与代码规范
 

@@ -25,19 +25,19 @@ func TestCronCloseExpiredOrdersClosesPayments(t *testing.T) {
 	o := &model.Order{OrderNo: "O1", UserID: 7, Status: model.OrderPending, CreatedAt: now.Add(-time.Hour)}
 
 	// settings 读取 order 配置(失败→默认 30 分钟)
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT `value` FROM `settings` WHERE `key` = ?")).
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT \"value\" FROM \"settings\" WHERE \"key\" = $1")).
 		WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow(`{"expire_minutes":30}`))
 	// ListPendingBefore
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `orders` WHERE status = ? AND created_at < ?")).
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"orders\" WHERE status = $1 AND created_at < $2")).
 		WillReturnRows(orderRow(o))
 	// 事务:GetByNoForUpdate → UpdateStatus → ClosePendingByOrderNo → Commit
 	e.mock.ExpectBegin()
-	e.mock.ExpectQuery("SELECT .* FROM `orders` WHERE order_no = \\? ORDER BY .* FOR UPDATE").
+	e.mock.ExpectQuery("SELECT .* FROM \"orders\" WHERE order_no = \\$1 ORDER BY .* FOR UPDATE").
 		WillReturnRows(orderRow(o))
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `orders`")).
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"orders\"")).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	// 关闭支付单:UPDATE payments SET status=2 WHERE order_no=? AND status=0
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `payments`")).
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"payments\"")).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	e.mock.ExpectCommit()
 
@@ -54,18 +54,18 @@ func TestCronReconcileSkipsOrphanPayment(t *testing.T) {
 	now := time.Now()
 
 	// ListPending:一条支付单,订单已取消
-	e.mock.ExpectQuery("SELECT .* FROM `payments`").
+	e.mock.ExpectQuery("SELECT .* FROM \"payments\"").
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "order_no", "user_id", "method", "amount", "trade_no", "status",
 			"notify_payload", "paid_at", "created_at", "updated_at",
 		}).AddRow(1, "O1", 7, "epay_alipay", 1000, "", model.PayPending, "", nil, now, now))
 	// 订单已取消
 	o := &model.Order{OrderNo: "O1", UserID: 7, Status: model.OrderCanceled, CreatedAt: now}
-	e.mock.ExpectQuery("SELECT .* FROM `orders`").
+	e.mock.ExpectQuery("SELECT .* FROM \"orders\"").
 		WillReturnRows(orderRow(o))
 	// 关闭支付单(GORM Updates 隐式事务:Begin → UPDATE → Commit)
 	e.mock.ExpectBegin()
-	e.mock.ExpectExec("UPDATE .*`payments` SET .*").WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectExec("UPDATE .*\"payments\" SET .*").WillReturnResult(sqlmock.NewResult(0, 1))
 	e.mock.ExpectCommit()
 
 	cron.ReconcilePayments(context.Background())

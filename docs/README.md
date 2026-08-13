@@ -7,7 +7,7 @@
 | 端 | 形态 | 技术栈 | 文档 |
 |---|---|---|---|
 | 用户端 | 响应式 Web（桌面/平板/手机浏览器）+ Tauri 2 桌面应用（Win/macOS/Linux） | Vue 3.5 + TS + Vite 6 + Naive UI + UnoCSS + Pinia | [frontend/](frontend/README.md) |
-| 服务端 | REST API + 订阅下发 + 支付回调 | Go 1.26.1 + Gin + GORM + MySQL 8 + Redis 7 | [backend/](backend/README.md) |
+| 服务端 | REST API + 订阅下发 + 支付回调 | Go 1.26.1 + Gin + GORM + PostgreSQL 16 + Redis 7 | [backend/](backend/README.md) |
 | 接口契约 | 前后端唯一事实来源 | REST + JSON，OpenAPI 风格描述 | [api/README.md](api/README.md) |
 | 管理端 | 运营后台（同仓 SPA 内 13 模块全部实现：M8 核心 6 模块 + M9 二期 7 模块） | Vue 3 SPA（同仓库） | 见 [api/README.md](api/README.md) §16 |
 
@@ -25,9 +25,8 @@
 ┌────────────┐   支付异步通知   ┌───────────────────────────────┐
 │ 支付网关    │ ─────────────▶ │         Go/Gin 服务端          │
 │ (易支付等)  │ ◀───────────── │  handler → service → repo     │
-└────────────┘   创建支付单     │  ├── MySQL 8（业务数据）       │
-                                │  ├── Redis（验证码/限流/会话） │
-┌────────────┐   拉取节点       │  └── 订阅生成器（Clash/sing-   │
+└────────────┘   创建支付单     │  ├── PostgreSQL 16（业务数据）  │
+                                │  ├── Redis（验证码/限流/会话） │┌────────────┐   拉取节点       │  └── 订阅生成器（Clash/sing-   │
 │ 代理客户端  │ ◀───────────── │      box/v2ray 配置）          │
 │ Clash 等   │  /subscribe/xx  └───────────────────────────────┘
 └────────────┘

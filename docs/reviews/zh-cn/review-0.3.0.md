@@ -13,7 +13,7 @@
 
 ### ~~[P1] 端口 8080→8081 迁移后 Caddyfile 仍代理 api:8080 — server/docker-compose.yml:35-36~~
 
-~~本次提交将 API 监听端口改为 8081(`configs/config.yaml` 的 `addr: ":8081"` 经 Dockerfile 固化进镜像),并在此发布 `8081:8081`,但被同一 compose 文件中 `caddy` 服务以只读方式挂载的 `server/deploy/Caddyfile` 仍然写着 `reverse_proxy api:8080`。在 compose 网络内部,Caddy 直接访问容器,因此经由生产入口的每一个请求都会失败(connection refused/502)。`docs/backend/deploy.md` 已更新为 `reverse_proxy api:8081`,但实际的 Caddyfile 被遗漏;`server/Dockerfile:14` 也仍写着 `EXPOSE 8080`,而 deploy.md 的片段已更新为 8081。严重度仅限于 docker-compose/Caddy 部署(dev-up.sh 直接运行二进制,不受影响),但该路径被本次变更完全弄坏。~~
+~~本次提交将 API 监听端口改为 8081(`configs/config.yaml` 的 `addr: ":8081"` 经 Dockerfile 固化进镜像),并在此发布 `8081:8081`,但被同一 compose 文件中 `caddy` 服务以只读方式挂载的 `server/deploy/Caddyfile` 仍然写着 `reverse_proxy api:8080`。在 compose 网络内部,Caddy 直接访问容器,因此经由生产入口的每一个请求都会失败(connection refused/502)。`docs/backend/deploy.md` 已更新为 `reverse_proxy api:8081`,但实际的 Caddyfile 被遗漏;`server/Dockerfile:14` 也仍写着 `EXPOSE 8080`,而 deploy.md 的片段已更新为 8081。严重度仅限于 docker-compose/Caddy 部署(dev.sh 直接运行二进制,不受影响),但该路径被本次变更完全弄坏。~~
 
 **已修复** — 提交 `294c116`:`server/deploy/Caddyfile` 改代理 `api:8081`,`server/Dockerfile` 改 `EXPOSE 8081`。
 

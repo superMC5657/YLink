@@ -4,4 +4,5 @@
 -- 重开后状态回到「待回复」,reopen_count 置 1,此后不可再重开。
 
 ALTER TABLE tickets
-    ADD COLUMN reopen_count TINYINT NOT NULL DEFAULT 0 COMMENT '已重开次数(0/1,最多一次)';
+    ADD COLUMN reopen_count SMALLINT NOT NULL DEFAULT 0;
+COMMENT ON COLUMN tickets.reopen_count IS '已重开次数(0/1,最多一次)';

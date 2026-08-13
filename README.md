@@ -7,7 +7,7 @@
 | 端 | 形态 | 技术栈 |
 |---|---|---|
 | 用户端 | 响应式 Web（桌面/平板/手机浏览器）+ Tauri 2 桌面应用（Win/macOS/Linux） | Vue 3.5 + TS + Vite 6 + Naive UI + UnoCSS + Pinia |
-| 服务端 | REST API + 订阅下发 + 支付回调 + 定时任务 | Go 1.26 + Gin + GORM + MySQL 8 + Redis 7 |
+| 服务端 | REST API + 订阅下发 + 支付回调 + 定时任务 | Go 1.26 + Gin + GORM + PostgreSQL 16 + Redis 7 |
 | 管理端 | 运营后台（同仓 SPA 内 13 模块：M8 核心 6 + M9 二期 7） | Vue 3 SPA（同仓库） |
 
 ## 功能范围
@@ -35,7 +35,7 @@ pnpm e2e            # Playwright E2E（固定 Mock 环境）
 
 ```bash
 cd server
-cp .env.example .env   # 填写 MySQL/Redis/JWT 等配置
+cp .env.example .env   # 填写 PostgreSQL/Redis/JWT 等配置
 make migrate           # 执行迁移
 make run               # API 服务（:8081）
 ```
@@ -60,7 +60,7 @@ YLink/
 ├── src-tauri/      # Tauri 2 Rust 工程（托盘/深链接/updater 等插件）
 ├── mock/           # vite-plugin-mock 数据（严格按契约）
 ├── server/         # Go/Gin 后端（cmd/internal/migrations/deploy）
-├── scripts/        # 构建/发布脚本（build-latest-json.mjs、dev-up.sh 等）
+├── scripts/        # 构建/发布脚本（build-latest-json.mjs、dev.sh 等）
 ├── tests/          # Playwright E2E
 ├── docs/           # 开发文档（frontend/backend/api/reviews）
 └── .github/workflows/  # CI/CD
@@ -83,4 +83,4 @@ YLink/
 - Node >= 20、pnpm（lockfileVersion 9.0）
 - Rust >= 1.77.2（`src-tauri/Cargo.toml` rust-version）
 - Go 1.26（`server/go.mod`）
-- MySQL 8、Redis 7
+- PostgreSQL 16、Redis 7

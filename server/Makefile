@@ -8,10 +8,10 @@ worker:
 	go run ./cmd/worker
 
 migrate:
-	go run -tags 'mysql' github.com/golang-migrate/migrate/v4/cmd/migrate -path migrations -database "$$DB_URL" up
+	go run -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate -path migrations -database "$$DB_URL" up
 
 migrate-down:
-	go run -tags 'mysql' github.com/golang-migrate/migrate/v4/cmd/migrate -path migrations -database "$$DB_URL" down 1
+	go run -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate -path migrations -database "$$DB_URL" down 1
 
 swagger:
 	swag init -g cmd/server/main.go -o docslint:

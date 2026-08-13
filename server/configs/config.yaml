@@ -6,7 +6,7 @@ app:
   base_url: "http://localhost:8081"   # 用于拼接订阅链接/支付回调地址
 
 database:
-  dsn: "root:ylink_root@tcp(127.0.0.1:3306)/ylink-backend?charset=utf8mb4&parseTime=true&loc=Local"
+  dsn: "host=127.0.0.1 port=5433 user=ylink password=ylink_root dbname=ylink-backend sslmode=disable TimeZone=Asia/Shanghai"
   max_open: 50
   max_idle: 10
 

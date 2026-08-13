@@ -1,0 +1,13 @@
+# 密钥与本地环境配置:严禁进镜像(.env.dev 含数据库/Redis/JWT/SMTP 凭据)
+.env
+.env.*
+!.env.example
+
+# IDE / 静态分析缓存
+.idea/
+.codegraph/
+*.iml
+
+# 日志
+logs/
+*.log

@@ -1,7 +1,10 @@
 # 多阶段构建：server 与 worker 双二进制
-FROM golang:1.24-alpine AS build
+FROM golang:1.26-alpine AS build
 WORKDIR /app
-COPY go.mod go.sum ./ && RUN go mod download
+# 国内网络直连 proxy.golang.org 常超时,构建阶段走 goproxy.cn 加速
+ENV GOPROXY=https://goproxy.cn,direct
+COPY go.mod go.sum ./
+RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o bin/server ./cmd/server \
  && CGO_ENABLED=0 go build -ldflags="-s -w" -o bin/worker ./cmd/worker

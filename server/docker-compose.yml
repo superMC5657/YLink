@@ -35,7 +35,7 @@ services:
   api:
     container_name: backend-api
     build: .
-    env_file: .env
+    env_file: ${ENV_FILE:-.env.dev}
     depends_on:
       postgres:
         condition: service_healthy
@@ -48,7 +48,7 @@ services:
     container_name: backend-worker
     build: .
     command: ["/app/bin/worker"]
-    env_file: .env
+    env_file: ${ENV_FILE:-.env.dev}
     depends_on:
       postgres:
         condition: service_healthy

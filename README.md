@@ -35,9 +35,10 @@ pnpm e2e            # Playwright E2E（固定 Mock 环境）
 
 ```bash
 cd server
-cp .env.example .env   # 填写 PostgreSQL/Redis/JWT 等配置
-make migrate           # 执行迁移
-make run               # API 服务（:8081）
+cp .env.example .env.dev     # 本地开发（.env.dev/.env.release 均被 gitignore,不入库）
+make migrate                 # 执行迁移
+make run                     # API 服务（:8081）
+# 生产发布: cp .env.example .env.release 并填写密钥,ENV_FILE=.env.release docker compose up -d
 ```
 
 ### Tauri 桌面端

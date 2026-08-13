@@ -30,6 +30,9 @@ Thumbs.db
 .env.*.local
 .env.development
 .env.production
+# server 后端环境文件(含真实密钥,仅本地,不入库;模板见 server/.env.example)
+.env.dev
+.env.release
 
 # Tauri 生成物
 src-tauri/target/

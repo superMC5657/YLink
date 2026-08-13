@@ -35,7 +35,8 @@ payment:
     methods: ["alipay", "wxpay"]
 
 cors:
-  allow_origins: ["http://localhost:5174", "http://localhost:1420"]
+  # Web 端来源；Tauri 走原生 HTTP 不经 CORS。生产部署需把真实面板域名加入白名单。
+  allow_origins: ["http://localhost", "http://127.0.0.1", "http://localhost:5174", "http://localhost:1420"]
 
 log:
   level: info

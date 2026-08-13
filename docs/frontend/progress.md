@@ -110,6 +110,7 @@
 |---|---|---|
 | ESLint 9 flat config | js + typescript-eslint + eslint-plugin-vue(flat/recommended)+ eslint-config-prettier,0 error 0 warning | `eslint.config.ts` |
 | Prettier 3 | 全仓格式化 + format:check | `.prettierrc.json`、`.prettierignore` |
+| 构建清理 | ✅ 已修复(2026-08-14):Vite `root=src` 且 `outDir=../dist` 时默认不清空 `dist`,补 `build.emptyOutDir: true`,旧 hashed 产物不再残留且警告消失 | `vite.config.ts` |
 | Vitest 单测 | jsdom,**43 用例**(格式化/http 401 刷新重放/invite store/倒计时 + PlanCard/OrderTable/BannerStatCard 组件测试 12 例),v8 覆盖率 | `vitest.config.ts`、`src/**/__tests__/*` |
 | Playwright E2E | 正式套件 42 例(21 用例 × 桌面/移动双 project、webServer 自动起 Mock),替代原冒烟脚本 | `playwright.config.ts`、`tests/e2e/*` |
 | CI | 仅发布 tag(`v*`)触发 3 job(2026-08-12 调整:此前 push main/PR 每次提交都跑,改后日常检查走本地 `pnpm lint/typecheck/test/format:check`):`frontend-quality`(lint→typecheck→format:check→test→build:web)+ `frontend-e2e`(失败上传报告)+ `rust`(windows-latest:build:web → cargo check);Go 后端不走 Actions(项目决策) | `.github/workflows/ci.yml` |
@@ -267,6 +268,7 @@
 | 关闭 Mock | `.env.development` 设 `VITE_USE_MOCK=false` |
 | API 地址 | `VITE_API_BASE_URL=https://{host}/api/v1`;运行时也可在设置入口改后端地址并持久化(`utils/storage.ts` 的 `app:apiBase`) |
 | CORS | 后端需允许 Web 域名(浏览器 fetch);Tauri 版无此要求(http 插件原生栈) |
+| Web 登录 CORS | ✅ 已修复(2026-08-14):`dev-docker.sh` 构建前端时强制 `VITE_API_BASE_URL=/api/v1`,Web 经 Caddy 同域反代,不再跨端口直连 `localhost:8081`;`configs/config.yaml` CORS 白名单补充 `http://localhost` / `http://127.0.0.1`,直连 8081 的本地 Web 也能通过预检。已有浏览器若持久化过旧 `app:apiBase`,需在登录页点「重置后端接口地址」 | `scripts/dev-docker.sh`、`server/configs/config.yaml` |
 | 契约同步 | 后端字段变更先改 docs/api/README.md → 再改 `src/types/api.d.ts` → api 模块(见 docs/README §5 变更流程) |
 
 ### 3.4 设计令牌维护(重要)

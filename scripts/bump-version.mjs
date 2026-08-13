@@ -31,9 +31,10 @@ const jsonGet = (s) => s.match(/^(\s*"version":\s*")([^"]+)(")/m)?.[2]
 const jsonSet = (s, v) => s.replace(/^(\s*"version":\s*")[^"]+(")/m, `$1${v}$2`)
 
 // Cargo 系:package 段 name 行紧邻 version 行
-const cargoGet = (s) => s.match(/name = "YLink"\nversion = "([^"]+)"/)?.[1]
-const cargoSet = (s, v) =>
-  s.replace(/name = "YLink"\nversion = "[^"]+"/, `name = "YLink"\nversion = "${v}"`)
+const appName = 'YLink'
+const cargoPattern = () => new RegExp(`name = "${appName}"\nversion = "([^"]+)"`)
+const cargoGet = (s) => s.match(cargoPattern())?.[1]
+const cargoSet = (s, v) => s.replace(cargoPattern(), `name = "${appName}"\nversion = "${v}"`)
 
 const TARGETS = [
   { file: 'package.json', label: 'package.json', get: jsonGet, set: jsonSet },

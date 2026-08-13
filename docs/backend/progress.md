@@ -226,9 +226,19 @@
 | 驱动 | `gorm.io/driver/mysql` → `gorm.io/driver/postgres` v1.6.2(pgx v5);`internal/repo/repo.go` 切 `postgres.Open`                                                                                                                                                                                                                                              |
 | 迁移 SQL | `migrations/*.sql` 全部重写为 PG 语法:BIGSERIAL 主键、SMALLINT、BOOLEAN、TIMESTAMP(3)、JSONB、TEXT、COMMENT ON、CONSTRAINT/CREATE INDEX;初始化数据改 JSON 字面量并 `setval` 推进序列                                                                                                                                                                                                   |
 | 业务 SQL | 反引号标识符 → 双引号;bool 列 `= 1/0` → `= true/false`;`DATE_SUB(NOW(), INTERVAL ? DAY)` → `now() - (? * interval '1 day')`;`DATE(paid_at)` → `paid_at::date`;`gorm:"type:json"` → `type:jsonb`、`mediumtext` → `text`                                                                                                                                              |
-| 部署 | docker-compose `mysql` 服务 → `postgres:16-alpine`,端口 **127.0.0.1:5433:5433**(容器内 `-p 5433`),`pg_isready` 健康检查;`redis` 补 `127.0.0.1:6379:6379` 发布(dev.sh 的 api/worker 为宿主机进程);Makefile 迁移 `-tags 'postgres'`;`scripts/dev.sh` 合并启停(无参=启动,`-stop`=关闭含 `docker compose stop` 容器;`--env-file` 读 `server/.env`,变量单源;旧 docker run 容器检测拦截;dev-down.sh 已删除) |
+| 部署 | docker-compose `mysql` 服务 → `postgres:16-alpine`,端口 **127.0.0.1:5433:5433**(容器内 `-p 5433`),`pg_isready` 健康检查;`redis` 补 `127.0.0.1:6379:6379` 发布(dev.sh 的 api/worker 为宿主机进程);Makefile 迁移 `-tags 'postgres'`;`scripts/dev.sh` 合并启停(无参=启动,`-stop`=关闭含 `docker compose stop` 容器;`--env-file` 读 `server/.env.dev`,变量单源;旧 docker run 容器检测拦截;dev-down.sh 已删除) |
 | 测试 | 8 个 service 测试文件 sqlmock 期望切 PG 语法(双引号/`$n`/INSERT RETURNING),驱动 `postgres.New(Conn+PreferSimpleProtocol)`;**60 个测试函数全绿**                                                                                                                                                                                                                                |
 | 实测 | postgres:16 容器实测:迁移、注册(INSERT RETURNING)、JSONB 读写(/config、优惠券)、事务下单、admin dashboard、worker 启动全部通过                                                                                                                                                                                                                                                        |
+
+### 环境文件拆分:server/.env → .env.dev / .env.release(✅ 2026-08-13)
+
+| 项 | 说明 |
+|---|---|
+| 背景 | 原单一 `server/.env`(含真实 SMTP 密钥)不再区分环境,且 `scripts/dev.sh` 与 `docker-compose.yml` 均直接引用 `.env` |
+| 方案 | 拆为 `server/.env.dev`(本地联调,含真实 SMTP)与 `server/.env.release`(生产发布,密钥占位待填);两者均加入 `.gitignore` **不入库**;`.env.example` 保留为无敏感模板(`cp .env.example .env.dev` / `.env.release`) |
+| 引用改造 | `scripts/dev.sh` 的 `ENV_FILE` 改读 `server/.env.dev`(注释同步);`docker-compose.yml` api/worker `env_file: .env` → `${ENV_FILE:-.env.dev}`,生产用 `ENV_FILE=.env.release docker compose up -d` 一条命令切换 |
+| DSN 差异 | dev 的 api/worker 为宿主机进程(DSN 127.0.0.1:5433,dev.sh 显式 export 覆盖);release 容器内用服务名 `host=postgres`;`APP_ENV` 分别 development/production(控制 Swagger/debug) |
+| 验证 | `docker compose --env-file .env.dev config` 与 `ENV_FILE=.env.release docker compose config` 均正确解析对应环境变量 |
 
 ### 一期内已知缺口(可后补)
 
@@ -245,7 +255,7 @@
 | 前置 | 说明 |
 |---|---|
 | Go ≥ 1.26.1（`go.mod` 声明） | ✅ 已满足:本机 1.26.1(2026-08-12 实测) |
-| PostgreSQL 16 | ⚠️ 运行时前置(2026-08-13 起由 MySQL 8 切换),端口 **5433**(容器内 5433:5433);库 `ylink-backend`(默认用户 `ylink`/密码 `ylink_root`);DSN 见 `configs/config.yaml` 或 `APP_DATABASE_DSN`;本机有 Docker 时 `bash scripts/dev.sh` 经 `server/docker-compose.yml` 编排 postgres+redis(**变量读 `server/.env`**,`docker compose --env-file`) |
+| PostgreSQL 16 | ⚠️ 运行时前置(2026-08-13 起由 MySQL 8 切换),端口 **5433**(容器内 5433:5433);库 `ylink-backend`(默认用户 `ylink`/密码 `ylink_root`);DSN 见 `configs/config.yaml` 或 `APP_DATABASE_DSN`;本机有 Docker 时 `bash scripts/dev.sh` 经 `server/docker-compose.yml` 编排 postgres+redis(**变量读 `server/.env.dev`**,`docker compose --env-file`) |
 | Redis 7 | ⚠️ 运行时前置,2026-08-12 本机实测 **6379 未监听且 `redis-server` 命令不在 PATH**,需先启动本地 Redis;本地 `127.0.0.1:6379`(默认无密码);生产必须设密码;`server/docker-compose.yml` 可一键起 |
 | 迁移 | `DB_URL='...' make migrate` 执行 `migrations/0001_init.*`、`0002_balance_check.*`;或 docker-compose 内首启前执行 |
 | SMTP | 验证码/提醒邮件需要可用 SMTP;未配置时**注册/找回流程无法完成**(验证码发送失败仅记日志) |

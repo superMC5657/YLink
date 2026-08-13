@@ -25,9 +25,10 @@ stop_pid() {
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SERVER="$ROOT/server"
 RUN_DIR="$ROOT/.dev"
-# 基础设施变量统一从 server/.env 读取(与 docker-compose.yml 插值同源,compose 用 --env-file 显式指定);
-# .env 缺失时用默认值兜底,保证脚本可运行。
-ENV_FILE="$SERVER/.env"
+# 基础设施变量统一从 server/.env.dev 读取(与 docker-compose.yml 插值同源,compose 用 --env-file 显式指定);
+# .env.dev 缺失时用默认值兜底,保证脚本可运行。
+# 注意:.env.dev 含真实密钥已被 gitignore,模板见 server/.env.example(cp .env.example .env.dev)。
+ENV_FILE="$SERVER/.env.dev"
 pg_env() { grep -E "^$1=" "$ENV_FILE" 2>/dev/null | head -1 | cut -d= -f2- || true; }
 PG_USER="${PG_USER:-$(pg_env POSTGRES_USER)}"; PG_USER="${PG_USER:-ylink}"
 PG_PASS="${PG_PASS:-$(pg_env POSTGRES_PASSWORD)}"; PG_PASS="${PG_PASS:-ylink_root}"
@@ -101,7 +102,7 @@ fi
 ensure_image postgres:16-alpine
 ensure_image redis:7-alpine
 
-# 由 server/docker-compose.yml 编排 postgres + redis;插值变量从 server/.env 读取
+# 由 server/docker-compose.yml 编排 postgres + redis;插值变量从 server/.env.dev 读取
 (cd "$SERVER" && docker compose --env-file "$ENV_FILE" up -d postgres redis)
 echo "  已通过 docker-compose.yml 启动 postgres + redis(项目名:${COMPOSE_PROJECT_NAME:-YLink})"
 
@@ -135,9 +136,9 @@ export APP_BASE_URL=http://localhost:8081
 export APP_JWT_SECRET="$JWT_SECRET"
 export ADMIN_EMAIL="$ADMIN_EMAIL" ADMIN_PASSWORD="$ADMIN_PASSWORD"
 export DEMO_EMAIL="$DEMO_EMAIL" DEMO_PASSWORD="$DEMO_PASSWORD"
-# SMTP 邮件(QQ 等)从 server/.env 读取:APP_SMTP_USERNAME/APP_SMTP_PASSWORD/APP_SMTP_HOST/APP_SMTP_PORT/APP_SMTP_FROM_NAME
+# SMTP 邮件(QQ 等)从 server/.env.dev 读取:APP_SMTP_USERNAME/APP_SMTP_PASSWORD/APP_SMTP_HOST/APP_SMTP_PORT/APP_SMTP_FROM_NAME
 # 变量名统一为 viper 映射后的长名(config.yaml 的 smtp.username/smtp.password → APP_SMTP_USERNAME/APP_SMTP_PASSWORD),
-# 与 .env 里的 key 完全一致,无短名转换,避免后端读不到真实账号导致 535 认证失败。
+# 与 .env.dev 里的 key 完全一致,无短名转换,避免后端读不到真实账号导致 535 认证失败。
 if [ -f "$ENV_FILE" ]; then
   SMTP_HOST="$(grep -E '^APP_SMTP_HOST=' "$ENV_FILE" | head -1 | cut -d= -f2-)"
   SMTP_PORT="$(grep -E '^APP_SMTP_PORT=' "$ENV_FILE" | head -1 | cut -d= -f2-)"
@@ -147,7 +148,7 @@ if [ -f "$ENV_FILE" ]; then
 else
   SMTP_HOST= SMTP_PORT= SMTP_USERNAME= SMTP_PASSWORD= SMTP_FROM=
 fi
-# 仅当 .env 已配置 SMTP 时才导出(避免空值覆盖 config.yaml 里的 smtp 段)
+# 仅当 .env.dev 已配置 SMTP 时才导出(避免空值覆盖 config.yaml 里的 smtp 段)
 if [ -n "$SMTP_USERNAME" ] || [ -n "$SMTP_PASSWORD" ]; then
   export APP_SMTP_HOST="$SMTP_HOST" APP_SMTP_PORT="$SMTP_PORT"
   export APP_SMTP_USERNAME="$SMTP_USERNAME" APP_SMTP_PASSWORD="$SMTP_PASSWORD"

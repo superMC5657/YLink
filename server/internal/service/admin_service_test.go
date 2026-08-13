@@ -38,9 +38,9 @@ func TestCreateOrderCouponLimitExceeded(t *testing.T) {
 	p := &model.Plan{ID: 1, Name: "白羊座", MonthPrice: &mPrice, TrafficGB: 300, IsShow: true, CreatedAt: now, UpdatedAt: now}
 
 	// 幂等键未命中
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `orders`")).WillReturnError(assert.AnError)
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"orders\"")).WillReturnError(assert.AnError)
 	// 套餐查询
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `plans`")).WillReturnRows(planRow(p))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"plans\"")).WillReturnRows(planRow(p))
 	// 事务开始
 	e.mock.ExpectBegin()
 	// 优惠券查询（used_count 已达 total_limit）
@@ -50,7 +50,7 @@ func TestCreateOrderCouponLimitExceeded(t *testing.T) {
 		"valid_periods", "plan_ids", "started_at", "ended_at", "is_enable", "created_at", "updated_at",
 	}).AddRow(cp.ID, cp.Code, cp.Type, cp.Value, cp.MinSpend, cp.LimitPerUser, cp.TotalLimit, cp.UsedCount,
 		cp.ValidPeriods, cp.PlanIDs, cp.StartedAt, cp.EndedAt, cp.IsEnable, now, now)
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `coupons`")).WillReturnRows(couponRows)
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"coupons\"")).WillReturnRows(couponRows)
 	// validateCoupon 检查 used_count >= total_limit → 直接 ErrCoupon（未到 Occupy）
 	e.mock.ExpectRollback()
 
@@ -65,8 +65,8 @@ func TestCreateOrderCouponOccupied(t *testing.T) {
 	mPrice := int64(1000)
 	p := &model.Plan{ID: 1, Name: "白羊座", MonthPrice: &mPrice, TrafficGB: 300, IsShow: true, CreatedAt: now, UpdatedAt: now}
 
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `orders`")).WillReturnError(assert.AnError)
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `plans`")).WillReturnRows(planRow(p))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"orders\"")).WillReturnError(assert.AnError)
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"plans\"")).WillReturnRows(planRow(p))
 	e.mock.ExpectBegin()
 	// 优惠券查询
 	cp := &model.Coupon{ID: 9, Code: "OK", Type: 1, Value: 200, MinSpend: 0, TotalLimit: 10, UsedCount: 3, IsEnable: true}
@@ -75,17 +75,17 @@ func TestCreateOrderCouponOccupied(t *testing.T) {
 		"valid_periods", "plan_ids", "started_at", "ended_at", "is_enable", "created_at", "updated_at",
 	}).AddRow(cp.ID, cp.Code, cp.Type, cp.Value, cp.MinSpend, cp.LimitPerUser, cp.TotalLimit, cp.UsedCount,
 		cp.ValidPeriods, cp.PlanIDs, cp.StartedAt, cp.EndedAt, cp.IsEnable, now, now)
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `coupons`")).WillReturnRows(couponRows)
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"coupons\"")).WillReturnRows(couponRows)
 	// 原子占用：条件更新成功（1 行）
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `coupons` SET `used_count`=used_count + 1 WHERE")).
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"coupons\" SET \"used_count\"=used_count + 1 WHERE")).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	// 写使用流水
-	e.mock.ExpectExec(regexp.QuoteMeta("INSERT INTO `coupon_usages`")).WillReturnResult(sqlmock.NewResult(1, 1))
+	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"coupon_usages\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	// 创建订单
-	e.mock.ExpectExec(regexp.QuoteMeta("INSERT INTO `orders`")).WillReturnResult(sqlmock.NewResult(1, 1))
+	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"orders\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 	// toOrderResp 查套餐
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `plans`")).WillReturnRows(planRow(p))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"plans\"")).WillReturnRows(planRow(p))
 
 	resp, err := svc.CreateOrder(ctx, 7, "idem-ok", &model.CreateOrderReq{PlanID: 1, Period: "month", CouponCode: "OK"})
 	require.NoError(t, err)
@@ -109,29 +109,29 @@ func TestAdminRefundWithCommissionRollback(t *testing.T) {
 		Amount: 1000, PayAmount: 1000, Status: 1, PayMethod: &payMethod, PaidAt: &paidAt, CreatedAt: now, UpdatedAt: now}
 	// 行锁读订单
 	e.mock.ExpectBegin()
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `orders`")).WillReturnRows(orderRow(o))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"orders\"")).WillReturnRows(orderRow(o))
 	// 收回订阅：锁购买人（有订阅：plan_id=1 未过期）→ 查套餐 → 清除订阅
 	buyer := &model.User{ID: 2, Email: "buyer@b.com", PlanID: &planID1, ExpiredAt: &future,
 		TransferEnable: 300 * 1024 * 1024 * 1024, U: 1, D: 2, CreatedAt: now, UpdatedAt: now}
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `users`")).WillReturnRows(userRow(buyer))
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `plans`")).WillReturnRows(planRow(p1))
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `users`")).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"users\"")).WillReturnRows(userRow(buyer))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"plans\"")).WillReturnRows(planRow(p1))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"users\"")).WillReturnResult(sqlmock.NewResult(0, 1))
 	// 订单状态 → 已退款（先 Save）
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `orders`")).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"orders\"")).WillReturnResult(sqlmock.NewResult(0, 1))
 	// 佣金查询：已发放
 	cl := &model.CommissionLog{ID: 1, InviteUserID: 9, FromUserID: 2, OrderNo: "O1", OrderAmount: 1000, Rate: 40, Amount: 400, Status: 1, ConfirmedAt: &now, CreatedAt: now}
 	clRows := sqlmock.NewRows([]string{
 		"id", "invite_user_id", "from_user_id", "order_no", "order_amount", "rate", "amount", "status", "confirmed_at", "created_at",
 	}).AddRow(cl.ID, cl.InviteUserID, cl.FromUserID, cl.OrderNo, cl.OrderAmount, cl.Rate, cl.Amount, cl.Status, cl.ConfirmedAt, cl.CreatedAt)
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `commission_logs`")).WillReturnRows(clRows)
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"commission_logs\"")).WillReturnRows(clRows)
 	// 锁邀请人 → 扣回佣金
 	inviter := &model.User{ID: 9, Email: "inv@b.com", CommissionBalance: 400, CreatedAt: now, UpdatedAt: now}
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `users`")).WillReturnRows(userRow(inviter))
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `users`")).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"users\"")).WillReturnRows(userRow(inviter))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"users\"")).WillReturnResult(sqlmock.NewResult(0, 1))
 	// 佣金状态 → 已撤销
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `commission_logs`")).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"commission_logs\"")).WillReturnResult(sqlmock.NewResult(0, 1))
 	// 审计日志
-	e.mock.ExpectExec(regexp.QuoteMeta("INSERT INTO `audit_logs`")).WillReturnResult(sqlmock.NewResult(1, 1))
+	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"audit_logs\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
 	err := svc.Refund(context.Background(), 1, "O1", "测试退款", "127.0.0.1")
@@ -150,10 +150,10 @@ func TestAdminReviewAgentApprove(t *testing.T) {
 	apply := &model.AgentApply{ID: 3, UserID: 5, Status: 0, CreatedAt: now}
 	applyRows := sqlmock.NewRows([]string{"id", "user_id", "status", "remark", "reviewed_at", "created_at", "updated_at"}).
 		AddRow(apply.ID, apply.UserID, apply.Status, nil, nil, now, now)
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `agent_applies`")).WillReturnRows(applyRows)
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `users`")).WillReturnResult(sqlmock.NewResult(0, 1))
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `agent_applies`")).WillReturnResult(sqlmock.NewResult(0, 1))
-	e.mock.ExpectExec(regexp.QuoteMeta("INSERT INTO `audit_logs`")).WillReturnResult(sqlmock.NewResult(1, 1))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"agent_applies\"")).WillReturnRows(applyRows)
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"users\"")).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"agent_applies\"")).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"audit_logs\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
 	err := svc.ReviewAgentApply(context.Background(), 1, 3, true, "", "127.0.0.1")
@@ -180,7 +180,7 @@ func TestAdminListCoupons(t *testing.T) {
 		"valid_periods", "plan_ids", "started_at", "ended_at", "is_enable", "created_at", "updated_at",
 	}).AddRow(cp.ID, cp.Code, cp.Type, cp.Value, cp.MinSpend, cp.LimitPerUser, cp.TotalLimit, cp.UsedCount,
 		cp.ValidPeriods, cp.PlanIDs, nil, nil, cp.IsEnable, now, now)
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `coupons`")).WillReturnRows(rows)
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"coupons\"")).WillReturnRows(rows)
 
 	out, err := svc.ListAllCoupons(context.Background())
 	require.NoError(t, err)
@@ -205,7 +205,7 @@ func TestAdminListNotices(t *testing.T) {
 	n := &model.Notice{ID: 1, Title: "维护公告", Content: "正文", IsShow: false, Sort: 2, CreatedAt: now}
 	rows := sqlmock.NewRows([]string{"id", "title", "content", "is_show", "sort", "created_at", "updated_at"}).
 		AddRow(n.ID, n.Title, n.Content, n.IsShow, n.Sort, now, now)
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `notices`")).WillReturnRows(rows)
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"notices\"")).WillReturnRows(rows)
 
 	out, err := svc.ListAllNotices(context.Background())
 	require.NoError(t, err)
@@ -229,7 +229,7 @@ func TestAdminListKnowledges(t *testing.T) {
 	rows := sqlmock.NewRows([]string{
 		"id", "category", "title", "body", "language", "is_show", "sort", "created_at", "updated_at",
 	}).AddRow(k.ID, k.Category, k.Title, k.Body, k.Language, k.IsShow, k.Sort, now, now)
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `knowledges`")).WillReturnRows(rows)
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"knowledges\"")).WillReturnRows(rows)
 
 	out, err := svc.ListAllKnowledges(context.Background())
 	require.NoError(t, err)
@@ -249,7 +249,7 @@ func TestAdminAdjustBalanceNegativeRejected(t *testing.T) {
 	// 事务：行锁读用户（余额 0）→ 调 -100 → 服务层拒绝，回滚
 	e.mock.ExpectBegin()
 	u := &model.User{ID: 5, Email: "u@b.com", Balance: 0, CreatedAt: now, UpdatedAt: now}
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `users`")).WillReturnRows(userRow(u))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"users\"")).WillReturnRows(userRow(u))
 	e.mock.ExpectRollback()
 
 	err := svc.AdjustBalance(context.Background(), 1, 5, -100, "扣款", "127.0.0.1")
@@ -265,13 +265,13 @@ func TestAdminUpdateUserBanBumpsSessionVersion(t *testing.T) {
 
 	now := time.Now()
 	u := &model.User{ID: 5, Email: "u@b.com", Role: 0, IsBanned: false, CreatedAt: now, UpdatedAt: now}
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `users`")).WillReturnRows(userRow(u))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"users\"")).WillReturnRows(userRow(u))
 	// GORM 默认单写操作包事务：SetBanned 与审计各一个 BEGIN/COMMIT
 	e.mock.ExpectBegin()
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `users`")).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"users\"")).WillReturnResult(sqlmock.NewResult(0, 1))
 	e.mock.ExpectCommit()
 	e.mock.ExpectBegin()
-	e.mock.ExpectExec(regexp.QuoteMeta("INSERT INTO `audit_logs`")).WillReturnResult(sqlmock.NewResult(1, 1))
+	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"audit_logs\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
 	banned := true
@@ -292,13 +292,13 @@ func TestAdminUpdateUserRoleBumpsSessionVersion(t *testing.T) {
 
 	now := time.Now()
 	u := &model.User{ID: 6, Email: "r@b.com", Role: 0, IsBanned: false, CreatedAt: now, UpdatedAt: now}
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `users`")).WillReturnRows(userRow(u))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"users\"")).WillReturnRows(userRow(u))
 	// GORM 默认单写操作包事务：UpdateRole 与审计各一个 BEGIN/COMMIT
 	e.mock.ExpectBegin()
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `users`")).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"users\"")).WillReturnResult(sqlmock.NewResult(0, 1))
 	e.mock.ExpectCommit()
 	e.mock.ExpectBegin()
-	e.mock.ExpectExec(regexp.QuoteMeta("INSERT INTO `audit_logs`")).WillReturnResult(sqlmock.NewResult(1, 1))
+	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"audit_logs\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
 	role := 2
@@ -324,16 +324,16 @@ func TestAdminRefundRevokesOnetimeTraffic(t *testing.T) {
 	o := &model.Order{ID: 2, OrderNo: "O2", UserID: 3, PlanID: 1, Period: "onetime",
 		Amount: 1000, PayAmount: 1000, Status: 1, PayMethod: &payMethod, PaidAt: &paidAt, CreatedAt: now, UpdatedAt: now}
 	e.mock.ExpectBegin()
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `orders`")).WillReturnRows(orderRow(o))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"orders\"")).WillReturnRows(orderRow(o))
 	// onetime：锁用户（当前 transfer_enable=200G）→ 查套餐(300G) → 扣回 300G → 下限 0
 	buyer := &model.User{ID: 3, Email: "o@b.com", TransferEnable: 200 * 1024 * 1024 * 1024, CreatedAt: now, UpdatedAt: now}
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `users`")).WillReturnRows(userRow(buyer))
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `plans`")).WillReturnRows(planRow(p1))
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `users`")).WillReturnResult(sqlmock.NewResult(0, 1))
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `orders`")).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"users\"")).WillReturnRows(userRow(buyer))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"plans\"")).WillReturnRows(planRow(p1))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"users\"")).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"orders\"")).WillReturnResult(sqlmock.NewResult(0, 1))
 	// 无佣金
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `commission_logs`")).WillReturnError(assert.AnError)
-	e.mock.ExpectExec(regexp.QuoteMeta("INSERT INTO `audit_logs`")).WillReturnResult(sqlmock.NewResult(1, 1))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"commission_logs\"")).WillReturnError(assert.AnError)
+	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"audit_logs\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
 	err := svc.Refund(context.Background(), 1, "O2", "退流量", "127.0.0.1")
@@ -355,16 +355,16 @@ func TestAdminRefundKeepsOtherPlanSubscription(t *testing.T) {
 	o := &model.Order{ID: 3, OrderNo: "O3", UserID: 4, PlanID: 1, Period: "month",
 		Amount: 1000, PayAmount: 1000, Status: 1, PayMethod: &payMethod, PaidAt: &paidAt, CreatedAt: now, UpdatedAt: now}
 	e.mock.ExpectBegin()
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `orders`")).WillReturnRows(orderRow(o))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"orders\"")).WillReturnRows(orderRow(o))
 	// 锁用户：当前订阅是套餐 2（≠ 订单套餐 1）→ 不清除 → 无 UPDATE users
 	otherPlan := int64(2)
 	buyer := &model.User{ID: 4, Email: "p@b.com", PlanID: &otherPlan, ExpiredAt: &future, CreatedAt: now, UpdatedAt: now}
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `users`")).WillReturnRows(userRow(buyer))
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `plans`")).WillReturnRows(planRow(p1))
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `orders`")).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"users\"")).WillReturnRows(userRow(buyer))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"plans\"")).WillReturnRows(planRow(p1))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"orders\"")).WillReturnResult(sqlmock.NewResult(0, 1))
 	// 无佣金
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `commission_logs`")).WillReturnError(assert.AnError)
-	e.mock.ExpectExec(regexp.QuoteMeta("INSERT INTO `audit_logs`")).WillReturnResult(sqlmock.NewResult(1, 1))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"commission_logs\"")).WillReturnError(assert.AnError)
+	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"audit_logs\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
 	err := svc.Refund(context.Background(), 1, "O3", "退其他套餐单", "127.0.0.1")
@@ -383,10 +383,10 @@ func TestAdminListOrdersCommission(t *testing.T) {
 		Amount: 1000, PayAmount: 1000, Status: 1, PayMethod: &pm, PaidAt: &now, CreatedAt: now, UpdatedAt: now}
 
 	// 分页计数
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT count(*) FROM `orders`")).
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT count(*) FROM \"orders\"")).
 		WillReturnRows(sqlmock.NewRows([]string{"count(*)"}).AddRow(1))
 	// 分页列表
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `orders`")).
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"orders\"")).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "order_no", "user_id", "plan_id", "period", "amount", "discount_amount",
 			"balance_used", "pay_amount", "coupon_id", "status", "pay_method", "paid_at",
@@ -395,16 +395,16 @@ func TestAdminListOrdersCommission(t *testing.T) {
 			o.BalanceUsed, o.PayAmount, o.CouponID, o.Status, o.PayMethod, o.PaidAt,
 			o.IdempotencyKey, o.CreatedAt, o.UpdatedAt))
 	// emailsOf:按 user_id 查邮箱
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email FROM `users`")).
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email FROM \"users\"")).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "email"}).AddRow(7, "u7@b.com"))
 	// ListByOrderNos:批量查佣金
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `commission_logs` WHERE order_no IN")).
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"commission_logs\" WHERE order_no IN")).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "invite_user_id", "from_user_id", "order_no", "order_amount", "rate", "amount", "status", "confirmed_at", "created_at",
 		}).AddRow(1, 9, 7, "O2026", 1000, 40, 400, 0, nil, now))
 	// plan 名(GetByID 按主键查)
 	p := &model.Plan{ID: 1, Name: "白羊座", TrafficGB: 300, CreatedAt: now, UpdatedAt: now}
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `plans` WHERE `plans`.`id` = ? ORDER BY `plans`.`id` LIMIT ?")).
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"plans\" WHERE \"plans\".\"id\" = $1 ORDER BY \"plans\".\"id\" LIMIT $2")).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "name", "content", "month_price", "quarter_price", "half_year_price", "year_price",
 			"onetime_price", "traffic_gb", "speed_limit", "device_limit", "group_ids", "is_show", "sort",
@@ -434,9 +434,9 @@ func TestAdminListOrdersCommissionQueryError(t *testing.T) {
 	o := &model.Order{ID: 1, OrderNo: "O2026", UserID: 7, PlanID: 1, Period: "month",
 		Amount: 1000, PayAmount: 1000, Status: 1, PayMethod: &pm, PaidAt: &now, CreatedAt: now, UpdatedAt: now}
 
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT count(*) FROM `orders`")).
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT count(*) FROM \"orders\"")).
 		WillReturnRows(sqlmock.NewRows([]string{"count(*)"}).AddRow(1))
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `orders`")).
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"orders\"")).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "order_no", "user_id", "plan_id", "period", "amount", "discount_amount",
 			"balance_used", "pay_amount", "coupon_id", "status", "pay_method", "paid_at",
@@ -445,10 +445,10 @@ func TestAdminListOrdersCommissionQueryError(t *testing.T) {
 			o.BalanceUsed, o.PayAmount, o.CouponID, o.Status, o.PayMethod, o.PaidAt,
 			o.IdempotencyKey, o.CreatedAt, o.UpdatedAt))
 	// emailsOf
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email FROM `users`")).
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT id, email FROM \"users\"")).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "email"}).AddRow(7, "u7@b.com"))
 	// 佣金查询失败
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `commission_logs` WHERE order_no IN")).
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"commission_logs\" WHERE order_no IN")).
 		WillReturnError(assert.AnError)
 
 	status := 1

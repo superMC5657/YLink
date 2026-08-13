@@ -77,7 +77,7 @@ func (s *AdminService) Overview(ctx context.Context) (*model.AdminOverviewResp, 
 		Select("COALESCE(SUM(pay_amount),0)").Scan(&rev.Total).Error; err != nil {
 		return nil, err
 	}
-	if err := s.db.Model(&model.Order{}).Where("status = ? AND DATE(paid_at) = ?", model.OrderCompleted, today).
+	if err := s.db.Model(&model.Order{}).Where("status = ? AND paid_at::date = ?", model.OrderCompleted, today).
 		Select("COALESCE(SUM(pay_amount),0)").Scan(&rev.Today).Error; err != nil {
 		return nil, err
 	}
@@ -481,7 +481,7 @@ func (s *AdminService) ImportTraffic(ctx context.Context, adminID int64, req *mo
 // ListSettings GET /admin/settings。
 func (s *AdminService) ListSettings(ctx context.Context) ([]model.AdminSettingsResp, error) {
 	var rows []model.Setting
-	if err := s.db.Order("`key` ASC").Find(&rows).Error; err != nil {
+	if err := s.db.Order("key ASC").Find(&rows).Error; err != nil {
 		return nil, err
 	}
 	out := make([]model.AdminSettingsResp, 0, len(rows))

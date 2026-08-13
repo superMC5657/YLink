@@ -145,7 +145,7 @@ func (CouponRepo) Delete(db *gorm.DB, id int64) error {
 
 func (CouponRepo) GetByCode(db *gorm.DB, code string) (*model.Coupon, error) {
 	var c model.Coupon
-	if err := db.Where("code = ? AND is_enable = 1", code).First(&c).Error; err != nil {
+	if err := db.Where("code = ? AND is_enable = true", code).First(&c).Error; err != nil {
 		return nil, err
 	}
 	return &c, nil
@@ -155,7 +155,7 @@ func (CouponRepo) GetByCode(db *gorm.DB, code string) (*model.Coupon, error) {
 // limit_per_user、套餐/周期匹配在 service 层按当前用户与请求参数过滤（避免此处泄露用户维度 SQL 复杂度）。
 func (CouponRepo) ListAvailable(db *gorm.DB, now time.Time) ([]model.Coupon, error) {
 	var list []model.Coupon
-	err := db.Where("is_enable = 1").
+	err := db.Where("is_enable = true").
 		Where("(total_limit = 0 OR used_count < total_limit)").
 		Where("(started_at IS NULL OR started_at <= ?)", now).
 		Where("(ended_at IS NULL OR ended_at >= ?)", now).

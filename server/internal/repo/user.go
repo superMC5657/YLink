@@ -15,7 +15,7 @@ type SettingRepo struct{}
 // Get 读取单个配置项（JSON 字符串）。
 func (SettingRepo) Get(db *gorm.DB, key string) (string, error) {
 	var s model.Setting
-	if err := db.Select("value").Where("`key` = ?", key).First(&s).Error; err != nil {
+	if err := db.Select("value").Where("\"key\" = ?", key).First(&s).Error; err != nil {
 		return "", err
 	}
 	return s.Value, nil

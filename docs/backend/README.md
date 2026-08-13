@@ -8,8 +8,8 @@
 |---|---|---|
 | 语言 | Go 1.26.1 | `server/go.mod` 声明 |
 | Web 框架 | Gin | 轻量、生态成熟 |
-| ORM | GORM v2 | MySQL 8；事务与关联查询方便 |
-| 数据库 | MySQL 8.0 | InnoDB，utf8mb4 |
+| ORM | GORM v2 | PostgreSQL 16；事务与关联查询方便 |
+| 数据库 | PostgreSQL 16 | 业务数据（JSONB/事务/索引），端口 5433 |
 | 缓存/队列 | Redis 7 | 邮箱验证码、限流、Token 会话、订单幂等、热数据缓存 |
 | 鉴权 | JWT（golang-jwt/v5） | access(2h) + refresh(14d)，refresh 白名单存 Redis 可吊销 |
 | 配置 | Viper | `config.yaml` + 环境变量覆盖 |
@@ -148,7 +148,7 @@ type Generator interface { Format() string; Build(u *User, nodes []Server) ([]by
 ## 11. 性能与容量预估
 
 - 目标量级：单实例支撑 1–5 万注册用户、峰值 200 QPS（面板类业务足够）。
-- 手段：套餐/节点/配置 Redis 缓存；列表接口全部分页；`subscription-userinfo` 读缓存 30s；MySQL 合理索引（见 data-model.md）；GORM 预加载防 N+1；慢查询日志 >200ms 告警。
+- 手段：套餐/节点/配置 Redis 缓存；列表接口全部分页；`subscription-userinfo` 读缓存 30s；PostgreSQL 合理索引（见 data-model.md）；GORM 预加载防 N+1；慢查询日志 >200ms 告警。
 - 横向扩容：服务无状态（会话在 Redis），多实例前置负载均衡即可；cron 进程单实例运行（或加分布式锁）。
 
 ## 12. 里程碑

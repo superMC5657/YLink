@@ -1,14 +1,38 @@
 #!/usr/bin/env bash
-# YLink 本地联调一键启动:MySQL/Redis 容器 + 后端 api + worker + 前端 dev(连真实后端)
-# 用法:bash scripts/dev-up.sh
-# 停止:bash scripts/dev-down.sh
+# YLink 本地联调一键启动:PostgreSQL/Redis 容器 + 后端 api + worker + 前端 dev(连真实后端)
+# 用法:bash scripts/dev.sh          # 启动(容器+后端+前端)
+#      bash scripts/dev.sh -stop  # 关闭(停 api/worker/前端 + docker compose stop 容器)
 set -euo pipefail
+
+stop_pid() {
+  local pid_file="$1" name="$2"
+  [ -f "$pid_file" ] || { echo "  $name:无 PID 记录,跳过"; return; }
+  local pid
+  pid="$(cat "$pid_file")"
+  if [ -n "$pid" ]; then
+    # Windows 用 taskkill 杀进程树(go run/pnpm 有子进程),非 Windows 用 kill
+    if taskkill //F //T //PID "$pid" >/dev/null 2>&1; then
+      echo "  已停止 $name (pid $pid)"
+    elif kill "$pid" >/dev/null 2>&1; then
+      echo "  已停止 $name (pid $pid)"
+    else
+      echo "  $name (pid $pid) 已不在运行"
+    fi
+  fi
+  rm -f "$pid_file"
+}
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SERVER="$ROOT/server"
 RUN_DIR="$ROOT/.dev"
-MYSQL_PASS="ylink_root"
-REDIS_PASS="ylink_redis"
+# 基础设施变量统一从 server/.env 读取(与 docker-compose.yml 插值同源,compose 用 --env-file 显式指定);
+# .env 缺失时用默认值兜底,保证脚本可运行。
+ENV_FILE="$SERVER/.env"
+pg_env() { grep -E "^$1=" "$ENV_FILE" 2>/dev/null | head -1 | cut -d= -f2- || true; }
+PG_USER="${PG_USER:-$(pg_env POSTGRES_USER)}"; PG_USER="${PG_USER:-ylink}"
+PG_PASS="${PG_PASS:-$(pg_env POSTGRES_PASSWORD)}"; PG_PASS="${PG_PASS:-ylink_root}"
+PG_DB="${PG_DB:-$(pg_env POSTGRES_DB)}"; PG_DB="${PG_DB:-ylink-backend}"
+REDIS_PASS="${REDIS_PASS:-$(pg_env REDIS_PASSWORD)}"; REDIS_PASS="${REDIS_PASS:-ylink_redis}"
 ADMIN_EMAIL="admin@example.com"
 ADMIN_PASSWORD="Admin@123456"
 DEMO_EMAIL="demo@test.com"
@@ -16,6 +40,23 @@ DEMO_PASSWORD="Passw0rd"
 JWT_SECRET="dev-join-test-secret-32bytes-key!!"
 
 mkdir -p "$RUN_DIR"
+
+# ---------- 0b. 关闭模式 ----------
+if [ "${1:-}" = "-stop" ]; then
+  echo "关闭 YLink 本地服务..."
+  stop_pid "$RUN_DIR/vite.pid"   "前端 dev"
+  stop_pid "$RUN_DIR/api.pid"    "后端 api"
+  stop_pid "$RUN_DIR/worker.pid" "后端 worker"
+  # 关闭 docker compose 服务(postgres/redis;volume 数据保留,下次启动自动重建)
+  if docker info >/dev/null 2>&1; then
+    (cd "$SERVER" && docker compose --env-file "$ENV_FILE" stop) && echo "  已关闭 postgres/redis 容器(docker compose stop,volume 数据保留)"
+  else
+    echo "  Docker daemon 未运行,跳过容器关闭"
+  fi
+  echo "完成。启动:bash scripts/dev.sh"
+  exit 0
+fi
+
 
 say() { printf '\n[%s] %s\n' "$(date +%H:%M:%S)" "$*"; }
 
@@ -33,7 +74,7 @@ else
   VITE_ALREADY=0
 fi
 
-# ---------- 1. 基础设施(MySQL/Redis 容器) ----------
+# ---------- 1. 基础设施(PostgreSQL/Redis 容器) ----------
 say "[1/4] 检查 Docker 与基础设施容器..."
 docker info >/dev/null 2>&1 || { echo "错误:Docker daemon 未运行,请先启动 Docker Desktop"; exit 1; }
 
@@ -47,45 +88,39 @@ ensure_image() {
   fi
 }
 
-if ! docker inspect yl-backend-mysql >/dev/null 2>&1; then
-  ensure_image mysql:8.0
-  docker run -d --name yl-backend-mysql \
-    -e MYSQL_ROOT_PASSWORD="$MYSQL_PASS" -e MYSQL_DATABASE=ylink-backend \
-    -p 127.0.0.1:3306:3306 \
-    mysql:8.0 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci >/dev/null
-  echo "  已创建 yl-backend-mysql"
-else
-  docker start yl-backend-mysql >/dev/null 2>&1 || true
-  echo "  yl-backend-mysql 已存在,启动中"
+# 旧版 dev.sh 用 docker run 直接建容器(无 compose 标签),与 compose 编排不兼容;检测到则提示清理
+if docker inspect yl-backend-postgres >/dev/null 2>&1 || docker inspect yl-backend-redis >/dev/null 2>&1; then
+  echo "错误:检测到旧版 dev.sh(docker run 方式)创建的容器 yl-backend-postgres / yl-backend-redis。"
+  echo "  新版改用 server/docker-compose.yml 编排,请先清理旧容器:"
+  echo "    docker rm -f yl-backend-postgres yl-backend-redis"
+  echo "  (旧容器数据在可写层,删除即丢;如需保留请先 docker commit 备份)"
+  exit 1
 fi
 
-if ! docker inspect yl-backend-redis >/dev/null 2>&1; then
-  ensure_image redis:7-alpine
-  docker run -d --name yl-backend-redis \
-    -p 127.0.0.1:6379:6379 \
-    redis:7-alpine redis-server --requirepass "$REDIS_PASS" >/dev/null
-  echo "  已创建 yl-backend-redis"
-else
-  docker start yl-backend-redis >/dev/null 2>&1 || true
-  echo "  yl-backend-redis 已存在,启动中"
-fi
+# 预拉镜像(本地缺失时走 daoCloud 加速,避免直连 Docker Hub 超时)
+ensure_image postgres:16-alpine
+ensure_image redis:7-alpine
 
-# 等待 MySQL/Redis 就绪(最多 120s)
+# 由 server/docker-compose.yml 编排 postgres + redis;插值变量从 server/.env 读取
+(cd "$SERVER" && docker compose --env-file "$ENV_FILE" up -d postgres redis)
+echo "  已通过 docker-compose.yml 启动 postgres + redis(项目名:${COMPOSE_PROJECT_NAME:-YLink})"
+
+# 等待 PostgreSQL/Redis 就绪(最多 120s)
 for i in $(seq 1 24); do
-  MYSQL_OK=0; REDIS_OK=0
-  docker exec yl-backend-mysql mysqladmin ping -h127.0.0.1 -uroot -p"$MYSQL_PASS" --silent >/dev/null 2>&1 && MYSQL_OK=1
-  docker exec yl-backend-redis redis-cli -a "$REDIS_PASS" ping >/dev/null 2>&1 && REDIS_OK=1
-  [ "$MYSQL_OK" = 1 ] && [ "$REDIS_OK" = 1 ] && break
-  [ $i -eq 24 ] && { echo "错误:MySQL/Redis 5s 内未就绪,请 docker logs yl-backend-mysql / yl-backend-redis 排查"; exit 1; }
+  PG_OK=0; REDIS_OK=0
+  (cd "$SERVER" && docker compose exec -T postgres pg_isready -h127.0.0.1 -p5433 -U"$PG_USER") >/dev/null 2>&1 && PG_OK=1
+  (cd "$SERVER" && docker compose exec -T redis redis-cli -a "$REDIS_PASS" ping) >/dev/null 2>&1 && REDIS_OK=1
+  [ "$PG_OK" = 1 ] && [ "$REDIS_OK" = 1 ] && break
+  [ $i -eq 24 ] && { echo "错误:PostgreSQL/Redis 120s 内未就绪,请 docker compose logs postgres / redis 排查"; exit 1; }
   sleep 5
 done
-echo "  MySQL + Redis 就绪"
+echo "  PostgreSQL + Redis 就绪"
 
 # ---------- 2. 数据库迁移(首次自动执行) ----------
 say "[2/4] 检查数据库迁移..."
-if ! docker exec yl-backend-mysql mysql -uroot -p"$MYSQL_PASS" -e "SHOW TABLES LIKE 'users'" ylink-backend 2>/dev/null | grep -q users; then
-  echo "  首次启动,执行迁移(DSN 带 mysql:// 前缀)..."
-  ( cd "$SERVER" && DB_URL="mysql://root:${MYSQL_PASS}@tcp(127.0.0.1:3306)/ylink-backend?charset=utf8mb4&parseTime=true&loc=Local" make migrate >/dev/null )
+if ! (cd "$SERVER" && docker compose exec -T postgres psql -h 127.0.0.1 -p 5433 -U "$PG_USER" -d "$PG_DB" -tAc "SELECT 1 FROM information_schema.tables WHERE table_name='users'") 2>/dev/null | grep -q 1; then
+  echo "  首次启动,执行迁移(DSN 带 postgres:// 前缀)..."
+  ( cd "$SERVER" && DB_URL="postgres://${PG_USER}:${PG_PASS}@127.0.0.1:5433/${PG_DB}?sslmode=disable" make migrate >/dev/null )
   echo "  迁移完成"
 else
   echo "  已迁移,跳过"
@@ -93,7 +128,7 @@ fi
 
 # ---------- 3. 后端 api + worker ----------
 say "[3/4] 启动后端 api + worker..."
-export APP_DATABASE_DSN="root:${MYSQL_PASS}@tcp(127.0.0.1:3306)/ylink-backend?charset=utf8mb4&parseTime=true&loc=Local"
+export APP_DATABASE_DSN="host=127.0.0.1 port=5433 user=${PG_USER} password=${PG_PASS} dbname=${PG_DB} sslmode=disable TimeZone=Asia/Shanghai"
 export APP_REDIS_ADDR=127.0.0.1:6379
 export APP_REDIS_PASSWORD="$REDIS_PASS"
 export APP_BASE_URL=http://localhost:8081
@@ -103,7 +138,6 @@ export DEMO_EMAIL="$DEMO_EMAIL" DEMO_PASSWORD="$DEMO_PASSWORD"
 # SMTP 邮件(QQ 等)从 server/.env 读取:APP_SMTP_USERNAME/APP_SMTP_PASSWORD/APP_SMTP_HOST/APP_SMTP_PORT/APP_SMTP_FROM_NAME
 # 变量名统一为 viper 映射后的长名(config.yaml 的 smtp.username/smtp.password → APP_SMTP_USERNAME/APP_SMTP_PASSWORD),
 # 与 .env 里的 key 完全一致,无短名转换,避免后端读不到真实账号导致 535 认证失败。
-ENV_FILE="$SERVER/.env"
 if [ -f "$ENV_FILE" ]; then
   SMTP_HOST="$(grep -E '^APP_SMTP_HOST=' "$ENV_FILE" | head -1 | cut -d= -f2-)"
   SMTP_PORT="$(grep -E '^APP_SMTP_PORT=' "$ENV_FILE" | head -1 | cut -d= -f2-)"
@@ -175,5 +209,5 @@ echo "  前端:      http://localhost:5174"
 echo "  后端 API:  http://localhost:8081  (/healthz /api/v1/config)"
 echo "  演示账号:  demo@test.com / Passw0rd"
 echo "  管理员:    admin@example.com / Admin@123456"
-echo "  停止:      bash scripts/dev-down.sh"
+echo "  停止:      bash scripts/dev.sh -stop(含容器)"
 echo "------------------------------------------------------------"

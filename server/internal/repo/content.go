@@ -13,7 +13,7 @@ type NoticeRepo struct{}
 func (NoticeRepo) ListByPage(db *gorm.DB, page, pageSize int) ([]model.Notice, int64, error) {
 	var list []model.Notice
 	var total int64
-	q := db.Model(&model.Notice{}).Where("is_show = 1")
+	q := db.Model(&model.Notice{}).Where("is_show = true")
 	if err := q.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
@@ -27,7 +27,7 @@ type KnowledgeRepo struct{}
 // List 按语言/关键字查询（标题模糊），返回全部（分组在 service 层）。
 func (KnowledgeRepo) List(db *gorm.DB, language, keyword string) ([]model.Knowledge, error) {
 	var list []model.Knowledge
-	q := db.Where("is_show = 1 AND language = ?", language)
+	q := db.Where("is_show = true AND language = ?", language)
 	if keyword != "" {
 		like := "%" + keyword + "%"
 		q = q.Where("title LIKE ?", like)
@@ -39,7 +39,7 @@ func (KnowledgeRepo) List(db *gorm.DB, language, keyword string) ([]model.Knowle
 // GetByID 知识详情（仅上架）。
 func (KnowledgeRepo) GetByID(db *gorm.DB, id int64) (*model.Knowledge, error) {
 	var k model.Knowledge
-	if err := db.Where("id = ? AND is_show = 1", id).First(&k).Error; err != nil {
+	if err := db.Where("id = ? AND is_show = true", id).First(&k).Error; err != nil {
 		return nil, err
 	}
 	return &k, nil
@@ -51,7 +51,7 @@ type PlanRepo struct{}
 // ListShown 上架套餐（按 sort）。
 func (PlanRepo) ListShown(db *gorm.DB) ([]model.Plan, error) {
 	var list []model.Plan
-	err := db.Where("is_show = 1").Order("sort ASC, id ASC").Find(&list).Error
+	err := db.Where("is_show = true").Order("sort ASC, id ASC").Find(&list).Error
 	return list, err
 }
 
@@ -70,7 +70,7 @@ type ServerRepo struct{}
 // ListByGroupIDs 分组内上架节点。
 func (ServerRepo) ListByGroupIDs(db *gorm.DB, groupIDs []int64) ([]model.Server, error) {
 	var list []model.Server
-	err := db.Where("is_show = 1 AND group_id IN ?", groupIDs).
+	err := db.Where("is_show = true AND group_id IN ?", groupIDs).
 		Order("sort ASC, id ASC").Find(&list).Error
 	return list, err
 }

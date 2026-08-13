@@ -60,7 +60,7 @@ func TestSingBoxBuild(t *testing.T) {
 func TestGenerateInvalidToken(t *testing.T) {
 	e := newTestEnv(t)
 	svc := NewSubscribeService(e.db, e.rdb, &repo.Repos{}, &config.Config{})
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `users`")).WillReturnError(assert.AnError)
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"users\"")).WillReturnError(assert.AnError)
 
 	_, err := svc.Generate(context.Background(), "bad-token", "", "")
 	assert.Equal(t, 40100, codeOf(err))
@@ -73,7 +73,7 @@ func TestGenerateNoSubscription(t *testing.T) {
 	// 用户：无订阅
 	now := time.Now()
 	u := &model.User{ID: 1, Email: "a@b.com", SubToken: "tok", CreatedAt: now, UpdatedAt: now}
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `users`")).WillReturnRows(userRow(u))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"users\"")).WillReturnRows(userRow(u))
 
 	res, err := svc.Generate(context.Background(), "tok", "clash", "")
 	require.NoError(t, err)
@@ -90,9 +90,9 @@ func TestResetSubscribe(t *testing.T) {
 	u := &model.User{ID: 1, Email: "a@b.com", PasswordHash: hash, SubToken: "old-token", CreatedAt: time.Now(), UpdatedAt: time.Now()}
 
 	// 查用户 + 更新
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `users`")).WillReturnRows(userRow(u))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"users\"")).WillReturnRows(userRow(u))
 	e.mock.ExpectBegin()
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE `users`")).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"users\"")).WillReturnResult(sqlmock.NewResult(0, 1))
 	e.mock.ExpectCommit()
 
 	url, err := svc.ResetSubscribe(context.Background(), 1, "Passw0rd!")

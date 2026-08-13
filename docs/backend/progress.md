@@ -2,7 +2,7 @@
 
 > 本文档记录 `server/` 目录 Go/Gin 后端的开发状态,是 docs/backend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-12(前置条件实测核对:Go 1.26.1 满足;本机 3306/6379 未检测到 MySQL/Redis 运行实例,标注见 §3.1;测试函数实测 60 个全绿,与代码实况对齐;全部里程碑 B1–B7 + 管理端 API 完成)
+> 最后更新:2026-08-13(数据库 MySQL 8 → PostgreSQL 16 切换完成,端口 5433:5433,见 §1 里程碑;测试函数 60 个全绿;全部里程碑 B1–B7 + 管理端 API 完成)
 
 ---
 
@@ -215,9 +215,20 @@
 | 项 | 说明 |
 |---|---|
 | 封禁/降级后 JWT 实时失效 | 会话版本号机制:Claims 增加 `SV`(签发时快照,`jwt.Generate` 带参);Redis `auth:ver:{uid}` 存当前版本;封禁/解封/角色变更/代理审批通过/代理商降级/找回密码/登出均 `INCR` bump;Auth 中间件比对 SV 不一致即 401(Key 不存在视为 0,Redis 异常不阻断退化为 TTL)。access 2h 内无需等过期 |
-| 余额负值保护 | `AdjustBalance` 服务层拒绝调整后余额为负(40000)+ 迁移 `0002_balance_check` 加 `CHECK (balance >= 0)`(MySQL 8.0.16+ 强制执行);佣金回滚减 `commission_balance` 不受约束 |
+| 余额负值保护 | `AdjustBalance` 服务层拒绝调整后余额为负(40000)+ 迁移 `0002_balance_check` 加 `CHECK (balance >= 0)`(PostgreSQL CHECK 强制执行);佣金回滚减 `commission_balance` 不受约束 |
 | 迁移 | `server/migrations/0002_balance_check.{up,down}.sql`(golang-migrate 格式,新增约束/回滚) |
 | 测试 | 新增 `middleware/auth_test.go`(6 场景:无头/无效/refresh 混用/有效/SV 匹配/bump 后立即失效+重新签发恢复)、admin_service 3 例(负值拒绝/封禁 bump/角色 bump);**测试函数 47 → 60 全绿** |
+
+### 数据库切换:MySQL → PostgreSQL(✅ 2026-08-13)
+
+| 项 | 说明                                                                                                                                                                                                                                                                                                                                                       |
+|---|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 驱动 | `gorm.io/driver/mysql` → `gorm.io/driver/postgres` v1.6.2(pgx v5);`internal/repo/repo.go` 切 `postgres.Open`                                                                                                                                                                                                                                              |
+| 迁移 SQL | `migrations/*.sql` 全部重写为 PG 语法:BIGSERIAL 主键、SMALLINT、BOOLEAN、TIMESTAMP(3)、JSONB、TEXT、COMMENT ON、CONSTRAINT/CREATE INDEX;初始化数据改 JSON 字面量并 `setval` 推进序列                                                                                                                                                                                                   |
+| 业务 SQL | 反引号标识符 → 双引号;bool 列 `= 1/0` → `= true/false`;`DATE_SUB(NOW(), INTERVAL ? DAY)` → `now() - (? * interval '1 day')`;`DATE(paid_at)` → `paid_at::date`;`gorm:"type:json"` → `type:jsonb`、`mediumtext` → `text`                                                                                                                                              |
+| 部署 | docker-compose `mysql` 服务 → `postgres:16-alpine`,端口 **127.0.0.1:5433:5433**(容器内 `-p 5433`),`pg_isready` 健康检查;`redis` 补 `127.0.0.1:6379:6379` 发布(dev.sh 的 api/worker 为宿主机进程);Makefile 迁移 `-tags 'postgres'`;`scripts/dev.sh` 合并启停(无参=启动,`-stop`=关闭含 `docker compose stop` 容器;`--env-file` 读 `server/.env`,变量单源;旧 docker run 容器检测拦截;dev-down.sh 已删除) |
+| 测试 | 8 个 service 测试文件 sqlmock 期望切 PG 语法(双引号/`$n`/INSERT RETURNING),驱动 `postgres.New(Conn+PreferSimpleProtocol)`;**60 个测试函数全绿**                                                                                                                                                                                                                                |
+| 实测 | postgres:16 容器实测:迁移、注册(INSERT RETURNING)、JSONB 读写(/config、优惠券)、事务下单、admin dashboard、worker 启动全部通过                                                                                                                                                                                                                                                        |
 
 ### 一期内已知缺口(可后补)
 
@@ -234,7 +245,7 @@
 | 前置 | 说明 |
 |---|---|
 | Go ≥ 1.26.1（`go.mod` 声明） | ✅ 已满足:本机 1.26.1(2026-08-12 实测) |
-| MySQL 8.0 | ⚠️ 运行时前置,2026-08-12 本机实测 **3306 未监听且 `mysql` 命令不在 PATH**,需先启动本地 MySQL 实例;库 `ylink-backend`(utf8mb4);DSN 见 `configs/config.yaml` 或 `APP_DATABASE_DSN`;本机有 Docker 时可用 `server/docker-compose.yml` 一键起(含 Redis) |
+| PostgreSQL 16 | ⚠️ 运行时前置(2026-08-13 起由 MySQL 8 切换),端口 **5433**(容器内 5433:5433);库 `ylink-backend`(默认用户 `ylink`/密码 `ylink_root`);DSN 见 `configs/config.yaml` 或 `APP_DATABASE_DSN`;本机有 Docker 时 `bash scripts/dev.sh` 经 `server/docker-compose.yml` 编排 postgres+redis(**变量读 `server/.env`**,`docker compose --env-file`) |
 | Redis 7 | ⚠️ 运行时前置,2026-08-12 本机实测 **6379 未监听且 `redis-server` 命令不在 PATH**,需先启动本地 Redis;本地 `127.0.0.1:6379`(默认无密码);生产必须设密码;`server/docker-compose.yml` 可一键起 |
 | 迁移 | `DB_URL='...' make migrate` 执行 `migrations/0001_init.*`、`0002_balance_check.*`;或 docker-compose 内首启前执行 |
 | SMTP | 验证码/提醒邮件需要可用 SMTP;未配置时**注册/找回流程无法完成**(验证码发送失败仅记日志) |
@@ -265,7 +276,7 @@
 | TLS | Caddy 反代终止 HTTPS;`app.env=production` 关闭 Swagger/debug |
 | CORS 白名单 | `cors.allow_origins` 配 Web 版域名(订阅端点已豁免任意来源) |
 | worker 单实例 | cron 已带 Redis 分布式锁,多实例部署安全 |
-| 备份 | 按 deploy.md 第 6 节:mysqldump + binlog 保留 14 天,Redis AOF everysec |
+| 备份 | 按 deploy.md 第 6 节:pg_dump -Fc 全量 + WAL 归档保留 14 天,Redis AOF everysec |
 
 ---
 

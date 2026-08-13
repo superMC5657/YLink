@@ -34,7 +34,7 @@ sequenceDiagram
     participant U as 用户端
     participant S as Gin 服务
     participant G as 支付网关
-    participant DB as MySQL
+    participant DB as PostgreSQL
     U->>S: POST /orders {plan_id, period, coupon_code?} (Idempotency-Key)
     S->>S: 校验套餐/周期/优惠券 → 计算 amount/discount/pay_amount
     S->>DB: 创建订单(status=0 待支付)

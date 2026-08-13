@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
 
@@ -30,7 +30,7 @@ func newLogger() gormlogger.Interface {
 
 // NewDB 初始化 GORM 连接；慢查询（>200ms）与错误写入日志。
 func NewDB(cfg config.DatabaseConfig) (*gorm.DB, error) {
-	db, err := gorm.Open(mysql.Open(cfg.DSN), &gorm.Config{
+	db, err := gorm.Open(postgres.Open(cfg.DSN), &gorm.Config{
 		Logger:  newLogger(),
 		NowFunc: func() time.Time { return time.Now() },
 	})

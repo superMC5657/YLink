@@ -10,7 +10,7 @@ app:
   base_url: "https://api.example.com"   # 用于拼接订阅链接/支付回调地址
 
 database:
-  dsn: "${DB_DSN}"           # user:pass@tcp(mysql:3306)/ylink-backend?charset=utf8mb4&parseTime=true&loc=Local
+  dsn: "${DB_DSN}"           # host=127.0.0.1 port=5433 user=ylink password=xxx dbname=ylink-backend sslmode=disable
   max_open: 50
   max_idle: 10
 
@@ -71,11 +71,14 @@ ENTRYPOINT ["/app/bin/server"]   # worker 容器覆盖为 /app/bin/worker
 
 ```yaml
 services:
-  mysql:
-    image: mysql:8.0
-    environment: { MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS}, MYSQL_DATABASE: ylink-backend }
-    volumes: ["mysql_data:/var/lib/mysql"]
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+  postgres:
+    image: postgres:16-alpine
+    environment: { POSTGRES_USER: ${POSTGRES_USER}, POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}, POSTGRES_DB: ylink-backend }
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    ports: ["127.0.0.1:5433:5433"]      # 容器内监听 5433（command: -p 5433）
+    command: -p 5433
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 5433 -U ${POSTGRES_USER}"]
 
   redis:
     image: redis:7-alpine
@@ -85,28 +88,28 @@ services:
   api:
     build: ..
     env_file: .env
-    depends_on: [mysql, redis]
+    depends_on: [postgres, redis]
     ports: ["127.0.0.1:8081:8081"]     # 只对本机暴露，由 Caddy 反代
 
   worker:
     build: ..
     command: ["/app/bin/worker"]
     env_file: .env
-    depends_on: [mysql, redis]
+    depends_on: [postgres, redis]
 
   caddy:
     image: caddy:2-alpine
     ports: ["80:80", "443:443"]
     volumes: ["./Caddyfile:/etc/caddy/Caddyfile", "caddy_data:/data"]
 
-volumes: { mysql_data: {}, redis_data: {}, caddy_data: {} }
+volumes: { postgres_data: {}, redis_data: {}, caddy_data: {} }
 ```
 
 Caddyfile：`api.example.com { reverse_proxy api:8081 }`（自动 HTTPS）。Web 版前端静态资源可同机 Caddy 托管或独立 CDN。
 
 ## 4. 上线步骤
 
-1. 准备 `.env`（DB/Redis/JWT/SMTP/EPAY 密钥），首次启动前执行迁移：`DB_URL='mysql://user:pass@tcp(host:3306)/ylink-backend?charset=utf8mb4&parseTime=true&loc=Local' make migrate`（DSN 必须带 `mysql://` 前缀，否则 migrate CLI 报 `unknown driver`；`-tags 'mysql'` 已内置在 Makefile）。
+1. 准备 `.env`（DB/Redis/JWT/SMTP/EPAY 密钥），首次启动前执行迁移：`DB_URL='postgres://ylink:ylink_root@127.0.0.1:5433/ylink-backend?sslmode=disable' make migrate`（DSN 必须带 `postgres://` 前缀，否则 migrate CLI 报 `unknown driver`；`-tags 'postgres'` 已内置在 Makefile）。
 2. `docker compose up -d`，验证 `GET /healthz` 返回 200、`GET /api/v1/config` 返回站点配置。
 3. 登录管理接口创建/核对：节点分组与节点、套餐、支付渠道、SMTP 测试邮件。
 4. 前端 `VITE_API_BASE_URL` 指向 `https://api.example.com/api/v1` 打包部署；Tauri 端构建发布。
@@ -118,11 +121,11 @@ Caddyfile：`api.example.com { reverse_proxy api:8081 }`（自动 HTTPS）。Web
 - 日志：zap JSON → 文件按天切割（lumberjack），容器同时输出 stdout 便于 `docker logs`；错误日志含 request_id。
 - 慢查询：GORM logger 记录 >200ms SQL。
 - 指标（可选二期）：`promhttp` `/metrics`（QPS、延迟直方图、支付成功率、cron 执行结果），Grafana 看板。
-- 告警最小集（二期前用脚本兜底）：进程存活、磁盘、MySQL/Redis 连通、每日支付成功率。
+- 告警最小集（二期前用脚本兜底）：进程存活、磁盘、PostgreSQL/Redis 连通、每日支付成功率。
 
 ## 6. 备份与恢复
 
-- MySQL：每日 `mysqldump --single-transaction` 全量 + binlog，保留 14 天；异机存放。
+- PostgreSQL：每日 `pg_dump -Fc` 全量 + WAL 归档，保留 14 天；异机存放。
 - Redis：验证码/缓存类可丢，开启 AOF everysec 即可；refresh 白名单丢失的最坏结果是用户重新登录，可接受。
 - 恢复演练：每月一次把备份恢复到临时库并跑 `SELECT` 抽检。
 
@@ -138,6 +141,6 @@ Caddyfile：`api.example.com { reverse_proxy api:8081 }`（自动 HTTPS）。Web
 
 | 环境 | 用途 | 说明 |
 |---|---|---|
-| local | 开发本机 | compose 起 mysql/redis；`app.env=development` 开 Swagger |
+| local | 开发本机 | compose 起 postgres/redis；`app.env=development` 开 Swagger |
 | staging | 预发 | 与生产同构，支付用网关沙箱/0.01 元实测 |
 | production | 正式 | 关 Swagger/debug，严格 CORS 白名单与限流 |

@@ -27,13 +27,13 @@ func settingsRow(value string) *sqlmock.Rows {
 func TestSiteConfig(t *testing.T) {
 	e, svc := newContentEnv(t)
 
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT `value` FROM `settings`")).
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT \"value\" FROM \"settings\"")).
 		WillReturnRows(settingsRow(`{"site_name":"TestCloud","site_logo":"","site_description":"desc","register_enabled":true,"invite_code_required":true,"app_downloads":{},"telegram":{},"customer_service_url":"https://t.me/x","free_traffic_tips":"tip","languages":["zh-CN"]}`))
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT `value` FROM `settings`")).
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT \"value\" FROM \"settings\"")).
 		WillReturnRows(settingsRow(`{"methods":[{"code":"balance","name":"余额支付","icon":"wallet","enabled":true}]}`))
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT `value` FROM `settings`")).
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT \"value\" FROM \"settings\"")).
 		WillReturnRows(settingsRow(`{"required_valid_invites":50,"benefits":["b1"],"notes":["n1"]}`))
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT `value` FROM `settings`")).
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT \"value\" FROM \"settings\"")).
 		WillReturnRows(settingsRow(`{"commission_rate":40}`))
 
 	cfg, err := svc.SiteConfig(context.Background())
@@ -55,7 +55,7 @@ func TestKnowledgesGroups(t *testing.T) {
 		AddRow(31, "安卓配置教程", "Nano (推荐使用)", "", "zh-CN", 1, 1, nowTime(), nowTime()).
 		AddRow(32, "安卓配置教程", "Clash Meta (备用)", "", "zh-CN", 1, 2, nowTime(), nowTime()).
 		AddRow(40, "防失联", "TG 群组", "", "zh-CN", 1, 1, nowTime(), nowTime())
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `knowledges`")).WillReturnRows(rows)
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"knowledges\"")).WillReturnRows(rows)
 
 	groups, err := svc.Knowledges(context.Background(), "zh-CN", "")
 	require.NoError(t, err)
@@ -68,7 +68,7 @@ func TestKnowledgesGroups(t *testing.T) {
 func TestKnowledgeDetailNotFound(t *testing.T) {
 	e, _ := newContentEnv(t)
 	svc := NewContentService(e.db, e.rdb, &repo.Repos{}, NewSettingService(e.db, e.rdb, &repo.Repos{}))
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `knowledges`")).WillReturnError(assert.AnError)
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"knowledges\"")).WillReturnError(assert.AnError)
 	_, err := svc.KnowledgeDetail(context.Background(), 99)
 	assert.Equal(t, 40400, codeOf(err))
 }
@@ -76,7 +76,7 @@ func TestKnowledgeDetailNotFound(t *testing.T) {
 func TestServerListWithoutPlan(t *testing.T) {
 	e, _ := newContentEnv(t)
 	// 无订阅用户
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `users`")).
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"users\"")).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "email", "password_hash", "role", "balance", "commission_balance", "invite_by_id",
 			"is_banned", "remind_expire", "remind_traffic", "telegram_id", "plan_id", "expired_at",

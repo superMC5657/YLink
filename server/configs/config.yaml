@@ -6,13 +6,13 @@ app:
   base_url: "http://localhost:8081"   # 用于拼接订阅链接/支付回调地址
 
 database:
-  dsn: "root:root@tcp(127.0.0.1:3306)/ylink-backend?charset=utf8mb4&parseTime=true&loc=Local"
+  dsn: "root:ylink_root@tcp(127.0.0.1:3306)/ylink-backend?charset=utf8mb4&parseTime=true&loc=Local"
   max_open: 50
   max_idle: 10
 
 redis:
   addr: "127.0.0.1:6379"
-  password: ""
+  password: "ylink_redis"
   db: 0
 
 jwt:

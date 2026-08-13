@@ -115,8 +115,10 @@ ensure_image golang:1.26-alpine  # server/Dockerfile build 阶段(与 go.mod go 
 ensure_image alpine:3.20          # server/Dockerfile 最终阶段
 
 # ---------- 4. 前端构建(产物 dist/,由 Caddy 静态托管) ----------
+# 构建产物由 Caddy 同域托管(/api/* 反代 api:8081),必须用相对基址,
+# 否则 Web 会跨端口直连 localhost:8081 并触发浏览器 CORS 预检。
 say "[3/4] 构建前端(pnpm build → dist/)..."
-(cd "$ROOT" && pnpm build)
+(cd "$ROOT" && VITE_API_BASE_URL=/api/v1 pnpm build)
 echo "  构建完成:$ROOT/dist"
 
 # ---------- 5. 生成 dev Caddyfile:localhost 托管 dist(/srv/panel 挂载点),同域反代 /api/* ----------

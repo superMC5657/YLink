@@ -139,6 +139,8 @@ panel.example.com { root * /srv/panel; try_files {path} /index.html; file_server
 ```
 部署前把 `example.com` 替换为真实域名并配好 A 记录;`cors.allow_origins` 需含 `https://panel.example.com`(config.yaml,生产改后重建 api 镜像)。
 
+全容器本地联调(`scripts/dev-docker.sh`)必须用 `VITE_API_BASE_URL=/api/v1` 构建,让 Web 经 Caddy 同域反代;否则 Web 会跨端口直连 `localhost:8081`,触发浏览器 CORS 预检且后端白名单未放行时登录失败。`configs/config.yaml` 已包含 `http://localhost` / `http://127.0.0.1` 供本地直连兜底。
+
 ## 4. 上线步骤
 
 1. 准备环境文件：本地开发 `cp .env.example .env.dev`（scripts/dev.sh 读取，DSN 会被脚本覆盖为宿主机 127.0.0.1:5433）；生产 `cp .env.example .env.release` 并填写真实 DB/Redis/JWT/SMTP/EPAY 密钥（两者均被 .gitignore 忽略）。模板默认 `APP_ENV=production`（关 Swagger/debug，生产保持默认即可；本地开发由 dev.sh 强制覆盖为 development）。**存量部署升级**：确认已有 `.env.release` 中 `APP_ENV=production`（旧模板为 development，生产会误开 Swagger/debug）。

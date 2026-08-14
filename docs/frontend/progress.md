@@ -111,7 +111,7 @@
 | ESLint 9 flat config | js + typescript-eslint + eslint-plugin-vue(flat/recommended)+ eslint-config-prettier,0 error 0 warning | `eslint.config.ts` |
 | Prettier 3 | 全仓格式化 + format:check | `.prettierrc.json`、`.prettierignore` |
 | 构建清理 | ✅ 已修复(2026-08-14):Vite `root=src` 且 `outDir=../dist` 时默认不清空 `dist`,补 `build.emptyOutDir: true`,旧 hashed 产物不再残留且警告消失 | `vite.config.ts` |
-| Vitest 单测 | jsdom,**51 用例**(格式化/http 401 刷新重放/**惰性 apiBase**/invite store/倒计时 + PlanCard/OrderTable/BannerStatCard 组件测试 12 例 + **storage 迁移**),v8 覆盖率 | `vitest.config.ts`、`src/**/__tests__/*` |
+| Vitest 单测 | jsdom,**58 用例**(格式化/http 401 刷新重放/**惰性 apiBase**/invite store/倒计时 + PlanCard/OrderTable/BannerStatCard/SharePanel 组件测试 18 例 + **storage 迁移**),v8 覆盖率 | `vitest.config.ts`、`src/**/__tests__/*` |
 | Playwright E2E | 正式套件 42 例(21 用例 × 桌面/移动双 project、webServer 自动起 Mock),替代原冒烟脚本 | `playwright.config.ts`、`tests/e2e/*` |
 | CI | 仅发布 tag(`v*`)触发 3 job(2026-08-12 调整:此前 push main/PR 每次提交都跑,改后日常检查走本地 `pnpm lint/typecheck/test/format:check`):`frontend-quality`(lint→typecheck→format:check→test→build:web)+ `frontend-e2e`(失败上传报告)+ `rust`(windows-latest:build:web → cargo check);Go 后端不走 Actions(项目决策) | `.github/workflows/ci.yml` |
 | i18n 懒加载 | 语言包按需动态 import,useLocale 统一切换 | `src/locales/index.ts`、`src/composables/useLocale.ts` |
@@ -225,7 +225,7 @@
 |---|---|---|
 | 移动端深链/分享面板 | 深链 ✅ 已接入(2026-08-13);分享面板 ✅ 已实现(2026-08-14):`SharePanel.vue` 浮动面板(n-modal 居中,悬浮于窗口之上)+ 品牌邀请卡片(渐变背景 + 站点名 + 邀请码 + 二维码白块)+ 复制链接 + 下载图片(2026-08-14 改版:原底部弹层 n-drawer 与系统分享 navigator.share 移除,改为 canvas 把紫色邀请卡片合成 PNG 供下载,纯前端实现)。**注册链接前缀修复(2026-08-14)**:原后端用 API `base_url`(localhost:8081)拼前缀,现由前端 `invite` store 的 `effectiveRegisterUrlPrefix` 自适应 —— 优先 `VITE_WEB_BASE_URL`(生产/Tauri 打包显式配置,见 .env.production),否则取当前页面 origin(本地 dev=5174、Caddy=80、生产 HTTPS=443),兜底相对路径;二维码固定深色码(白块内不随暗色主题反色)。**后端字段仅返回路径后缀(2026-08-14)**:`register_url_prefix` 改为常量 `/#/register?code=`(不含域名),完整链接一律由前端拼 origin,杜绝 8081 API 地址泄漏进分享链接(见 review-0.8.0.md 第五轮) | deep-link 注册移出 cfg(desktop) + tauri.conf.json `plugins.deep-link.mobile`(scheme ylink) + Android manifest intent-filter(gen/ 不入库,本地构建生效) |
 | 更新卡片 UI | ✅ 已实现(2026-08-12),见第 1 节 M6 发布能力收尾 | — |
-| 开机自启 | ✅ 需求已移除(2026-08-13):不再提供开机自启开关;`utils/platform.ts` 自启封装与设置页入口已还原(autostart 插件仍注册于 Rust 侧,前端不暴露) | — |
+| ~~开机自启~~ | ✅ 需求已移除(2026-08-13):不再提供开机自启开关;`utils/platform.ts` 自启封装与设置页入口已还原(autostart 插件仍注册于 Rust 侧,前端不暴露) | — |
 | 存储适配 plugin-store | ✅ 已实现(2026-08-13):`utils/storage.ts` 同步 facade(内存 Map + 异步落盘 `app-settings.json`),`initStorage()` 启动预载,persistedstate 与全部 localStorage 调用点统一走 storage 层 | — |
 | 存储适配评审修复(review-0.6.0 P1/P2) | ✅ 已修复(2026-08-13):① `http.ts` 的 `API_BASE` 改为请求时惰性解析(`resolveApiBase()`),持久化自定义 apiBase 在 `initStorage()` 后生效;② `initStorage()` 增加一次性迁移,将旧 WebView `localStorage`(`app:` 前缀)导入 plugin-store,已有键不覆盖、`app:_legacy:migrated:v1` 标记保证一次性。单测:http.spec.ts + 新增 storage.spec.ts | 见 review-0.6.0.md |
 
@@ -235,7 +235,7 @@
 |---|---|---|
 | 后端 CI / Rust CI | Rust ✅ 已接入(2026-08-12;2026-08-12 迁至 windows-latest 与打包平台一致);Go 后端 ❌ 不接入(项目决策:后端不走 Actions) | `.github/workflows/ci.yml` `rust` job(windows-latest:先 `pnpm build:web` 生成 dist → `cargo check`);`backend` job 已删除(2026-08-12),后端由本地 make/手动构建 |
 | Release / updater(仅 Windows 打包) | ✅ 已接入(2026-08-12,公开产物仓库方案;2026-08-12 收窄为仅 Windows) | 代码仓库 private;`.github/workflows/release-tauri.yml`:tag `v*` / 手动触发 → guard(tag 校验)→ 单平台构建(windows-latest `pnpm tauri build --bundles nsis`,TAURI_SIGNING_PRIVATE_KEY 自动签名 .sig)→ `scripts/build-latest-json.mjs` 合并 latest.json(url 加 `gh-proxy.com` 前缀)→ `gh release` 推送到**公开产物仓库** `superMC5657/ylink-releases`(`RELEASES_PAT` secret);`tauri-plugin-updater` 已注册 + pubkey 写入 + capabilities 补 `updater:default`;updater endpoints = gh-proxy 优先 + 直连兑底;前端更新卡片已实现(见下行) |
-| 自启 / 通知 / 更新卡片前端入口 | 自启 ❌ 需求已移除(2026-08-13)(不再提供开关,autostart 插件仍注册于 Rust 侧但前端不暴露);通知/更新卡片 ✅ 已实现(2026-08-12),见第 1 节 M6 发布能力收尾 | deep-link 前端监听已就绪(`utils/platform.ts` `onDeepLink` + `main.ts` 路由跳转) |
+| 自启 / 通知 / 更新卡片前端入口 | ~~自启~~ ❌ 需求已移除(2026-08-13)(不再提供开关,autostart 插件仍注册于 Rust 侧但前端不暴露);通知/更新卡片 ✅ 已实现(2026-08-12),见第 1 节 M6 发布能力收尾 | deep-link 前端监听已就绪(`utils/platform.ts` `onDeepLink` + `main.ts` 路由跳转) |
 | 单实例深链接转发 | ✅ 已实现(2026-08-12) | Rust `lib.rs` 单实例回调提取 argv 中 `ylink://` URL,emit `deep-link://new-url` 转发已有实例(见第 1 节 M6 发布能力收尾) |
 | 移动端深链 `ylink://` | ✅ 已接入(2026-08-13) | deep-link 注册移出 cfg(desktop)+ `tauri.conf.json` `plugins.deep-link.mobile`(scheme ylink)+ Android manifest intent-filter(gen/ 不入库,本地构建生效;desktop-tauri.md §9.5 已更新) |
 
@@ -257,7 +257,7 @@
 
 | 前置 | 说明 |
 |---|---|
-| 单元测试 | `pnpm test`(Vitest + jsdom,**51 用例**,2026-08-14 实测 51/51);`pnpm test:coverage` 看覆盖率 |
+| 单元测试 | `pnpm test`(Vitest + jsdom,**58 用例**,2026-08-14 实测 58/58);`pnpm test:coverage` 看覆盖率 |
 | E2E | `pnpm e2e`(Playwright):webServer 以 `pnpm dev --mode e2e` 启动,**固定使用 `.env.e2e`(Mock)**,不受 `.env.development.local` 联调覆盖影响;本地默认系统 Chrome(`channel:'chrome'`),CI 用 `playwright install chromium`;双 project(桌面 1280 / 移动 390×844) |
 | 布局诊断 | `node scripts/diag-layout.mjs`:5 分辨率(1024-2560)× 12 路由测量页面级横向溢出与内容区宽度(需先起 Mock dev) |
 | 质量门禁 | `pnpm lint`(ESLint 0 error 0 warning)、`pnpm typecheck`、`pnpm format:check`(Prettier) |

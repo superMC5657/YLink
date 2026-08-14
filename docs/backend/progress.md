@@ -2,7 +2,7 @@
 
 > 本文档记录 `server/` 目录 Go/Gin 后端的开发状态,是 docs/backend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-14(修复 dev-docker.sh 构建时 MSYS 路径转换污染 apiBase 的问题,见 §3.1;dev-docker.sh 完全重写:不内置任何默认值/不生成 env 文件,所有配置以 `server/.env.dev` 为唯一来源、缺失即报错;全容器联调 dev-docker.sh、生产部署适配 docker-compose.prod.yml、Web 登录 CORS 与构建产物清理落地;数据库 MySQL 8 → PostgreSQL 16 切换完成,端口 5433:5433,见 §1 里程碑;测试函数 70 个全绿;全部里程碑 B1–B7 + 管理端 API 完成;0.7.0 评审 2×P2 + 3×P3 已全部修复,见 docs/reviews/review-0.7.0.md)
+> 最后更新:2026-08-14(修复 dev-docker.sh 构建时 MSYS 路径转换污染 apiBase 的问题,见 §3.1;dev-docker.sh 完全重写:不内置任何默认值/不生成 env 文件,所有配置以 `server/.env.dev` 为唯一来源、缺失即报错;全容器联调 dev-docker.sh、生产部署适配 docker-compose.prod.yml、Web 登录 CORS 与构建产物清理落地;数据库 MySQL 8 → PostgreSQL 16 切换完成,端口 5433:5433,见 §1 里程碑;测试函数 71 个全绿;全部里程碑 B1–B7 + 管理端 API 完成;0.7.0 评审 2×P2 + 3×P3 已全部修复,见 docs/reviews/review-0.7.0.md)
 
 ---
 
@@ -192,7 +192,7 @@
 ### 测试状态(✅ 已更新,2026-08-11 实测)
 
 - `go build ./...` / `go vet ./...` / `gofmt -l`(0 输出)全部通过
-- `go test ./... -count=1` 全绿;**70 个测试函数**(2026-08-14 实测:源码 `func Test` 70 个,含工单重开 4 例 + 优惠券每人限用 1 例 + 0.5.0 佣金查询失败回归 1 例,0 失败/跳过),覆盖:错误码映射、JWT(含 SV 会话版本号)、密码、验证码限频/已注册、注册/登录锁定/刷新旋转、优惠券试算(固定/百分比/封顶)/超限 12001/原子占用/**每人限用(同用户同券第二次下单被拒)**、下单幂等、续期状态机、回调幂等、epay 验签与篡改拒绝、订阅生成(3 格式)、佣金划转、代理申请、工单流转、**工单重开(重开成功/未关闭拒绝/仅一次 14002/并发 0 行拒绝)**、佣金确认竞态、超时关单(含优惠券回退)、取消并发已支付回滚、**退款(余额/券/佣金/订阅收回/onetime/异套餐)**,代理审批、bluemonday 清洗、Auth 中间件(无头/无效/refresh 混用/SV 匹配/bump 立即失效)、余额调整负值拒绝、**管理端订单佣金查询(成功映射/失败上抛)**
+- `go test ./... -count=1` 全绿;**71 个测试函数**(2026-08-14 实测:源码 `func Test` 71 个,含工单重开 4 例 + 优惠券每人限用 1 例 + 0.5.0 佣金查询失败回归 1 例 + CORS https 放行 1 例,0 失败/跳过),覆盖:错误码映射、JWT(含 SV 会话版本号)、密码、验证码限频/已注册、注册/登录锁定/刷新旋转、优惠券试算(固定/百分比/封顶)/超限 12001/原子占用/**每人限用(同用户同券第二次下单被拒)**、下单幂等、续期状态机、回调幂等、epay 验签与篡改拒绝、订阅生成(3 格式)、佣金划转、代理申请、工单流转、**工单重开(重开成功/未关闭拒绝/仅一次 14002/并发 0 行拒绝)**、佣金确认竞态、超时关单(含优惠券回退)、取消并发已支付回滚、**退款(余额/券/佣金/订阅收回/onetime/异套餐)**,代理审批、bluemonday 清洗、Auth 中间件(无头/无效/refresh 混用/SV 匹配/bump 立即失效)、余额调整负值拒绝、**管理端订单佣金查询(成功映射/失败上抛)**、**CORS(https/http 放行/非白名单拒绝/预检 204/无 Origin 不受影响)**
 
 ---
 
@@ -216,7 +216,7 @@
 | 迁移 SQL | `migrations/*.sql` 全部重写为 PG 语法:BIGSERIAL 主键、SMALLINT、BOOLEAN、TIMESTAMP(3)、JSONB、TEXT、COMMENT ON、CONSTRAINT/CREATE INDEX;初始化数据改 JSON 字面量并 `setval` 推进序列                                                                                                                                                                                                   |
 | 业务 SQL | 反引号标识符 → 双引号;bool 列 `= 1/0` → `= true/false`;`DATE_SUB(NOW(), INTERVAL ? DAY)` → `now() - (? * interval '1 day')`;`DATE(paid_at)` → `paid_at::date`;`gorm:"type:json"` → `type:jsonb`、`mediumtext` → `text`                                                                                                                                              |
 | 部署 | docker-compose `mysql` 服务 → `postgres:16-alpine`,端口 **127.0.0.1:5433:5433**(容器内 `-p 5433`),`pg_isready` 健康检查;`redis` 补 `127.0.0.1:6379:6379` 发布(dev.sh 的 api/worker 为宿主机进程);Makefile 迁移 `-tags 'postgres'`;`scripts/dev.sh` 合并启停(无参=启动,`-stop`=关闭含 `docker compose stop` 容器;`--env-file` 读 `server/.env.dev`,变量单源;旧 docker run 容器检测拦截;dev-down.sh 已删除) |
-| 测试 | 8 个 service 测试文件 sqlmock 期望切 PG 语法(双引号/`$n`/INSERT RETURNING),驱动 `postgres.New(Conn+PreferSimpleProtocol)`;**70 个测试函数全绿(2026-08-14 实测)**                                                                                                                                                                                                                                 |
+| 测试 | 8 个 service 测试文件 sqlmock 期望切 PG 语法(双引号/`$n`/INSERT RETURNING),驱动 `postgres.New(Conn+PreferSimpleProtocol)`;**71 个测试函数全绿(2026-08-14 实测)**                                                                                                                                                                                                                                 |
 | 实测 | postgres:16 容器实测:迁移、注册(INSERT RETURNING)、JSONB 读写(/config、优惠券)、事务下单、admin dashboard、worker 启动全部通过                                                                                                                                                                                                                                                        |
 
 ### 环境文件拆分:server/.env → .env.dev / .env.release(✅ 完成,2026-08-13)

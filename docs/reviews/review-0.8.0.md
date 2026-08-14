@@ -8,11 +8,11 @@
 
 ## Summary
 
-The frontend gap "mobile share panel" from the phase-2 backlog was implemented: a reusable bottom-sheet share panel (`SharePanel.vue`, `n-drawer placement="bottom"`, mobile-first) that renders a QR code (existing `qrcode` dep, theme-aware colors like `PaymentModal`), shows the shareable link, and offers copy-link plus system share (`navigator.share`, capability-gated and hidden on Tauri). The invite page got a "share" button that opens the panel with the register link (prefix + first invite code). The ticket-reply local notification (already implemented via `useLocalNotifications.checkTickets` + 60 s polling in `MainLayout`) was enhanced so `onFocus`/`onVisibility` also run `checkTickets()`, removing up to 60 s of latency when the user returns to the window. Documentation was synced (frontend/backend progress, backlog item moved to done).
+The frontend gap "mobile share panel" from the phase-2 backlog was implemented: ~~a reusable bottom-sheet share panel (`SharePanel.vue`, `n-drawer placement="bottom"`, mobile-first)~~ that renders a QR code (existing `qrcode` dep, theme-aware colors like `PaymentModal`), shows the shareable link, and offers copy-link plus ~~system share (`navigator.share`, capability-gated and hidden on Tauri)~~ (changed from round 6 on to a floating panel + image download, see below). The invite page got a "share" button that opens the panel with the register link (prefix + first invite code). The ticket-reply local notification (already implemented via `useLocalNotifications.checkTickets` + 60 s polling in `MainLayout`) was enhanced so `onFocus`/`onVisibility` also run `checkTickets()`, removing up to 60 s of latency when the user returns to the window. Documentation was synced (frontend/backend progress, backlog item moved to done).
 
 ## Changes
 
-- `src/components/business/SharePanel.vue` (new): props `show` / `title` / `text` / optional `desc`, v-model `update:show`; QR generation watches `show`/`text`/retry tick; failure state with retry; copy via `copyText`; system share only when `navigator.share` exists.
+- `src/components/business/SharePanel.vue` (new): props `show` / `title` / `text` / optional `desc`, v-model `update:show`; QR generation watches `show`/`text`/retry tick; failure state with retry; copy via `copyText`; ~~system share only when `navigator.share` exists~~ (changed from round 6 on to image download, see below).
 - `src/views/invite/InviteView.vue`: "share" button in the register-link row → opens `SharePanel`; missing-code guard uses i18n key `invite.needCode`.
 - `src/components/ui/AppIcon.vue`: added `share-2` (Lucide share-2 paths).
 - `src/locales/{zh-CN,en-US}.ts`: added `share.*` section + `invite.shareLink/shareDesc/needCode`.
@@ -45,7 +45,7 @@ Follow-up from usage: the register link was generated with the backend API addre
 
 - `src/stores/invite.ts`: new getter `effectiveRegisterUrlPrefix` — (1) `VITE_WEB_BASE_URL` injected at build time (production / Tauri packaging, see `.env.production`), (2) else `window.location.origin` (auto-distinguishes local Vite dev `:5174`, Caddy `:80`, production HTTPS `:443`), (3) else relative `/register?code=` (only reachable on Tauri without injection; avoids leaking the API `8081` address).
 - `src/views/invite/InviteView.vue`: display/copy/share/guard all switch to the effective prefix; passes `:code` to the panel.
-- `src/components/business/SharePanel.vue`: redesigned as a brand invite card (brand gradient + `siteName` + invite code + QR on a white tile, QR fixed dark-on-white so it stays scannable in dark mode); system share now prefers sharing the QR image as a `File` (`navigator.canShare({ files })` gate, falls back to text share).
+- `src/components/business/SharePanel.vue`: redesigned as a brand invite card (brand gradient + `siteName` + invite code + QR on a white tile, QR fixed dark-on-white so it stays scannable in dark mode); ~~system share now prefers sharing the QR image as a `File` (`navigator.canShare({ files })` gate, falls back to text share)~~ (changed from round 6 on to image download, see below).
 - `.env.production`: documented `VITE_WEB_BASE_URL`.
 - Tests: `invite.spec.ts` +1 (effective prefix = page origin in jsdom); `SharePanel.spec.ts` updated for pinia + invite-code assertion.
 
@@ -115,3 +115,31 @@ Review feedback: the backend field still carried a full URL (`http://localhost:8
 
 - `server`: `go test ./internal/service/ ./internal/model/ ./internal/middleware/` pass.
 - `pnpm test`: invite + SharePanel specs green; `pnpm typecheck` pass.
+
+---
+
+## Round 6 (2026-08-14): Share panel becomes a floating panel; system share replaced by image download
+
+Usage feedback: the share panel should not slide up from the bottom (bottom sheet) — it should float above the page as a centered panel; rename "system share" to "download image" and render the purple invite card (site name + invite code + QR code) as an image the user can download, purely front-end.
+
+### Changes
+
+- `src/components/business/SharePanel.vue`: `n-drawer placement="bottom"` → `n-modal` preset=card centered floating panel (floats above the window, width `min(92vw, 30rem)` responsive); removed `navigator.share` system share (incl. `canShare({ files })` capability check), added a "download image" button — canvas-composed purple invite card PNG (720×940: gradient background + site name + invite code + white rounded QR tile + hint text + register link; rounded corners via a hand-written `roundRectPath` for older environments, over-wide text auto-shrinks), `canvas.toBlob` + `<a download="ylink-invite-{code}.png">` triggers the download, no backend dependency.
+- `src/locales/{zh-CN,en-US}.ts`: `share.systemShare` → `share.downloadImage` (下载图片 / Download image), new `share.downloadFailed` (图片生成失败,请重试 / Failed to generate image, please retry).
+- `src/components/business/__tests__/SharePanel.spec.ts`: stub switched from `n-drawer` to `n-modal`; `qrcode` mocked to return a fake dataURL (jsdom has no canvas); new download-image cases (button renders + canvas-unavailable failure message + canvas-available PNG composition triggers download with invite code in the filename, revokeObjectURL delayed 1 s + over-wide link truncated with an ellipsis).
+
+### Findings
+
+### ✅ [P3] jsdom has no canvas 2D context; the download branch must be testable — SharePanel.spec.ts
+jsdom's `HTMLCanvasElement.getContext` returns null (unimplemented), and `qrcode.toDataURL` also depends on canvas. Handled: the test mocks `qrcode` to return a fake dataURL so the QR branch is reachable; the failure branch `spyOn(getContext).mockReturnValue(null)` asserts the `downloadFailed` message; the success branch stubs `Image`/`getContext`/`toBlob`/`URL.createObjectURL` and asserts the download fires with the invite code in the filename; the over-wide case stubs `measureText` to size by character count and asserts `fillText` receives truncated text ending in an ellipsis.
+
+### ✅ [P2] Centered canvas text had no textAlign, drifting right — SharePanel.vue
+`drawCenteredText` never set `ctx.textAlign`, so the default `start` made `fillText(IMG_W/2, y)` draw from the canvas midline left-aligned — all text drifted right and long text overflowed. Fixed: `textAlign='center'` for drawing, restored afterwards; when even the minimum size overflows, truncate to the fitting width and append an ellipsis (worst case degenerates to just the ellipsis) so the canvas never overflows.
+
+### ✅ [P3] revokeObjectURL right after download aborts it on Safari/iOS — SharePanel.vue
+Calling `URL.revokeObjectURL(url)` immediately after `a.click()` is known to abort in-flight downloads on Safari/iOS. Fixed: delay the revoke 1000 ms, and `appendChild` the anchor to the DOM before `a.click()` / `remove` after (old Safari requires the anchor to be attached to trigger the download).
+
+### Verification (round 6)
+
+- `pnpm test`: 58/58 green (9 files; SharePanel 6 cases).
+- `pnpm typecheck` / `pnpm lint` / `pnpm build` pass; Playwright e2e (desktop/mobile) 14/14 pass.

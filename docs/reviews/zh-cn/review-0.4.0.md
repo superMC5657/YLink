@@ -12,17 +12,17 @@
 
 ## 发现
 
-### ~~[P1] 新 CI `format:check` job 在未格式化的 `scripts/build-latest-json.mjs` 上失败 — scripts/build-latest-json.mjs:35-38~~
+### ✅ [P1] 新 CI `format:check` job 在未格式化的 `scripts/build-latest-json.mjs` 上失败 — scripts/build-latest-json.mjs:35-38
 
-~~`.github/workflows/ci.yml` 新增的 `frontend-quality` job（第 44-46 行）会运行 `pnpm format:check`，但新加的 `scripts/build-latest-json.mjs` 不符合 Prettier 规范：第 35、38、42、85 行超过仓库 `printWidth: 100` 需要换行。本地用 `pnpm format:check` 验证——仅此文件失败（`Code style issues found in the above file`），因此每次 push/PR 到 main 都会红 CI，直到用 `pnpm format` 重新格式化该文件。~~
+`.github/workflows/ci.yml` 新增的 `frontend-quality` job（第 44-46 行）会运行 `pnpm format:check`，但新加的 `scripts/build-latest-json.mjs` 不符合 Prettier 规范：第 35、38、42、85 行超过仓库 `printWidth: 100` 需要换行。本地用 `pnpm format:check` 验证——仅此文件失败（`Code style issues found in the above file`），因此每次 push/PR 到 main 都会红 CI，直到用 `pnpm format` 重新格式化该文件。
 
-**已修复** — 已用 Prettier 重新格式化 `scripts/build-latest-json.mjs`；`pnpm format:check` 现在全仓库通过。
+**已修复:** 已用 Prettier 重新格式化 `scripts/build-latest-json.mjs`；`pnpm format:check` 现在全仓库通过。
 
-### ~~[P2] 恢复 `IgnoreRecordNotFoundError`，避免新增错误日志刷屏 — server/internal/repo/repo.go:21-25~~
+### ✅ [P2] 恢复 `IgnoreRecordNotFoundError`，避免新增错误日志刷屏 — server/internal/repo/repo.go:21-25
 
-~~`newLogger` 用自建配置替换了 `gormlogger.Default.LogMode(Warn)`，其中 `IgnoreRecordNotFoundError: false`，而 GORM 的 `Default` 日志器为 `true`。在 `LogLevel: Warn` 下，每次 `gorm.ErrRecordNotFound`（例如详情端点的正常「未找到 → 404」查询）都会被按 Error 级别记录——这超出了注释所述「仅关闭 ANSI 颜色」的目标。如果意图只是 `Colorful: false`，应设置 `IgnoreRecordNotFoundError: true` 以保留原有日志行为。~~
+`newLogger` 用自建配置替换了 `gormlogger.Default.LogMode(Warn)`，其中 `IgnoreRecordNotFoundError: false`，而 GORM 的 `Default` 日志器为 `true`。在 `LogLevel: Warn` 下，每次 `gorm.ErrRecordNotFound`（例如详情端点的正常「未找到 → 404」查询）都会被按 Error 级别记录——这超出了注释所述「仅关闭 ANSI 颜色」的目标。如果意图只是 `Colorful: false`，应设置 `IgnoreRecordNotFoundError: true` 以保留原有日志行为。
 
-**已修复** — `newLogger` 中设置 `IgnoreRecordNotFoundError: true`（注释说明保持 GORM `Default` 行为），仅关闭 ANSI 颜色，正常的「未找到」查询不再刷 Error 日志。
+**已修复:** `newLogger` 中设置 `IgnoreRecordNotFoundError: true`（注释说明保持 GORM `Default` 行为），仅关闭 ANSI 颜色，正常的「未找到」查询不再刷 Error 日志。
 
 ## 验证
 

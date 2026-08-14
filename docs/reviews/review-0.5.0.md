@@ -12,22 +12,22 @@ The main behavior change is implemented and the available validation passes. The
 
 ## Completed
 
-~~Added `commission_amount` to the admin order list by batch-loading commission records by order number.~~
-~~Propagate commission lookup failures (P2) — `ListOrders` returns the error from `ListByOrderNos` instead of silently ignoring it; regression test `TestAdminListOrdersCommissionQueryError` added.~~
+Added `commission_amount` to the admin order list by batch-loading commission records by order number.
+Propagate commission lookup failures (P2) — `ListOrders` returns the error from `ListByOrderNos` instead of silently ignoring it; regression test `TestAdminListOrdersCommissionQueryError` added.
 
 ## Findings
 
-### [P2] Propagate commission lookup failures — server/internal/service/admin_service.go:196-197
+### ✅ [P2] Propagate commission lookup failures — server/internal/service/admin_service.go:196-197
 
-~~`ListOrders` ignores errors from the batch commission query:~~
+`ListOrders` ignores errors from the batch commission query:
 
 ```go
 if comms, err := s.repos.Commission.ListByOrderNos(s.db, orderNosOf(list)); err == nil {
 ```
 
-~~When the database/query fails, the endpoint still returns the order list with an empty commission map. Return the lookup error instead, so the admin UI does not display inaccurate financial data as a successful response.~~
+When the database/query fails, the endpoint still returns the order list with an empty commission map. Return the lookup error instead, so the admin UI does not display inaccurate financial data as a successful response.
 
-**Status:** ✅ Resolved (2026-08-13). `ListOrders` now returns the error from the batch commission query; the old `err == nil` swallow is removed. Covered by `TestAdminListOrdersCommissionQueryError`.
+**Status:** Resolved (2026-08-13). `ListOrders` now returns the error from the batch commission query; the old `err == nil` swallow is removed. Covered by `TestAdminListOrdersCommissionQueryError`.
 
 ## Verification
 

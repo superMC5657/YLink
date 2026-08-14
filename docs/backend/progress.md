@@ -2,7 +2,7 @@
 
 > 本文档记录 `server/` 目录 Go/Gin 后端的开发状态,是 docs/backend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-13(数据库 MySQL 8 → PostgreSQL 16 切换完成,端口 5433:5433,见 §1 里程碑;测试函数 60 个全绿;全部里程碑 B1–B7 + 管理端 API 完成;0.7.0 评审 2×P2 + 3×P3 已全部修复,见 docs/reviews/review-0.7.0.md)
+> 最后更新:2026-08-14(全容器联调 dev-docker.sh、生产部署适配 docker-compose.prod.yml、Web 登录 CORS 与构建产物清理落地,见 §3.1/§3.4;数据库 MySQL 8 → PostgreSQL 16 切换完成,端口 5433:5433,见 §1 里程碑;测试函数 70 个全绿;全部里程碑 B1–B7 + 管理端 API 完成;0.7.0 评审 2×P2 + 3×P3 已全部修复,见 docs/reviews/review-0.7.0.md)
 
 ---
 
@@ -133,7 +133,7 @@
 | `POST /admin/traffic/import` | 模式 B 流量导入(audit 审计) |
 | `GET/PUT /admin/settings` | 站点配置读写(写后失效 Redis 缓存) |
 
-### 第四轮评审（v0.5.0，2026-08-13）
+### 第四轮评审 v0.5.0(✅ 已修复,2026-08-13,见 docs/reviews/review-0.5.0.md)
 
 | 项 | 状态 | 说明 |
 |---|---|---|
@@ -151,7 +151,7 @@
 | 代理审批并发 | 行锁读取申请,重复审批返回 409 |
 | 审计日志 | `audit_logs` 已接入:调余额/退款/封禁/改角色/代理审批/流量导入 |
 
-### 全量审查修复(✅ 2026-08-11)
+### 全量审查修复(✅ 已修复,2026-08-11)
 
 第三轮全仓库审查(见 docs/reviews/review-0.2.0.md)的后端修复:
 
@@ -174,7 +174,7 @@
 | 退款未收回订阅 | `Refund` 原只退余额/回退券/撤佣金,未处理 `users` 订阅字段,退款后用户仍可使用已退款订阅;新增 `revokeSubscriptionOnRefund`:onetime 扣回流量(下限 0),周期套餐且当前生效订阅正是该订单套餐时清除订阅(plan_id/expired_at 置空、流量清零、限速/设备清空);不同套餐/续期叠加场景行为见方法注释,补 3 个测试 |
 | 死代码清理 | 删除 `ListPendingOrderNos`/`GetByNoAdmin`/`IncrUsed`/`SetString` |
 
-### 0.5.0 审查修复(✅ 2026-08-13,见 docs/reviews/review-0.5.0.md)
+### 0.5.0 审查修复(✅ 已修复,2026-08-13,见 docs/reviews/review-0.5.0.md)
 
 | 项 | 说明 |
 |---|---|
@@ -189,28 +189,16 @@
 | 支付回执邮件 | 在线回调与余额支付成功后异步发送(`[站点] 支付成功`),未配置 SMTP 静默跳过 |
 | agent-audit cron | 每月 1 日 03:00 复核代理有效邀请数,不达标降级 role=0 |
 
-### 测试状态(✅ 更新,2026-08-11 实测)
+### 测试状态(✅ 已更新,2026-08-11 实测)
 
 - `go build ./...` / `go vet ./...` / `gofmt -l`(0 输出)全部通过
-- `go test ./... -count=1` 全绿;**68 个测试函数**(2026-08-13 实测:源码 `func Test` 68 个,含工单重开 4 例 + 优惠券每人限用 1 例 + 0.5.0 佣金查询失败回归 1 例,0 失败/跳过),覆盖:错误码映射、JWT(含 SV 会话版本号)、密码、验证码限频/已注册、注册/登录锁定/刷新旋转、优惠券试算(固定/百分比/封顶)/超限 12001/原子占用/**每人限用(同用户同券第二次下单被拒)**、下单幂等、续期状态机、回调幂等、epay 验签与篡改拒绝、订阅生成(3 格式)、佣金划转、代理申请、工单流转、**工单重开(重开成功/未关闭拒绝/仅一次 14002/并发 0 行拒绝)**、佣金确认竞态、超时关单(含优惠券回退)、取消并发已支付回滚、**退款(余额/券/佣金/订阅收回/onetime/异套餐)**,代理审批、bluemonday 清洗、Auth 中间件(无头/无效/refresh 混用/SV 匹配/bump 立即失效)、余额调整负值拒绝、**管理端订单佣金查询(成功映射/失败上抛)**
+- `go test ./... -count=1` 全绿;**70 个测试函数**(2026-08-14 实测:源码 `func Test` 70 个,含工单重开 4 例 + 优惠券每人限用 1 例 + 0.5.0 佣金查询失败回归 1 例,0 失败/跳过),覆盖:错误码映射、JWT(含 SV 会话版本号)、密码、验证码限频/已注册、注册/登录锁定/刷新旋转、优惠券试算(固定/百分比/封顶)/超限 12001/原子占用/**每人限用(同用户同券第二次下单被拒)**、下单幂等、续期状态机、回调幂等、epay 验签与篡改拒绝、订阅生成(3 格式)、佣金划转、代理申请、工单流转、**工单重开(重开成功/未关闭拒绝/仅一次 14002/并发 0 行拒绝)**、佣金确认竞态、超时关单(含优惠券回退)、取消并发已支付回滚、**退款(余额/券/佣金/订阅收回/onetime/异套餐)**,代理审批、bluemonday 清洗、Auth 中间件(无头/无效/refresh 混用/SV 匹配/bump 立即失效)、余额调整负值拒绝、**管理端订单佣金查询(成功映射/失败上抛)**
 
 ---
 
 ## 2. 未完成项
 
-### 二期 / 明确标注待办
-
-| 项 | 状态 | 依赖/说明 |
-|---|---|---|
-| 流量模式 A(节点上报 `POST /node/report`) | 未实现,一期为模式 B(手工导入) | 需节点 agent 端实现与节点密钥鉴权 |
-| 移动端深链/一键导入(前端侧) | 属于前端,后端无需改动 | 订阅端点已就绪 |
-| 订阅「重开一次」工单 | ~~未实现~~ **✅ 已实现(2026-08-12)**:`POST /tickets/{id}/reopen` + `reopen_count` 字段(迁移 0003);前端详情页已关闭且未重开时显示「重新打开」 | core-flows 第 7 节 |
-| 订单超时主动查单后关闭待支付支付单 | ✅ 已完善(2026-08-13):超时关单同步关闭该订单残留待支付支付单;查单任务发现订单已非待支付时关闭支付单并跳过查单(防残留反复轮询) | `cron_service.go` + `PaymentRepo.ClosePendingByOrderNo` + 2 测试 |
-| 工单用户侧「已回复」桌面端本地通知 | 前端轮询已具备数据(状态变化),本地通知属前端 | — |
-| Grafana 看板 | `/metrics` 已暴露,看板配置未做 | 依赖运维侧导入 dashboards |
-| 后端 CI / Release 接入 | ❌ 不接入(项目决策,2026-08-12 确认) | 后端不走 GitHub Actions——无 CI job、无镜像构建/部署流水线;`backend` job 与 `deploy-backend.yml` 已删除;构建/部署走本机 `make` + 手动流程(见 deploy.md) |
-
-### 一期小缺口收尾(✅ 2026-08-11)
+### 一期小缺口收尾(✅ 完成,2026-08-11)
 
 | 项 | 说明 |
 |---|---|
@@ -218,9 +206,9 @@
 | 余额负值保护 | `AdjustBalance` 服务层拒绝调整后余额为负(40000)+ 迁移 `0002_balance_check` 加 `CHECK (balance >= 0)`(PostgreSQL CHECK 强制执行);佣金回滚减 `commission_balance` 不受约束 |
 | 迁移 | `server/migrations/0002_balance_check.{up,down}.sql`(golang-migrate 格式,新增约束/回滚) |
 | 测试 | 新增 `middleware/auth_test.go`(6 场景:无头/无效/refresh 混用/有效/SV 匹配/bump 后立即失效+重新签发恢复)、admin_service 3 例(负值拒绝/封禁 bump/角色 bump);**测试函数 47 → 60 全绿** |
-| 既有 format:check 告警(前端) | **已解决(2026-08-12)**：前端 `pnpm format:check` 全仓通过(见 docs/reviews/review-0.4.0.md)；后端 `gofmt -l` 0 输出 |
+| 既有 format:check 告警(前端) | ✅ 已解决(2026-08-12):前端 `pnpm format:check` 全仓通过(见 docs/reviews/review-0.4.0.md);后端 `gofmt -l` 0 输出 |
 
-### 数据库切换:MySQL → PostgreSQL(✅ 2026-08-13)
+### 数据库切换:MySQL → PostgreSQL(✅ 完成,2026-08-13)
 
 | 项 | 说明                                                                                                                                                                                                                                                                                                                                                       |
 |---|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -228,10 +216,10 @@
 | 迁移 SQL | `migrations/*.sql` 全部重写为 PG 语法:BIGSERIAL 主键、SMALLINT、BOOLEAN、TIMESTAMP(3)、JSONB、TEXT、COMMENT ON、CONSTRAINT/CREATE INDEX;初始化数据改 JSON 字面量并 `setval` 推进序列                                                                                                                                                                                                   |
 | 业务 SQL | 反引号标识符 → 双引号;bool 列 `= 1/0` → `= true/false`;`DATE_SUB(NOW(), INTERVAL ? DAY)` → `now() - (? * interval '1 day')`;`DATE(paid_at)` → `paid_at::date`;`gorm:"type:json"` → `type:jsonb`、`mediumtext` → `text`                                                                                                                                              |
 | 部署 | docker-compose `mysql` 服务 → `postgres:16-alpine`,端口 **127.0.0.1:5433:5433**(容器内 `-p 5433`),`pg_isready` 健康检查;`redis` 补 `127.0.0.1:6379:6379` 发布(dev.sh 的 api/worker 为宿主机进程);Makefile 迁移 `-tags 'postgres'`;`scripts/dev.sh` 合并启停(无参=启动,`-stop`=关闭含 `docker compose stop` 容器;`--env-file` 读 `server/.env.dev`,变量单源;旧 docker run 容器检测拦截;dev-down.sh 已删除) |
-| 测试 | 8 个 service 测试文件 sqlmock 期望切 PG 语法(双引号/`$n`/INSERT RETURNING),驱动 `postgres.New(Conn+PreferSimpleProtocol)`;**60 个测试函数全绿**                                                                                                                                                                                                                                |
+| 测试 | 8 个 service 测试文件 sqlmock 期望切 PG 语法(双引号/`$n`/INSERT RETURNING),驱动 `postgres.New(Conn+PreferSimpleProtocol)`;**70 个测试函数全绿(2026-08-14 实测)**                                                                                                                                                                                                                                 |
 | 实测 | postgres:16 容器实测:迁移、注册(INSERT RETURNING)、JSONB 读写(/config、优惠券)、事务下单、admin dashboard、worker 启动全部通过                                                                                                                                                                                                                                                        |
 
-### 环境文件拆分:server/.env → .env.dev / .env.release(✅ 2026-08-13)
+### 环境文件拆分:server/.env → .env.dev / .env.release(✅ 完成,2026-08-13)
 
 | 项 | 说明 |
 |---|---|
@@ -241,7 +229,7 @@
 | DSN 差异 | dev 的 api/worker 为宿主机进程(DSN 127.0.0.1:5433,dev.sh 显式 export 覆盖);release 容器内用服务名 `host=postgres`;`APP_ENV` 分别 development/production(控制 Swagger/debug) |
 | 验证 | `docker compose --env-file .env.dev config` 与 `ENV_FILE=.env.release docker compose config` 均正确解析对应环境变量 |
 
-### 0.7.0 评审（✅ 2026-08-13 出评审;发现 2×P2 + 3×P3 已全部修复,见 docs/reviews/review-0.7.0.md）
+### 0.7.0 评审(✅ 已修复,2026-08-13;发现 2×P2 + 3×P3 已全部修复,见 docs/reviews/review-0.7.0.md)
 
 | 项 | 说明 | 状态 |
 |---|---|---|
@@ -251,6 +239,25 @@
 | [P3] dev.sh 缺 `.env.dev` 兜底失效 | `docker compose --env-file` 对缺失文件直接报错(实测 `couldn't find env file`),与注释承诺不符,`-stop` 同样受影响 | ✅ 已修复(2026-08-13):缺失时生成 `$RUN_DIR/env.fallback`(默认基础设施变量)并让 compose 指向它,启动/-stop 均生效 |
 | [P3] dev.sh `-stop` 停全项目 | `docker compose stop` 无服务参数,会连 api/worker/caddy 一起停 | ✅ 已修复(2026-08-13):改为 `stop postgres redis` |
 | [P3] docs/README.md 架构图错行 | Redis 行与「拉取节点」行合并,框线排版错乱 | ✅ 已修复(2026-08-13):拆回两行,框线对齐恢复 |
+
+### 一期遗留缺口(候补项,排在二期之前)
+
+> 以下候补项不属于一期交付承诺,列为候补;统一排在一期收尾之后、二期启动之前补齐,不再单独设档。
+
+| 项 | 状态 | 依赖/说明 |
+|---|---|---|
+| Grafana 看板 | 候补:`/metrics` 已暴露,看板配置未做 | 依赖运维侧导入 dashboards |
+| 工单用户侧「已回复」桌面端本地通知 | 候补(属前端):前端轮询已具备数据,本地通知由前端实现,后端无需改动 | — |
+| 移动端深链/一键导入(前端侧) | 候补(属前端):订阅端点已就绪,后端无需改动 | — |
+
+### 二期 / 明确标注待办
+
+| 项 | 状态 | 依赖/说明 |
+|---|---|---|
+| 流量模式 A(节点上报 `POST /node/report`) | 未实现,一期为模式 B(手工导入) | 需节点 agent 端实现与节点密钥鉴权 |
+| 订阅「重开一次」工单 | ✅ 已实现(2026-08-12):`POST /tickets/{id}/reopen` + `reopen_count` 字段(迁移 0003);前端详情页已关闭且未重开时显示「重新打开」 | core-flows 第 7 节 |
+| 订单超时主动查单后关闭待支付支付单 | ✅ 已完善(2026-08-13):超时关单同步关闭该订单残留待支付支付单;查单任务发现订单已非待支付时关闭支付单并跳过查单(防残留反复轮询) | `cron_service.go` + `PaymentRepo.ClosePendingByOrderNo` + 2 测试 |
+| 后端 CI / Release 接入 | ❌ 不接入(项目决策,2026-08-12 确认) | 后端不走 GitHub Actions——无 CI job、无镜像构建/部署流水线;`backend` job 与 `deploy-backend.yml` 已删除;构建/部署走本机 `make` + 手动流程(见 deploy.md) |
 
 ---
 

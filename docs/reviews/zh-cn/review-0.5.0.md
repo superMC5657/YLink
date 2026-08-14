@@ -12,22 +12,22 @@
 
 ## 已完成
 
-~~管理端订单列表已按订单号批量加载佣金记录，并增加 `commission_amount` 字段。~~
-~~透传佣金查询失败（P2）— `ListOrders` 改为返回 `ListByOrderNos` 的错误而非静默忽略；新增回归测试 `TestAdminListOrdersCommissionQueryError`。~~
+管理端订单列表已按订单号批量加载佣金记录，并增加 `commission_amount` 字段。
+透传佣金查询失败（P2）— `ListOrders` 改为返回 `ListByOrderNos` 的错误而非静默忽略；新增回归测试 `TestAdminListOrdersCommissionQueryError`。
 
 ## 发现
 
-### [P2] 透传佣金查询失败 — server/internal/service/admin_service.go:196-197
+### ✅ [P2] 透传佣金查询失败 — server/internal/service/admin_service.go:196-197
 
-~~`ListOrders` 忽略了批量佣金查询的错误：~~
+`ListOrders` 忽略了批量佣金查询的错误：
 
 ```go
 if comms, err := s.repos.Commission.ListByOrderNos(s.db, orderNosOf(list)); err == nil {
 ```
 
-~~数据库或查询失败时，接口仍使用空佣金映射返回订单列表。应直接返回该查询错误，避免管理端 UI 将错误的财务数据当作成功结果展示。~~
+数据库或查询失败时，接口仍使用空佣金映射返回订单列表。应直接返回该查询错误，避免管理端 UI 将错误的财务数据当作成功结果展示。
 
-**状态：** ✅ 已解决（2026-08-13）。`ListOrders` 现在直接返回批量佣金查询的错误，删除了原先 `err == nil` 的静默吞错；由 `TestAdminListOrdersCommissionQueryError` 覆盖。
+**状态：** 已解决（2026-08-13）。`ListOrders` 现在直接返回批量佣金查询的错误，删除了原先 `err == nil` 的静默吞错；由 `TestAdminListOrdersCommissionQueryError` 覆盖。
 
 ## 验证
 

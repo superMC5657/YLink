@@ -23,7 +23,7 @@ export const useInviteStore = defineStore('invite', {
   getters: {
     /**
      * 前端实际使用的注册链接前缀(修复:后端 base_url 是 API 地址,不能直接拼注册链接;
-     * 且前端为 hash 路由,链接需带 #/ 段):
+     * 且前端为 hash 路由,链接需带 #/ 段;state 里的 registerUrlPrefix 仅为契约占位,本 getter 不消费其值):
      * 1. 构建时注入 VITE_WEB_BASE_URL(生产 / Tauri 打包显式指定前端站点域名);
      * 2. 否则取当前页面 origin —— Web 下自动区分本地 Vite dev(5174)、Caddy(80)、生产 HTTPS(443);
      * 3. 兜底相对路径 /#/register?code=(仅 Tauri 且未注入时走到;打包版必须配置 VITE_WEB_BASE_URL,

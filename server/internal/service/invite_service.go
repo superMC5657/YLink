@@ -83,10 +83,12 @@ func (s *InviteService) Codes(ctx context.Context, userID int64) (*model.InviteC
 	for _, ic := range list {
 		items = append(items, model.InviteCodeItem{Code: ic.Code, UsedCount: ic.UsedCount, CreatedAt: ic.CreatedAt})
 	}
+	// register_url_prefix 仅返回路径后缀:API 地址(APP_BASE_URL)≠ 前端站点地址,
+	// 完整链接由前端按当前页面 origin 拼接(effectiveRegisterUrlPrefix),本字段仅供契约/占位。
 	return &model.InviteCodesResp{
 		List:              items,
 		Limit:             s.codeLimit(),
-		RegisterURLPrefix: s.cfg.App.BaseURL + "/#/register?code=",
+		RegisterURLPrefix: "/#/register?code=",
 	}, nil
 }
 

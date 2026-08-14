@@ -21,7 +21,9 @@ type InviteCodeItem struct {
 type InviteCodesResp struct {
 	List              []InviteCodeItem `json:"list"`
 	Limit             int              `json:"limit"`
-	RegisterURLPrefix string           `json:"register_url_prefix"`
+	// RegisterURLPrefix 注册链接路径后缀(如 /#/register?code=):不含域名,
+	// 完整链接由前端按当前页面 origin 拼接;本字段仅为契约占位,前端不消费其值。
+	RegisterURLPrefix string `json:"register_url_prefix"`
 }
 
 type CommissionRecordResp struct {

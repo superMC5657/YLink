@@ -337,6 +337,7 @@ export default {
     qrTip: 'Scan the QR code or copy the link to share',
     copyFailed: 'Copy failed, please copy manually',
     qrFailed: 'QR code generation failed',
-    systemShare: 'Share…',
+    downloadImage: 'Download image',
+    downloadFailed: 'Failed to generate image, please retry',
   },
 }

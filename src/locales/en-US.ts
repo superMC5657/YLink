@@ -208,6 +208,9 @@ export default {
     usedCount: 'Used',
     createdAt: 'Created at',
     registerLink: 'Register link',
+    shareLink: 'Share',
+    shareDesc: 'Invite friends to register and both of you earn rewards',
+    needCode: 'Please create an invite code first',
     codeLimit: 'Up to {limit} invite codes',
     commissionRecords: 'Commission records',
     recordTime: 'Issued at',
@@ -328,5 +331,12 @@ export default {
     expireBody: 'Your subscription expires in {days} day(s), please renew',
     ticketReplied: 'Ticket has a new reply',
     paySuccess: 'Payment successful',
+  },
+  share: {
+    copyLink: 'Copy link',
+    qrTip: 'Scan the QR code or copy the link to share',
+    copyFailed: 'Copy failed, please copy manually',
+    qrFailed: 'QR code generation failed',
+    systemShare: 'Share…',
   },
 }

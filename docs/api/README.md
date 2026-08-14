@@ -442,8 +442,10 @@
 ```json
 { "code": 0, "message": "ok",
   "data": { "list": [ { "code": "AB12CD34", "used_count": 3, "created_at": "2026-06-01T10:00:00+08:00" } ],
-            "limit": 5, "register_url_prefix": "https://panel.example.com/register?code=" } }
+            "limit": 5, "register_url_prefix": "https://panel.example.com/#/register?code=" } }
 ```
+
+> 注:前端为 hash 路由,注册链接形如 `https://panel.example.com/#/register?code=…`。实际分享/展示前缀由前端按当前 origin 拼接(`effectiveRegisterUrlPrefix`),本字段仅为契约占位。
 
 `POST /invite/codes`（无 body）→ 返回新码对象；超限错误 13001。
 

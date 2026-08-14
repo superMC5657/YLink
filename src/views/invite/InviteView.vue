@@ -3,7 +3,7 @@
  * 邀请赚钱(截图4):左列表(邀请码 + 佣金记录)、右统计卡(5 张)+ 划转。
  * 数据:GET /invite/*(docs/api/README.md §11)
  */
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useInviteStore } from '@/stores/invite'
 import { useMessage, useDialog } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
@@ -12,6 +12,7 @@ import { formatMoney, formatTime } from '@/utils/format'
 import { copyText } from '@/utils/platform'
 import StatNumber from '@/components/ui/StatNumber.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import SharePanel from '@/components/business/SharePanel.vue'
 
 const invite = useInviteStore()
 const message = useMessage()
@@ -22,6 +23,20 @@ const isDesktop = useMediaQuery('(min-width: 1024px)')
 const showTransfer = ref(false)
 const transferAmount = ref<number | null>(null)
 const transferring = ref(false)
+const showShare = ref(false)
+
+/** 当前可分享的注册链接(首个邀请码;前缀自动区分本地 5174 / Caddy 80 / 生产 443) */
+const registerLinkText = computed(
+  () => invite.effectiveRegisterUrlPrefix + (invite.codes[0]?.code ?? ''),
+)
+
+function openShare() {
+  if (!invite.effectiveRegisterUrlPrefix || !invite.codes[0]) {
+    message.warning(t('invite.needCode'))
+    return
+  }
+  showShare.value = true
+}
 
 async function onCreateCode() {
   try {
@@ -77,10 +92,10 @@ function onDeleteCode(code: string) {
 }
 
 async function copyRegisterLink() {
-  const prefix = invite.registerUrlPrefix
+  const prefix = invite.effectiveRegisterUrlPrefix
   const first = invite.codes[0]
   if (!prefix || !first) {
-    message.warning('请先生成邀请码')
+    message.warning(t('invite.needCode'))
     return
   }
   await copyText(prefix + first.code)
@@ -115,11 +130,15 @@ onMounted(() => {
           >
             <span class="text-14 text-[var(--c-text-sub)]">{{ t('invite.registerLink') }}:</span>
             <span class="num min-w-0 flex-1 truncate text-14 text-[var(--c-text)]">
-              {{ invite.registerUrlPrefix }}{{ invite.codes[0]?.code ?? '------' }}
+              {{ invite.effectiveRegisterUrlPrefix }}{{ invite.codes[0]?.code ?? '------' }}
             </span>
             <button class="btn-soft-blue h-7 px-3 text-14" @click="copyRegisterLink">
               <AppIcon name="copy" :size="13" />
               {{ t('common.copy') }}
+            </button>
+            <button class="btn-soft-neutral h-7 px-3 text-14" @click="openShare">
+              <AppIcon name="share-2" :size="13" />
+              {{ t('invite.shareLink') }}
             </button>
           </div>
 
@@ -345,5 +364,14 @@ onMounted(() => {
         </button>
       </div>
     </n-modal>
+
+    <!-- 分享面板:二维码 + 复制链接 + 系统分享(移动端优先) -->
+    <SharePanel
+      v-model:show="showShare"
+      :title="t('invite.title')"
+      :text="registerLinkText"
+      :desc="t('invite.shareDesc')"
+      :code="invite.codes[0]?.code"
+    />
   </div>
 </template>

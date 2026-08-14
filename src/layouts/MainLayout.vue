@@ -68,11 +68,14 @@ onBeforeUnmount(() => {
 function onFocus() {
   if (document.visibilityState === 'visible') {
     void user.refreshDashboard().then(() => void checkExpire())
+    // 工单已回复通知:聚焦时立即检查,不必等 60s 轮询
+    void checkTickets()
   }
 }
 function onVisibility() {
   if (document.visibilityState === 'visible') {
     void user.refreshDashboard().then(() => void checkExpire())
+    void checkTickets()
   }
 }
 

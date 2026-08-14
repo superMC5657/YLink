@@ -68,4 +68,11 @@ describe('useInviteStore', () => {
     expect(store.codes[0].code).toBe('NEWCODE1')
     expect(store.codes).toHaveLength(2)
   })
+
+  it('effectiveRegisterUrlPrefix 优先用当前页面 origin(区分本地 5174 / Caddy 80 / 生产 443),带 hash 路由 #/', () => {
+    const store = useInviteStore()
+    store.registerUrlPrefix = 'http://localhost:8081/register?code='
+    // jsdom 默认 origin 为 http://localhost:3000
+    expect(store.effectiveRegisterUrlPrefix).toBe('http://localhost:3000/#/register?code=')
+  })
 })

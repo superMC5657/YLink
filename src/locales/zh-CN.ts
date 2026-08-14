@@ -208,6 +208,9 @@ export default {
     usedCount: '已用次数',
     createdAt: '创建时间',
     registerLink: '注册链接',
+    shareLink: '分享',
+    shareDesc: '邀请好友注册,好友与你可各获奖励',
+    needCode: '请先生成邀请码',
     codeLimit: '最多可创建 {limit} 个邀请码',
     commissionRecords: '佣金发放记录',
     recordTime: '发放时间',
@@ -327,5 +330,12 @@ export default {
     expireBody: '你的订阅将在 {days} 天后到期,请及时续费',
     ticketReplied: '工单有新回复',
     paySuccess: '支付成功',
+  },
+  share: {
+    copyLink: '复制链接',
+    qrTip: '扫码或复制链接分享给好友',
+    copyFailed: '复制失败,请手动复制',
+    qrFailed: '二维码生成失败',
+    systemShare: '系统分享',
   },
 }

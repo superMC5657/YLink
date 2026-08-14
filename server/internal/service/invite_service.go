@@ -86,7 +86,7 @@ func (s *InviteService) Codes(ctx context.Context, userID int64) (*model.InviteC
 	return &model.InviteCodesResp{
 		List:              items,
 		Limit:             s.codeLimit(),
-		RegisterURLPrefix: s.cfg.App.BaseURL + "/register?code=",
+		RegisterURLPrefix: s.cfg.App.BaseURL + "/#/register?code=",
 	}, nil
 }
 

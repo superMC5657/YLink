@@ -5,85 +5,62 @@
 # 用法:bash scripts/dev-docker.sh          # 启动(构建前端 → 构建镜像 → 起全部容器)
 #      bash scripts/dev-docker.sh -stop  # 关闭(docker compose stop 全部服务,volume 数据保留)
 # 前置:pnpm install 已执行(node_modules 就绪);Docker Desktop 运行中。
+# 环境:所有配置以 server/.env.dev 为唯一来源,缺失即报错,脚本不内置任何默认值;
+#       复制模板:cp server/.env.example server/.env.dev,再按需修改。
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SERVER="$ROOT/server"
 RUN_DIR="$ROOT/.dev"
-SRC_ENV="$SERVER/.env.dev"        # 密钥来源(缺失时用默认值兜底,见 server/.env.example 模板)
-COMPOSE_ENV="$RUN_DIR/env.docker" # 容器模式 env(compose --env-file + api/worker env_file 共用)
-OVERRIDE="$RUN_DIR/docker-compose.dev.yml"
+SRC_ENV="$SERVER/.env.dev"        # 唯一 env 来源:api/worker env_file 与 compose 插值都读它,缺失即报错
+OVERRIDE="$SERVER/docker-compose.dev.yml"  # 全容器联调 override,随仓库入库;缺失即报错
 CADDYFILE="$RUN_DIR/Caddyfile.dev"
 
-# 基础设施默认值兜底(与 dev.sh 同源:server/.env.dev,缺失时用默认,保证全新检出可跑)
-pg_env() { grep -E "^$1=" "$SRC_ENV" 2>/dev/null | head -1 | cut -d= -f2- || true; }
-PG_USER="${PG_USER:-$(pg_env POSTGRES_USER)}";   PG_USER="${PG_USER:-ylink}"
-PG_PASS="${PG_PASS:-$(pg_env POSTGRES_PASSWORD)}"; PG_PASS="${PG_PASS:-ylink_root}"
-PG_DB="${PG_DB:-$(pg_env POSTGRES_DB)}";         PG_DB="${PG_DB:-ylink-backend}"
-REDIS_PASS="${REDIS_PASS:-$(pg_env REDIS_PASSWORD)}"; REDIS_PASS="${REDIS_PASS:-ylink_redis}"
-ADMIN_EMAIL="admin@example.com"
-ADMIN_PASSWORD="Admin@123456"
-DEMO_EMAIL="demo@test.com"
-DEMO_PASSWORD="Passw0rd"
-JWT_SECRET="dev-join-test-secret-32bytes-key!!"
-SMTP_HOST="$(pg_env APP_SMTP_HOST)";  SMTP_PORT="$(pg_env APP_SMTP_PORT)"
-SMTP_USERNAME="$(pg_env APP_SMTP_USERNAME)"; SMTP_PASSWORD="$(pg_env APP_SMTP_PASSWORD)"
-SMTP_FROM="$(pg_env APP_SMTP_FROM_NAME)"
+# ---------- 0. env/override 来源检查:两者都是仓库内文件,缺失即报错(不生成、不兜底) ----------
+if [ ! -f "$SRC_ENV" ]; then
+  echo "错误:$SRC_ENV 不存在。dev-docker.sh 的所有配置以 .env.dev 为唯一来源,请先创建:"
+  echo "  cp $SERVER/.env.example $SRC_ENV"
+  echo "  然后按需修改数据库口令、SMTP、管理员/演示账号等"
+  exit 1
+fi
+if [ ! -f "$OVERRIDE" ]; then
+  echo "错误:$OVERRIDE 不存在。全容器联调依赖该入库文件,请先拉取最新代码:"
+  echo "  git pull"
+  exit 1
+fi
+pg_env() { grep -E "^$1=" "$SRC_ENV" | head -1 | cut -d= -f2- || true; }
+# 必需变量缺失时直接报错,不设默认值兜底,避免静默用错口令
+require_env() {
+  local name="$1"
+  if [ -z "$(pg_env "$name")" ]; then
+    echo "错误:$SRC_ENV 缺少必需变量 $name(参考 $SERVER/.env.example 补齐)"
+    exit 1
+  fi
+}
 
 mkdir -p "$RUN_DIR"
 
 # 供 compose 插值(bind mount 绝对路径);Git Bash 下用 cygpath 转 Windows 路径,否则原样(正斜杠)
 DEV_CADDYFILE="$(cygpath -w "$CADDYFILE" 2>/dev/null || echo "$CADDYFILE")"
 DEV_DIST="$(cygpath -w "$ROOT/dist" 2>/dev/null || echo "$ROOT/dist")"
-# api/worker 的 env_file 走容器模式 env(base compose:${ENV_FILE:-.env.dev})
-export ENV_FILE="$COMPOSE_ENV" DEV_CADDYFILE DEV_DIST
+# api/worker 的 env_file 与 compose 插值统一用 server/.env.dev(base compose:${ENV_FILE:-.env.dev));
+# 应用配置(APP_*/ADMIN_*/DEMO_*/SMTP 等)全部由 env_file 从 .env.dev 导入,脚本不写任何默认值;
+# override(server/docker-compose.dev.yml,入库文件)只覆盖容器模式差异:DSN/Redis 用容器服务名 +
+# 强制 APP_ENV=development;其 caddy volumes 的 ${DEV_CADDYFILE}/${DEV_DIST} 由这里 export 注入。
+ENV_FILE="$SRC_ENV"
+export ENV_FILE DEV_CADDYFILE DEV_DIST
 
 say() { printf '\n[%s] %s\n' "$(date +%H:%M:%S)" "$*"; }
-
-# ---------- compose override:替换 caddy 的 Caddyfile + 挂载前端 dist ----------
-# volumes 按挂载目标合并:同 target(/etc/caddy/Caddyfile)后者替换前者,其余保留。
-cat > "$OVERRIDE" <<'EOF'
-services:
-  caddy:
-    volumes:
-      - ${DEV_CADDYFILE}:/etc/caddy/Caddyfile:ro
-      - ${DEV_DIST}:/srv/panel:ro
-EOF
-
-# ---------- 生成容器模式 env(api/worker 容器内用服务名连接,与 .env.dev 的宿主机 DSN 区分) ----------
-# 无副作用,start/-stop 共用:保证 -stop 时 --env-file 一定存在(缺失会让 compose 直接报错)。
-{
-  echo "APP_ENV=development"
-  echo "APP_BASE_URL=http://localhost:8081"
-  echo "APP_DATABASE_DSN=host=postgres port=5433 user=${PG_USER} password=${PG_PASS} dbname=${PG_DB} sslmode=disable TimeZone=Asia/Shanghai"
-  echo "APP_REDIS_ADDR=redis:6379"
-  echo "APP_REDIS_PASSWORD=${REDIS_PASS}"
-  echo "APP_JWT_SECRET=${JWT_SECRET}"
-  echo "ADMIN_EMAIL=${ADMIN_EMAIL}"
-  echo "ADMIN_PASSWORD=${ADMIN_PASSWORD}"
-  echo "DEMO_EMAIL=${DEMO_EMAIL}"
-  echo "DEMO_PASSWORD=${DEMO_PASSWORD}"
-  # SMTP 从 server/.env.dev 抄(若已配置);key 与 viper 长名映射一致,避免后端读不到真实账号
-  if [ -n "$SMTP_USERNAME" ] || [ -n "$SMTP_PASSWORD" ]; then
-    echo "APP_SMTP_HOST=${SMTP_HOST}"
-    echo "APP_SMTP_PORT=${SMTP_PORT}"
-    echo "APP_SMTP_USERNAME=${SMTP_USERNAME}"
-    echo "APP_SMTP_PASSWORD=${SMTP_PASSWORD}"
-    echo "APP_SMTP_FROM_NAME=${SMTP_FROM}"
-  fi
-  # compose 插值变量(--env-file 读取)
-  echo "POSTGRES_USER=${PG_USER}"
-  echo "POSTGRES_PASSWORD=${PG_PASS}"
-  echo "POSTGRES_DB=${PG_DB}"
-  echo "REDIS_PASSWORD=${REDIS_PASS}"
-} > "$COMPOSE_ENV"
 
 # ---------- 0b. 关闭模式 ----------
 if [ "${1:-}" = "-stop" ]; then
   echo "关闭 YLink 全容器服务..."
   if docker info >/dev/null 2>&1; then
-    (cd "$SERVER" && docker compose --env-file "$COMPOSE_ENV" -f docker-compose.yml -f "$OVERRIDE" stop postgres redis api worker caddy) \
-      && echo "  已停止全部容器(docker compose stop,volume 数据保留)"
+    if ! (cd "$SERVER" && docker compose --env-file "$ENV_FILE" -f docker-compose.yml -f "$OVERRIDE" stop postgres redis api worker caddy); then
+      echo "错误:docker compose stop 失败,请查看上方输出"
+      exit 1
+    fi
+    echo "  已停止全部容器(docker compose stop,volume 数据保留)"
   else
     echo "  Docker daemon 未运行,跳过容器关闭"
   fi
@@ -91,9 +68,22 @@ if [ "${1:-}" = "-stop" ]; then
   exit 0
 fi
 
-
-# ---------- 2. 检查 Docker ----------
-say "[1/3] 检查 Docker daemon..."
+# ---------- 2. 检查 Docker 与必需基础设施变量 ----------
+# 基础设施变量缺失会让 postgres/redis 容器起不来(空密码/空库名),必须显式报错
+say "[1/4] 检查 Docker daemon 与必需环境变量..."
+require_env POSTGRES_USER
+require_env POSTGRES_PASSWORD
+require_env POSTGRES_DB
+require_env REDIS_PASSWORD
+require_env APP_REDIS_PASSWORD
+# redis 容器口令(--requirepass)与 api/worker 连接口令(APP_REDIS_PASSWORD)必须一致,否则 api 连 redis 认证失败
+if [ "$(pg_env REDIS_PASSWORD)" != "$(pg_env APP_REDIS_PASSWORD)" ]; then
+  echo "错误:$SRC_ENV 中 REDIS_PASSWORD 与 APP_REDIS_PASSWORD 不一致:"
+  echo "  REDIS_PASSWORD=$(pg_env REDIS_PASSWORD)(redis 容器 --requirepass)"
+  echo "  APP_REDIS_PASSWORD=$(pg_env APP_REDIS_PASSWORD)(api/worker 连接用)"
+  echo "  两者必须相同"
+  exit 1
+fi
 docker info >/dev/null 2>&1 || { echo "错误:Docker daemon 未运行,请先启动 Docker Desktop"; exit 1; }
 
 ensure_image() {
@@ -115,10 +105,15 @@ ensure_image golang:1.26-alpine  # server/Dockerfile build 阶段(与 go.mod go 
 ensure_image alpine:3.20          # server/Dockerfile 最终阶段
 
 # ---------- 4. 前端构建(产物 dist/,由 Caddy 静态托管) ----------
-# 构建产物由 Caddy 同域托管(/api/* 反代 api:8081),必须用相对基址,
-# 否则 Web 会跨端口直连 localhost:8081 并触发浏览器 CORS 预检。
+# 构建产物由 Caddy 同域托管(/api/* 反代 api:8081),必须用相对基址,覆盖 .env.production
+# 里写死的 http://localhost:8081/api/v1(否则 Web 会跨端口直连 8081 触发浏览器 CORS 预检)。
+# MSYS 路径转换:Git Bash(MINGW64)启动 Windows 原生程序 node 时,会把环境变量/参数里的
+# POSIX 路径转成 Windows 路径(/api/v1 → C:/Program Files/Git/api/v1,虚拟根 / = Git 安装目录),
+# 污染产物默认 apiBase(file:// 打开时请求变 file:///C:/Program%20Files/Git/...,报
+# "Not allowed to load local resource")。
+# MSYS_NO_PATHCONV=1 禁用全部路径转换;MSYS2_ENV_CONV_EXCL 再精确排除该变量(双保险,兼容不同 Git Bash 版本)。
 say "[3/4] 构建前端(pnpm build → dist/)..."
-(cd "$ROOT" && VITE_API_BASE_URL=/api/v1 pnpm build)
+(cd "$ROOT" && MSYS2_ENV_CONV_EXCL=VITE_API_BASE_URL MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/v1 pnpm build)
 echo "  构建完成:$ROOT/dist"
 
 # ---------- 5. 生成 dev Caddyfile:localhost 托管 dist(/srv/panel 挂载点),同域反代 /api/* ----------
@@ -141,7 +136,7 @@ EOF
 
 # ---------- 6. 构建镜像 + 启动全部服务 ----------
 say "[4/4] 构建 api/worker 镜像并启动全部服务..."
-(cd "$SERVER" && docker compose --env-file "$COMPOSE_ENV" -f docker-compose.yml -f "$OVERRIDE" up -d --build postgres redis api worker caddy)
+(cd "$SERVER" && docker compose --env-file "$ENV_FILE" -f docker-compose.yml -f "$OVERRIDE" up -d --build postgres redis api worker caddy)
 
 # 等待 api 就绪(经宿主 127.0.0.1:8081 探活;容器链路由 depends_on healthcheck 保证)
 for i in $(seq 1 30); do
@@ -156,13 +151,19 @@ for i in $(seq 1 10); do
   sleep 2
 done
 
+# 账号提示从 .env.dev 读取(缺失时提示未配置,后端 EnsureAdmin/EnsureDemoUser 会跳过创建)
+ADMIN_EMAIL_HINT="$(pg_env ADMIN_EMAIL)";        [ -n "$ADMIN_EMAIL_HINT" ] || ADMIN_EMAIL_HINT="未配置(.env.dev)"
+ADMIN_PASSWORD_HINT="$(pg_env ADMIN_PASSWORD)";  [ -n "$ADMIN_PASSWORD_HINT" ] || ADMIN_PASSWORD_HINT="未配置(.env.dev)"
+DEMO_EMAIL_HINT="$(pg_env DEMO_EMAIL)";          [ -n "$DEMO_EMAIL_HINT" ] || DEMO_EMAIL_HINT="未配置(.env.dev)"
+DEMO_PASSWORD_HINT="$(pg_env DEMO_PASSWORD)";    [ -n "$DEMO_PASSWORD_HINT" ] || DEMO_PASSWORD_HINT="未配置(.env.dev)"
+
 echo ""
 echo "全部就绪 🎉"
 echo "------------------------------------------------------------"
 echo "  前端:      http://localhost        (Caddy 托管 dist 静态 + /api/v1 同域反代)"
 echo "  后端直连:  http://localhost:8081   (含 /swagger/index.html,开发模式开启)"
-echo "  演示账号:  demo@test.com / Passw0rd"
-echo "  管理员:    admin@example.com / Admin@123456"
+echo "  演示账号:  ${DEMO_EMAIL_HINT} / ${DEMO_PASSWORD_HINT}"
+echo "  管理员:    ${ADMIN_EMAIL_HINT} / ${ADMIN_PASSWORD_HINT}"
 echo "  停止:      bash scripts/dev-docker.sh -stop(全部容器,volume 数据保留)"
 echo "  日志:      docker compose -f $SERVER/docker-compose.yml -f $OVERRIDE logs -f api"
 echo "------------------------------------------------------------"

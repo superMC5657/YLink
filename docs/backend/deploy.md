@@ -39,7 +39,7 @@ payment:
     methods: ["alipay", "wxpay"]
 
 cors:
-  allow_origins: ["https://panel.example.com"]   # Web 前端域名；Tauri 端无 CORS 需求
+  allow_origins: ["https://panel.example.com"]   # Web 前端域名(https)；Tauri 端无 CORS 需求
 
 log:
   level: info
@@ -153,7 +153,7 @@ panel.example.com { root * /srv/panel; try_files {path} /index.html; file_server
 
 ## 4. 上线步骤
 
-1. 准备环境文件：本地开发 `cp .env.example .env.dev`（scripts/dev.sh 读取，DSN 会被脚本覆盖为宿主机 127.0.0.1:5433）；生产 `cp .env.example .env.release` 并填写真实 DB/Redis/JWT/SMTP/EPAY 密钥（两者均被 .gitignore 忽略）。模板默认 `APP_ENV=production`（关 Swagger/debug，生产保持默认即可；本地开发由 dev.sh 强制覆盖为 development）。**存量部署升级**：确认已有 `.env.release` 中 `APP_ENV=production`（旧模板为 development，生产会误开 Swagger/debug）。
+1. 准备环境文件：本地开发 `cp .env.example .env.dev`（scripts/dev.sh 与 dev-docker.sh 均读取，**dev-docker.sh 以 .env.dev 为唯一来源、缺失即报错**；dev.sh 的 DSN 会被脚本覆盖为宿主机 127.0.0.1:5433，dev-docker.sh 的容器内 DSN/Redis 地址由 compose override 覆盖为服务名）；生产 `cp .env.example .env.release` 并填写真实 DB/Redis/JWT/SMTP/EPAY 密钥（三者均被 .gitignore 忽略）。模板默认 `APP_ENV=production`（关 Swagger/debug，生产保持默认即可；本地开发由 dev.sh / dev-docker.sh 强制覆盖为 development），模板含 `DEMO_EMAIL/DEMO_PASSWORD`（演示账号，dev-docker.sh 亦从 .env.dev 读取）。**存量部署升级**：确认已有 `.env.release` 中 `APP_ENV=production`（旧模板为 development，生产会误开 Swagger/debug）。
 2. 首次启动先拉起数据库容器：`ENV_FILE=.env.release docker compose up -d postgres redis`，等待 `docker compose ps` 显示 postgres/redis healthy。
 3. 数据库迁移（新主机首次部署必做，api/worker 容器不会自动迁移）：`DB_URL='postgres://ylink:ylink_root@127.0.0.1:5433/ylink-backend?sslmode=disable' make migrate`（DSN 必须带 `postgres://` 前缀，否则 migrate CLI 报 `unknown driver`；`-tags 'postgres'` 已内置在 Makefile）。此时宿主机 127.0.0.1:5433 已由 postgres 容器监听，迁移才能连通。
 4. 启动全部服务 `ENV_FILE=.env.release docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build`（api/worker 的 env_file 由该变量切换;caddy 构建 ylink-web 镜像含前端与生产 Caddyfile）。api 宿主端口已清空,**验证改走域名**:`curl https://api.example.com/healthz` 返回 200、`GET https://api.example.com/api/v1/config` 返回站点配置。
@@ -187,6 +187,6 @@ panel.example.com { root * /srv/panel; try_files {path} /index.html; file_server
 
 | 环境 | 用途 | 说明 |
 |---|---|---|
-| local | 开发本机 | `server/.env.dev`（gitignore）;compose 起 postgres/redis;dev.sh 启动 api/worker 时强制 `APP_ENV=development` 开 Swagger |
+| local | 开发本机 | `server/.env.dev`（gitignore，dev.sh / dev-docker.sh 的唯一 env 源;dev-docker.sh 缺失即报错、不内置默认值）;compose 起 postgres/redis;dev.sh 启动 api/worker 时强制 `APP_ENV=development` 开 Swagger(dev-docker.sh 同,容器内 DSN/Redis 由 override 覆盖为服务名) |
 | staging | 预发 | 与生产同构,复制 `.env.release` 改网关为沙箱/0.01 元实测 |
 | production | 正式 | `server/.env.release`（gitignore,真实密钥）;`ENV_FILE=.env.release docker compose up -d`;关 Swagger/debug,严格 CORS 白名单与限流 |

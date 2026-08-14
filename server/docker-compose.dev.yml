@@ -1,0 +1,26 @@
+# YLink 全容器联调(dev-docker.sh)专用 override,随仓库入库。
+# 与 server/docker-compose.yml 叠加使用:dev-docker.sh 用
+#   docker compose --env-file server/.env.dev -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+#
+# 职责(相对基础 compose 的差异):
+#   api/worker  - environment 覆盖容器模式连接:DSN/Redis 用容器服务名(host=postgres / redis:6379),
+#                 与 .env.dev 的宿主机 127.0.0.1 地址区分;APP_ENV 强制 development(与 dev.sh 一致,开 Swagger/debug)。
+#                 environment 优先级高于 env_file,DSN 里的 user/password/dbname 由 compose 从 --env-file(.env.dev)插值,
+#                 其余应用配置(APP_*/ADMIN_*/DEMO_*/SMTP 等)全部由 env_file 从 .env.dev 导入。
+#   caddy      - volumes 按挂载目标合并(同 target /etc/caddy/Caddyfile 后者替换前者):挂载 dev 专用 Caddyfile
+#                与前端构建产物 dist/。${DEV_CADDYFILE} / ${DEV_DIST} 由 dev-docker.sh export(cygpath 转 Windows 绝对路径)。
+services:
+  api:
+    environment:
+      APP_ENV: "development"
+      APP_DATABASE_DSN: "host=postgres port=5433 user=${POSTGRES_USER} password=${POSTGRES_PASSWORD} dbname=${POSTGRES_DB} sslmode=disable TimeZone=Asia/Shanghai"
+      APP_REDIS_ADDR: "redis:6379"
+  worker:
+    environment:
+      APP_ENV: "development"
+      APP_DATABASE_DSN: "host=postgres port=5433 user=${POSTGRES_USER} password=${POSTGRES_PASSWORD} dbname=${POSTGRES_DB} sslmode=disable TimeZone=Asia/Shanghai"
+      APP_REDIS_ADDR: "redis:6379"
+  caddy:
+    volumes:
+      - ${DEV_CADDYFILE}:/etc/caddy/Caddyfile:ro
+      - ${DEV_DIST}:/srv/panel:ro

@@ -2,7 +2,7 @@
 
 > 本文档记录 `src/` 目录 Vue 3 用户端应用的开发状态,是 docs/frontend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-14(存储适配 plugin-store 迁移、移动端深链、构建产物清理 emptyOutDir、Web 登录 CORS 修复落地,见 §1/§2/§3.3;前置条件实测核对:Node 24.14.0 / pnpm 10.33.0 / Rust 1.97.1 均满足;路由 29 条、vitest 51 用例等与代码实况对齐;管理后台 13 模块全部完成,见 M8+M9)
+> 最后更新:2026-08-14(存储适配 plugin-store 迁移、移动端深链、构建产物清理 emptyOutDir、Web 登录 CORS 修复落地,见 §1/§2/§3.3;前置条件实测核对:Node 24.14.0 / pnpm 10.33.0 / Rust 1.97.1 均满足;路由 29 条、vitest 55 用例等与代码实况对齐;管理后台 13 模块全部完成,见 M8+M9;移动端分享面板已实现(SharePanel.vue 品牌邀请卡片 + 系统分享二维码图片)并接入邀请页,注册链接前缀改为前端 origin 自适应(VITE_WEB_BASE_URL / 本地 5174 / Caddy 80 / 生产 443),工单已回复本地通知增强为聚焦即时检查,见 §2/§1 与 review-0.8.0.md)
 
 ---
 
@@ -102,7 +102,7 @@
 |---|---|---|
 | 更新卡片 UI | `utils/updater.ts`(checkForUpdate / downloadAndInstall,动态 import,Web 端自动降级)+ `components/app/UpdateCard.vue`(右下角浮动卡片:版本号 + 更新日志 + 下载进度 + 立即更新/稍后,监听 `app:check-update` 事件)+ App.vue 挂载启动静默检查 + 设置页「检查更新」入口(仅 Tauri 显示,含当前版本号);失败静默忽略 | `src/utils/updater.ts`、`src/components/app/UpdateCard.vue`、`src/App.vue`、`views/profile/ProfileView.vue` |
 | 单实例深链接转发 | `lib.rs` 单实例回调从 argv 提取 `ylink://` URL,用 deep-link 插件同名事件 `deep-link://new-url`(payload URL 数组)emit 给已有实例,前端 `onOpenUrl` 直接路由跳转;端到端链路打通 | `src-tauri/src/lib.rs`(Emitter) |
-| 本地通知触发点 | `utils/notify.ts` 统一封装(Tauri plugin-notification / Web Notification API 降级);触发点:支付成功(PaymentModal)、工单已回复(MainLayout 60s 轮询 + 状态快照去重)、订阅到期 ≤3 天(窗口聚焦刷新检测 + 按到期日去重) | `src/utils/notify.ts`、`src/composables/useLocalNotifications.ts`、`layouts/MainLayout.vue`、`components/business/PaymentModal.vue` |
+| 本地通知触发点 | `utils/notify.ts` 统一封装(Tauri plugin-notification / Web Notification API 降级);触发点:支付成功(PaymentModal)、工单已回复(MainLayout 60s 轮询 + 状态快照去重)、订阅到期 ≤3 天(窗口聚焦刷新检测 + 按到期日去重)。**2026-08-14 增强**:工单已回复在窗口聚焦/可见时立即检查(`onFocus`/`onVisibility` 补 `checkTickets()`),不再依赖最多 60s 轮询延迟 | `src/utils/notify.ts`、`src/composables/useLocalNotifications.ts`、`layouts/MainLayout.vue`、`components/business/PaymentModal.vue` |
 
 ### 工程化与质量门禁(✅ 完成)
 
@@ -223,7 +223,7 @@
 
 | 项 | 状态 | 依赖/说明 |
 |---|---|---|
-| 移动端深链/分享面板 | 深链 ✅ 已接入(2026-08-13),分享面板未做 | deep-link 注册移出 cfg(desktop) + tauri.conf.json `plugins.deep-link.mobile`(scheme ylink) + Android manifest intent-filter(gen/ 不入库,本地构建生效) |
+| 移动端深链/分享面板 | 深链 ✅ 已接入(2026-08-13);分享面板 ✅ 已实现(2026-08-14):`SharePanel.vue` 底部弹出(n-drawer placement=bottom,移动端优先)+ 品牌邀请卡片(渐变背景 + 站点名 + 邀请码 + 二维码白块)+ 复制链接 + 系统分享;系统分享优先分享二维码图片(navigator.canShare({files}) 能力检测,不支持时退回文本,Tauri 隐藏)。**注册链接前缀修复(2026-08-14)**:原后端用 API `base_url`(localhost:8081)拼前缀,现由前端 `invite` store 的 `effectiveRegisterUrlPrefix` 自适应 —— 优先 `VITE_WEB_BASE_URL`(生产/Tauri 打包显式配置,见 .env.production),否则取当前页面 origin(本地 dev=5174、Caddy=80、生产 HTTPS=443),兜底相对路径;二维码固定深色码(白块内不随暗色主题反色) | deep-link 注册移出 cfg(desktop) + tauri.conf.json `plugins.deep-link.mobile`(scheme ylink) + Android manifest intent-filter(gen/ 不入库,本地构建生效) |
 | 更新卡片 UI | ✅ 已实现(2026-08-12),见第 1 节 M6 发布能力收尾 | — |
 | 开机自启 | ✅ 需求已移除(2026-08-13):不再提供开机自启开关;`utils/platform.ts` 自启封装与设置页入口已还原(autostart 插件仍注册于 Rust 侧,前端不暴露) | — |
 | 存储适配 plugin-store | ✅ 已实现(2026-08-13):`utils/storage.ts` 同步 facade(内存 Map + 异步落盘 `app-settings.json`),`initStorage()` 启动预载,persistedstate 与全部 localStorage 调用点统一走 storage 层 | — |

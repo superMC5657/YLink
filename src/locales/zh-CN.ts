@@ -336,6 +336,7 @@ export default {
     qrTip: '扫码或复制链接分享给好友',
     copyFailed: '复制失败,请手动复制',
     qrFailed: '二维码生成失败',
-    systemShare: '系统分享',
+    downloadImage: '下载图片',
+    downloadFailed: '图片生成失败,请重试',
   },
 }

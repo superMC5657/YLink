@@ -20,7 +20,7 @@
 | 定时任务 | robfig/cron/v3 | 佣金确认、到期提醒、流量日结转 |
 | 邮件 | gomail（SMTP） | 验证码、到期/流量提醒 |
 | 二维码 | skip2/go-qrcode | 支付二维码（若网关不返回图片） |
-| 测试 | testify + miniredis + go-sqlmock | 单测（60 个测试函数，全绿） |
+| 测试 | testify + miniredis + go-sqlmock | 单测（70 个测试函数，全绿） |
 
 ## 2. 分层架构
 

@@ -51,9 +51,12 @@ log:
 ## 2. Dockerfile（多阶段）
 
 ```dockerfile
-FROM golang:1.24-alpine AS build
+FROM golang:1.26-alpine AS build
 WORKDIR /app
-COPY go.mod go.sum ./ && RUN go mod download
+# 国内网络直连 proxy.golang.org 常超时,构建阶段走 goproxy.cn 加速
+ENV GOPROXY=https://goproxy.cn,direct
+COPY go.mod go.sum ./
+RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o bin/server ./cmd/server \
  && CGO_ENABLED=0 go build -ldflags="-s -w" -o bin/worker ./cmd/worker
@@ -78,29 +81,36 @@ services:
     ports: ["127.0.0.1:5433:5433"]      # 容器内监听 5433（command: -p 5433）
     command: -p 5433
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h localhost -p 5433 -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 5433 -U ${POSTGRES_USER} -d postgres"]
 
   redis:
     image: redis:7-alpine
     command: redis-server --requirepass ${REDIS_PASSWORD}
     volumes: ["redis_data:/data"]
+    ports: ["127.0.0.1:6379:6379"]      # dev.sh 的 api/worker 是宿主机进程,需经本机端口访问
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
 
   api:
-    build: ..
+    build: .
     env_file: ${ENV_FILE:-.env.dev}   # 生产:ENV_FILE=.env.release 启动时覆盖
-    depends_on: [postgres, redis]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
     ports: ["127.0.0.1:8081:8081"]     # 只对本机暴露，由 Caddy 反代
 
   worker:
-    build: ..
+    build: .
     command: ["/app/bin/worker"]
     env_file: ${ENV_FILE:-.env.dev}
-    depends_on: [postgres, redis]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
 
   caddy:
     image: caddy:2-alpine
     ports: ["80:80", "443:443"]
-    volumes: ["./Caddyfile:/etc/caddy/Caddyfile", "caddy_data:/data"]
+    volumes: ["./deploy/Caddyfile:/etc/caddy/Caddyfile:ro", "caddy_data:/data"]
 
 volumes: { postgres_data: {}, redis_data: {}, caddy_data: {} }
 ```

@@ -13,47 +13,47 @@
 
 ## 已完成
 
-~~GORM 驱动由 `gorm.io/driver/mysql` 切换为 `gorm.io/driver/postgres`，`migrations/*.sql` 全部重写为 PostgreSQL 语法（BIGSERIAL、BOOLEAN、TIMESTAMP(3)、JSONB、COMMENT ON、`setval` 推进序列）。~~
+GORM 驱动由 `gorm.io/driver/mysql` 切换为 `gorm.io/driver/postgres`，`migrations/*.sql` 全部重写为 PostgreSQL 语法（BIGSERIAL、BOOLEAN、TIMESTAMP(3)、JSONB、COMMENT ON、`setval` 推进序列）。
 
-~~业务 SQL 全部转换（反引号标识符、`= 1/0` 布尔字面量、`DATE_SUB`/`INTERVAL`、`DATE()`、`type:json`/`mediumtext` → PG 等价写法）；`repo.go` 改用 `postgres.Open(cfg.DSN)`。~~
+业务 SQL 全部转换（反引号标识符、`= 1/0` 布尔字面量、`DATE_SUB`/`INTERVAL`、`DATE()`、`type:json`/`mediumtext` → PG 等价写法）；`repo.go` 改用 `postgres.Open(cfg.DSN)`。
 
-~~docker-compose 的 mysql 服务替换为 `postgres:16-alpine`（端口 5433、`command: -p 5433`、`pg_isready` 健康检查），Redis 暴露到 `127.0.0.1:6379`，Makefile 迁移 tag 改为 `postgres`。~~
+docker-compose 的 mysql 服务替换为 `postgres:16-alpine`（端口 5433、`command: -p 5433`、`pg_isready` 健康检查），Redis 暴露到 `127.0.0.1:6379`，Makefile 迁移 tag 改为 `postgres`。
 
-~~`dev-up.sh`/`dev-down.sh` 合并为 `scripts/dev.sh`（启动 / `-stop`、旧 `docker run` 容器检测拦截、一次性迁移检查、宿主机进程 api/worker 并导出 DSN）。~~
+`dev-up.sh`/`dev-down.sh` 合并为 `scripts/dev.sh`（启动 / `-stop`、旧 `docker run` 容器检测拦截、一次性迁移检查、宿主机进程 api/worker 并导出 DSN）。
 
-~~`server/.env` 拆分为 `.env.dev`/`.env.release`，两者加入 `.gitignore`，`dev.sh` 与 compose `env_file` 切换为 `${ENV_FILE:-.env.dev}`。~~
+`server/.env` 拆分为 `.env.dev`/`.env.release`，两者加入 `.gitignore`，`dev.sh` 与 compose `env_file` 切换为 `${ENV_FILE:-.env.dev}`。
 
-~~单测同步到 PG 方言（双引号标识符、`$n`、INSERT … RETURNING）；`go test ./...` 60/60 全绿。~~
+单测同步到 PG 方言（双引号标识符、`$n`、INSERT … RETURNING）；`go test ./...` 60/60 全绿。
 
 ## 发现
 
-~~### [P2] 发布环境模板仍为 `APP_ENV=development`，生产会开启 Swagger/debug — server/.env.example:6、docs/backend/deploy.md:112~~
+### ✅ [P2] 发布环境模板仍为 `APP_ENV=development`，生产会开启 Swagger/debug — server/.env.example:6、docs/backend/deploy.md:112
 
-~~新的发布流程（`cp .env.example .env.release` + `ENV_FILE=.env.release docker compose up -d`）复制出的模板 `APP_ENV=development`。`router.New` 仅在 `app.env == "production"` 时才切换 `gin.ReleaseMode` 并关闭 `/swagger/*`，因此按文档部署的生产环境会以开发模式运行，Swagger 经 Caddy 公网可达——与 deploy.md §7「关 Swagger/debug」以及 progress.md 中「APP_ENV 区分两套环境」的表述相矛盾。模板头部或 deploy.md 步骤 1 应把 release 文件的 `APP_ENV` 默认/说明为 `production`。~~
+新的发布流程（`cp .env.example .env.release` + `ENV_FILE=.env.release docker compose up -d`）复制出的模板 `APP_ENV=development`。`router.New` 仅在 `app.env == "production"` 时才切换 `gin.ReleaseMode` 并关闭 `/swagger/*`，因此按文档部署的生产环境会以开发模式运行，Swagger 经 Caddy 公网可达——与 deploy.md §7「关 Swagger/debug」以及 progress.md 中「APP_ENV 区分两套环境」的表述相矛盾。模板头部或 deploy.md 步骤 1 应把 release 文件的 `APP_ENV` 默认/说明为 `production`。
 
 **状态：** 已修复（2026-08-13）。`server/.env.example` 默认值改为 `APP_ENV=production`（头部注释说明两种用法）；`scripts/dev.sh` 对宿主机 api/worker 强制 `export APP_ENV=development`（本地联调保留 Swagger/debug）；deploy.md §4 步骤 1 同步说明默认值。
 
-~~### [P2] 生产上线步骤在新主机上先迁移、后启动数据库 — docs/backend/deploy.md:112-113~~
+### ✅ [P2] 生产上线步骤在新主机上先迁移、后启动数据库 — docs/backend/deploy.md:112-113
 
-~~deploy.md §4 步骤 1 在「首次启动前」执行 `DB_URL='postgres://…@127.0.0.1:5433/…' make migrate`，但 Postgres 容器要到步骤 2（`ENV_FILE=.env.release docker compose up -d`）才启动。新主机上步骤 1 时 `127.0.0.1:5433` 无任何监听，迁移必然失败；api/worker 容器不会自动迁移，于是服务在空库上启动（`EnsureAdmin`/`EnsureDemoUser` 静默跳过，业务接口 500）。上线步骤应先拉起 `postgres`/`redis` 再执行迁移（或写明预期顺序）。~~
+deploy.md §4 步骤 1 在「首次启动前」执行 `DB_URL='postgres://…@127.0.0.1:5433/…' make migrate`，但 Postgres 容器要到步骤 2（`ENV_FILE=.env.release docker compose up -d`）才启动。新主机上步骤 1 时 `127.0.0.1:5433` 无任何监听，迁移必然失败；api/worker 容器不会自动迁移，于是服务在空库上启动（`EnsureAdmin`/`EnsureDemoUser` 静默跳过，业务接口 500）。上线步骤应先拉起 `postgres`/`redis` 再执行迁移（或写明预期顺序）。
 
 **状态：** 已修复（2026-08-13）。deploy.md §4 重排：先拉起 `postgres`/`redis`（步骤 2），再对已监听的 `127.0.0.1:5433` 执行 `make migrate`（步骤 3），最后启动全部服务（步骤 4）。
 
-~~### [P3] `server/.env.dev` 缺失时 dev.sh 的「默认值兜底」不生效 — scripts/dev.sh:28-31,106,53~~
+### ✅ [P3] `server/.env.dev` 缺失时 dev.sh 的「默认值兜底」不生效 — scripts/dev.sh:28-31,106,53
 
-~~脚本注释称「.env.dev 缺失时用默认值兜底,保证脚本可运行」，但 `docker compose --env-file "$ENV_FILE"` 在文件不存在时直接报 `couldn't find env file: …`（compose v2 实测），因此全新检出后直接 `bash scripts/dev.sh` 会在 compose 步骤失败，`-stop` 也无法停止容器。应在调用 compose 前检查文件并回退默认值。~~
+脚本注释称「.env.dev 缺失时用默认值兜底,保证脚本可运行」，但 `docker compose --env-file "$ENV_FILE"` 在文件不存在时直接报 `couldn't find env file: …`（compose v2 实测），因此全新检出后直接 `bash scripts/dev.sh` 会在 compose 步骤失败，`-stop` 也无法停止容器。应在调用 compose 前检查文件并回退默认值。
 
 **状态：** 已修复（2026-08-13）。dev.sh 在 `$ENV_FILE` 缺失时生成 `$RUN_DIR/env.fallback`（写入默认基础设施变量）并让 compose 的 `--env-file` 指向它，启动与 `-stop` 两条路径均生效。
 
-~~### [P3] `dev.sh -stop` 会停止 `ylink` compose 项目全部服务 — scripts/dev.sh:53~~
+### ✅ [P3] `dev.sh -stop` 会停止 `ylink` compose 项目全部服务 — scripts/dev.sh:53
 
-~~`docker compose --env-file "$ENV_FILE" stop` 未指定服务参数，除 `postgres`/`redis` 外还会连 `api`、`worker`、`caddy` 一起停。若同一主机上运行着发布栈（同一 compose 项目与容器名），`dev.sh -stop` 会将其一并关闭。限定为 `stop postgres redis` 更符合脚本所述范围。~~
+`docker compose --env-file "$ENV_FILE" stop` 未指定服务参数，除 `postgres`/`redis` 外还会连 `api`、`worker`、`caddy` 一起停。若同一主机上运行着发布栈（同一 compose 项目与容器名），`dev.sh -stop` 会将其一并关闭。限定为 `stop postgres redis` 更符合脚本所述范围。
 
 **状态：** 已修复（2026-08-13）。停止命令改为 `docker compose --env-file "$ENV_FILE" stop postgres redis`。
 
-~~### [P3] docs/README.md 架构图错行 — docs/README.md:29~~
+### ✅ [P3] docs/README.md 架构图错行 — docs/README.md:29
 
-~~ASCII 图在本次编辑中被改乱：Redis 行与「拉取节点」行合并成 `│  ├── Redis（验证码/限流/会话） │┌────────────┐`，破坏了框线排版。应拆回两行。~~
+ASCII 图在本次编辑中被改乱：Redis 行与「拉取节点」行合并成 `│  ├── Redis（验证码/限流/会话） │┌────────────┐`，破坏了框线排版。应拆回两行。
 
 **状态：** 已修复（2026-08-13）。合并行已拆回 Redis 行与「拉取节点」两行，框线对齐恢复。
 

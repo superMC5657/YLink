@@ -2,7 +2,7 @@
 
 > 本文档记录 `src/` 目录 Vue 3 用户端应用的开发状态,是 docs/frontend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-12(前置条件实测核对:Node 24.14.0 / pnpm 10.33.0 / Rust 1.97.1 均满足;路由 29 条、vitest 43 用例等与代码实况对齐;管理后台 13 模块全部完成,见 M8+M9)
+> 最后更新:2026-08-14(存储适配 plugin-store 迁移、移动端深链、构建产物清理 emptyOutDir、Web 登录 CORS 修复落地,见 §1/§2/§3.3;前置条件实测核对:Node 24.14.0 / pnpm 10.33.0 / Rust 1.97.1 均满足;路由 29 条、vitest 51 用例等与代码实况对齐;管理后台 13 模块全部完成,见 M8+M9)
 
 ---
 
@@ -85,7 +85,7 @@
 | vite-plugin-mock 按文件隔离编译,跨文件 sessions Map 不共享导致 401 | token 校验改无状态格式匹配(`Bearer mock-access-*`) |
 | 冒烟访问 `/plans` 被重定向到 dashboard | hash 路由下脚本改用 `/#/` 前缀 |
 
-### M6 桌面化(Tauri 2)(✅ 骨架 + 发布能力完成,2026-08-12)
+### M6 桌面化(Tauri 2)(✅ 完成,2026-08-12)
 
 | 项 | 说明 | 位置 |
 |---|---|---|
@@ -96,7 +96,7 @@
 | 前端适配 | platform.ts(clipboard/opener/deep-link 动态 import)、http.ts(plugin-http 原生 fetch)、app.ts(applyTheme 同步窗口标题栏)、main.ts(深链接路由跳转) | `src/utils/*`、`src/stores/app.ts`、`src/main.ts` |
 | 验证 | `cargo check` 通过(首次编译约 5 分钟);Web 构建不受动态 import 影响 | — |
 
-### M6 发布能力收尾(✅ 2026-08-12,更新卡片 / 单实例深链转发 / 本地通知)
+### M6 发布能力收尾(✅ 完成,2026-08-12,更新卡片 / 单实例深链转发 / 本地通知)
 
 | 项 | 说明 | 位置 |
 |---|---|---|
@@ -111,14 +111,14 @@
 | ESLint 9 flat config | js + typescript-eslint + eslint-plugin-vue(flat/recommended)+ eslint-config-prettier,0 error 0 warning | `eslint.config.ts` |
 | Prettier 3 | 全仓格式化 + format:check | `.prettierrc.json`、`.prettierignore` |
 | 构建清理 | ✅ 已修复(2026-08-14):Vite `root=src` 且 `outDir=../dist` 时默认不清空 `dist`,补 `build.emptyOutDir: true`,旧 hashed 产物不再残留且警告消失 | `vite.config.ts` |
-| Vitest 单测 | jsdom,**43 用例**(格式化/http 401 刷新重放/invite store/倒计时 + PlanCard/OrderTable/BannerStatCard 组件测试 12 例),v8 覆盖率 | `vitest.config.ts`、`src/**/__tests__/*` |
+| Vitest 单测 | jsdom,**51 用例**(格式化/http 401 刷新重放/**惰性 apiBase**/invite store/倒计时 + PlanCard/OrderTable/BannerStatCard 组件测试 12 例 + **storage 迁移**),v8 覆盖率 | `vitest.config.ts`、`src/**/__tests__/*` |
 | Playwright E2E | 正式套件 42 例(21 用例 × 桌面/移动双 project、webServer 自动起 Mock),替代原冒烟脚本 | `playwright.config.ts`、`tests/e2e/*` |
 | CI | 仅发布 tag(`v*`)触发 3 job(2026-08-12 调整:此前 push main/PR 每次提交都跑,改后日常检查走本地 `pnpm lint/typecheck/test/format:check`):`frontend-quality`(lint→typecheck→format:check→test→build:web)+ `frontend-e2e`(失败上传报告)+ `rust`(windows-latest:build:web → cargo check);Go 后端不走 Actions(项目决策) | `.github/workflows/ci.yml` |
 | i18n 懒加载 | 语言包按需动态 import,useLocale 统一切换 | `src/locales/index.ts`、`src/composables/useLocale.ts` |
 | 注册页强制邀请码 | 站点 `invite_code_required=true` 时校验必填 | `src/views/auth/RegisterView.vue` |
 | 离线横幅 | 顶部红色常驻横幅 + 恢复 toast | `src/components/app/ToastBridge.vue` |
 
-### M8 管理后台(✅ 核心模块完成,2026-08-10)
+### M8 管理后台(✅ 完成,2026-08-10)
 
 | 项 | 说明 | 位置 |
 |---|---|---|
@@ -149,7 +149,7 @@
 | i18n | 修复既存缺陷:admin 页面标题 key 从未在语言包定义(标签页显示原始 key),补 `admin.*` 13 项(zh/en) + nav 7 项 | `src/locales/*.ts` |
 | config 缓存修复 | 站点配置 localStorage 缓存 24h→60s(对齐后端 Redis 60s),申请代理页进页 `fetchConfig(true)` 强制刷新:管理后台改代理政策/注册开关/支付方式后用户端 ≤60s 生效 | `src/stores/config.ts`、`views/agent/AgentView.vue`(见 data-layer.md §8) |
 
-### 验证状态(✅,2026-08-10 全量实测)
+### 验证状态(✅ 已验证,2026-08-10 全量实测)
 
 - `pnpm typecheck`(vue-tsc --noEmit)零错误
 - `pnpm build`(vue-tsc + vite build)成功,主包 gzip ≈ 254KB;PWA 产物:dist/sw.js(precache 62 项)+ manifest.webmanifest + registerSW.js
@@ -160,7 +160,7 @@
 - **一期小缺口收尾(2026-08-11)**:`pnpm typecheck`/`pnpm lint`/`pnpm test`(43/43)/`pnpm build`(含 PWA)全绿;commit-msg 钩子实测规范消息通过、无 type 消息被拒
 - **M6 发布能力收尾(2026-08-12)**:更新卡片 UI / 单实例深链转发 / 本地通知三项完成(见第 1 节);`pnpm typecheck`/`pnpm lint`(0 warning)/`pnpm test`(43/43)/`pnpm build`(含 PWA)/`pnpm format:check` 全绿;`cargo check` 通过;后端 `go build`/`go vet`/`gofmt -l`(0 输出)/`go test`(**64 函数**)全绿(含工单重开 4 例);桌面端交互(更新卡片/深链唤起/本地通知)待手动实测
 
-### 全量审查修复(✅ 2026-08-11)
+### 全量审查修复(✅ 已修复,2026-08-11)
 
 第三轮全仓库审查(见 docs/reviews/review-0.2.0.md)的前端修复:
 
@@ -184,7 +184,7 @@
 
 ## 2. 未完成项
 
-### M6 桌面化(Tauri 2)—— 发布能力已收尾(✅ 2026-08-12)
+### M6 桌面化(Tauri 2)—— 发布能力已收尾(✅ 完成,2026-08-12)
 
 | 项 | 状态 | 依赖/说明 |
 |---|---|---|
@@ -196,9 +196,9 @@
 | 自动更新 | ✅ 已全部就绪(2026-08-12):Rust 已注册 updater、`tauri.conf.json` 已配 pubkey+endpoints、Release 流水线产出 `latest.json`,前端更新卡片已实现(见第 1 节 M6 发布能力收尾) | desktop-tauri.md §5 |
 | 通知触发点 | ✅ 已实现(2026-08-12):到期/工单回复/支付成功本地通知(见第 1 节 M6 发布能力收尾) | — |
 | Windows 打包与 updater 签名 | ✅ 已配置(2026-08-12):Release 流水线 + 签名密钥已生成;2026-08-12 收窄为仅 Windows 打包 | `.github/workflows/release-tauri.yml` + `TAURI_SIGNING_PRIVATE_KEY`(见 desktop-tauri.md §5/§7) |
-| 存储适配 | ⚠️ 一期统一 localStorage(WebView 持久化);plugin-store(JSON 文件)异步 API 与 persistedstate 同步接口冲突,迁移需异步化改造 | 见 storage.ts 注释 |
+| 存储适配 | ✅ 已实现(2026-08-13):`utils/storage.ts` 同步 facade(内存 Map + 异步落盘 `app-settings.json`),`initStorage()` 启动预载,persistedstate 与全部 localStorage 调用点统一走 storage 层(见 §2 二期表与 review-0.6.0) | 见 storage.ts 注释 |
 
-### 一期小缺口收尾(✅ 2026-08-11)
+### 一期小缺口收尾(✅ 完成,2026-08-11)
 
 | 项 | 说明 | 位置 |
 |---|---|---|
@@ -210,30 +210,32 @@
 | 订单加载更多 | 移动端卡片视图用「加载更多」翻页追加(store fetch 支持 append),桌面表格视图保留分页器 | `src/stores/order.ts`、`views/order/OrdersView.vue` |
 | PWA | vite-plugin-pwa@1.3:manifest(name/short_name/theme_color #6558F5/128-192-512 图标含 maskable)+ Workbox 离线壳(globPatterns 预缓存 + navigateFallback index.html);registerType autoUpdate + injectRegister script(非 inline,兼容 Tauri CSP script-src 'self');dev 不启用;Tauri 端不受影响 | `vite.config.ts`、`src/index.html`、`public/pwa-*.png` |
 
-### 一期内已知缺口(可后补)
+### 一期遗留缺口(候补项,排在二期之前)
+
+> 以下候补项不属于一期交付承诺,列为候补;统一排在一期收尾之后、二期启动之前补齐,不再单独设档。
 
 | 项 | 说明 |
 |---|---|
 | Stylelint | 未引入(可选,ESLint + Prettier 已覆盖) |
-| ~~既有 format:check 告警~~ | **已解决(2026-08-12)**：`0ac021c` 全量格式化修复 23 个不合规文件，review-0.4.0 补格式化 `scripts/build-latest-json.mjs` 后，`pnpm format:check` 全仓通过(见 docs/reviews/review-0.4.0.md) |
+| 既有 format:check 告警 | ✅ 已解决(2026-08-12):`0ac021c` 全量格式化修复 23 个不合规文件,review-0.4.0 补格式化 `scripts/build-latest-json.mjs` 后,`pnpm format:check` 全仓通过(见 docs/reviews/review-0.4.0.md) |
 
-### 二期 / 明确标注待办
+### 二期 / 明确标注待办(✅ 完成,2026-08-13)
 
 | 项 | 状态 | 依赖/说明 |
 |---|---|---|
-| 移动端深链/分享面板 | **深链 ✅ 已接入(2026-08-13)**,分享面板未做 | deep-link 注册移出 cfg(desktop) + tauri.conf.json `plugins.deep-link.mobile`(scheme ylink) + Android manifest intent-filter(gen/ 不入库,本地构建生效) |
-| ~~更新卡片 UI~~ | **已实现(2026-08-12)**,见第 1 节 M6 发布能力收尾 | — |
-| ~~开机自启~~ | **需求已移除(2026-08-13)**:不再提供开机自启开关;`utils/platform.ts` 自启封装与设置页入口已还原(autostart 插件仍注册于 Rust 侧,前端不暴露) | — |
-| ~~存储适配 plugin-store~~ | **已实现(2026-08-13)**：`utils/storage.ts` 同步 facade(内存 Map + 异步落盘 `app-settings.json`),`initStorage()` 启动预载,persistedstate 与全部 localStorage 调用点统一走 storage 层 | — |
-| ~~存储适配评审修复(review-0.6.0 P1/P2)~~ | **已修复(2026-08-13)**：① `http.ts` 的 `API_BASE` 改为请求时惰性解析(`resolveApiBase()`),持久化自定义 apiBase 在 `initStorage()` 后生效;② `initStorage()` 增加一次性迁移,将旧 WebView `localStorage`(`app:` 前缀)导入 plugin-store,已有键不覆盖、`app:_legacy:migrated:v1` 标记保证一次性。单测:http.spec.ts + 新增 storage.spec.ts | 见 review-0.6.0.md |
+| 移动端深链/分享面板 | 深链 ✅ 已接入(2026-08-13),分享面板未做 | deep-link 注册移出 cfg(desktop) + tauri.conf.json `plugins.deep-link.mobile`(scheme ylink) + Android manifest intent-filter(gen/ 不入库,本地构建生效) |
+| 更新卡片 UI | ✅ 已实现(2026-08-12),见第 1 节 M6 发布能力收尾 | — |
+| 开机自启 | ✅ 需求已移除(2026-08-13):不再提供开机自启开关;`utils/platform.ts` 自启封装与设置页入口已还原(autostart 插件仍注册于 Rust 侧,前端不暴露) | — |
+| 存储适配 plugin-store | ✅ 已实现(2026-08-13):`utils/storage.ts` 同步 facade(内存 Map + 异步落盘 `app-settings.json`),`initStorage()` 启动预载,persistedstate 与全部 localStorage 调用点统一走 storage 层 | — |
+| 存储适配评审修复(review-0.6.0 P1/P2) | ✅ 已修复(2026-08-13):① `http.ts` 的 `API_BASE` 改为请求时惰性解析(`resolveApiBase()`),持久化自定义 apiBase 在 `initStorage()` 后生效;② `initStorage()` 增加一次性迁移,将旧 WebView `localStorage`(`app:` 前缀)导入 plugin-store,已有键不覆盖、`app:_legacy:migrated:v1` 标记保证一次性。单测:http.spec.ts + 新增 storage.spec.ts | 见 review-0.6.0.md |
 
-### 工程化与待办(2026-08-11 核对)
+### 工程化与待办(✅2026-08-11 核对)
 
 | 项 | 状态 | 说明 |
 |---|---|---|
 | 后端 CI / Rust CI | Rust ✅ 已接入(2026-08-12;2026-08-12 迁至 windows-latest 与打包平台一致);Go 后端 ❌ 不接入(项目决策:后端不走 Actions) | `.github/workflows/ci.yml` `rust` job(windows-latest:先 `pnpm build:web` 生成 dist → `cargo check`);`backend` job 已删除(2026-08-12),后端由本地 make/手动构建 |
-| Release / updater(仅 Windows 打包) | ✅ 已接入(2026-08-12,公开产物仓库方案;2026-08-12 收窄为仅 Windows) | 代码仓库 private;`.github/workflows/release-tauri.yml`:tag `v*` / 手动触发 → guard(tag 校验)→ 单平台构建(windows-latest `pnpm tauri build --bundles nsis`,TAURI_SIGNING_PRIVATE_KEY 自动签名 .sig)→ `scripts/build-latest-json.mjs` 合并 latest.json(url 加 `gh-proxy.com` 前缀)→ `gh release` 推送到**公开产物仓库** `superMC5657/ylink-releases`(`RELEASES_PAT` secret);`tauri-plugin-updater` 已注册 + pubkey 写入 + capabilities 补 `updater:default`;updater endpoints = gh-proxy 优先 + 直连兑底;前端更新卡片入口仍待做(见下行) |
-| 自启 / 通知 / 更新卡片前端入口 | **自启 ❌ 需求已移除(2026-08-13)**(不再提供开关,autostart 插件仍注册于 Rust 侧但前端不暴露);通知/更新卡片 ✅ 已实现(2026-08-12),见第 1 节 M6 发布能力收尾 | deep-link 前端监听已就绪(`utils/platform.ts` `onDeepLink` + `main.ts` 路由跳转) |
+| Release / updater(仅 Windows 打包) | ✅ 已接入(2026-08-12,公开产物仓库方案;2026-08-12 收窄为仅 Windows) | 代码仓库 private;`.github/workflows/release-tauri.yml`:tag `v*` / 手动触发 → guard(tag 校验)→ 单平台构建(windows-latest `pnpm tauri build --bundles nsis`,TAURI_SIGNING_PRIVATE_KEY 自动签名 .sig)→ `scripts/build-latest-json.mjs` 合并 latest.json(url 加 `gh-proxy.com` 前缀)→ `gh release` 推送到**公开产物仓库** `superMC5657/ylink-releases`(`RELEASES_PAT` secret);`tauri-plugin-updater` 已注册 + pubkey 写入 + capabilities 补 `updater:default`;updater endpoints = gh-proxy 优先 + 直连兑底;前端更新卡片已实现(见下行) |
+| 自启 / 通知 / 更新卡片前端入口 | 自启 ❌ 需求已移除(2026-08-13)(不再提供开关,autostart 插件仍注册于 Rust 侧但前端不暴露);通知/更新卡片 ✅ 已实现(2026-08-12),见第 1 节 M6 发布能力收尾 | deep-link 前端监听已就绪(`utils/platform.ts` `onDeepLink` + `main.ts` 路由跳转) |
 | 单实例深链接转发 | ✅ 已实现(2026-08-12) | Rust `lib.rs` 单实例回调提取 argv 中 `ylink://` URL,emit `deep-link://new-url` 转发已有实例(见第 1 节 M6 发布能力收尾) |
 | 移动端深链 `ylink://` | ✅ 已接入(2026-08-13) | deep-link 注册移出 cfg(desktop)+ `tauri.conf.json` `plugins.deep-link.mobile`(scheme ylink)+ Android manifest intent-filter(gen/ 不入库,本地构建生效;desktop-tauri.md §9.5 已更新) |
 
@@ -255,7 +257,7 @@
 
 | 前置 | 说明 |
 |---|---|
-| 单元测试 | `pnpm test`(Vitest + jsdom,**43 用例**,2026-08-12 实测 43/43);`pnpm test:coverage` 看覆盖率 |
+| 单元测试 | `pnpm test`(Vitest + jsdom,**51 用例**,2026-08-14 实测 51/51);`pnpm test:coverage` 看覆盖率 |
 | E2E | `pnpm e2e`(Playwright):webServer 以 `pnpm dev --mode e2e` 启动,**固定使用 `.env.e2e`(Mock)**,不受 `.env.development.local` 联调覆盖影响;本地默认系统 Chrome(`channel:'chrome'`),CI 用 `playwright install chromium`;双 project(桌面 1280 / 移动 390×844) |
 | 布局诊断 | `node scripts/diag-layout.mjs`:5 分辨率(1024-2560)× 12 路由测量页面级横向溢出与内容区宽度(需先起 Mock dev) |
 | 质量门禁 | `pnpm lint`(ESLint 0 error 0 warning)、`pnpm typecheck`、`pnpm format:check`(Prettier) |
@@ -304,4 +306,4 @@
 - 视觉令牌/响应式/组件规范:以 [docs/frontend/design-system.md](design-system.md) 为准
 - 路由表与逐页拆解:以 [docs/frontend/pages.md](pages.md) 为准(29 条路由全部落地:16 用户端 + 13 管理端)
 - 数据层(HTTP 封装/store/i18n/深链接):以 [docs/frontend/data-layer.md](data-layer.md) 为准
-- 桌面化:以 [docs/frontend/desktop-tauri.md](desktop-tauri.md) 为准(M6 骨架已完成,deep-link/更新/三平台打包等发布能力见第 2 节)
+- 桌面化:以 [docs/frontend/desktop-tauri.md](desktop-tauri.md) 为准(M6 已完成,deep-link/自动更新/Windows 打包等发布能力见第 2 节)

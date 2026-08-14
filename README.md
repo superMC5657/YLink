@@ -6,7 +6,7 @@
 
 | 端 | 形态 | 技术栈 |
 |---|---|---|
-| 用户端 | 响应式 Web（桌面/平板/手机浏览器）+ Tauri 2 桌面应用（Win/macOS/Linux） | Vue 3.5 + TS + Vite 6 + Naive UI + UnoCSS + Pinia |
+| 用户端 | 响应式 Web（桌面/平板/手机浏览器）+ Tauri 2 桌面应用（正式打包仅 Windows，见 desktop-tauri.md §7） | Vue 3.5 + TS + Vite 6 + Naive UI + UnoCSS + Pinia |
 | 服务端 | REST API + 订阅下发 + 支付回调 + 定时任务 | Go 1.26 + Gin + GORM + PostgreSQL 16 + Redis 7 |
 | 管理端 | 运营后台（同仓 SPA 内 13 模块：M8 核心 6 + M9 二期 7） | Vue 3 SPA（同仓库） |
 
@@ -47,13 +47,13 @@ make run                     # API 服务（:8081）
 
 ```bash
 pnpm tauri:dev       # 开发联动
-pnpm tauri:build     # 三平台打包（Windows nsis / macOS app / Linux deb，含签名）
+pnpm tauri:build     # Windows 打包（nsis，含签名；2026-08-12 起仅 Windows）
 ```
 
 ## CI / CD
 
-- `.github/workflows/ci.yml`：PR/push 双触发——`frontend-quality`（lint→typecheck→format:check→test→build:web）+ `frontend-e2e` + `rust`（cargo check）；Go 后端按项目决策不走 GitHub Actions
-- `.github/workflows/release-tauri.yml`：打 tag `v*` 触发三平台打包签名 → `latest.json` 合并（gh-proxy.com 加速前缀）→ 发布到公开产物仓库，供公网下载与 Tauri 自动更新
+- `.github/workflows/ci.yml`：仅发布 tag（`v*`）触发——`frontend-quality`（lint→typecheck→format:check→test→build:web）+ `frontend-e2e` + `rust`（cargo check，windows-latest）；日常检查走本地 `pnpm lint/typecheck/test/format:check`；Go 后端按项目决策不走 GitHub Actions
+- `.github/workflows/release-tauri.yml`：打 tag `v*` 触发 Windows 打包签名（nsis）→ `latest.json` 合并（gh-proxy.com 加速前缀）→ 发布到公开产物仓库，供公网下载与 Tauri 自动更新
 
 ## 目录结构
 
@@ -79,7 +79,7 @@ YLink/
 | [docs/api/README.md](docs/api/README.md) | 接口契约：通用约定、错误码、全量端点（前后端唯一事实来源） |
 | [docs/frontend/progress.md](docs/frontend/progress.md) | 前端进度追踪（已完成/未完成/前置条件） |
 | [docs/backend/progress.md](docs/backend/progress.md) | 后端进度追踪（已完成/未完成/前置条件） |
-| [docs/reviews/](docs/reviews/) | 代码评审记录（review-0.2.0 / 0.3.0 / 0.4.0） |
+| [docs/reviews/](docs/reviews/) | 代码评审记录（review-0.2.0 ~ 0.7.0，中英文对照） |
 
 ## 环境要求
 

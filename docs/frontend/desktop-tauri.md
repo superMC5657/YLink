@@ -42,7 +42,7 @@ src-tauri/
 | `tauri-plugin-single-instance` | 单实例运行（仅桌面） | 重复启动聚焦已有窗口并转发深链接参数 |
 | `tauri-plugin-autostart` | 开机自启（仅桌面） | 已注册但**前端不暴露开关**（2026-08-13 需求移除） |
 | `tauri-plugin-notification` | 系统通知 | 订阅到期、工单回复提醒（轮询发现变化时触发） |
-| `tauri-plugin-updater` + `tauri-plugin-process` | 检查更新、下载安装、重启（⚠ updater 未接入，仅 process 已注册） | 启动时静默检查 + 设置页手动检查（待办，见 §5） |
+| `tauri-plugin-updater` + `tauri-plugin-process` | 检查更新、下载安装、重启（✅ 已接入，2026-08-12） | 启动时静默检查 + 设置页手动检查（更新卡片，见 §5） |
 | `tauri-plugin-window-state` | 记忆窗口尺寸/位置（仅桌面） | 体验细节 |
 | `tauri-plugin-os` | 系统信息 | 关于页、埋点 UA |
 
@@ -50,7 +50,7 @@ capabilities/default.json 采用最小授权：逐项声明上述插件权限，
 
 ## 4. 窗口、托盘与系统行为
 
-- **窗口**：单主窗口；关闭即退出（未做最小化到托盘设置）；托盘菜单：显示主窗口 / 退出（检查更新未接入，见 §5）。
+- **窗口**：单主窗口；关闭即退出（未做最小化到托盘设置）；托盘菜单：显示主窗口 / 退出（检查更新入口在设置页/更新卡片，见 §5）。
 - **托盘双图标修复（2026-08-13）**：此前 `tauri.conf.json` 配了 `app.trayIcon`（Tauri 自动创建、无菜单）且 `lib.rs` setup 又手动创建带菜单托盘 → 托盘区显示两个图标，无菜单那个点击无反应。已删除配置中的 `app.trayIcon`，仅保留代码手动创建（`TrayIconBuilder::with_id("main-tray")` + 菜单）。
 - **主题跟随**：监听前端主题切换事件（`emit` 到 Rust），调用窗口 `set_theme` 让标题栏亮暗一致；托盘图标按系统主题切换亮暗两套资源。
 - **单实例 + 深链接**：✅ 已实现（2026-08-12）——Rust 单实例回调把 argv 中的 `ylink://` URL 用 deep-link 插件同名事件 `deep-link://new-url`（payload 为 URL 数组）转发给已有实例，前端 `onOpenUrl`（`utils/platform.ts` onDeepLink）直接收到并路由跳转；`lib.rs` 单实例回调已落地。
@@ -75,7 +75,7 @@ capabilities/default.json 采用最小授权：逐项声明上述插件权限，
 
 > 2026-08-12 核对：`.github/workflows/ci.yml` 已含 `frontend-quality` + `frontend-e2e` + `rust`（cargo check）三个 job；Go 后端按项目决策不走 Actions。`.github/workflows/release-tauri.yml` 已配置公开产物仓库方案的 **Windows-only** Release（2026-08-12 从三平台收窄，目前只要求 Windows 打包）。
 
-- **PR/push CI**：~~PR/push 双触发~~ **2026-08-12 起仅发布 tag(`v*`)触发**：`frontend-quality`（lint→typecheck→format:check→test→build:web）+ `frontend-e2e`（Playwright · Mock，失败上传报告）+ `rust`（windows-latest，先 `pnpm build:web` 生成 dist → `cargo check`——打包仅支持 Windows，Rust 检查与打包平台一致）。日常开发检查走本地 `pnpm lint/typecheck/test/format:check`。Go 后端不走 GitHub Actions。
+- **PR/push CI**：2026-08-12 起由 PR/push 双触发改为**仅发布 tag(`v*`)触发**：`frontend-quality`（lint→typecheck→format:check→test→build:web）+ `frontend-e2e`（Playwright · Mock，失败上传报告）+ `rust`（windows-latest，先 `pnpm build:web` 生成 dist → `cargo check`——打包仅支持 Windows，Rust 检查与打包平台一致）。日常开发检查走本地 `pnpm lint/typecheck/test/format:check`。Go 后端不走 GitHub Actions。
 - **Release（已配置，打 tag `v*` 或手动触发）**：`.github/workflows/release-tauri.yml`——guard（tag 格式校验）→ 单平台构建（windows-latest `pnpm tauri build --bundles nsis`，TAURI_SIGNING_PRIVATE_KEY 自动签名 .sig）→ `scripts/build-latest-json.mjs` 合并 `latest.json`（资产 url 加 `gh-proxy.com` 前缀）→ `gh release` 推送到**公开产物仓库**（`RELEASES_PAT` secret）。恢复 macOS/Linux 时往 build job 加回平台矩阵即可（文件内有注释）。
 - **产物仓库**：代码仓库 `superMC5657/YLink`（private，不开源）；产物发布到公开仓库 `superMC5657/ylink-releases` 保证匿名下载 + gh-proxy 加速可行（publish job 与 `tauri.conf.json` updater endpoints 均已指向该仓库）。
 - **macOS 公证**（可选二期）：Apple 证书 + notarize 步骤；无证书时文档注明用户需在「安全性与隐私」中放行。⚠ 当前只打包 Windows，此条暂不适用，恢复 macOS 打包时再启用。

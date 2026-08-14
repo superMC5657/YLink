@@ -60,7 +60,7 @@ describe('useInviteStore', () => {
     vi.mocked(apiInvite.codes).mockResolvedValue({
       list: [{ code: 'OLD', used_count: 1, created_at: '2026-07-01T00:00:00+08:00' }],
       limit: 5,
-      register_url_prefix: 'https://x/register?code=',
+      register_url_prefix: '/#/register?code=',
     })
     const store = useInviteStore()
     await store.fetchCodes()
@@ -69,10 +69,10 @@ describe('useInviteStore', () => {
     expect(store.codes).toHaveLength(2)
   })
 
-  it('effectiveRegisterUrlPrefix 优先用当前页面 origin(区分本地 5174 / Caddy 80 / 生产 443),带 hash 路由 #/', () => {
+  it('effectiveRegisterUrlPrefix 用当前页面 origin 拼接(区分本地 5174 / Caddy 80 / 生产 443),带 hash 路由 #/', () => {
     const store = useInviteStore()
-    store.registerUrlPrefix = 'http://localhost:8081/register?code='
-    // jsdom 默认 origin 为 http://localhost:3000
+    // getter 不读后端返回的 registerUrlPrefix(契约占位,仅返回路径后缀 /#/register?code=),
+    // 而是直接用 window.location.origin —— jsdom 默认 origin 为 http://localhost:3000
     expect(store.effectiveRegisterUrlPrefix).toBe('http://localhost:3000/#/register?code=')
   })
 })

@@ -80,7 +80,7 @@
 | 端点 | 说明 |
 |---|---|
 | `GET /invite/summary` | 佣金余额/比例/注册数/累计(已发放 sum)/确认中 sum |
-| `GET`/`POST /invite/codes` | 8 位随机码列表;生成超限 13001(上限取 settings) |
+| `GET`/`POST /invite/codes` | 8 位随机码列表;生成超限 13001(上限取 settings);`register_url_prefix` 仅返回路径后缀 `/#/register?code=`(完整链接由前端拼 origin,见 review-0.8.0.md 第五轮) |
 | `GET /invite/records` | 仅展示已发放(status=1)佣金记录 |
 | `POST /invite/transfer` | 行锁事务:commission_balance → balance;不足 13002 |
 | `GET /agent/status` | 有效邀请统计(有已完成订单 或 注册满 N 天未封禁,N 取 settings `agent.valid_invite_days`,默认 3)、条件卡片、apply_status(none/pending/approved/rejected) |

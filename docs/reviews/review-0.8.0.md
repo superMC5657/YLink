@@ -96,3 +96,22 @@ The CORS allow-list only contained `http` variants, so `https` front-end origins
 ### Verification (round 4)
 
 - `server`: `go test ./internal/middleware/ -run TestCORS` 5/5 pass; `go test ./...` all pass.
+
+---
+
+## Round 5 (2026-08-14): `register_url_prefix` returns a path suffix only
+
+Review feedback: the backend field still carried a full URL (`http://localhost:8081/register?code=…`, built from `cfg.App.BaseURL` — the API address, not the front-end origin). Since the front-end already builds the prefix from its own origin, a full URL is misleading; the field should carry only the path suffix.
+
+### Changes
+
+- `server/internal/service/invite_service.go`: `register_url_prefix` now returns the constant `/#/register?code=` (path suffix only, no domain); comment explains API base ≠ front-end site and that the front-end assembles the full link via `effectiveRegisterUrlPrefix`.
+- `server/internal/model/dto_invite.go`: field documented as contract-only placeholder (suffix, not consumed by the front-end).
+- `src/stores/__tests__/invite.spec.ts`: removed the misleading dead `registerUrlPrefix = 'http://localhost:8081/register?code='` assignment (the getter never reads the field); test now directly asserts origin-based assembly in jsdom; fetchCodes mock updated to suffix form.
+- `mock/business.ts`: `register_url_prefix` mock updated to `/#/register?code=`.
+- `docs/api/README.md`: contract example now `/#/register?code=` with a note that the full prefix is assembled front-end side.
+
+### Verification (round 5)
+
+- `server`: `go test ./internal/service/ ./internal/model/ ./internal/middleware/` pass.
+- `pnpm test`: invite + SharePanel specs green; `pnpm typecheck` pass.

@@ -442,10 +442,10 @@
 ```json
 { "code": 0, "message": "ok",
   "data": { "list": [ { "code": "AB12CD34", "used_count": 3, "created_at": "2026-06-01T10:00:00+08:00" } ],
-            "limit": 5, "register_url_prefix": "https://panel.example.com/#/register?code=" } }
+            "limit": 5, "register_url_prefix": "/#/register?code=" } }
 ```
 
-> 注:前端为 hash 路由,注册链接形如 `https://panel.example.com/#/register?code=…`。实际分享/展示前缀由前端按当前 origin 拼接(`effectiveRegisterUrlPrefix`),本字段仅为契约占位。
+> 注:前端为 hash 路由,注册链接形如 `https://panel.example.com/#/register?code=…`。`register_url_prefix` 仅返回**路径后缀**(不含域名,后端 API 地址 ≠ 前端站点地址),完整前缀由前端按当前页面 origin 拼接(`effectiveRegisterUrlPrefix`:优先 `VITE_WEB_BASE_URL`,否则取 `window.location.origin`,兜底相对路径)。
 
 `POST /invite/codes`（无 body）→ 返回新码对象；超限错误 13001。
 

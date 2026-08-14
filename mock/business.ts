@@ -162,7 +162,7 @@ export default [
       return ok({
         list: inviteCodes,
         limit: 5,
-        register_url_prefix: 'https://panel.example.com/register?code=',
+        register_url_prefix: '/#/register?code=',
       })
     },
   },

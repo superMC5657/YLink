@@ -96,3 +96,22 @@ CORS 白名单此前只含 `http` 变体,https 前端来源(Vite https / Caddy �
 ### 验证(第四轮)
 
 - 后端:`go test ./internal/middleware/ -run TestCORS` 5/5 通过;`go test ./...` 全部通过。
+
+---
+
+## 第五轮(2026-08-14):`register_url_prefix` 仅返回路径后缀
+
+评审反馈:后端字段此前仍返回完整 URL(`http://localhost:8081/register?code=…`,由 `cfg.App.BaseURL` 拼接 —— 是 API 地址而非前端站点地址)。既然前端已按自身 origin 拼前缀,完整 URL 只会误导,字段应只携带路径后缀。
+
+### 变更
+
+- `server/internal/service/invite_service.go`:`register_url_prefix` 改为返回常量 `/#/register?code=`(仅路径后缀、不含域名);注释说明 API 地址 ≠ 前端站点地址,完整链接由前端 `effectiveRegisterUrlPrefix` 拼接。
+- `server/internal/model/dto_invite.go`:字段注明为契约占位(仅后缀,前端不消费其值)。
+- `src/stores/__tests__/invite.spec.ts`:删除误导性的死赋值 `registerUrlPrefix = 'http://localhost:8081/register?code='`(getter 从不读该字段);测试改为直接断言 jsdom origin 拼接;fetchCodes mock 更新为后缀形式。
+- `mock/business.ts`:`register_url_prefix` mock 更新为 `/#/register?code=`。
+- `docs/api/README.md`:契约示例改为 `/#/register?code=`,注明完整前缀由前端拼接。
+
+### 验证(第五轮)
+
+- 后端:`go test ./internal/service/ ./internal/model/ ./internal/middleware/` 通过。
+- 前端:`pnpm test` invite + SharePanel 用例全绿;`pnpm typecheck` 通过。

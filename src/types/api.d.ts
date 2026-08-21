@@ -521,6 +521,7 @@ export interface AdminServerItem {
   status: ServerStatus
   is_show: boolean
   sort: number
+  node_key: string
 }
 
 export interface AdminServerReq {

@@ -155,6 +155,20 @@ function removeNode(srv: AdminServerItem) {
   })
 }
 
+function resetNodeKey(srv: AdminServerItem) {
+  dialog.warning({
+    title: '重置上报密钥',
+    content: `确定重置节点「${srv.name}」的上报密钥吗?旧密钥立即失效,节点 agent 需更新 X-Node-Key 后才能继续上报。`,
+    positiveText: '重置',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      const { node_key: key } = await apiAdmin.resetServerNodeKey(srv.id)
+      message.success(`已重置,新密钥:${key}`)
+      void load()
+    },
+  })
+}
+
 function openGroupCreate() {
   editingGroup.value = null
   groupName.value = ''
@@ -230,7 +244,7 @@ onMounted(() => void load())
 
     <div class="card-base overflow-x-auto">
       <n-spin :show="loading">
-        <n-table :bordered="false" :single-line="false" class="min-w-[880px]">
+        <n-table :bordered="false" :single-line="false" class="min-w-[980px]">
           <thead>
             <tr>
               <th>ID</th>
@@ -242,6 +256,7 @@ onMounted(() => void load())
               <th>状态</th>
               <th>展示</th>
               <th>排序</th>
+              <th>上报密钥</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -265,16 +280,23 @@ onMounted(() => void load())
               </td>
               <td class="num-font">{{ s.sort }}</td>
               <td>
+                <CopyText v-if="s.node_key" :text="s.node_key" :max-chars="10" />
+                <span v-else class="text-14 text-[var(--c-text-sub)]">—</span>
+              </td>
+              <td>
                 <div class="flex gap-2">
                   <button class="btn-soft-primary h-7 px-3 text-14" @click="openNodeEdit(s)">
                     编辑
+                  </button>
+                  <button class="btn-soft-neutral h-7 px-3 text-14" @click="resetNodeKey(s)">
+                    重置密钥
                   </button>
                   <button class="btn-danger h-7 px-3 text-14" @click="removeNode(s)">删除</button>
                 </div>
               </td>
             </tr>
             <tr v-if="!loading && servers.length === 0">
-              <td colspan="10"><EmptyState text="暂无节点" /></td>
+              <td colspan="11"><EmptyState text="暂无节点" /></td>
             </tr>
           </tbody>
         </n-table>

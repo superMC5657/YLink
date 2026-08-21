@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"gorm.io/gorm"
+
 	"ylink-backend/internal/config"
 	"ylink-backend/internal/model"
 	redispkg "ylink-backend/internal/pkg/redis"
@@ -454,4 +456,33 @@ func TestAdminListOrdersCommissionQueryError(t *testing.T) {
 	status := 1
 	_, _, err := svc.ListOrders(context.Background(), &status, 1, 10)
 	require.Error(t, err, "佣金查询失败时 ListOrders 必须返回错误,不得静默成功")
+}
+
+func TestResetNodeKey(t *testing.T) {
+	e := newTestEnv(t)
+	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
+	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, nil, set)
+
+	// 节点存在 → 更新密钥(默认事务包裹) + 审计
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "servers"`)).WillReturnRows(serverRow(
+		&model.Server{ID: 5, GroupID: 1, Name: "HK-01", Type: "trojan", Host: "hk.example.com", Port: 443,
+			Config: "{}", Rate: 1.0, NodeKey: "old-key-0000000000000000"}))
+	e.mock.ExpectBegin()
+	e.mock.ExpectExec(regexp.QuoteMeta(`UPDATE "servers" SET`)).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectCommit()
+	e.mock.ExpectBegin()
+	e.mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "audit_logs"`)).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	e.mock.ExpectCommit()
+
+	key, err := svc.ResetNodeKey(context.Background(), 1, 5, "127.0.0.1")
+	require.NoError(t, err)
+	assert.Len(t, key, 32, "新密钥为 32 位十六进制")
+	assert.NotEqual(t, "old-key-0000000000000000", key)
+
+	// 节点不存在 → 40400
+	e2 := newTestEnv(t)
+	svc2 := NewAdminService(e2.db, e2.rdb, &repo.Repos{}, nil, set)
+	e2.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "servers"`)).WillReturnError(gorm.ErrRecordNotFound)
+	_, err = svc2.ResetNodeKey(context.Background(), 1, 99, "127.0.0.1")
+	assert.Equal(t, 40400, codeOf(err))
 }

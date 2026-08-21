@@ -46,6 +46,7 @@ type AdminServerView struct {
 	Status  int      `json:"status"`
 	IsShow  bool     `json:"is_show"`
 	Sort    int      `json:"sort"`
+	NodeKey string   `json:"node_key"` // 节点上报密钥(X-Node-Key)
 }
 
 // ---- 管理端 · 用户 ----

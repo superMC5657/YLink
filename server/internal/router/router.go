@@ -203,6 +203,7 @@ func registerAdmin(g *gin.RouterGroup, d Deps, a *app) {
 	admin.POST("/servers", a.adminH.CreateServer)
 	admin.PUT("/servers/:id", a.adminH.UpdateServer)
 	admin.DELETE("/servers/:id", a.adminH.DeleteServer)
+	admin.POST("/servers/:id/node-key/reset", a.adminH.ResetNodeKey)
 	admin.GET("/server-groups", a.adminH.ListServerGroups)
 	admin.POST("/server-groups", a.adminH.CreateServerGroup)
 	admin.PUT("/server-groups/:id", a.adminH.UpdateServerGroup)

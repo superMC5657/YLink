@@ -219,6 +219,27 @@ func (h *Admin) DeleteServer(c *gin.Context) {
 	resp.OK(c, nil)
 }
 
+// ResetNodeKey 重置节点上报密钥（审计 + 旧密钥立即失效）
+// @Summary 重置节点上报密钥
+// @Tags 管理端
+// @Security BearerAuth
+// @Produce json
+// @Param id path int true "节点 ID"
+// @Success 200 {object} resp.Body{data=object{node_key=string}}
+// @Router /admin/servers/{id}/node-key/reset [post]
+func (h *Admin) ResetNodeKey(c *gin.Context) {
+	id, ok := idParam(c)
+	if !ok {
+		return
+	}
+	key, err := h.svc.ResetNodeKey(c.Request.Context(), h.adminID(c), id, c.ClientIP())
+	if err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.OK(c, gin.H{"node_key": key})
+}
+
 func (h *Admin) ListServerGroups(c *gin.Context) {
 	data, err := h.svc.ListAllServerGroups(c.Request.Context())
 	if err != nil {

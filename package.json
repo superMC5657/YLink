@@ -15,6 +15,7 @@
     "typecheck": "vue-tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
+    "lint:css": "stylelint \"src/styles/*.css\" \"src/**/*.vue\"",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "bump:version": "node scripts/bump-version.mjs",
@@ -37,6 +38,9 @@
     ],
     "*.{json,md,yml,yaml,css,html,webmanifest}": [
       "prettier --write"
+    ],
+    "*.{css,vue}": [
+      "stylelint --fix"
     ]
   },
   "dependencies": {
@@ -87,7 +91,10 @@
     "lint-staged": "^17.3.0",
     "mockjs": "^1.1.0",
     "playwright": "^1.62.1",
+    "postcss-html": "^2.0.0",
     "prettier": "^3.9.6",
+    "stylelint": "^17.14.1",
+    "stylelint-config-standard": "^40.0.0",
     "typescript": "^5.8.2",
     "typescript-eslint": "^8.66.0",
     "unocss": "^0.65.4",

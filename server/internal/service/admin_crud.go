@@ -2,10 +2,14 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
 
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/errs"
+	redispkg "ylink-backend/internal/pkg/redis"
 	"ylink-backend/internal/pkg/sanitize"
 )
 
@@ -142,6 +146,7 @@ func toServerView(srv *model.Server) model.AdminServerView {
 		ID: srv.ID, GroupID: srv.GroupID, Name: srv.Name, Type: srv.Type,
 		Host: srv.Host, Port: srv.Port, Config: srv.Config,
 		Rate: srv.Rate, Status: srv.Status, IsShow: srv.IsShow, Sort: srv.Sort,
+		NodeKey: srv.NodeKey,
 	}
 	if srv.Tags != nil {
 		_ = json.Unmarshal([]byte(*srv.Tags), &v.Tags)
@@ -181,6 +186,7 @@ func (s *AdminService) CreateServer(ctx context.Context, req *model.AdminServerR
 	if req.IsShow != nil {
 		srv.IsShow = *req.IsShow
 	}
+	srv.NodeKey = newNodeKey()
 	if err := s.repos.Server.Create(s.db, srv); err != nil {
 		return nil, err
 	}
@@ -212,6 +218,32 @@ func (s *AdminService) UpdateServer(ctx context.Context, id int64, req *model.Ad
 
 func (s *AdminService) DeleteServer(ctx context.Context, id int64) error {
 	return s.repos.Server.Delete(s.db, id)
+}
+
+// ResetNodeKey POST /admin/servers/{id}/node-key/reset 重置节点上报密钥(旧密钥立即失效)。
+func (s *AdminService) ResetNodeKey(ctx context.Context, adminID, serverID int64, ip string) (string, error) {
+	srv, err := s.repos.Server.GetByID(s.db, serverID)
+	if err != nil {
+		return "", errs.ErrNotFound
+	}
+	oldKey := srv.NodeKey
+	newKey := newNodeKey()
+	if err := s.repos.Server.UpdateMap(s.db, serverID, map[string]any{"node_key": newKey}); err != nil {
+		return "", err
+	}
+	_ = s.audit(s.db, adminID, "reset_node_key", fmt.Sprint(serverID), ip, map[string]any{})
+	// 旧密钥的鉴权缓存立即失效(NodeAuth 中间件 node:key:{k})
+	if oldKey != "" {
+		s.rdb.Del(ctx, redispkg.Key("node", "key", oldKey))
+	}
+	return newKey, nil
+}
+
+// newNodeKey 生成 32 位十六进制节点上报密钥。
+func newNodeKey() string {
+	b := make([]byte, 16)
+	_, _ = rand.Read(b)
+	return hex.EncodeToString(b)
 }
 
 func srvFromReq(req *model.AdminServerReq) *model.Server {

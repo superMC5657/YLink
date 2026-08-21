@@ -56,6 +56,8 @@ export const apiAdmin = {
   updateServer: (id: number, body: AdminServerReq) =>
     http.put<null>(`/admin/servers/${id}`, { body }),
   deleteServer: (id: number) => http.delete<null>(`/admin/servers/${id}`),
+  resetServerNodeKey: (id: number) =>
+    http.post<{ node_key: string }>(`/admin/servers/${id}/node-key/reset`),
   serverGroups: () => http.get<{ list: AdminServerGroupItem[] }>('/admin/server-groups'),
   createServerGroup: (body: AdminServerGroupReq) =>
     http.post<AdminServerGroupItem>('/admin/server-groups', { body }),

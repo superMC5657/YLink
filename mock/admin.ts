@@ -140,6 +140,7 @@ const servers = [
     status: 1,
     is_show: true,
     sort: 1,
+    node_key: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6',
   },
   {
     id: 2,
@@ -154,6 +155,7 @@ const servers = [
     status: 2,
     is_show: true,
     sort: 2,
+    node_key: '0f1e2d3c4b5a69788796a5b4c3d2e1f0',
   },
 ]
 
@@ -529,6 +531,19 @@ export default [
     response: ({ headers }: { headers: Record<string, string> }) => {
       if (!verifyAdmin(headers)) return unauthorized()
       return ok({ list: servers })
+    },
+  },
+  {
+    url: '/api/v1/admin/servers/:id/node-key/reset',
+    method: 'post',
+    response: ({ headers, query }: { headers: Record<string, string>; query: { id?: string } }) => {
+      if (!verifyAdmin(headers)) return unauthorized()
+      const srv = servers.find((s) => s.id === Number(query.id))
+      if (!srv) return { code: 40400, message: '节点不存在', data: null }
+      const arr = new Uint8Array(16)
+      crypto.getRandomValues(arr)
+      srv.node_key = Array.from(arr, (b) => b.toString(16).padStart(2, '0')).join('')
+      return ok({ node_key: srv.node_key })
     },
   },
   {

@@ -168,7 +168,9 @@ panel.example.com { root * /srv/panel; try_files {path} /index.html; file_server
 - `GET /healthz`：进程存活；`GET /readyz`：DB/Redis 连通（供编排探针）。
 - 日志：zap JSON → 文件按天切割（lumberjack），容器同时输出 stdout 便于 `docker logs`；错误日志含 request_id。
 - 慢查询：GORM logger 记录 >200ms SQL。
-- 指标（可选二期）：`promhttp` `/metrics`（QPS、延迟直方图、支付成功率、cron 执行结果），Grafana 看板。
+- 指标（✅ 已落地,2026-08-22）：`promhttp` `/metrics`（QPS、延迟直方图、支付成功计数、Go 运行时）。
+  - **Grafana 看板**：`docker compose --profile obs up -d` 启动 prometheus + grafana（compose 内网抓取 `api:8081/metrics`,Grafana 绑 `127.0.0.1:3000`,首登 admin / `GRAFANA_ADMIN_PASSWORD`(默认 admin)即改密）;看板 `YLink API`(QPS/状态码/p50-p95/支付成功/错误率/Top 路径)经 provisioning 自动加载(`deploy/obs/`),无需手动导入。默认 `up -d` 不启动 obs 服务。
+  - **公网收口**：生产 Caddyfile api 域名 `@metrics` 拦截 `/metrics` 返回 404（与 Swagger 同款纵深防御）;Prometheus 走内网抓取不受影响。
 - 告警最小集（二期前用脚本兜底）：进程存活、磁盘、PostgreSQL/Redis 连通、每日支付成功率。
 
 ## 6. 备份与恢复

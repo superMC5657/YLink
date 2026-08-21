@@ -39,6 +39,9 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Stylelint
+        run: pnpm lint:css
+
       - name: Typecheck
         run: pnpm typecheck
 

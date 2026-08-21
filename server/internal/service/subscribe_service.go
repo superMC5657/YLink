@@ -164,6 +164,13 @@ func (s *SubscribeService) Generate(ctx context.Context, token, flag, userAgent 
 		// 契约 §15：token 无效/用户封禁 → 401 纯文本
 		return nil, errs.ErrUnauthorized
 	}
+	// 每用户凭证兜底：迁移前注册的老用户若 uuid 为空则懒生成(正常路径注册即生成)
+	if user.UUID == "" {
+		user.UUID = newUUID()
+		if err := s.repos.User.Update(s.db, user); err != nil {
+			return nil, err
+		}
+	}
 
 	gen := pickGenerator(flag, userAgent)
 
@@ -239,7 +246,8 @@ func (s *SubscribeService) buildNodes(user *model.User) []subscribe.Node {
 	}
 	nodes := make([]subscribe.Node, 0, len(servers))
 	for _, srv := range servers {
-		nodes = append(nodes, toNode(srv, groupName[srv.GroupID]))
+		// 每用户独立凭证(契约 §15):同一节点对不同用户下发不同凭证,节点按此归因流量
+		nodes = append(nodes, toNode(srv, groupName[srv.GroupID], user.UUID))
 	}
 	return nodes
 }
@@ -259,8 +267,8 @@ func (s *SubscribeService) userInfo(ctx context.Context, user *model.User) (stri
 	return ui, nil
 }
 
-// toNode 将 servers 行转换为订阅节点。
-func toNode(srv model.Server, groupName string) subscribe.Node {
+// toNode 将 servers 行转换为订阅节点;cred 为每用户凭证(users.uuid,覆盖 config 中的共享密码/uuid)。
+func toNode(srv model.Server, groupName, cred string) subscribe.Node {
 	var conf struct {
 		Password string `json:"password"`
 		UUID     string `json:"uuid"`
@@ -278,12 +286,15 @@ func toNode(srv model.Server, groupName string) subscribe.Node {
 	if groupName != "" {
 		name = groupName + " " + srv.Name
 	}
-	cred := conf.Password
 	if cred == "" {
-		cred = conf.UUID
-	}
-	if cred == "" {
-		cred = conf.ID
+		// 兜底:无用户凭证时回落 config 凭证(不应到达,Generate 已保证 uuid 存在)
+		cred = conf.Password
+		if cred == "" {
+			cred = conf.UUID
+		}
+		if cred == "" {
+			cred = conf.ID
+		}
 	}
 	method := conf.Method
 	if method == "" {

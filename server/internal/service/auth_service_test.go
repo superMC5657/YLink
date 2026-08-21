@@ -59,10 +59,10 @@ func userRow(u *model.User) *sqlmock.Rows {
 	return sqlmock.NewRows([]string{
 		"id", "email", "password_hash", "role", "balance", "commission_balance", "invite_by_id",
 		"is_banned", "remind_expire", "remind_traffic", "telegram_id", "plan_id", "expired_at",
-		"transfer_enable", "u", "d", "speed_limit", "device_limit", "sub_token", "created_at", "updated_at",
+		"transfer_enable", "u", "d", "speed_limit", "device_limit", "sub_token", "uuid", "created_at", "updated_at",
 	}).AddRow(u.ID, u.Email, u.PasswordHash, u.Role, u.Balance, u.CommissionBalance, u.InviteByID,
 		u.IsBanned, u.RemindExpire, u.RemindTraffic, u.TelegramID, u.PlanID, u.ExpiredAt,
-		u.TransferEnable, u.U, u.D, u.SpeedLimit, u.DeviceLimit, u.SubToken, u.CreatedAt, u.UpdatedAt)
+		u.TransferEnable, u.U, u.D, u.SpeedLimit, u.DeviceLimit, u.SubToken, u.UUID, u.CreatedAt, u.UpdatedAt)
 }
 
 func (e *testEnv) expectUserByEmail(u *model.User) {

@@ -42,6 +42,7 @@ type app struct {
 	inviteSvc  *service.InviteService
 	ticketSvc  *service.TicketService
 	adminSvc   *service.AdminService
+	nodeSvc    *service.NodeService
 
 	authH    *handler.Auth
 	userH    *handler.User
@@ -52,6 +53,7 @@ type app struct {
 	inviteH  *handler.Invite
 	ticketH  *handler.Ticket
 	adminH   *handler.Admin
+	nodeH    *handler.Node
 }
 
 // New 构建 gin 引擎（中间件链 + 分组路由）。
@@ -83,6 +85,7 @@ func New(d Deps) *gin.Engine {
 	registerAdmin(api, d, a)   // 管理端 API（role=admin）
 	registerClient(api, d, a)  // 订阅下发（免登录）
 	registerWebhook(api, d, a) // 支付回调（免登录）
+	registerNode(api, d, a)    // 节点上报（X-Node-Key）
 
 	return r
 }
@@ -100,6 +103,7 @@ func newApp(d Deps) *app {
 	inviteSvc := service.NewInviteService(d.DB, d.Redis, repos, d.Cfg)
 	ticketSvc := service.NewTicketService(d.DB, d.Redis, repos)
 	adminSvc := service.NewAdminService(d.DB, d.Redis, repos, d.Cfg, settingSvc)
+	nodeSvc := service.NewNodeService(d.DB, d.Redis, repos)
 	return &app{
 		repos:      repos,
 		authSvc:    authSvc,
@@ -111,6 +115,7 @@ func newApp(d Deps) *app {
 		inviteSvc:  inviteSvc,
 		ticketSvc:  ticketSvc,
 		adminSvc:   adminSvc,
+		nodeSvc:    nodeSvc,
 		authH:      handler.NewAuth(authSvc),
 		userH:      handler.NewUser(userSvc),
 		contentH:   handler.NewContent(contentSvc),
@@ -120,6 +125,7 @@ func newApp(d Deps) *app {
 		inviteH:    handler.NewInvite(inviteSvc),
 		ticketH:    handler.NewTicket(ticketSvc),
 		adminH:     handler.NewAdmin(adminSvc),
+		nodeH:      handler.NewNode(nodeSvc),
 	}
 }
 
@@ -248,4 +254,12 @@ func registerClient(g *gin.RouterGroup, d Deps, a *app) {
 func registerWebhook(g *gin.RouterGroup, d Deps, a *app) {
 	wh := g.Group("/payment")
 	wh.POST("/notify/:method", a.orderH.Notify)
+}
+
+// registerNode 节点上报端点（模式 A）：X-Node-Key 密钥鉴权。
+func registerNode(g *gin.RouterGroup, d Deps, a *app) {
+	node := g.Group("/node")
+	node.Use(middleware.NodeAuth(a.nodeSvc.ServerIDByKey, d.Redis))
+	node.GET("/users", a.nodeH.Users)
+	node.POST("/report", a.nodeH.Report)
 }

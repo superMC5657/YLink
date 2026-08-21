@@ -153,6 +153,7 @@ func (s *AuthService) Register(ctx context.Context, req *model.AuthRegisterReq) 
 		Email:        req.Email,
 		PasswordHash: hash,
 		SubToken:     uuid.NewString(),
+		UUID:         uuid.NewString(), // 每用户订阅凭证(模式 A 归因)
 	}
 
 	err = repo.WithTx(s.db, func(tx *gorm.DB) error {

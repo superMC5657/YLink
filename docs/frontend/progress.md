@@ -2,7 +2,7 @@
 
 > 本文档记录 `src/` 目录 Vue 3 用户端应用的开发状态,是 docs/frontend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-14(存储适配 plugin-store 迁移、移动端深链、构建产物清理 emptyOutDir、Web 登录 CORS 修复落地,见 §1/§2/§3.3;前置条件实测核对:Node 24.14.0 / pnpm 10.33.0 / Rust 1.97.1 均满足;路由 29 条、vitest 58 用例等与代码实况对齐;管理后台 13 模块全部完成,见 M8+M9;分享面板已实现并接入邀请页(SharePanel.vue 品牌邀请卡片 + 复制链接 + 下载图片,canvas 合成紫色邀请卡片 PNG 纯前端下载;2026-08-14 由底部弹层改为浮动 panel 居中展示、系统分享改名为下载图片),注册链接前缀改为前端 origin 自适应(VITE_WEB_BASE_URL / 本地 5174 / Caddy 80 / 生产 443),工单已回复本地通知增强为聚焦即时检查,见 §2/§1 与 review-0.8.0.md;2026-08-22 评审修复见 review-0.8.0.md 第八轮:品牌渐变令牌化 --c-primary-grad-end(暗色自动切换变体)、Tauri 兜底改用 isTauri()(修复 Windows http://tauri.localhost 误判)、InviteView 复用 computed/删除死守卫、MainLayout 聚焦与可见合并 onWindowActive、.env.production.example 入库)
+> 最后更新:2026-08-22(**Stylelint 引入**(候补清零):stylelint 17 + config-standard + postcss-html,`pnpm lint:css` 0 违规,接入 CI frontend-quality 与 lint-staged,格式类/色值记法规则关闭避免与 Prettier 冲突;**模式 A 配套**:管理端节点列表新增「上报密钥」列(CopyText 复制)+「重置密钥」按钮(确认弹窗,apiAdmin.resetServerNodeKey + mock 同步);vitest 实测 **59 用例**全绿)
 
 ---
 
@@ -127,7 +127,7 @@
 | 总览 | 7 项运营统计卡 + 快捷入口 | `views/admin/AdminOverviewView.vue` |
 | 用户管理 | 搜索/分页/封禁/角色调整/调余额(均写审计) | `views/admin/AdminUsersView.vue` |
 | 套餐管理 | CRUD:周期定价(元)/流量/设备/限速/节点分组/上架/排序 | `views/admin/AdminPlansView.vue` |
-| 节点管理 | 分组 CRUD + 节点 CRUD(6 协议/地址/配置 JSON/倍率/状态/标签) | `views/admin/AdminNodesView.vue` |
+| 节点管理 | 分组 CRUD + 节点 CRUD(6 协议/地址/配置 JSON/倍率/状态/标签);**2026-08-22 模式 A 配套:新增「上报密钥」列(CopyText 复制 node_key)+「重置密钥」按钮(确认弹窗提示旧密钥立即失效,`POST /admin/servers/{id}/node-key/reset`,mock 同步)** | `views/admin/AdminNodesView.vue` |
 | 订单管理 | 状态筛选/分页/退款(余额退回+佣金回滚) | `views/admin/AdminOrdersView.vue` |
 | 工单管理 | 列表/详情/客服回复/关闭 | `views/admin/AdminTicketsView.vue` |
 | Mock + E2E | `mock/admin.ts` 管理端 Mock;`tests/e2e/admin.spec.ts` 角色区分 6 用例 × 双 project(管理员可见入口/普通用户不可见且访问被重定向) | `mock/*`、`tests/e2e/*` |
@@ -216,7 +216,7 @@
 
 | 项 | 说明 |
 |---|---|
-| Stylelint | 未引入(可选,ESLint + Prettier 已覆盖) |
+| ~~Stylelint~~ | ✅ 已引入(2026-08-22):stylelint 17 + stylelint-config-standard + postcss-html(解析 .vue);`.stylelintrc.json` 关闭格式/色值记法类规则(避免与 Prettier 及 tokens.css/theme.ts 双源同步冲突),豁免 Vue `:deep`/vendor 前缀;`pnpm lint:css` 0 违规,已接入 CI frontend-quality job 与 lint-staged(`*.{css,vue}` stylelint --fix) |
 | 既有 format:check 告警 | ✅ 已解决(2026-08-12):`0ac021c` 全量格式化修复 23 个不合规文件,review-0.4.0 补格式化 `scripts/build-latest-json.mjs` 后,`pnpm format:check` 全仓通过(见 docs/reviews/review-0.4.0.md) |
 
 ### 二期 / 明确标注待办(✅ 完成,2026-08-13)
@@ -257,10 +257,10 @@
 
 | 前置 | 说明 |
 |---|---|
-| 单元测试 | `pnpm test`(Vitest + jsdom,**58 用例**,2026-08-14 实测 58/58);`pnpm test:coverage` 看覆盖率 |
+| 单元测试 | `pnpm test`(Vitest + jsdom,**59 用例**,2026-08-22 实测 59/59);`pnpm test:coverage` 看覆盖率 |
 | E2E | `pnpm e2e`(Playwright):webServer 以 `pnpm dev --mode e2e` 启动,**固定使用 `.env.e2e`(Mock)**,不受 `.env.development.local` 联调覆盖影响;本地默认系统 Chrome(`channel:'chrome'`),CI 用 `playwright install chromium`;双 project(桌面 1280 / 移动 390×844) |
 | 布局诊断 | `node scripts/diag-layout.mjs`:5 分辨率(1024-2560)× 12 路由测量页面级横向溢出与内容区宽度(需先起 Mock dev) |
-| 质量门禁 | `pnpm lint`(ESLint 0 error 0 warning)、`pnpm typecheck`、`pnpm format:check`(Prettier) |
+| 质量门禁 | `pnpm lint`(ESLint 0 error 0 warning)、`pnpm lint:css`(Stylelint,2026-08-22 起)、`pnpm typecheck`、`pnpm format:check`(Prettier) |
 | 注意 | E2E 会创建订单/触发支付,反复运行产生累积数据(Mock 内存态,重启 dev 即清空);登录页**不预填账号**,E2E 手动填写 Mock 演示账号 |
 
 ### 3.3 对接真实后端

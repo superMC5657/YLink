@@ -256,6 +256,7 @@ type Repos struct {
 	Coupon     CouponRepo
 	Commission CommissionRepo
 	Traffic    TrafficLogRepo
+	NodeStat   NodeUserStatRepo
 	AgentApply AgentApplyRepo
 	Ticket     TicketRepo
 	Audit      AuditLogRepo

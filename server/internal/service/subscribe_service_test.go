@@ -70,9 +70,9 @@ func TestGenerateNoSubscription(t *testing.T) {
 	e := newTestEnv(t)
 	svc := NewSubscribeService(e.db, e.rdb, &repo.Repos{}, &config.Config{App: config.AppConfig{BaseURL: "https://api.example.com"}})
 
-	// 用户：无订阅
+	// 用户：无订阅(uuid 非空,避免触发懒生成 UPDATE)
 	now := time.Now()
-	u := &model.User{ID: 1, Email: "a@b.com", SubToken: "tok", CreatedAt: now, UpdatedAt: now}
+	u := &model.User{ID: 1, Email: "a@b.com", SubToken: "tok", UUID: "00000000-0000-0000-0000-000000000001", CreatedAt: now, UpdatedAt: now}
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"users\"")).WillReturnRows(userRow(u))
 
 	res, err := svc.Generate(context.Background(), "tok", "clash", "")
@@ -106,3 +106,26 @@ func hashPassword(p string) (string, error) {
 }
 
 func intPtr(i int) *int { return &i }
+
+func TestGeneratePerUserCredential(t *testing.T) {
+	e := newTestEnv(t)
+	svc := NewSubscribeService(e.db, e.rdb, &repo.Repos{}, &config.Config{App: config.AppConfig{BaseURL: "https://api.example.com"}})
+
+	// 用户持套餐,uuid 即订阅凭证
+	future := time.Now().Add(24 * time.Hour)
+	u := &model.User{ID: 1, Email: "a@b.com", SubToken: "tok", UUID: "11111111-2222-3333-4444-555555555555",
+		PlanID: int64Ptr(9), ExpiredAt: &future, TransferEnable: 1 << 30, CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"users\"")).WillReturnRows(userRow(u))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"plans\"")).WillReturnRows(planRow(&model.Plan{ID: 9, Name: "白羊", GroupIDs: "[1]", IsShow: true}))
+	// 节点 config 中的共享密码不应下发
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "servers" WHERE is_show = true AND group_id IN`)).WillReturnRows(serverRow(
+		&model.Server{ID: 5, GroupID: 1, Name: "HK-01", Type: "trojan", Host: "hk.example.com", Port: 443,
+			Config: `{"password":"legacy-shared-pass"}`, Rate: 1.0, NodeKey: "k1"}))
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "server_groups"`)).WillReturnRows(
+		sqlmock.NewRows([]string{"id", "name", "sort"}).AddRow(1, "香港", 0))
+
+	res, err := svc.Generate(context.Background(), "tok", "clash", "")
+	require.NoError(t, err)
+	assert.Contains(t, string(res.Content), "11111111-2222-3333-4444-555555555555", "下发凭证应为用户 uuid")
+	assert.NotContains(t, string(res.Content), "legacy-shared-pass", "config 共享密码不应再下发")
+}

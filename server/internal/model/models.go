@@ -73,6 +73,7 @@ type User struct {
 	SpeedLimit        *int       `json:"speed_limit,omitempty"`
 	DeviceLimit       *int       `json:"device_limit,omitempty"`
 	SubToken          string     `gorm:"size:36;uniqueIndex" json:"-"`
+	UUID              string     `gorm:"size:36;uniqueIndex" json:"-"` // 每用户订阅凭证(模式 A 归因)
 	CreatedAt         time.Time  `json:"created_at"`
 	UpdatedAt         time.Time  `json:"updated_at"`
 }
@@ -223,6 +224,7 @@ type Server struct {
 	Status  int     `gorm:"default:1" json:"status"`
 	IsShow  bool    `gorm:"default:true" json:"-"`
 	Sort    int     `gorm:"default:0" json:"-"`
+	NodeKey string  `gorm:"size:32;uniqueIndex" json:"-"` // 节点上报密钥(X-Node-Key)
 }
 
 func (Server) TableName() string { return "servers" }
@@ -289,6 +291,18 @@ type TrafficLog struct {
 }
 
 func (TrafficLog) TableName() string { return "traffic_logs" }
+
+// NodeUserStat 节点上报累计值快照(模式 A 幂等差分)。
+type NodeUserStat struct {
+	ID        int64     `gorm:"primaryKey" json:"-"`
+	ServerID  int64     `gorm:"index:uq_node_user_stats,unique" json:"-"`
+	UserID    int64     `gorm:"index:uq_node_user_stats,unique" json:"-"`
+	LastU     int64     `json:"-"`
+	LastD     int64     `json:"-"`
+	UpdatedAt time.Time `json:"-"`
+}
+
+func (NodeUserStat) TableName() string { return "node_user_stats" }
 
 // Setting 对应 settings 表。
 type Setting struct {

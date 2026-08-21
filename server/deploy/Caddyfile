@@ -9,6 +9,10 @@ api.example.com {
 	@swagger path /swagger /swagger/*
 	respond @swagger 404
 
+	# /metrics 无鉴权(供 compose 内网 Prometheus 抓取),公网侧拒绝访问
+	@metrics path /metrics
+	respond @metrics 404
+
 	reverse_proxy api:8081
 	header {
 		X-Content-Type-Options nosniff

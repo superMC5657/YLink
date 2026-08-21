@@ -65,7 +65,37 @@ services:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
 
+  # 可观测性(可选):docker compose --profile obs up -d 启用
+  # Prometheus 经 compose 内网抓取 api:8081/metrics;Grafana http://127.0.0.1:3000(admin/admin 首登改密)
+  prometheus:
+    profiles: ["obs"]
+    container_name: backend-prometheus
+    image: prom/prometheus:v2.53.0
+    volumes:
+      - ./deploy/obs/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      - api
+
+  grafana:
+    profiles: ["obs"]
+    container_name: backend-grafana
+    image: grafana/grafana:11.1.0
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./deploy/obs/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/obs/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - prometheus
+
 volumes:
   postgres_data: {}
   redis_data: {}
   caddy_data: {}
+  prometheus_data: {}
+  grafana_data: {}

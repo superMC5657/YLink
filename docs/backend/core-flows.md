@@ -118,6 +118,7 @@ sequenceDiagram
 
 - UA 嗅探规则：`clash` 关键词 → Clash YAML；`sing-box` → sing-box JSON；`shadowrocket/v2ray` 及其他 → base64 分享链接。
 - `subscription-userinfo: upload={u}; download={d}; total={transfer_enable}; expire={unix(expired_at)}`，读 `sub:userinfo:{token}` 缓存（30s）。
+- **每用户独立凭证（2026-08-22 起）**：下发配置中的密码/uuid 为 `users.uuid`（注册时生成），同一节点对不同用户下发不同凭证；`servers.config` 中的密码/uuid 不再下发给用户。节点按凭证区分用户流量（模式 A 归因依据）。
 - 过期或流量用尽：仍返回配置（让客户端可用但节点失效由网关侧控制），同时在配置中注入一个「到期/流量耗尽提示节点」（名称含说明文字），引导用户回站续费。
 - 重置订阅：`POST /user/subscribe/reset` 生成新 `sub_token`，旧 token 立即失效（缓存同步清除）。
 
@@ -126,10 +127,14 @@ sequenceDiagram
 - 用户创建（status=0 待回复）→ 客服回复（status=1 已回复，last_reply_at 更新）→ 用户再回复（回到 0）→ 任一方关闭（status=2；**「只允许重开一次」已实现（2026-08-12）**：关闭后用户可 `POST /tickets/{id}/reopen` 重开，状态回 0 且 `reopen_count+1`，整个工单生命周期最多一次，已重开返回 14002）。
 - 用户侧轮询发现 status 变为「已回复」时触发本地通知（桌面端）/ 红点。
 
-## 8. 流量数据来源（两种模式，一期先做 B）
+## 8. 流量数据来源（两种模式；B 一期已实现，A 2026-08-22 二期实现）
 
-- **模式 A（节点上报，二期）**：节点 agent 定时 `POST /api/v1/node/report`（节点密钥鉴权）上报每用户流量增量，服务累加 `users.u/d`（乘节点倍率）并写 `traffic_logs` 日聚合。
-- **模式 B（手工/对账，一期）**：管理端可手工录入或导入流量数据；`traffic_logs` 有数据则前端展示，无数据显示空态；`users.u/d` 允许后台校准。
+- **模式 A（节点上报，已实现）**：节点 agent 以 `X-Node-Key`（每节点独立密钥，`servers.node_key`）调用两组接口：
+  - `GET /node/users` 拉取本节点分组下有效订阅用户（uuid/u/d/transfer_enable/expired_at），据此配置 inbound 每用户凭证并做本地掐断；
+  - `POST /node/report` 定时（建议 60s）上报**每用户累计值** `[{uuid, u, d}]`。服务端流程：`node_user_stats` 快照差分得增量（重复上报差分 0，天然幂等；累计值回退视为节点计数器重启，增量取当前值）→ 增量 × 节点 `rate` → 事务内累加 `users.u/d` + `traffic_logs` 增量聚合（`ON CONFLICT DO UPDATE SET u = u + ?`）→ 删除受影响用户 `sub:userinfo:{token}` 缓存。未知 uuid / 无订阅用户跳过并在响应 `skipped` 返回。
+  - 归因前提：订阅下发**每用户独立凭证**（`users.uuid`，见第 6 节），节点 inbound 按凭证区分用户。
+- **模式 B（手工/对账，一期）**：管理端可手工录入或导入流量数据（**覆盖**式，同日导入覆盖模式 A 聚合值，作为校准手段）；`traffic_logs` 有数据则前端展示，无数据显示空态。
+- 演示工具：`server/cmd/node-agent` 模拟累计值定时上报，本地全链路联调；真实代理后端（Xray stats 等）对接为后续候补。
 - 流量用尽（u+d ≥ transfer_enable）或到期：MarkPaid 之外的独立校验，订阅下发与提醒逻辑均以此判断；`remind_traffic=1` 且用量 ≥80% 时发一次提醒邮件（Redis 记录已提醒标记，周期内不重复）。
 
 ## 9. 定时任务总览（cmd/worker，robfig/cron）

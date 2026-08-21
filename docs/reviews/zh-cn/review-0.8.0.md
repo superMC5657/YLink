@@ -1,10 +1,11 @@
 # 代码评审 — YLink v0.8.0（移动端分享面板 & 工单已回复本地通知增强）
 
 - **版本：** 0.8.0
+- **应用版本：** v0.4.1(git 标签)。评审文档按评审周期编号(0.2.0 → 0.8.0),与应用发布版本相互独立,两套版本号无对应关系。
 - **日期：** 2026-08-14
 - **范围：** 新增移动端优先分享面板（`SharePanel.vue`）并接入邀请页；「工单已回复」桌面端本地通知增强（窗口聚焦/可见时立即检查）。
 - **方法：** 评审模型审查 diff；`pnpm typecheck`、`pnpm lint`、`pnpm format:check`、Vitest（54/54 全绿，新增 3 个 SharePanel 用例）均通过。
-- **状态：** 全部发现已解决（2026-08-14）。
+- **状态：** 第一~七轮发现已全部解决(第七轮由第八轮修复,2026-08-22)。
 
 ## 摘要
 
@@ -143,3 +144,67 @@ jsdom 的 `HTMLCanvasElement.getContext` 返回 null(未实现),`qrcode.toDataUR
 
 - `pnpm test`:58/58 全绿(9 个文件;SharePanel 6 用例)。
 - `pnpm typecheck` / `pnpm lint` / `pnpm build` 通过;Playwright e2e(desktop/mobile)14/14 通过。
+
+---
+
+## 第七轮(2026-08-22):`1ccacb8...HEAD` 全范围双轴评审
+
+对 `99016a7..88b8656` 六个提交(移动端分享面板与前缀自适应、`register_url_prefix` 仅返回后缀、浮动 panel + 下载图片、文档同步、Swagger 网关兜底、版本号)做整体评审,以两个并行评审轴进行:**标准轴**(仓库成文规范 —— `docs/frontend/design-system.md`、`docs/frontend/README.md` §8、`docs/README.md` 架构约定、API 契约 —— 叠加 Fowler 代码坏味基线)与**规格轴**(本文档第一~六轮、`docs/frontend/progress.md` / `docs/backend/progress.md`、提交意图)。两轴分开汇报,互不遮蔽。以下发现已在第八轮全部修复(见下)。工作区未提交的 `src-tauri/tauri.conf.json` 改动不在本次评审范围内。
+
+### 标准轴发现(第八轮已修复)
+
+- **✅ [P2] 业务代码硬编码品牌渐变 — SharePanel.vue。** 模板 `style="background: linear-gradient(135deg, #6558f5, #8b5cf6)"` 违反 design-system.md(「所有视觉决策以 CSS 变量令牌落地,业务代码不写死任何颜色」)及 frontend/README.md §8。design-system §2.3 虽认可该渐变,但同时规定了暗色变体(`#7C72FF → #A78BFA`)—— 字面量无法切换,暗色模式仍显示浅色卡片。
+- **✅ [P3] canvas 颜色字面量**(`#6558f5`、`#8b5cf6`、`#FFFFFF`、`QR_DARK = '#1F2430'`):判断性 —— 导出 PNG 本就刻意与主题无关,且 canvas 不经 `getComputedStyle` 读不到 CSS 变量。
+- **✅ [P3] SharePanel 头部注释**未标注对应截图页面/契约接口(frontend/README.md §8)。判断性 —— 新通用组件。
+- **✅ [P3] 重复代码** —— 渐变色值同时出现在模板 style 与 canvas `addColorStop`;应抽共享常量。
+- **✅ [P3] 重复代码** —— `InviteView.vue` 三处拼接 `prefix + codes[0]`(`registerLinkText` computed、`copyRegisterLink`、模板插值);应复用 computed。
+- **✅ [P3] 死守卫 / 疑似过度设计** —— `openShare` 与 `copyRegisterLink` 检查 `!effectiveRegisterUrlPrefix`,但 getter 永不返回假值(末尾 `return '/#/register?code='`);应删除该判断。
+- **✅ [P3] 重复代码** —— `server/docker-compose.dev.yml` 中 api 与 worker 的 `environment` 块完全相同(可用 YAML anchor 去重);前缀 getter 内 `'/#/register?code='` 字面量出现 3 次。
+- **✅ [P3] 重复代码(既有问题,本次扩散)** —— 第一轮给 `MainLayout.vue` 的 `onFocus`/`onVisibility` 都加上 `checkTickets()` 后,两函数体完全相同;可抽一个 `onVisible()`。
+
+### 规格轴发现(第八轮已修复)
+
+- **✅ [P2] Tauri 兜底在 Windows 上永不生效 — invite.ts:37。** `if (origin && !origin.startsWith('tauri:'))` 假设 Tauri origin 以 `tauri:` 开头,但 Windows Tauri(唯一打包平台,见 progress.md)origin 为 `http://tauri.localhost`,能通过该判断。未配置 `VITE_WEB_BASE_URL` 的打包版会生成不可用的 `http://tauri.localhost/#/register?code=` 链接,而非相对路径兜底。
+- **✅ [P2] `.env.production` 说明不在仓库内。** 第二/三轮声称「`.env.production`:已补充 `VITE_WEB_BASE_URL` 说明」,但该文件被 gitignore(`.gitignore:32`)且不在 diff 中 —— 打包要求只存在于本地未跟踪文件,新克隆什么都拿不到。应把指引落进受跟踪文档(deploy.md / 前端 README)或提供 `.env.production.example`。
+- **✅ [P3] Swagger 兜底漏掉不带尾斜杠的 `/swagger`。** Caddyfile `@swagger path /swagger/*` 不匹配 `/swagger`,该路径仍被代理。轻微:deploy.md 验证 curl 用的是 `/swagger/index.html`,已覆盖。
+- **✅ [P3] 评审记录不完整。** backend/progress.md 记录了 dev-docker.sh 重写、MSYS 路径转换修复、`docker-compose.dev.yml`,但本文档没有对应轮次。
+- **✅ [P3] 超范围。** dev-docker.sh 全面重写(`require_env`、REDIS/APP_REDIS 一致性检查、MSYS 守卫)+ `server/.env.example` 新增 DEMO_EMAIL/DEMO_PASSWORD,超出 99016a7 标题所述范围与本文档记载;仅在 progress.md 事后补记。
+- **✅ [P3] 版本号体系不一致。** 88b8656 将 package.json/Cargo.toml/tauri.conf.json 升到 0.4.1(各文件互相一致),但本周期文档标题均为 v0.8.0 —— 代码与文档版本体系不一致。
+- **✅ [P3] 死守卫** —— 与标准轴同一条:`openShare` 的 `!effectiveRegisterUrlPrefix` 恒为假。
+
+### 验证通过项
+
+Caddyfile 拒绝 `/swagger/*` + deploy.md 404 curl 步骤;MainLayout 聚焦/可见时调用 `checkTickets()`;CORS https 白名单 + 5 用例 `cors_test.go`;`register_url_prefix` = `/#/register?code=` 在 service/dto/mock/api README 一致;SharePanel 浮动 `n-modal` + canvas PNG 下载含 Safari/iOS revoke 处理;新增文案全部走 i18n(中英);测试数量与文档声称一致(前端 58、SharePanel 6、后端 71)。
+
+### 小结
+
+标准轴 8 项(1 项硬性违规、7 项判断性)—— 最重:硬编码渐变违反令牌规则,暗色模式拿不到暗色变体。规格轴 7 项(3 项缺失/部分、1 项超范围、3 项实现可疑)—— 最重:Windows 打包版注册链接兜底失效,唯一打包平台受影响。
+
+---
+
+## 第八轮(2026-08-22):第七轮发现全部修复;补记 dev-docker 重写
+
+第七轮 15 项发现全部修复(2×P2、13×P3;「死守卫」两轴各计一次)。同时在此补记此前缺少轮次记录的 dev-docker.sh 重写。
+
+### 变更
+
+- `src/styles/tokens.css`:新增 `--c-primary-grad-end` 令牌(浅色 `#8b5cf6` / 暗色 `#a78bfa`,design-system §2.3)。SharePanel 卡片渐变改为 `linear-gradient(135deg, var(--c-primary), var(--c-primary-grad-end))`,暗色模式终于拿到 §2.3 的暗色变体;下载图片的 canvas 绘制时经 `cssColor()`(getComputedStyle)读同一令牌(jsdom 下回退浅色值)。design-system.md §2.3 已注明令牌化写法。后续跟进(超出第七轮范围,本轮未做):同样的渐变字面量还存在于 6 个既有组件(AppSidebar、CustomerServiceFab、OrderCardList、OrderTable、SubscribeCard、UpdateCard),可择机迁移到令牌。
+- `src/stores/invite.ts`:Tauri 兜底改用 `isTauri()`(`__TAURI_INTERNALS__`,utils/platform.ts)判定,不再匹配 `tauri:` origin 前缀 —— Windows 打包版(origin `http://tauri.localhost`)现在正确走相对路径 `/#/register?code=` 兜底,而不是生成不可访问的链接。路径后缀抽为 `REGISTER_URL_SUFFIX` 常量(原先 3 处内联)。+1 测试(mock isTauri 为 true → 相对兜底)。
+- `src/views/invite/InviteView.vue`:展示改用新增 `registerLinkDisplay` computed(保留 `------` 占位);`copyRegisterLink` 复用 `registerLinkText`;删除 `openShare`/`copyRegisterLink` 里恒假的 `!effectiveRegisterUrlPrefix` 死守卫。
+- `src/layouts/MainLayout.vue`:函数体完全相同的 `onFocus`/`onVisibility` 合并为单一 `onWindowActive`,两个事件共用。
+- `src/components/business/SharePanel.vue`:头部注释补注调用方(邀请页,截图4)与「无契约接口(纯展示组件)」。
+- `server/deploy/Caddyfile` + `docs/backend/deploy.md`:swagger 匹配改为 `path /swagger /swagger/*`,裸路径同样拒绝;部署验证步骤补充裸路径 curl。
+- `server/docker-compose.dev.yml`:api/worker 的 `environment` 用 YAML 锚点 `x-api-worker-env` 去重(锚字解析已验证)。
+- `.env.production.example`(新增,入库):说明 `VITE_WEB_BASE_URL`(含 Tauri Windows origin 陷阱)与 Tauri 签名变量;`docs/frontend/README.md` 目录树、`desktop-tauri.md`、`progress.md` 改为引用它,不再只指向被 gitignore 的 `.env.production`。
+- 版本体系已在文档头部注明:评审文档按评审周期编号,应用发布走 git 标签(当前 v0.4.1)。代码 0.4.1 是正确的 —— 本轮不改版本号。
+
+### 补记:dev-docker.sh 重写(commit 99016a7,此前本文档无记录)
+
+该提交还重写了 `scripts/dev-docker.sh`,超出提交标题所述:`.env.dev` 作为唯一 env 来源(`require_env`,不内置默认值)、REDIS/APP_REDIS 一致性检查、Windows Git Bash 的 MSYS 路径转换守卫(cygpath 导出 `DEV_CADDYFILE`/`DEV_DIST`),并在 `server/.env.example` 新增 `DEMO_EMAIL`/`DEMO_PASSWORD`(演示账号)。动机:旧脚本内置默认值会与 dev.sh 的 env 处理悄然分叉。该工作保留;本记录即关闭第七轮规格轴的「评审记录不完整」与「超范围」两项发现。
+
+### 验证(第八轮)
+
+- `pnpm test`:59/59 全绿(9 个文件;`invite.spec.ts` +1 Tauri 兜底用例)。
+- `pnpm typecheck` / `pnpm lint` / `pnpm format:check`:通过。
+- `server/docker-compose.dev.yml`:YAML 解析通过,锚点解析后 api/worker 环境完全一致(已验证)。
+- 本轮未改服务端 Go 代码(仅 Caddyfile/compose/文档),故未重跑 `go test`。

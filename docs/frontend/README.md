@@ -85,7 +85,7 @@ YLink/
 ├── src-tauri/                # Tauri 2 Rust 工程（见 desktop-tauri.md）
 ├── mock/                     # vite-plugin-mock 数据（严格按契约）
 ├── docs/                     # 本文档目录
-├── .env / .env.development / .env.production
+├── .env / .env.development / .env.production（模板 .env.production.example 入库，含 VITE_WEB_BASE_URL / Tauri 签名说明）
 ├── vite.config.ts / uno.config.ts / package.json
 └── .github/workflows/        # CI：前端 quality+e2e、Rust check；CD：Tauri Windows Release → 公开产物仓库（gh-proxy 加速更新）
 ```

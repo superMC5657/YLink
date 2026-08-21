@@ -8,6 +8,8 @@
   --c-primary-hover: #7a6ef7;
   --c-primary-soft: #eae7ff;
   --c-primary-text: #4b3ed6;
+  /* 主色渐变终点(§2.3 品牌渐变 135deg 起点=--c-primary) */
+  --c-primary-grad-end: #8b5cf6;
 
   /* 中性 */
   --c-bg-app: #eceef5;
@@ -62,6 +64,7 @@
   --c-primary-hover: #8f86ff;
   --c-primary-soft: rgba(124, 114, 255, 0.16);
   --c-primary-text: #a79dff;
+  --c-primary-grad-end: #a78bfa;
 
   --c-bg-app: #0f1117;
   --c-bg-card: #171b26;

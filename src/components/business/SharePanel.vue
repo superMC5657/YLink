@@ -2,6 +2,7 @@
 /**
  * 分享面板(浮动 panel,居中悬浮于窗口之上):品牌邀请卡片(渐变背景 + 站点名 + 邀请码 + 二维码)
  * + 复制链接 + 下载图片(canvas 合成紫色邀请卡片为 PNG 供下载,纯前端实现)。
+ * 调用方:邀请页 InviteView(截图4);无契约接口(纯展示组件,链接/邀请码均由调用方传入)。
  * 用途:邀请注册链接等可打开的外部链接;深链 ylink:// 已由 main.ts/deeplink.ts 处理,此处分享的是 https 可访问地址。
  * 二维码用 qrcode 库,生成 512px 保证分享图片清晰;白块内固定深色码(不随暗色主题反色)。
  */
@@ -37,6 +38,15 @@ const retryTick = ref(0)
 // 二维码颜色固定:白块卡片背景恒为白色,不随主题变化(暗色下用 --c-text 会反色、扫码可靠性下降)
 const QR_DARK = '#1F2430'
 const QR_LIGHT = '#FFFFFF'
+
+/** 读取 CSS 颜色令牌供 canvas 使用(令牌遵循主题;读取失败时回退到浅色值,如 jsdom) */
+function cssColor(name: string, fallback: string): string {
+  const v =
+    typeof document !== 'undefined'
+      ? getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+      : ''
+  return v || fallback
+}
 
 // 下载图片的画布尺寸(与面板卡片同比例放大,保证导出清晰度)
 const IMG_W = 720
@@ -158,10 +168,10 @@ async function onDownloadImage() {
     return
   }
 
-  // 紫色渐变背景
+  // 品牌渐变背景(令牌随主题:暗色取暗色变体,与面板卡片一致)
   const grad = ctx.createLinearGradient(0, 0, IMG_W, IMG_H)
-  grad.addColorStop(0, '#6558f5')
-  grad.addColorStop(1, '#8b5cf6')
+  grad.addColorStop(0, cssColor('--c-primary', '#6558F5'))
+  grad.addColorStop(1, cssColor('--c-primary-grad-end', '#8B5CF6'))
   ctx.fillStyle = grad
   roundRectPath(ctx, 0, 0, IMG_W, IMG_H, 28)
   ctx.fill()
@@ -233,10 +243,10 @@ async function onDownloadImage() {
       </div>
       <p v-if="props.desc" class="mb-4 text-14 text-[var(--c-text-sub)]">{{ props.desc }}</p>
 
-      <!-- 品牌邀请卡片:渐变背景 + 站点名 + 邀请码 + 二维码 -->
+      <!-- 品牌邀请卡片:渐变背景(令牌,暗色自动切换变体) + 站点名 + 邀请码 + 二维码 -->
       <div
         class="rounded-2xl p-5 text-white shadow-lg"
-        style="background: linear-gradient(135deg, #6558f5, #8b5cf6)"
+        style="background: linear-gradient(135deg, var(--c-primary), var(--c-primary-grad-end))"
       >
         <div class="text-18 font-700">{{ config.siteName }}</div>
         <div v-if="props.code" class="mt-1 text-14 opacity-80">

@@ -29,9 +29,13 @@ const showShare = ref(false)
 const registerLinkText = computed(
   () => invite.effectiveRegisterUrlPrefix + (invite.codes[0]?.code ?? ''),
 )
+/** 注册链接展示文本(无邀请码时以 ------ 占位;前缀 getter 恒非空,无需判空) */
+const registerLinkDisplay = computed(
+  () => invite.effectiveRegisterUrlPrefix + (invite.codes[0]?.code ?? '------'),
+)
 
 function openShare() {
-  if (!invite.effectiveRegisterUrlPrefix || !invite.codes[0]) {
+  if (!invite.codes[0]) {
     message.warning(t('invite.needCode'))
     return
   }
@@ -92,13 +96,11 @@ function onDeleteCode(code: string) {
 }
 
 async function copyRegisterLink() {
-  const prefix = invite.effectiveRegisterUrlPrefix
-  const first = invite.codes[0]
-  if (!prefix || !first) {
+  if (!invite.codes[0]) {
     message.warning(t('invite.needCode'))
     return
   }
-  await copyText(prefix + first.code)
+  await copyText(registerLinkText.value)
   message.success(t('common.copied'))
 }
 
@@ -130,7 +132,7 @@ onMounted(() => {
           >
             <span class="text-14 text-[var(--c-text-sub)]">{{ t('invite.registerLink') }}:</span>
             <span class="num min-w-0 flex-1 truncate text-14 text-[var(--c-text)]">
-              {{ invite.effectiveRegisterUrlPrefix }}{{ invite.codes[0]?.code ?? '------' }}
+              {{ registerLinkDisplay }}
             </span>
             <button class="btn-soft-blue h-7 px-3 text-14" @click="copyRegisterLink">
               <AppIcon name="copy" :size="13" />

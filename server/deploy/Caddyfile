@@ -5,7 +5,8 @@
 
 api.example.com {
 	# 纵深防御:即使后端 APP_ENV 误配为 development 误开 Swagger,外部也无法访问
-	@swagger path /swagger/*
+	# (同时拦 /swagger 与 /swagger/*:不带尾斜杠的裸路径也要拒绝)
+	@swagger path /swagger /swagger/*
 	respond @swagger 404
 
 	reverse_proxy api:8081

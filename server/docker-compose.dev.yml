@@ -7,19 +7,21 @@
 #                 与 .env.dev 的宿主机 127.0.0.1 地址区分;APP_ENV 强制 development(与 dev.sh 一致,开 Swagger/debug)。
 #                 environment 优先级高于 env_file,DSN 里的 user/password/dbname 由 compose 从 --env-file(.env.dev)插值,
 #                 其余应用配置(APP_*/ADMIN_*/DEMO_*/SMTP 等)全部由 env_file 从 .env.dev 导入。
+#                 api 与 worker 的覆盖完全一致,共用 YAML 锚点(改动只需改一处)。
 #   caddy      - volumes 按挂载目标合并(同 target /etc/caddy/Caddyfile 后者替换前者):挂载 dev 专用 Caddyfile
 #                与前端构建产物 dist/。${DEV_CADDYFILE} / ${DEV_DIST} 由 dev-docker.sh export(cygpath 转 Windows 绝对路径)。
+
+# api/worker 共用的容器模式环境覆盖
+x-api-worker-env: &api-worker-env
+  APP_ENV: "development"
+  APP_DATABASE_DSN: "host=postgres port=5433 user=${POSTGRES_USER} password=${POSTGRES_PASSWORD} dbname=${POSTGRES_DB} sslmode=disable TimeZone=Asia/Shanghai"
+  APP_REDIS_ADDR: "redis:6379"
+
 services:
   api:
-    environment:
-      APP_ENV: "development"
-      APP_DATABASE_DSN: "host=postgres port=5433 user=${POSTGRES_USER} password=${POSTGRES_PASSWORD} dbname=${POSTGRES_DB} sslmode=disable TimeZone=Asia/Shanghai"
-      APP_REDIS_ADDR: "redis:6379"
+    environment: *api-worker-env
   worker:
-    environment:
-      APP_ENV: "development"
-      APP_DATABASE_DSN: "host=postgres port=5433 user=${POSTGRES_USER} password=${POSTGRES_PASSWORD} dbname=${POSTGRES_DB} sslmode=disable TimeZone=Asia/Shanghai"
-      APP_REDIS_ADDR: "redis:6379"
+    environment: *api-worker-env
   caddy:
     volumes:
       - ${DEV_CADDYFILE}:/etc/caddy/Caddyfile:ro

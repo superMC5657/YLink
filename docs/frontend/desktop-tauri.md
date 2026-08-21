@@ -62,7 +62,7 @@ capabilities/default.json 采用最小授权：逐项声明上述插件权限，
 
 降级策略：更新检查失败静默忽略，不打扰用户；Web 端无更新能力，全部动态 import 保证不进 Web 产物。
 
-签名密钥：密钥对有密码（**`TAURI_SIGNING_PRIVATE_KEY_PASSWORD` 必填**，见 `.env.production`）。私钥字符串（base64）配置为 GitHub secret `TAURI_SIGNING_PRIVATE_KEY`，密码配置为 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`（CI 读不到本地 `.env.production`，两个都必须配）；公钥已写入 `tauri.conf.json` 并与密钥验签匹配（2026-08-12 已校验）。注意：key 与 password 务必备份，丢失将无法再签名更新。
+签名密钥：密钥对有密码（**`TAURI_SIGNING_PRIVATE_KEY_PASSWORD` 必填**，见 `.env.production`，模板/说明见入库的 `.env.production.example`）。私钥字符串（base64）配置为 GitHub secret `TAURI_SIGNING_PRIVATE_KEY`，密码配置为 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`（CI 读不到本地 `.env.production`，两个都必须配）；公钥已写入 `tauri.conf.json` 并与密钥验签匹配（2026-08-12 已校验）。注意：key 与 password 务必备份，丢失将无法再签名更新。
 
 ## 6. 安全要点
 

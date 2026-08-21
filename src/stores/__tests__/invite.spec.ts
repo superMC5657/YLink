@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useInviteStore } from '../invite'
 import { apiInvite } from '@/api/invite'
+import { isTauri } from '@/utils/platform'
 
 vi.mock('@/api/invite', () => ({
   apiInvite: {
@@ -12,11 +13,13 @@ vi.mock('@/api/invite', () => ({
     transfer: vi.fn(),
   },
 }))
+vi.mock('@/utils/platform', () => ({ isTauri: vi.fn(() => false) }))
 
 describe('useInviteStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
+    vi.mocked(isTauri).mockReturnValue(false)
   })
 
   it('fetchSummary 写入统计', async () => {
@@ -74,5 +77,11 @@ describe('useInviteStore', () => {
     // getter 不读后端返回的 registerUrlPrefix(契约占位,仅返回路径后缀 /#/register?code=),
     // 而是直接用 window.location.origin —— jsdom 默认 origin 为 http://localhost:3000
     expect(store.effectiveRegisterUrlPrefix).toBe('http://localhost:3000/#/register?code=')
+  })
+
+  it('Tauri WebView 下兜底相对路径,不用 origin 拼接(Windows 的 http://tauri.localhost 也不可分享)', () => {
+    vi.mocked(isTauri).mockReturnValue(true)
+    const store = useInviteStore()
+    expect(store.effectiveRegisterUrlPrefix).toBe('/#/register?code=')
   })
 })

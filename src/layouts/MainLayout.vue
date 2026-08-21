@@ -49,34 +49,27 @@ onMounted(() => {
   if (window.innerWidth >= 1024 && window.innerWidth < 1280) {
     app.sidebarCollapsed = true
   }
-  // 窗口聚焦静默刷新
-  window.addEventListener('focus', onFocus)
-  window.addEventListener('visibilitychange', onVisibility)
+  // 窗口聚焦静默刷新(focus 与 visibilitychange 共用同一处理:聚焦时可能仍是 visible,双事件去重靠 visibility 判断)
+  window.addEventListener('focus', onWindowActive)
+  window.addEventListener('visibilitychange', onWindowActive)
   // 工单已回复本地通知:60s 轮询(桌面端;Web 端内部自动降级)
   notifyTimer = setInterval(() => void checkTickets(), 60_000)
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('focus', onFocus)
-  window.removeEventListener('visibilitychange', onVisibility)
+  window.removeEventListener('focus', onWindowActive)
+  window.removeEventListener('visibilitychange', onWindowActive)
   if (notifyTimer) {
     clearInterval(notifyTimer)
     notifyTimer = null
   }
 })
 
-function onFocus() {
-  if (document.visibilityState === 'visible') {
-    void user.refreshDashboard().then(() => void checkExpire())
-    // 工单已回复通知:聚焦时立即检查,不必等 60s 轮询
-    void checkTickets()
-  }
-}
-function onVisibility() {
-  if (document.visibilityState === 'visible') {
-    void user.refreshDashboard().then(() => void checkExpire())
-    void checkTickets()
-  }
+// 窗口重新聚焦/切回可见:静默刷新仪表板 + 立即检查工单已回复通知(不必等 60s 轮询)
+function onWindowActive() {
+  if (document.visibilityState !== 'visible') return
+  void user.refreshDashboard().then(() => void checkExpire())
+  void checkTickets()
 }
 
 // 路由切换关闭抽屉

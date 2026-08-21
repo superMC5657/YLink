@@ -78,7 +78,7 @@
 
 ### 2.3 渐变与氛围（美观增强）
 
-- 主按钮/关键数字可用主色渐变：`linear-gradient(135deg, #6558F5, #8B5CF6)`（暗色 `#7C72FF → #A78BFA`）。
+- 主按钮/关键数字可用主色渐变：`linear-gradient(135deg, #6558F5, #8B5CF6)`（暗色 `#7C72FF → #A78BFA`）。已令牌化为 `linear-gradient(135deg, var(--c-primary), var(--c-primary-grad-end))`，暗色主题自动切换变体（tokens.css）。
 - 仪表板 Banner 卡保留背景插画；暗色模式叠加 `rgba(10,12,20,.45)` 遮罩保证文字可读，或使用暗色专属插画。
 - 内容区底可加极低透明度（3%–5%）的品牌纹理/几何插画，暗色下同图降透明度至 2%。
 - 卡片可选 `backdrop-filter: blur(12px)` 毛玻璃（仅顶栏、抽屉、移动底栏等浮层使用，普通卡片保持实色以保性能）。

@@ -2,7 +2,7 @@
 
 > 本文档记录 `server/` 目录 Go/Gin 后端的开发状态,是 docs/backend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-14(修复 dev-docker.sh 构建时 MSYS 路径转换污染 apiBase 的问题,见 §3.1;dev-docker.sh 完全重写:不内置任何默认值/不生成 env 文件,所有配置以 `server/.env.dev` 为唯一来源、缺失即报错;全容器联调 dev-docker.sh、生产部署适配 docker-compose.prod.yml、Web 登录 CORS 与构建产物清理落地;数据库 MySQL 8 → PostgreSQL 16 切换完成,端口 5433:5433,见 §1 里程碑;测试函数 71 个全绿;全部里程碑 B1–B7 + 管理端 API 完成;0.7.0 评审 2×P2 + 3×P3 已全部修复,见 docs/reviews/review-0.7.0.md)
+> 最后更新:2026-08-14(修复 dev-docker.sh 构建时 MSYS 路径转换污染 apiBase 的问题,见 §3.1;dev-docker.sh 完全重写:不内置任何默认值/不生成 env 文件,所有配置以 `server/.env.dev` 为唯一来源、缺失即报错;全容器联调 dev-docker.sh、生产部署适配 docker-compose.prod.yml、Web 登录 CORS 与构建产物清理落地;数据库 MySQL 8 → PostgreSQL 16 切换完成,端口 5433:5433,见 §1 里程碑;测试函数 71 个全绿;全部里程碑 B1–B7 + 管理端 API 完成;0.7.0 评审 2×P2 + 3×P3 已全部修复,见 docs/reviews/review-0.7.0.md;2026-08-22 评审修复见 docs/reviews/review-0.8.0.md 第八轮:生产 Caddyfile Swagger 网关兜底补拦裸路径 /swagger(path /swagger /swagger/*)、docker-compose.dev.yml api/worker env 用 YAML 锚点去重)
 
 ---
 
@@ -298,7 +298,7 @@
 | 前置 | 说明 |
 |---|---|
 | 密钥注入 | DB/Redis/JWT(≥32 字节)/SMTP/EPAY 全部经环境变量或 secret,不进 git(见 `.env.example`) |
-| TLS | Caddy 反代终止 HTTPS;`app.env=production` 关闭 Swagger/debug |
+| TLS | Caddy 反代终止 HTTPS;`app.env=production` 关闭 Swagger/debug(网关兜底 `@swagger path /swagger /swagger/*`,裸路径同样 404,2026-08-22) |
 | Web 前端托管 | (2026-08-14 落地)双域名:`api.example.com` 反代 api:8081 + `panel.example.com` 托管 SPA;`docker-compose.prod.yml` override(清 redis/api 宿主端口、caddy 改 build `deploy/Dockerfile.web` 把 dist+Caddyfile 打进 ylink-web 镜像);部署命令 `ENV_FILE=.env.release docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build`,先 `pnpm build` 生成 dist |
 | CORS 白名单 | `cors.allow_origins` 配 Web 版域名 `https://panel.example.com`(config.yaml,生产改后重建 api 镜像;订阅端点已豁免任意来源) |
 | worker 单实例 | cron 已带 Redis 分布式锁,多实例部署安全 |

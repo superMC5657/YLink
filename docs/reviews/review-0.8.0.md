@@ -1,10 +1,11 @@
 # Code Review — YLink v0.8.0 (Mobile Share Panel & Ticket Reply Notification)
 
 - **Version:** 0.8.0
+- **App release:** v0.4.1 (git tag). Review docs are numbered by review cycle (0.2.0 → 0.8.0), independently of app releases — the two version schemes are unrelated.
 - **Date:** 2026-08-14
 - **Scope:** New mobile-first share panel (`SharePanel.vue`) wired into the invite page, and an enhancement to the "ticket replied" desktop local notification (immediate check on window focus/visibility).
 - **Method:** Reviewer-model review of the diff; `pnpm typecheck`, `pnpm lint`, `pnpm format:check`, and Vitest (54/54 green, +3 new SharePanel cases) all passed.
-- **Status:** All findings resolved (2026-08-14).
+- **Status:** Rounds 1–7 findings all resolved (round 7 via round 8, 2026-08-22).
 
 ## Summary
 
@@ -143,3 +144,67 @@ Calling `URL.revokeObjectURL(url)` immediately after `a.click()` is known to abo
 
 - `pnpm test`: 58/58 green (9 files; SharePanel 6 cases).
 - `pnpm typecheck` / `pnpm lint` / `pnpm build` pass; Playwright e2e (desktop/mobile) 14/14 pass.
+
+---
+
+## Round 7 (2026-08-22): Two-axis review of the range `1ccacb8...HEAD`
+
+Whole-range review of the six commits `99016a7..88b8656` (mobile share panel & prefix adaptivity, suffix-only `register_url_prefix`, floating panel + image download, docs sync, Swagger gate, version bump), run as two parallel reviewer passes: **Standards** (documented repo standards — `docs/frontend/design-system.md`, `docs/frontend/README.md` §8, `docs/README.md` architecture, API contract — plus a Fowler code-smell baseline) and **Spec** (rounds 1–6 of this document, `docs/frontend/progress.md` / `docs/backend/progress.md`, commit intents). The axes are reported separately so one cannot mask the other. All findings were fixed in round 8. The uncommitted working-tree change to `src-tauri/tauri.conf.json` is outside the reviewed diff.
+
+### Standards findings (resolved in round 8)
+
+- **✅ [P2] Hard-coded brand gradient in business code — SharePanel.vue.** Template `style="background: linear-gradient(135deg, #6558f5, #8b5cf6)"` violates design-system.md ("所有视觉决策以 CSS 变量令牌落地，业务代码不写死任何颜色") and frontend/README.md §8. Design-system §2.3 endorses this exact gradient but also specifies a dark variant (`#7C72FF → #A78BFA`) — a hard-coded literal can't switch, so dark mode shows the light-mode card.
+- **✅ [P3] Canvas color literals** (`#6558f5`, `#8b5cf6`, `#FFFFFF`, `QR_DARK = '#1F2430'`): judgement call — the exported PNG is deliberately theme-independent, and canvas can't consume CSS vars without `getComputedStyle`.
+- **✅ [P3] SharePanel header comment** cites no screenshot page / contract interface (frontend/README.md §8). Judgement call — new generic component.
+- **✅ [P3] Duplicated Code** — gradient hexes appear in both the template style and canvas `addColorStop`; extract shared constants.
+- **✅ [P3] Duplicated Code** — `InviteView.vue` builds `prefix + codes[0]` in three places (`registerLinkText` computed, `copyRegisterLink`, template interpolation); reuse the computed.
+- **✅ [P3] Dead guards / Speculative Generality** — `openShare` and `copyRegisterLink` check `!effectiveRegisterUrlPrefix`, but the getter never returns falsy (final `return '/#/register?code='`); delete the checks.
+- **✅ [P3] Duplicated Code** — `server/docker-compose.dev.yml`: api and worker `environment` blocks are copy-paste identical (a YAML anchor would dedupe); the `'/#/register?code='` literal appears 3× inside the prefix getter.
+- **✅ [P3] Duplicated Code (pre-existing, extended)** — `MainLayout.vue` `onFocus`/`onVisibility` now have identical bodies after round 1 added `checkTickets()` to both; extract one `onVisible()`.
+
+### Spec findings (resolved in round 8)
+
+- **✅ [P2] Tauri fallback never triggers on Windows — invite.ts:37.** `if (origin && !origin.startsWith('tauri:'))` assumes Tauri origins start with `tauri:`, but Windows Tauri (the only packaging target, per progress.md) uses origin `http://tauri.localhost`, which passes the guard. A packaged build without `VITE_WEB_BASE_URL` yields an unusable `http://tauri.localhost/#/register?code=` link instead of the relative fallback.
+- **✅ [P2] `.env.production` documentation is not in the repo.** Rounds 2–3 claim "`.env.production`: documented `VITE_WEB_BASE_URL`", but the file is gitignored (`.gitignore:32`) and absent from the diff — the packaging requirement lives only in an untracked local file; a fresh clone gets none of it. Move the guidance into a tracked doc (deploy.md / frontend README) or ship a `.env.production.example`.
+- **✅ [P3] Swagger gate misses bare `/swagger`.** Caddyfile `@swagger path /swagger/*` doesn't match `/swagger` without a trailing slash — that path is still proxied. Minor: deploy.md's verification curl uses `/swagger/index.html`, which is covered.
+- **✅ [P3] Review record incomplete.** backend/progress.md documents the dev-docker.sh rewrite, the MSYS path-conversion fix, and `docker-compose.dev.yml`, but this document has no round for any of it.
+- **✅ [P3] Scope creep.** The dev-docker.sh full rewrite (`require_env`, REDIS/APP_REDIS consistency check, MSYS guards) plus DEMO_EMAIL/DEMO_PASSWORD in `server/.env.example` go beyond 99016a7's stated scope and anything in this document; documented after the fact in progress.md only.
+- **✅ [P3] Version scheme mismatch.** 88b8656 bumps package.json/Cargo.toml/tauri.conf.json to 0.4.1 (mutually consistent), but this cycle's docs are titled v0.8.0 — code and doc version schemes disagree.
+- **✅ [P3] Dead guard** — same item as on the Standards axis: `openShare`'s `!effectiveRegisterUrlPrefix` is always false.
+
+### Verified OK
+
+Caddyfile Swagger rejection for `/swagger/*` + deploy.md 404 curl step; MainLayout focus/visibility calling `checkTickets()`; CORS https allow-list + 5-case `cors_test.go`; `register_url_prefix` = `/#/register?code=` consistent across service/dto/mock/api README; SharePanel floating `n-modal` + canvas PNG download with Safari/iOS revoke handling; all new copy through i18n (zh/en); test counts match the claims (frontend 58, SharePanel 6, backend 71).
+
+### Summary
+
+Standards: 8 findings (1 hard violation, 7 judgement calls) — worst: the hard-coded gradient breaking the token rule and the dark-mode card variant. Spec: 7 findings (3 missing/partial, 1 scope creep, 3 wrong) — worst: the Tauri register-link fallback dead on Windows, the only packaged platform.
+
+---
+
+## Round 8 (2026-08-22): Round-7 findings fixed; dev-docker work retroactively recorded
+
+All 15 round-7 findings fixed (2×P2, 13×P3; the dead-guard item is counted once per axis). Also documents here, retroactively, the dev-docker.sh rewrite that had no round of its own.
+
+### Changes
+
+- `src/styles/tokens.css`: new `--c-primary-grad-end` token (`#8b5cf6` light / `#a78bfa` dark, design-system §2.3). SharePanel's card gradient is now `linear-gradient(135deg, var(--c-primary), var(--c-primary-grad-end))`, so dark mode finally gets the §2.3 dark variant; the download-image canvas reads the same tokens at draw time via a `cssColor()` `getComputedStyle` helper (jsdom falls back to the light values). design-system.md §2.3 notes the tokenized form. Follow-up (out of round-7 scope, not done here): the same gradient literal still exists in 6 pre-existing components (AppSidebar, CustomerServiceFab, OrderCardList, OrderTable, SubscribeCard, UpdateCard) — migrate to the token when convenient.
+- `src/stores/invite.ts`: Tauri fallback now keyed on `isTauri()` (`__TAURI_INTERNALS__`, `utils/platform.ts`) instead of matching the `tauri:` origin prefix — Windows packaged builds (`http://tauri.localhost` origin) now get the relative `/#/register?code=` fallback instead of an unusable link. Path suffix extracted to a `REGISTER_URL_SUFFIX` constant (was 3× inline). +1 test (`isTauri` mocked true → relative fallback).
+- `src/views/invite/InviteView.vue`: display via new `registerLinkDisplay` computed (`------` placeholder preserved); `copyRegisterLink` reuses the `registerLinkText` computed; dead `!effectiveRegisterUrlPrefix` guards removed from `openShare`/`copyRegisterLink` (getter never returns falsy).
+- `src/layouts/MainLayout.vue`: `onFocus`/`onVisibility` (identical bodies) merged into one `onWindowActive` handler registered for both events.
+- `src/components/business/SharePanel.vue`: header comment now names the caller (invite page, 截图4) and states there is no contract interface (pure display component).
+- `server/deploy/Caddyfile` + `docs/backend/deploy.md`: swagger matcher is now `path /swagger /swagger/*` — the bare path is also rejected; the deploy verification step gained the bare-path curl.
+- `server/docker-compose.dev.yml`: api/worker `environment` blocks deduped via a `x-api-worker-env` YAML anchor (anchor resolution verified).
+- `.env.production.example` (new, tracked): documents `VITE_WEB_BASE_URL` (incl. the Tauri Windows-origin caveat) and the Tauri signing vars; `docs/frontend/README.md` tree, `desktop-tauri.md`, and `progress.md` now reference it instead of only the gitignored `.env.production`.
+- Version schemes clarified (header above): review docs are numbered per review cycle; app releases are git tags (currently v0.4.1). Code at 0.4.1 is correct — no version bump made.
+
+### Retroactive record: dev-docker.sh rewrite (commit 99016a7, previously undocumented here)
+
+That commit also rewrote `scripts/dev-docker.sh` beyond its title: `.env.dev` as the sole env source (`require_env`, no built-in defaults), a REDIS/APP_REDIS consistency check, MSYS path-conversion guards for Git Bash on Windows (cygpath-exported `DEV_CADDYFILE`/`DEV_DIST`), and `DEMO_EMAIL`/`DEMO_PASSWORD` added to `server/.env.example` (demo account). Motivation: the old script's built-in defaults silently diverged from `dev.sh`'s env handling. The work is kept; this record closes the round-7 spec findings "review record incomplete" and "scope creep".
+
+### Verification (round 8)
+
+- `pnpm test`: 59/59 green (9 files; +1 Tauri-fallback case in `invite.spec.ts`).
+- `pnpm typecheck` / `pnpm lint` / `pnpm format:check`: pass.
+- `server/docker-compose.dev.yml`: YAML parses and the anchor resolves to identical api/worker env (validated).
+- Server Go code untouched this round (Caddyfile/compose/docs only), so `go test` not re-run.

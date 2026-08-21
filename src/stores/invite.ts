@@ -1,6 +1,10 @@
 import { defineStore } from 'pinia'
 import { apiInvite } from '@/api/invite'
+import { isTauri } from '@/utils/platform'
 import type { CommissionRecord, InviteCode, InviteSummary } from '@/types/api'
+
+/** 注册链接路径后缀(前端为 hash 路由;后端 register_url_prefix 契约占位返回同值) */
+const REGISTER_URL_SUFFIX = '/#/register?code='
 
 interface InviteState {
   summary: InviteSummary | null
@@ -26,16 +30,17 @@ export const useInviteStore = defineStore('invite', {
      * 且前端为 hash 路由,链接需带 #/ 段;state 里的 registerUrlPrefix 仅为契约占位,本 getter 不消费其值):
      * 1. 构建时注入 VITE_WEB_BASE_URL(生产 / Tauri 打包显式指定前端站点域名);
      * 2. 否则取当前页面 origin —— Web 下自动区分本地 Vite dev(5174)、Caddy(80)、生产 HTTPS(443);
-     * 3. 兜底相对路径 /#/register?code=(仅 Tauri 且未注入时走到;打包版必须配置 VITE_WEB_BASE_URL,
-     *    见 .env.production 注释,避免回退到后端 API 地址产生 8081 错误链接)。
+     * 3. 兜底相对路径 /#/register?code=(仅 Tauri WebView 且未注入时走到:其 origin 为 tauri://(macOS/Linux)
+     *    或 http(s)://tauri.localhost(Windows),均非可分享的 Web 地址,故用 isTauri() 判定而非匹配 origin 前缀;
+     *    打包版必须配置 VITE_WEB_BASE_URL,见 .env.production.example,避免生成不可访问的链接)。
      * 最终形如:http://localhost:5174/#/register?code=
      */
     effectiveRegisterUrlPrefix(): string {
       const webBase = import.meta.env.VITE_WEB_BASE_URL as string | undefined
-      if (webBase) return `${webBase.replace(/\/+$/, '')}/#/register?code=`
+      if (webBase) return `${webBase.replace(/\/+$/, '')}${REGISTER_URL_SUFFIX}`
       const origin = typeof window !== 'undefined' ? window.location?.origin : ''
-      if (origin && !origin.startsWith('tauri:')) return `${origin}/#/register?code=`
-      return '/#/register?code='
+      if (origin && !isTauri()) return `${origin}${REGISTER_URL_SUFFIX}`
+      return REGISTER_URL_SUFFIX
     },
   },
   actions: {

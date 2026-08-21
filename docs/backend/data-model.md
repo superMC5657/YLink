@@ -44,6 +44,7 @@ erDiagram
 | speed_limit | INT NULL | 套餐限速 Mbps（快照） |
 | device_limit | INT NULL | 同时在线设备数（快照） |
 | sub_token | CHAR(36) UNIQUE NOT NULL | 订阅 token（UUID，可重置） |
+| uuid | CHAR(36) UNIQUE NOT NULL | 用户订阅凭证（迁移 0004 新增，2026-08-22）：vmess/vless/tuic 的 uuid、shadowsocks/trojan/hysteria2 的密码，节点上报按此归因 |
 
 索引：`(plan_id, expired_at)`（到期提醒扫描）、`invite_by_id`。
 
@@ -134,8 +135,8 @@ coupon_usages：id、coupon_id、user_id、order_no，唯一索引 `(coupon_id, 
 ### 2.8 servers（节点）/ server_groups（节点分组）
 
 server_groups：id、name、sort。
-servers：id、group_id INDEX、name、type（`shadowsocks/vmess/vless/trojan/hysteria2/tuic`）、host、port、config JSONB（协议私有参数：密码/SNI/ALPN 等）、rate DECIMAL(3,1) DEFAULT 1.0（流量倍率）、tags JSONB、status SMALLINT（1=正常 2=拥挤 3=维护）、is_show、sort。
-说明：host/port/config 仅用于订阅生成，`GET /servers` 用户接口只输出 name/type/rate/status/tags。
+servers：id、group_id INDEX、name、type（`shadowsocks/vmess/vless/trojan/hysteria2/tuic`）、host、port、config JSONB（协议私有参数：密码/SNI/ALPN 等）、rate DECIMAL(3,1) DEFAULT 1.0（流量倍率）、tags JSONB、status SMALLINT（1=正常 2=拥挤 3=维护）、is_show、sort、node_key CHAR(32) UNIQUE NOT NULL（节点上报密钥，迁移 0004 新增；管理端可重置）。
+说明：host/port/config 仅用于订阅生成，`GET /servers` 用户接口只输出 name/type/rate/status/tags；订阅凭证改为每用户 `users.uuid`（config 中的密码/uuid 不再下发给用户，仅作节点侧遗留兼容）。
 
 ### 2.9 notices（公告）/ knowledges（知识库）
 
@@ -157,7 +158,19 @@ ticket_messages：id、ticket_id INDEX、sender_type（0=用户 1=客服）、se
 | date | DATE NOT NULL | 按天聚合 |
 | u / d | BIGINT NOT NULL DEFAULT 0 | 当日上行/下行（字节，已乘倍率） |
 
-唯一索引 `(user_id, date)`；由节点上报数据（见 core-flows.md 第 8 节）或定时任务结转写入；流量明细页按 `date` 范围查询。
+唯一索引 `(user_id, date)`；由节点上报数据（见 core-flows.md 第 8 节）或定时任务结转写入；流量明细页按 `date` 范围查询。模式 A 节点上报走**增量聚合**（`ON CONFLICT DO UPDATE SET u = u + ?`），模式 B 手工导入为**覆盖校准**（同日导入覆盖节点上报值）。
+
+### 2.11.1 node_user_stats（节点上报快照，迁移 0004 新增，2026-08-22）
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| id | BIGSERIAL PK | — |
+| server_id | BIGINT NOT NULL | 节点 id |
+| user_id | BIGINT NOT NULL | 用户 id |
+| last_u / last_d | BIGINT NOT NULL DEFAULT 0 | 上次上报的累计值（字节，未乘倍率） |
+| updated_at | TIMESTAMP(3) | 最近上报时间 |
+
+唯一索引 `(server_id, user_id)`。模式 A 幂等的核心：上报累计值与快照差分得增量，重复上报差分为 0；累计值回退视为节点计数器重启（增量取当前值）。
 
 ### 2.12 settings（站点配置）/ audit_logs（审计）
 
@@ -176,7 +189,8 @@ audit_logs：id、admin_id、action（如 `adjust_balance/refund/ban_user`）、
 | `idem:{key}` | String（响应快照），24h | 下单幂等 |
 | `order:paying:{order_no}` | String，30min | 收银台创建锁，防重复拉起支付 |
 | `cache:settings` / `cache:plans` / `cache:servers` | JSON，60–300s | 热数据缓存，变更即失效 |
-| `sub:userinfo:{token}` | Hash，30s | 订阅 userinfo 缓存，防客户端高频拉取打库 |
+| `sub:userinfo:{token}` | Hash，30s | 订阅 userinfo 缓存，防客户端高频拉取打库（节点上报后主动删除，客户端立即可见新用量） |
+| `node:key:{node_key}` | String(server_id)，60s | 节点密钥 → 节点 id 缓存（X-Node-Key 鉴权；重置密钥即删） |
 | `cron:lock:{job}` | String+NX | 定时任务分布式锁 |
 
 ## 4. 初始化数据

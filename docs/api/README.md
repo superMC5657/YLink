@@ -20,6 +20,7 @@
 - 请求头：`Authorization: Bearer <access_token>`。
 - access_token 有效期 2h，refresh_token 14d；401 时前端用 refresh_token 调 `POST /auth/refresh` 静默换新（旋转机制，旧 refresh 立即作废）。
 - 免鉴权接口：`POST /captcha/email`、`POST /auth/*`（login/register/forgot/refresh）、`GET /config`、`GET /notices`、`GET /knowledges`、`GET /knowledges/{id}`、`GET /client/subscribe/{token}`（token 在路径中）、`POST /payment/notify/{method}`。
+- 节点上报接口（§17）不走用户 JWT：请求头 `X-Node-Key: <节点密钥>`（每台节点独立密钥，管理端可查看/重置）；无效或缺失 → 40100。
 
 ### 1.3 分页
 
@@ -564,6 +565,8 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 
 本接口不走 envelope 格式；独立限流（如 10 次/分钟/token）。
 
+下发配置中的密码/uuid 字段为**每用户独立凭证**（`users.uuid`，注册时生成）：同一节点对不同用户下发不同凭证，节点侧据此区分用户流量（模式 A 上报的归因依据）。
+
 ---
 
 ## 16. 管理端 API 附录（`/api/v1/admin`，role=admin）
@@ -575,7 +578,7 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 | 仪表盘 | `GET /admin/stat/overview`（用户/订单/收入/在售套餐统计） |
 | 用户 | `GET /admin/users`、`PUT /admin/users/{id}`（封禁/角色）、`POST /admin/users/{id}/balance`（调余额，审计） |
 | 套餐 | `GET/POST/PUT/DELETE /admin/plans` |
-| 节点 | `GET/POST/PUT/DELETE /admin/servers`、`/admin/server-groups` |
+| 节点 | `GET/POST/PUT/DELETE /admin/servers`、`/admin/server-groups`、`POST /admin/servers/{id}/node-key/reset`（重置节点密钥，审计；旧密钥立即失效） |
 | 订单 | `GET /admin/orders`、`POST /admin/orders/{no}/refund`（审计 + 佣金回滚）、`POST /admin/orders/{no}/close`（关闭待支付订单，审计） |
 | 优惠券 | `GET/POST/PUT/DELETE /admin/coupons` |
 | 内容 | `GET/POST/PUT/DELETE /admin/notices`、`/admin/knowledges` |
@@ -588,7 +591,7 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 ### 16.1 管理端响应字段约定（2026-08-10 细化）
 
 - `GET /admin/plans` 返回 `{list: AdminPlanView[]}`：价格字段（`month_price`/`quarter_price`/`half_year_price`/`year_price`/`onetime_price`）**单位为元**（`null` 表示未开放该周期），并展开 `group_ids: number[]`、`is_show`、`sort`、`traffic_gb`、`speed_limit`、`device_limit`。请求体 `AdminPlanReq` 同字段，价格传元。
-- `GET /admin/servers` 返回 `{list: AdminServerView[]}`：展开用户端隐藏的 `group_id`/`host`/`port`/`config`/`is_show`/`sort`，`tags: string[]`。请求体 `AdminServerReq` 中 `type ∈ {shadowsocks,vmess,vless,trojan,hysteria2,tuic}`、`status ∈ {1=正常,2=拥挤,3=维护}`、`config` 为协议私有参数 JSON 字符串。
+- `GET /admin/servers` 返回 `{list: AdminServerView[]}`：展开用户端隐藏的 `group_id`/`host`/`port`/`config`/`is_show`/`sort`，`tags: string[]`，并含 `node_key`（节点上报密钥，见 §17）。请求体 `AdminServerReq` 中 `type ∈ {shadowsocks,vmess,vless,trojan,hysteria2,tuic}`、`status ∈ {1=正常,2=拥挤,3=维护}`、`config` 为协议私有参数 JSON 字符串；新建节点服务端自动生成 `node_key`（请求体不传）。
 - `GET /admin/users` 分页返回 `{list,total,page,page_size}`，`balance`/`commission_balance` 单位为元；`PUT /admin/users/{id}` 请求体 `{role?, banned?}`（`role ∈ {0,1,2}`）；`POST /admin/users/{id}/balance` 请求体 `{amount(元，可正可负), remark?}`。
 - `GET /admin/orders` 分页返回 `{list,total,page,page_size}`，`status ∈ {0=待支付,1=已完成,2=已取消,3=已退款}`，金额单位为元；列表项含 `commission_amount`（该订单产生的佣金，元；无佣金记录为 `null`，余额支付订单恒为 `null`）。
 - `GET /admin/coupons` 返回 `{list: AdminCouponView[]}`：展开 `type ∈ {1=固定金额,2=百分比}`、`value`（type=1 为元、type=2 为百分比数值，如 10 表示 10%）、`min_spend` 单位为元、`limit_per_user`/`total_limit`/`used_count`、`valid_periods: string[]`（仅限可用周期）、`plan_ids: number[]`（仅限可用套餐，空=全部）、`started_at`/`ended_at`（null=不限）、`is_enable`、`created_at`。请求体 `AdminCouponReq` 同字段（`valid_periods`/`plan_ids` 传数组）。
@@ -601,7 +604,49 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 
 ---
 
-## 17. 契约变更管理
+## 17. 节点上报接口（模式 A，`/api/v1/node`，X-Node-Key 鉴权）
+
+供节点端 agent（服务间）调用，2026-08-22 二期新增。请求头 `X-Node-Key: <节点密钥>`（每台节点独立，管理端节点列表查看/重置）；响应走统一信封；无效或缺失密钥 → 40100（HTTP 401）。
+
+### 17.1 用户同步
+
+`GET /node/users`
+
+返回该节点分组下所有**有效订阅**用户（当前套餐 `group_ids` 含本节点分组且未过期；节点侧据此配置 inbound 每用户凭证并做本地限速掐断）。
+
+```json
+{ "code": 0, "message": "ok",
+  "data": { "rate": 1.0,
+    "users": [ { "uuid": "5f2b7c9e-...", "u": 1073741824, "d": 10737418240,
+                 "transfer_enable": 107374182400, "expired_at": 1767225600 } ] } }
+```
+
+- `uuid`：用户订阅凭证（vmess/vless/tuic 即 uuid；shadowsocks/trojan/hysteria2 作为密码下发），节点 inbound 按此区分用户。
+- `u`/`d`/`transfer_enable`：字节；`expired_at`：unix 秒（null=不限期，如 onetime）。
+- 用户侧 `u/d` 由面板累加（含倍率），节点仅作本地掐断参考。
+
+### 17.2 流量上报
+
+`POST /node/report`
+
+```json
+{ "data": [ { "uuid": "5f2b7c9e-...", "u": 2147483648, "d": 21474836480 } ] }
+```
+
+| 项 | 说明 |
+|---|---|
+| 口径 | `u`/`d` 为**累计值**（自 agent 启动起单调递增的字节总数），非增量；服务端与上次快照差分得增量，**重复上报天然幂等**（重试不重复计费） |
+| 计数器回退 | `u` 或 `d` 小于上次快照视为节点计数器重启：该字段增量取当前值（未回退字段仍按差分） |
+| 计费 | 增量 × 节点 `rate`（倍率）累加 `users.u/d`，并按日聚合增量写入 `traffic_logs`（与模式 B 同表；同日手工导入**覆盖**节点上报值，作为校准手段） |
+| 缓存 | 受影响用户的 `subscription-userinfo` 缓存（30s）立即失效，客户端下次拉订阅即见新用量 |
+| 响应 | `{ "accepted": 10, "skipped": [ { "uuid": "...", "reason": "unknown_user | not_subscribed" } ] }`；未知 uuid/无订阅用户跳过，不报错 |
+
+- `data` 1–1000 条；建议上报周期 60s。
+- 配套演示工具：`server/cmd/node-agent`（模拟累计值定时上报，本地联调用）。
+
+---
+
+## 18. 契约变更管理
 
 1. 任何端点新增/字段变更先提本文档 PR，标注 `Added/Changed/Deprecated`，双方评审通过后实现。
 2. 破坏性变更（删字段、改语义）走版本化：并行暴露 `/api/v2/...`，v1 保留至少一个版本周期。

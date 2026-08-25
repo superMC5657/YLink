@@ -48,6 +48,7 @@
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | 首个管理员(启动幂等创建;密码首登后建议改) | ☐ |
 | `DEMO_EMAIL` / `DEMO_PASSWORD` | 生产可留空跳过演示账号 | ☐ |
 | `GRAFANA_ADMIN_PASSWORD`(可选) | 启用 `--profile obs` 时 Grafana 管理密码 | ☐ |
+| `ALERT_EMAIL_TO`(可选) | 启用 `--profile obs` 的告警时收件邮箱(SMTP 复用 `APP_SMTP_*`;不配则默认发 admin@example.com,生产必须配) | ☐ |
 
 ## 5. 本地可预演项(不碰生产,提前验证)
 

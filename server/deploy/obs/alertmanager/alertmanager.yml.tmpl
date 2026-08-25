@@ -1,0 +1,23 @@
+# Alertmanager 配置模板(obs profile 启用)。
+# 启动时经 docker-compose 的 entrypoint 用 sed 把 __XXX__ 占位符替换为环境变量
+# (env_file=${ENV_FILE:-.env.dev} 注入的 APP_SMTP_* 与 ALERT_EMAIL_TO),占位符不允许出现在取值中
+# (密码等含 | 会破坏 sed 分隔符,请换用其他字符或避免 |)。
+# SMTP 复用后端邮件配置(QQ 邮箱 465 隐式 TLS);收件人必须配置 ALERT_EMAIL_TO,否则默认发到 admin@example.com。
+global:
+  smtp_smarthost: '__SMTP_HOST__:__SMTP_PORT__'
+  smtp_from: '__SMTP_FROM__'
+  smtp_auth_username: '__SMTP_USER__'
+  smtp_auth_password: '__SMTP_PASS__'
+
+route:
+  receiver: 'email'
+  group_by: ['alertname']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: 'email'
+    email_configs:
+      - to: '__ALERT_TO__'
+        from: '__SMTP_FROM__'

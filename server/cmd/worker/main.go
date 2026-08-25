@@ -5,10 +5,12 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
 
@@ -19,6 +21,10 @@ import (
 	"ylink-backend/internal/repo"
 	"ylink-backend/internal/service"
 )
+
+// metricsAddr 为 worker 的 Prometheus 指标端点监听地址。
+// 容器部署时仅 compose 内网可访问(prometheus 抓取 worker:8082/metrics),不映射宿主机端口。
+const metricsAddr = ":8082"
 
 func main() {
 	cfg, err := config.Load("")
@@ -77,9 +83,19 @@ func main() {
 	c.Start()
 	logger.L().Info("worker started with cron jobs", zap.String("tz", cfg.App.Name))
 
+	// Prometheus 指标端点（cron 打点见 internal/service/cron_service.go WithLock）。
+	metricsSrv := &http.Server{Addr: metricsAddr, Handler: promhttp.Handler()}
+	go func() {
+		logger.L().Info("worker metrics listening", zap.String("addr", metricsAddr))
+		if err := metricsSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.L().Error("worker metrics server failed", zap.Error(err))
+		}
+	}()
+
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
+	_ = metricsSrv.Close()
 	stopCtx := c.Stop()
 	<-stopCtx.Done()
 	logger.L().Info("worker exited")

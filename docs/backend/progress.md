@@ -2,7 +2,7 @@
 
 > 本文档记录 `server/` 目录 Go/Gin 后端的开发状态,是 docs/backend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-22(**二期流量模式 A 全量落地**,见 §1 B8:每用户凭证 users.uuid、节点密钥 servers.node_key、`GET /node/users` + `POST /node/report`(累计值差分幂等/倍率乘算/日聚合/缓存失效)、迁移 0004、管理端密钥重置、演示 agent `cmd/node-agent`;Grafana 可观测落地:`--profile obs` 一键 prometheus+grafana、看板自动 provisioning、生产 Caddyfile 拦 `/metrics`;新增上线前置清单 launch-checklist.md;测试函数 71 → **82 全绿**;历史修复见 docs/reviews/*)
+> 最后更新:2026-08-25(**可观测性二期扩展全量落地**,见 §2.4/增强表:worker 指标 `:8082/metrics`(`cron_job_runs_total`/`cron_job_duration_seconds`,WithLock 打点含 panic 捕获)、Prometheus 数据**保留半年**(retention 180d+20GB 兜底,原 15d)、新看板「YLink 基础设施」(cron+机器层)、告警闭环 alertmanager 邮件通知(6 条规则:进程存活/5xx/CPU/内存/磁盘,`ALERT_EMAIL_TO` 收件)、node-exporter 机器指标;obs profile 现含 prometheus+grafana+alertmanager+node-exporter;上一期 2026-08-22 二期流量模式 A 全量落地与 Grafana 首版见下)  
 
 ---
 
@@ -199,6 +199,7 @@
 | 项 | 说明 |
 |---|---|
 | `GET /metrics` | promhttp:请求计数/延迟直方图/支付成功计数器(`payment_success_total`),回调成功打点 |
+| worker cron 指标 | worker `:8082/metrics`(`cron_job_runs_total`/`cron_job_duration_seconds`):`WithLock` 打点(success/error/skipped + 耗时直方图,panic 计 error),2026-08-25 |
 | `GET /swagger/*` | gin-swagger,仅 development 环境;`make swagger` 重新生成 |
 | 支付回执邮件 | 在线回调与余额支付成功后异步发送(`[站点] 支付成功`),未配置 SMTP 静默跳过 |
 | agent-audit cron | 每月 1 日 03:00 复核代理有效邀请数,不达标降级 role=0 |
@@ -260,7 +261,7 @@
 
 | 项 | 状态 | 依赖/说明 |
 |---|---|---|
-| Grafana 看板 | ✅ 已实现(2026-08-22):`docker compose --profile obs up -d` 一键启动 prometheus+grafana(compose 内网抓取 api:8081,默认 up 不含);看板「YLink API」(QPS/状态码/p50-p95/支付成功/错误率/Top 路径/Go 运行时)经 provisioning 自动加载(`deploy/obs/`);Grafana 绑 127.0.0.1:3000;生产 Caddyfile `@metrics` 拦截公网 /metrics(纵深防御) | `server/deploy/obs/`、`docker-compose.yml`、`deploy/Caddyfile` |
+| Grafana 看板 | ✅ 已实现(2026-08-22;2026-08-25 扩展):`docker compose --profile obs up -d` 一键启动 prometheus+grafana+alertmanager+node-exporter(compose 内网抓取 api:8081/worker:8082/node-exporter:9100,默认 up 不含);看板「YLink API」与「YLink 基础设施」(worker cron + 机器层)经 provisioning 自动加载(`deploy/obs/`);**数据保留半年**(retention.time=180d,原 15d);告警规则 rules.yml 经 alertmanager 邮件通知(ALERT_EMAIL_TO);Grafana 绑 127.0.0.1:3000;生产 Caddyfile `@metrics` 拦截公网 /metrics(纵深防御) | `server/deploy/obs/`、`docker-compose.yml`、`deploy/Caddyfile` |
 | 工单用户侧「已回复」桌面端本地通知 | ✅ 已实现(属前端,2026-08-14):前端轮询/聚焦即时检查已具备并增强,后端无需改动 | 前端 `useLocalNotifications.ts` + `MainLayout.vue`(见 frontend/progress.md) |
 | 移动端深链/一键导入(前端侧) | ✅ 已实现(属前端,2026-08-13):订阅端点已就绪 | — |
 | 上线前置准备清单 | ✅ 已创建(2026-08-22):域名/DNS、服务器环境、第三方账号(易支付/SMTP)、.env.release 真实值逐项 checklist + 本地预演项,不部署提前办理 | `docs/backend/launch-checklist.md` |

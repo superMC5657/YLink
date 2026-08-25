@@ -1,0 +1,59 @@
+# YLink 告警规则(obs profile 启用,Prometheus evaluation_interval=15s 评估)
+# 命中后经 alertmanager 邮件通知(收件人 ALERT_EMAIL_TO,见 deploy.md §5)。
+# 说明:DB/Redis 连通性与每日支付成功率仍由现有脚本兜底,不在本文件重复。
+groups:
+  - name: ylink
+    rules:
+      - alert: APIInstanceDown
+        expr: up{job="ylink-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "YLink API 进程不可达"
+          description: "Prometheus 已连续 1 分钟无法抓取 api:8081/metrics(API 服务可能已挂)"
+
+      - alert: WorkerInstanceDown
+        expr: up{job="ylink-worker"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "YLink worker 进程不可达"
+          description: "Prometheus 已连续 2 分钟无法抓取 worker:8082/metrics(定时任务停摆:关单/查单/佣金/提醒全部失效)"
+
+      - alert: HighErrorRate
+        expr: sum(rate(http_requests_total{status=~"5.."}[5m])) / clamp_min(sum(rate(http_requests_total[5m])), 1) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API 5xx 错误率超过 10%"
+          description: "最近 5 分钟 5xx 占比 > 10%,持续 5 分钟"
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "主机 CPU 使用率超过 90%"
+          description: "5 分钟平均 CPU 使用率 > 90%,持续 10 分钟"
+
+      - alert: HighMemoryUsage
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > 90
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "主机内存使用率超过 90%"
+          description: "可用内存不足 10%,持续 10 分钟"
+
+      - alert: DiskAlmostFull
+        expr: (1 - node_filesystem_avail_bytes{mountpoint=~"/|/rootfs",fstype!~"tmpfs|overlay.*|squashfs|devtmpfs"} / node_filesystem_size_bytes{mountpoint=~"/|/rootfs",fstype!~"tmpfs|overlay.*|squashfs|devtmpfs"}) * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "根分区磁盘使用率超过 85%"
+          description: "根分区(容器部署时 /rootfs)已用 > 85%,持续 10 分钟,注意 Prometheus 数据卷占用"

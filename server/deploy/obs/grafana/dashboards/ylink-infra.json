@@ -1,0 +1,126 @@
+{
+  "title": "YLink 基础设施",
+  "uid": "ylink-infra",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "time": { "from": "now-6h", "to": "now" },
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Cron 任务执行(24h 增量,按任务)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(increase(cron_job_runs_total[24h])) by (job)",
+          "legendFormat": "{{job}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Cron 任务失败/跳过(24h 增量)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(increase(cron_job_runs_total{status=~\"error|skipped\"}[24h])) by (job, status)",
+          "legendFormat": "{{job}} / {{status}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Cron 任务耗时 p50 / p95(近 7 天)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(increase(cron_job_duration_seconds_bucket[7d])) by (le))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(increase(cron_job_duration_seconds_bucket[7d])) by (le))",
+          "legendFormat": "p95"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "系统负载 1/5/15m",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "node_load1", "legendFormat": "load1" },
+        { "expr": "node_load5", "legendFormat": "load5" },
+        { "expr": "node_load15", "legendFormat": "load15" }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "CPU 使用率(%)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "100 - avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100",
+          "legendFormat": "cpu"
+        }
+      ],
+      "unit": "percent"
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "内存使用率(%)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "(1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100",
+          "legendFormat": "mem"
+        }
+      ],
+      "unit": "percent"
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "磁盘使用率(%) — 根分区",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "(1 - node_filesystem_avail_bytes{mountpoint=~\"/|/rootfs\",fstype!~\"tmpfs|overlay.*|squashfs|devtmpfs\"} / node_filesystem_size_bytes{mountpoint=~\"/|/rootfs\",fstype!~\"tmpfs|overlay.*|squashfs|devtmpfs\"}) * 100",
+          "legendFormat": "disk"
+        }
+      ],
+      "unit": "percent"
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "网络收发(5m 速率)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(node_network_receive_bytes_total[5m])) by (device)",
+          "legendFormat": "rx {{device}}"
+        },
+        {
+          "expr": "sum(rate(node_network_transmit_bytes_total[5m])) by (device)",
+          "legendFormat": "tx {{device}}"
+        }
+      ],
+      "unit": "Bps"
+    }
+  ]
+}

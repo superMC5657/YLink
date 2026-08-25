@@ -15,7 +15,6 @@ import type {
   AdminPlanItem,
   AdminPlanReq,
   AdminReplyReq,
-  AdminRole,
   AdminServerGroupItem,
   AdminServerGroupReq,
   AdminServerItem,
@@ -121,11 +120,4 @@ export const apiAdmin = {
   // 站点设置
   settings: () => http.get<{ list: AdminSettingsItem[] }>('/admin/settings'),
   saveSetting: (body: AdminSettingsReq) => http.put<null>('/admin/settings', { body }),
-}
-
-/** 角色文案:0=普通用户 1=管理员 2=代理商(管理端表格展示) */
-export const ADMIN_ROLE_LABEL: Record<AdminRole, string> = {
-  0: '普通用户',
-  1: '管理员',
-  2: '代理商',
 }

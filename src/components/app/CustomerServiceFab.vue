@@ -3,9 +3,11 @@
  * 客服浮球:右下角外链客服(TG/网页),地址取站点配置。
  */
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useConfigStore } from '@/stores/config'
 import { openExternal } from '@/utils/platform'
 
+const { t } = useI18n()
 const config = useConfigStore()
 const show = ref(false)
 
@@ -40,7 +42,7 @@ function open() {
           class="absolute right-full mr-3 whitespace-nowrap rounded-full bg-[var(--c-bg-card)] px-3 py-1 text-14 text-[var(--c-text)] shadow"
           style="--s-card: var(--s-pop)"
         >
-          在线客服
+          {{ t('common.onlineService') }}
         </span>
       </transition>
     </button>

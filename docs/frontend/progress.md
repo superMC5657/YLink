@@ -2,7 +2,7 @@
 
 > 本文档记录 `src/` 目录 Vue 3 用户端应用的开发状态,是 docs/frontend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-25(**0.9.0 评审**:`src-tauri/nsis/installer-hooks.nsh` 入库,补齐 `tauri.conf.json` installerHooks 路径,Windows NSIS 打包不再因缺失文件失败;此前 2026-08-22 为 Stylelint 引入与模式 A 管理端配套,见下)
+> 最后更新:2026-08-25(**i18n 全量接入**:13 个管理端视图 + 用户端视图/共享组件/工具层硬编码中文全部接入 vue-i18n,zh/en 语言包 key 增至 784 个并完全对齐,新增 `adminOverview/adminUsers/adminOrders/adminCommissionLogs/adminTickets/adminNotices/adminKnowledges/adminCoupons/adminNodes/adminPlans/adminSettings/adminTrafficImport/adminAgentApplies/lang/theme` 命名空间与 `common/network/profile/order/plan` 扩展 key;format/http/deeplink 工具函数改用全局 `i18n.global.t`(新增 `src/test/setup.ts` 在 vitest 预载 zh-CN);随后为 0.9.0 评审:NSIS hooks 入库;此前 2026-08-22 为 Stylelint 引入与模式 A 管理端配套,见下)
 
 ---
 
@@ -116,6 +116,7 @@
 | Playwright E2E | 正式套件 42 例(21 用例 × 桌面/移动双 project、webServer 自动起 Mock),替代原冒烟脚本 | `playwright.config.ts`、`tests/e2e/*` |
 | CI | 仅发布 tag(`v*`)触发 3 job(2026-08-12 调整:此前 push main/PR 每次提交都跑,改后日常检查走本地 `pnpm lint/typecheck/test/format:check`):`frontend-quality`(lint→typecheck→format:check→test→build:web)+ `frontend-e2e`(失败上传报告)+ `rust`(windows-latest:build:web → cargo check);Go 后端不走 Actions(项目决策) | `.github/workflows/ci.yml` |
 | i18n 懒加载 | 语言包按需动态 import,useLocale 统一切换 | `src/locales/index.ts`、`src/composables/useLocale.ts` |
+| i18n 全量接入(2026-08-25) | 管理端 13 视图 + 用户端视图残留 + 共享组件(AppHeader/DrawerMenu/QuickActionGrid/OrderConfirmModal/OrderDetailModal/PaymentModal/ImportClientSheet/SubscribeCard/CopyText/EmptyState/LanguageToggle/ThemeToggle 等)+ 工具层(format/http/deeplink 走 `i18n.global.t`)全部接入;zh/en key 784 个完全对齐;vitest 新增 `src/test/setup.ts` 预载 zh-CN | `src/locales/*.ts`、`src/views/admin/*`、`src/components/**`、`src/utils/format.ts`、`src/utils/http.ts`、`src/utils/deeplink.ts`、`src/test/setup.ts` |
 | 注册页强制邀请码 | 站点 `invite_code_required=true` 时校验必填 | `src/views/auth/RegisterView.vue` |
 | 离线横幅 | 顶部红色常驻横幅 + 恢复 toast | `src/components/app/ToastBridge.vue` |
 

@@ -2,13 +2,17 @@
 /**
  * 空态:居中插画 + 文案。
  */
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
 withDefaults(
   defineProps<{
     text?: string
     icon?: string
     description?: string
   }>(),
-  { text: '暂无数据', icon: 'database', description: '' },
+  { icon: 'database', description: '' },
 )
 </script>
 
@@ -20,7 +24,7 @@ withDefaults(
     >
       <AppIcon :name="icon" :size="30" />
     </span>
-    <div class="text-14 text-[var(--c-text-sub)]">{{ text }}</div>
+    <div class="text-14 text-[var(--c-text-sub)]">{{ text || t('common.empty') }}</div>
     <div v-if="description" class="text-14 text-[var(--c-text-sub)] opacity-70">
       {{ description }}
     </div>

@@ -7,12 +7,12 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useLocale } from '@/composables/useLocale'
 
-const { locale } = useI18n()
+const { t, locale } = useI18n()
 const { switchLocale } = useLocale()
 
-const langs: { value: string; label: string; short: string }[] = [
-  { value: 'zh-CN', label: '简体中文', short: '中' },
-  { value: 'en-US', label: 'English', short: 'EN' },
+const langs: { value: string; labelKey: string; shortKey: string }[] = [
+  { value: 'zh-CN', labelKey: 'lang.zhCN', shortKey: 'lang.zhShort' },
+  { value: 'en-US', labelKey: 'lang.enUS', shortKey: 'lang.enShort' },
 ]
 
 // 轨道几何:w-14=56px,滑块 w-7=28px(容纳 14px 文字),左右对称余量 5px(border 1px + padding 4px)
@@ -41,7 +41,7 @@ function cycle() {
 <template>
   <button
     class="relative flex h-8 w-14 cursor-pointer items-center rounded-[var(--r-pill)] border border-[var(--c-border)] bg-[var(--c-bg-hover)] px-1 transition-colors"
-    :title="langs[currentIndex].label"
+    :title="t(langs[currentIndex].labelKey)"
     @click="cycle"
   >
     <span
@@ -51,7 +51,7 @@ function cycle() {
         background: 'linear-gradient(135deg,#6558F5,#8B5CF6)',
       }"
     >
-      {{ langs[currentIndex].short }}
+      {{ t(langs[currentIndex].shortKey) }}
     </span>
   </button>
 </template>

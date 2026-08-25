@@ -12,6 +12,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
+    setupFiles: ['src/test/setup.ts'],
     // 统一东八区:formatTime 等按本地时区格式化,测试断言以北京时间为准,
     // 避免 CI(Ubuntu UTC)与本机(Windows UTC+8)时区不一致导致失败
     env: {

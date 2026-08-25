@@ -46,9 +46,9 @@ function resolveCssVar(name: string, fallback: string): string {
 
 const payMethodLabel = computed(() => {
   const map: Record<string, string> = {
-    balance: '余额支付',
-    epay_alipay: '支付宝',
-    epay_wxpay: '微信支付',
+    balance: t('order.payMethodBalance'),
+    epay_alipay: t('order.payMethodAlipay'),
+    epay_wxpay: t('order.payMethodWxpay'),
   }
   return map[props.method] ?? props.method
 })

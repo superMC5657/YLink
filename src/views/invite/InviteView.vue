@@ -45,7 +45,7 @@ function openShare() {
 async function onCreateCode() {
   try {
     const code = await invite.createCode()
-    message.success('邀请码已生成')
+    message.success(t('invite.codeGenerated'))
     void copyText(code.code)
   } catch (e) {
     message.error((e as Error).message)
@@ -56,7 +56,7 @@ async function onTransfer() {
   if (transferring.value) return
   const amount = transferAmount.value
   if (!amount || amount <= 0) {
-    message.warning('请输入划转金额')
+    message.warning(t('invite.enterTransferAmount'))
     return
   }
   transferring.value = true

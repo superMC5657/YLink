@@ -23,12 +23,12 @@ const copied = ref(false)
 function onPick(client: ClientKind) {
   const url = user.subscribe?.subscribe_url
   if (!url) {
-    message.warning('暂无订阅链接,请先购买套餐')
+    message.warning(t('common.noSubscribeLink'))
     return
   }
   const ok = importToClient(client, url, config.siteName)
   if (!ok) {
-    message.info('该客户端不支持自动唤起,请复制订阅链接后手动导入')
+    message.info(t('common.clientManualImport'))
     void doCopy()
   }
 }
@@ -80,7 +80,7 @@ async function doCopy() {
       style="background-color: var(--c-bg-hover)"
     >
       <span class="min-w-0 flex-1 truncate text-14 text-[var(--c-text-sub)]">
-        {{ user.subscribe?.subscribe_url ?? '暂无订阅' }}
+        {{ user.subscribe?.subscribe_url ?? t('common.noSubscribe') }}
       </span>
       <button class="btn-soft-blue ml-3 h-8 shrink-0 px-3 text-14" @click="doCopy">
         <AppIcon :name="copied ? 'check' : 'copy'" :size="14" />

@@ -39,7 +39,7 @@ const rules = computed<FormRules>(() => ({
       required: true,
       trigger: ['blur', 'input'],
       validator: (_r, v: string) => {
-        if (!/^\d{6}$/.test(v)) return new Error('请输入 6 位验证码')
+        if (!/^\d{6}$/.test(v)) return new Error(t('auth.emailCodeInvalid'))
         return true
       },
     },

@@ -3,6 +3,7 @@
  * 规则表见 docs/frontend/data-layer.md §6.2。
  */
 import { openExternal } from '@/utils/platform'
+import { i18n } from '@/i18n'
 
 export type ClientKind =
   | 'clash'
@@ -60,7 +61,7 @@ export function buildImportUrl(
   siteName: string,
 ): string | null {
   const enc = encodeURIComponent(subscribeUrl)
-  const name = encodeURIComponent(siteName || '订阅')
+  const name = encodeURIComponent(siteName || i18n.global.t('common.defaultSubName'))
   switch (client) {
     case 'clash':
     case 'clash-meta':

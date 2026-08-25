@@ -36,8 +36,8 @@ function go(path: string) {
 
 function onLogout() {
   dialog.warning({
-    title: '退出登录',
-    content: '确定要退出当前账号吗?',
+    title: t('common.logout'),
+    content: t('common.logoutConfirm'),
     positiveText: t('common.confirm'),
     negativeText: t('common.cancel'),
     onPositiveClick: async () => {

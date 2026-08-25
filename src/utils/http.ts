@@ -5,6 +5,12 @@
 import type { ApiEnvelope, ApiError } from '@/types/api'
 import { getItem, removeItem, setItem } from '@/utils/storage'
 import { clientTag, isTauri } from '@/utils/platform'
+import { i18n } from '@/i18n'
+
+/** 全局 i18n 翻译(http 在组件外使用,直接读全局实例) */
+function tt(key: string, params?: Record<string, unknown>): string {
+  return i18n.global.t(key, params ?? {})
+}
 
 export interface HttpOptions {
   query?: Record<string, string | number | boolean | null | undefined>
@@ -160,8 +166,8 @@ async function request<T>(method: string, url: string, opts: HttpOptions = {}): 
     })
   } catch (e) {
     if ((e as Error).name === 'AbortError') throw e
-    if (!opts.silent) showErrorToast('网络异常,请稍后再试')
-    throw new ApiErrorImpl(-1, '网络异常,请稍后再试', 0)
+    if (!opts.silent) showErrorToast(tt('network.networkError'))
+    throw new ApiErrorImpl(-1, tt('network.networkError'), 0)
   }
 
   let json: ApiEnvelope<T> | null = null
@@ -175,7 +181,11 @@ async function request<T>(method: string, url: string, opts: HttpOptions = {}): 
   // 不做会话刷新;仅会话过期(40100)或非业务 401 才尝试静默刷新重放。
   if (resp.status === 401) {
     if (json && typeof json.code === 'number' && json.code !== 40100) {
-      const err = new ApiErrorImpl(json.code, json.message || '请求失败', resp.status)
+      const err = new ApiErrorImpl(
+        json.code,
+        json.message || tt('network.requestFailed'),
+        resp.status,
+      )
       if (!opts.silent) showErrorToast(err.message)
       throw err
     }
@@ -195,19 +205,27 @@ async function request<T>(method: string, url: string, opts: HttpOptions = {}): 
         json = null
       }
     } else {
-      if (!opts.silent) showErrorToast('登录已过期,请重新登录')
+      if (!opts.silent) showErrorToast(tt('network.sessionExpired'))
       redirectToLogin()
-      throw new ApiErrorImpl(40100, '登录已过期', 401)
+      throw new ApiErrorImpl(40100, tt('network.sessionExpiredShort'), 401)
     }
   }
 
   if (json && json.code !== 0) {
-    const err = new ApiErrorImpl(json.code, json.message || '请求失败', resp.status)
+    const err = new ApiErrorImpl(
+      json.code,
+      json.message || tt('network.requestFailed'),
+      resp.status,
+    )
     if (!opts.silent) showErrorToast(err.message)
     throw err
   }
   if (!resp.ok && !json) {
-    const err = new ApiErrorImpl(resp.status * 100, `请求失败(${resp.status})`, resp.status)
+    const err = new ApiErrorImpl(
+      resp.status * 100,
+      tt('network.requestFailedStatus', { status: resp.status }),
+      resp.status,
+    )
     if (!opts.silent) showErrorToast(err.message)
     throw err
   }

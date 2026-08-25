@@ -206,14 +206,14 @@ async function submit() {
           <span>
             {{
               p === 'month'
-                ? '月付'
+                ? t('plan.periodMonth')
                 : p === 'quarter'
-                  ? '季付'
+                  ? t('plan.periodQuarter')
                   : p === 'half_year'
-                    ? '半年付'
+                    ? t('plan.periodHalfYear')
                     : p === 'year'
-                      ? '年付'
-                      : '一次性'
+                      ? t('plan.periodYear')
+                      : t('plan.periodOnetime')
             }}
           </span>
           <span class="num">{{ formatMoney(props.plan.prices[p] ?? 0) }}</span>

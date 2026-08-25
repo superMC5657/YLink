@@ -6,8 +6,14 @@ import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/zh-cn'
 import type { PlanPeriod } from '@/types/api'
+import { i18n } from '@/i18n'
 
 dayjs.extend(relativeTime)
+
+/** 全局 i18n 翻译(工具函数在组件外使用,直接读全局实例) */
+function tt(key: string, params?: Record<string, unknown>): string {
+  return i18n.global.t(key, params ?? {})
+}
 
 /** 金额:元 number → `¥10.00`(千分位、两位小数) */
 export function formatMoney(value: number | null | undefined): string {
@@ -35,7 +41,7 @@ export function formatBytes(bytes: number | null | undefined): string {
 
 /** 速率:Mbps(空值显示「无限制」) */
 export function formatSpeed(mbps: number | null | undefined): string {
-  if (mbps === null || mbps === undefined) return '无限制'
+  if (mbps === null || mbps === undefined) return tt('common.noLimit')
   return `${mbps} Mbps`
 }
 
@@ -69,27 +75,27 @@ export function fromNow(iso: string | null | undefined): string {
 
 /** 订阅到期:返回人类可读文案,如「已过期 15 天」「剩余 7 天」「今日到期」 */
 export function formatExpiry(expiredAt: string | null | undefined, isExpired: boolean): string {
-  if (!expiredAt) return '暂无订阅'
+  if (!expiredAt) return tt('profile.noExpiry')
   const now = dayjs()
   const end = dayjs(expiredAt)
   const days = end.diff(now, 'day')
   if (isExpired || days < 0) {
-    return `已过期 ${Math.abs(days)} 天`
+    return tt('profile.expiredDays', { days: Math.abs(days) })
   }
-  if (days === 0) return '今日到期'
-  return `剩余 ${days} 天`
+  if (days === 0) return tt('profile.expireToday')
+  return tt('profile.remainingDays', { days })
 }
 
 /** 周期 key → 中文标签 */
 export function periodLabel(period: string): string {
   const map: Record<string, string> = {
-    month: '月付',
-    quarter: '季付',
-    half_year: '半年付',
-    year: '年付',
-    onetime: '一次性',
+    month: 'plan.periodMonth',
+    quarter: 'plan.periodQuarter',
+    half_year: 'plan.periodHalfYear',
+    year: 'plan.periodYear',
+    onetime: 'plan.periodOnetime',
   }
-  return map[period] ?? period
+  return map[period] ? tt(map[period]) : period
 }
 
 /** 套餐周期折扣:相对月付省 N%(无折扣返回 null) */
@@ -115,28 +121,40 @@ export function planSavePercent(
 
 /** 订单状态 → 文案 */
 export function orderStatusLabel(status: number): string {
-  const map: Record<number, string> = { 0: '待支付', 1: '已完成', 2: '已取消', 3: '已退款' }
-  return map[status] ?? '未知'
+  const map: Record<number, string> = {
+    0: 'common.pending',
+    1: 'common.completed',
+    2: 'common.cancelled',
+    3: 'common.refunded',
+  }
+  return map[status] ? tt(map[status]) : tt('common.unknown')
 }
 
 /** 工单状态 → 文案 */
 export function ticketStatusLabel(status: number): string {
-  const map: Record<number, string> = { 0: '待回复', 1: '已回复', 2: '已关闭' }
-  return map[status] ?? '未知'
+  const map: Record<number, string> = {
+    0: 'ticket.pending',
+    1: 'ticket.replied',
+    2: 'ticket.closed',
+  }
+  return map[status] ? tt(map[status]) : tt('common.unknown')
 }
 
 /** 工单级别 → 文案 */
 export function ticketLevelLabel(level: number): string {
-  const map: Record<number, string> = { 0: '低', 1: '中', 2: '高' }
-  return map[level] ?? '低'
+  const map: Record<number, string> = { 0: 'ticket.low', 1: 'ticket.medium', 2: 'ticket.high' }
+  return map[level] ? tt(map[level]) : tt('ticket.low')
 }
 
 /** 节点状态 → 文案与色 */
 export function serverStatusMeta(status: number): { label: string; color: string } {
-  const map: Record<number, { label: string; color: string }> = {
-    1: { label: '正常', color: 'var(--c-success)' },
-    2: { label: '拥挤', color: 'var(--c-warning)' },
-    3: { label: '维护', color: 'var(--c-text-sub)' },
+  const map: Record<number, { labelKey: string; color: string }> = {
+    1: { labelKey: 'node.normal', color: 'var(--c-success)' },
+    2: { labelKey: 'node.busy', color: 'var(--c-warning)' },
+    3: { labelKey: 'node.maintenance', color: 'var(--c-text-sub)' },
   }
-  return map[status] ?? { label: '未知', color: 'var(--c-text-sub)' }
+  const meta = map[status]
+  return meta
+    ? { label: tt(meta.labelKey), color: meta.color }
+    : { label: tt('common.unknown'), color: 'var(--c-text-sub)' }
 }

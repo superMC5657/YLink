@@ -134,7 +134,7 @@ function onAction(a: Action) {
 async function copySubscribe() {
   const url = user.subscribe?.subscribe_url
   if (!url) {
-    message.warning('暂无订阅链接,请先购买套餐')
+    message.warning(t('common.noSubscribeLink'))
     return
   }
   const ok = await copyText(url)
@@ -178,7 +178,7 @@ function openDownload(kind: 'windows' | 'macos' | 'android') {
           <AppIcon name="sparkles" :size="20" />
         </span>
         <p class="text-14 leading-6 text-[var(--c-text)]">
-          {{ config.config?.free_traffic_tips || '暂无说明' }}
+          {{ config.config?.free_traffic_tips || t('common.noDesc') }}
         </p>
       </div>
     </n-modal>

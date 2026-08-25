@@ -4,11 +4,13 @@
  * 数据:GET /admin/orders、POST /admin/orders/{no}/refund(docs/api/README.md §16)
  */
 import { onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { apiAdmin } from '@/api/admin'
 import type { AdminOrderItem, OrderStatus } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { useMessage, useDialog } from 'naive-ui'
 
+const { t } = useI18n()
 const message = useMessage()
 const dialog = useDialog()
 
@@ -19,14 +21,19 @@ const page = ref(1)
 const pageSize = 10
 const statusFilter = ref<'' | OrderStatus>('')
 
-const STATUS_TEXT: Record<
-  OrderStatus,
-  { text: string; type: 'warning' | 'success' | 'neutral' | 'danger' }
-> = {
-  0: { text: '待支付', type: 'warning' },
-  1: { text: '已完成', type: 'success' },
-  2: { text: '已取消', type: 'neutral' },
-  3: { text: '已退款', type: 'danger' },
+const STATUS_KEY: Record<OrderStatus, string> = {
+  0: 'common.pending',
+  1: 'common.completed',
+  2: 'common.cancelled',
+  3: 'common.refunded',
+}
+
+function statusText(status: OrderStatus): string {
+  return t(STATUS_KEY[status])
+}
+
+function statusType(status: OrderStatus): 'warning' | 'success' | 'neutral' | 'danger' {
+  return status === 0 ? 'warning' : status === 1 ? 'success' : status === 2 ? 'neutral' : 'danger'
 }
 
 async function load() {
@@ -56,18 +63,21 @@ function onPageChange(p: number) {
 
 function refund(o: AdminOrderItem) {
   if (o.status !== 1) {
-    message.warning('仅已完成订单可退款')
+    message.warning(t('adminOrders.onlyCompletedRefundable'))
     return
   }
   dialog.warning({
-    title: '订单退款',
-    content: `确定对订单 ${o.order_no} 退款 ¥${o.pay_amount.toFixed(2)} 吗?余额将退回、佣金回滚并写入审计。`,
-    positiveText: '退款',
-    negativeText: '取消',
+    title: t('adminOrders.refundTitle'),
+    content: t('adminOrders.refundConfirm', {
+      no: o.order_no,
+      amount: o.pay_amount.toFixed(2),
+    }),
+    positiveText: t('adminOrders.refundBtn'),
+    negativeText: t('common.cancel'),
     onPositiveClick: async () => {
       try {
-        await apiAdmin.refund(o.order_no, { remark: '管理后台手动退款' })
-        message.success('退款成功')
+        await apiAdmin.refund(o.order_no, { remark: t('adminOrders.refundRemark') })
+        message.success(t('adminOrders.refundSuccess'))
         void load()
       } catch (e) {
         message.error((e as Error).message)
@@ -80,18 +90,18 @@ function refund(o: AdminOrderItem) {
 
 function closeOrder(o: AdminOrderItem) {
   if (o.status !== 0) {
-    message.warning('仅待支付订单可关闭')
+    message.warning(t('adminOrders.onlyPendingClosable'))
     return
   }
   dialog.warning({
-    title: '关闭订单',
-    content: `确定关闭订单 ${o.order_no} 吗?用户将无法继续支付该订单。`,
-    positiveText: '关闭',
-    negativeText: '取消',
+    title: t('adminOrders.closeTitle'),
+    content: t('adminOrders.closeConfirm', { no: o.order_no }),
+    positiveText: t('adminOrders.closeBtn'),
+    negativeText: t('common.cancel'),
     onPositiveClick: async () => {
       try {
-        await apiAdmin.closeOrder(o.order_no, { remark: '管理后台手动关闭' })
-        message.success('订单已关闭')
+        await apiAdmin.closeOrder(o.order_no, { remark: t('adminOrders.closeRemark') })
+        message.success(t('adminOrders.closeSuccess'))
         void load()
       } catch (e) {
         message.error((e as Error).message)
@@ -107,18 +117,18 @@ onMounted(() => void load())
 
 <template>
   <div>
-    <PageHeader title="订单管理" subtitle="全量订单查询与退款(退款含佣金回滚 + 审计)">
+    <PageHeader :title="t('adminOrders.title')" :subtitle="t('adminOrders.subtitle')">
       <template #actions>
         <div class="flex items-center gap-2">
           <n-radio-group v-model:value="statusFilter" @update:value="onFilter">
-            <n-radio-button :value="''">全部</n-radio-button>
-            <n-radio-button :value="0">待支付</n-radio-button>
-            <n-radio-button :value="1">已完成</n-radio-button>
-            <n-radio-button :value="2">已取消</n-radio-button>
-            <n-radio-button :value="3">已退款</n-radio-button>
+            <n-radio-button :value="''">{{ t('adminOrders.all') }}</n-radio-button>
+            <n-radio-button :value="0">{{ t('common.pending') }}</n-radio-button>
+            <n-radio-button :value="1">{{ t('common.completed') }}</n-radio-button>
+            <n-radio-button :value="2">{{ t('common.cancelled') }}</n-radio-button>
+            <n-radio-button :value="3">{{ t('common.refunded') }}</n-radio-button>
           </n-radio-group>
           <button class="btn-soft-neutral h-9 px-3 text-14" @click="load">
-            <AppIcon name="refresh" :size="15" /> 刷新
+            <AppIcon name="refresh" :size="15" /> {{ t('common.refresh') }}
           </button>
         </div>
       </template>
@@ -129,17 +139,17 @@ onMounted(() => void load())
         <n-table :bordered="false" :single-line="false" class="min-w-[900px]">
           <thead>
             <tr>
-              <th>订单号</th>
-              <th>用户</th>
-              <th>套餐</th>
-              <th>周期</th>
-              <th>金额(元)</th>
-              <th>实付(元)</th>
-              <th>佣金(元)</th>
-              <th>状态</th>
-              <th>支付方式</th>
-              <th>创建时间</th>
-              <th>操作</th>
+              <th>{{ t('adminOrders.orderNo') }}</th>
+              <th>{{ t('adminOrders.user') }}</th>
+              <th>{{ t('adminOrders.plan') }}</th>
+              <th>{{ t('adminOrders.period') }}</th>
+              <th>{{ t('adminOrders.amount') }}</th>
+              <th>{{ t('adminOrders.payAmount') }}</th>
+              <th>{{ t('adminOrders.commission') }}</th>
+              <th>{{ t('adminOrders.status') }}</th>
+              <th>{{ t('adminOrders.payMethod') }}</th>
+              <th>{{ t('adminOrders.createdAt') }}</th>
+              <th>{{ t('common.action') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -159,8 +169,8 @@ onMounted(() => void load())
                 {{ o.commission_amount != null ? o.commission_amount.toFixed(2) : '-' }}
               </td>
               <td>
-                <StatusBadge :type="STATUS_TEXT[o.status]?.type ?? 'neutral'">
-                  {{ STATUS_TEXT[o.status]?.text ?? o.status }}
+                <StatusBadge :type="statusType(o.status)">
+                  {{ statusText(o.status) }}
                 </StatusBadge>
               </td>
               <td class="text-14 text-[var(--c-text-sub)]">{{ o.pay_method ?? '-' }}</td>
@@ -174,7 +184,7 @@ onMounted(() => void load())
                     class="btn-soft-danger h-7 px-3 text-14"
                     @click="closeOrder(o)"
                   >
-                    关闭
+                    {{ t('adminOrders.close') }}
                   </button>
                   <button
                     class="btn-soft-warning h-7 px-3 text-14"
@@ -182,13 +192,13 @@ onMounted(() => void load())
                     :class="o.status !== 1 ? 'opacity-40' : ''"
                     @click="refund(o)"
                   >
-                    退款
+                    {{ t('adminOrders.refund') }}
                   </button>
                 </div>
               </td>
             </tr>
             <tr v-if="!loading && list.length === 0">
-              <td colspan="11"><EmptyState text="暂无订单" /></td>
+              <td colspan="11"><EmptyState :text="t('adminOrders.empty')" /></td>
             </tr>
           </tbody>
         </n-table>

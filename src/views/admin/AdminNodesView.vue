@@ -4,6 +4,7 @@
  * 数据:/admin/servers、/admin/server-groups(docs/api/README.md §16)
  */
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { apiAdmin } from '@/api/admin'
 import type {
   AdminServerGroupItem,
@@ -14,6 +15,7 @@ import type {
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { useMessage, useDialog } from 'naive-ui'
 
+const { t } = useI18n()
 const message = useMessage()
 const dialog = useDialog()
 
@@ -55,18 +57,23 @@ const PROTOCOLS = [
   { label: 'Tuic', value: 'tuic' },
 ]
 
-const STATUS_LABEL: Record<
-  ServerStatus,
-  { text: string; type: 'success' | 'warning' | 'neutral' }
-> = {
-  1: { text: '正常', type: 'success' },
-  2: { text: '拥挤', type: 'warning' },
-  3: { text: '维护', type: 'neutral' },
+const STATUS_KEY: Record<ServerStatus, string> = {
+  1: 'node.normal',
+  2: 'node.busy',
+  3: 'node.maintenance',
+}
+
+function statusText(status: ServerStatus): string {
+  return t(STATUS_KEY[status])
+}
+
+function statusType(status: ServerStatus): 'success' | 'warning' | 'neutral' {
+  return status === 1 ? 'success' : status === 2 ? 'warning' : 'neutral'
 }
 
 const groupNameOf = computed(() => {
   const map = new Map(groups.value.map((g) => [g.id, g.name]))
-  return (id: number) => map.get(id) ?? `分组#${id}`
+  return (id: number) => map.get(id) ?? t('adminNodes.groupFallback', { id })
 })
 
 async function load() {
@@ -118,21 +125,21 @@ function openNodeEdit(srv: AdminServerItem) {
 
 async function saveNode() {
   if (!nodeForm.group_id) {
-    message.warning('请选择节点分组')
+    message.warning(t('adminNodes.selectGroup'))
     return
   }
   if (!nodeForm.name.trim() || !nodeForm.host.trim() || !nodeForm.config.trim()) {
-    message.warning('名称 / 地址 / 协议配置必填')
+    message.warning(t('adminNodes.requiredFields'))
     return
   }
   nodeSaving.value = true
   try {
     if (editingNode.value === null) {
       await apiAdmin.createServer({ ...nodeForm })
-      message.success('节点已创建')
+      message.success(t('adminNodes.nodeCreated'))
     } else {
       await apiAdmin.updateServer(editingNode.value, { ...nodeForm })
-      message.success('节点已更新')
+      message.success(t('adminNodes.nodeUpdated'))
     }
     nodeModal.value = false
     void load()
@@ -143,13 +150,13 @@ async function saveNode() {
 
 function removeNode(srv: AdminServerItem) {
   dialog.warning({
-    title: '删除节点',
-    content: `确定删除节点「${srv.name}」吗?`,
-    positiveText: '删除',
-    negativeText: '取消',
+    title: t('adminNodes.deleteNodeTitle'),
+    content: t('adminNodes.deleteNodeConfirm', { name: srv.name }),
+    positiveText: t('adminNodes.delete'),
+    negativeText: t('common.cancel'),
     onPositiveClick: async () => {
       await apiAdmin.deleteServer(srv.id)
-      message.success('已删除')
+      message.success(t('adminNodes.deleted'))
       void load()
     },
   })
@@ -157,13 +164,13 @@ function removeNode(srv: AdminServerItem) {
 
 function resetNodeKey(srv: AdminServerItem) {
   dialog.warning({
-    title: '重置上报密钥',
-    content: `确定重置节点「${srv.name}」的上报密钥吗?旧密钥立即失效,节点 agent 需更新 X-Node-Key 后才能继续上报。`,
-    positiveText: '重置',
-    negativeText: '取消',
+    title: t('adminNodes.resetKeyTitle'),
+    content: t('adminNodes.resetKeyConfirm', { name: srv.name }),
+    positiveText: t('adminNodes.resetKeyBtn'),
+    negativeText: t('common.cancel'),
     onPositiveClick: async () => {
       const { node_key: key } = await apiAdmin.resetServerNodeKey(srv.id)
-      message.success(`已重置,新密钥:${key}`)
+      message.success(t('adminNodes.resetKeySuccess', { key }))
       void load()
     },
   })
@@ -185,20 +192,20 @@ function openGroupEdit(g: AdminServerGroupItem) {
 
 async function saveGroup() {
   if (!groupName.value.trim()) {
-    message.warning('请输入分组名称')
+    message.warning(t('adminNodes.enterGroupName'))
     return
   }
   groupSaving.value = true
   try {
     if (editingGroup.value === null) {
       await apiAdmin.createServerGroup({ name: groupName.value, sort: groupSort.value })
-      message.success('分组已创建')
+      message.success(t('adminNodes.groupCreated'))
     } else {
       await apiAdmin.updateServerGroup(editingGroup.value, {
         name: groupName.value,
         sort: groupSort.value,
       })
-      message.success('分组已更新')
+      message.success(t('adminNodes.groupUpdated'))
     }
     groupModal.value = false
     void load()
@@ -209,13 +216,13 @@ async function saveGroup() {
 
 function removeGroup(g: AdminServerGroupItem) {
   dialog.warning({
-    title: '删除分组',
-    content: `确定删除分组「${g.name}」吗?组内节点需先移除。`,
-    positiveText: '删除',
-    negativeText: '取消',
+    title: t('adminNodes.deleteGroupTitle'),
+    content: t('adminNodes.deleteGroupConfirm', { name: g.name }),
+    positiveText: t('adminNodes.delete'),
+    negativeText: t('common.cancel'),
     onPositiveClick: async () => {
       await apiAdmin.deleteServerGroup(g.id)
-      message.success('已删除')
+      message.success(t('adminNodes.deleted'))
       void load()
     },
   })
@@ -226,17 +233,17 @@ onMounted(() => void load())
 
 <template>
   <div>
-    <PageHeader title="节点管理" subtitle="节点分组与节点 CRUD(配置将下发到订阅)">
+    <PageHeader :title="t('adminNodes.pageTitle')" :subtitle="t('adminNodes.subtitle')">
       <template #actions>
         <div class="flex items-center gap-2">
           <button class="btn-soft-neutral h-9 px-3 text-14" @click="load">
-            <AppIcon name="refresh" :size="15" /> 刷新
+            <AppIcon name="refresh" :size="15" /> {{ t('common.refresh') }}
           </button>
           <button class="btn-soft-primary h-9 px-4 text-14" @click="openGroupCreate">
-            新建分组
+            {{ t('adminNodes.newGroup') }}
           </button>
           <button class="btn-primary h-9 px-4 text-14" @click="openNodeCreate">
-            <AppIcon name="plus" :size="15" /> 新建节点
+            <AppIcon name="plus" :size="15" /> {{ t('adminNodes.newNode') }}
           </button>
         </div>
       </template>
@@ -248,16 +255,16 @@ onMounted(() => void load())
           <thead>
             <tr>
               <th>ID</th>
-              <th>名称</th>
-              <th>分组</th>
-              <th>协议</th>
-              <th>地址</th>
-              <th>倍率</th>
-              <th>状态</th>
-              <th>展示</th>
-              <th>排序</th>
-              <th>上报密钥</th>
-              <th>操作</th>
+              <th>{{ t('adminNodes.name') }}</th>
+              <th>{{ t('adminNodes.group') }}</th>
+              <th>{{ t('adminNodes.protocol') }}</th>
+              <th>{{ t('adminNodes.host') }}</th>
+              <th>{{ t('adminNodes.rate') }}</th>
+              <th>{{ t('adminNodes.status') }}</th>
+              <th>{{ t('adminNodes.show') }}</th>
+              <th>{{ t('adminNodes.sort') }}</th>
+              <th>{{ t('adminNodes.nodeKey') }}</th>
+              <th>{{ t('common.action') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -269,13 +276,13 @@ onMounted(() => void load())
               <td class="num-font text-14 text-[var(--c-text-sub)]">{{ s.host }}:{{ s.port }}</td>
               <td class="num-font">{{ s.rate }}</td>
               <td>
-                <StatusBadge :type="STATUS_LABEL[s.status]?.type ?? 'neutral'">
-                  {{ STATUS_LABEL[s.status]?.text ?? s.status }}
+                <StatusBadge :type="statusType(s.status)">
+                  {{ statusText(s.status) }}
                 </StatusBadge>
               </td>
               <td>
                 <StatusBadge :type="s.is_show ? 'success' : 'neutral'">
-                  {{ s.is_show ? '展示' : '隐藏' }}
+                  {{ s.is_show ? t('adminNodes.show') : t('adminNodes.hidden') }}
                 </StatusBadge>
               </td>
               <td class="num-font">{{ s.sort }}</td>
@@ -286,17 +293,19 @@ onMounted(() => void load())
               <td>
                 <div class="flex gap-2">
                   <button class="btn-soft-primary h-7 px-3 text-14" @click="openNodeEdit(s)">
-                    编辑
+                    {{ t('adminNodes.edit') }}
                   </button>
                   <button class="btn-soft-neutral h-7 px-3 text-14" @click="resetNodeKey(s)">
-                    重置密钥
+                    {{ t('adminNodes.resetKey') }}
                   </button>
-                  <button class="btn-danger h-7 px-3 text-14" @click="removeNode(s)">删除</button>
+                  <button class="btn-danger h-7 px-3 text-14" @click="removeNode(s)">
+                    {{ t('adminNodes.delete') }}
+                  </button>
                 </div>
               </td>
             </tr>
             <tr v-if="!loading && servers.length === 0">
-              <td colspan="11"><EmptyState text="暂无节点" /></td>
+              <td colspan="11"><EmptyState :text="t('adminNodes.emptyNodes')" /></td>
             </tr>
           </tbody>
         </n-table>
@@ -306,10 +315,14 @@ onMounted(() => void load())
     <!-- 分组列表 -->
     <div class="card-base mt-5 p-5">
       <div class="mb-3 flex items-center justify-between">
-        <h2 class="text-16 font-600 text-[var(--c-text)]">节点分组</h2>
-        <button class="btn-soft-primary h-8 px-3 text-14" @click="openGroupCreate">新建分组</button>
+        <h2 class="text-16 font-600 text-[var(--c-text)]">{{ t('adminNodes.groupTitle') }}</h2>
+        <button class="btn-soft-primary h-8 px-3 text-14" @click="openGroupCreate">
+          {{ t('adminNodes.newGroup') }}
+        </button>
       </div>
-      <div v-if="groups.length === 0" class="py-4"><EmptyState text="暂无分组" /></div>
+      <div v-if="groups.length === 0" class="py-4">
+        <EmptyState :text="t('adminNodes.emptyGroups')" />
+      </div>
       <div v-else class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
         <div
           v-for="g in groups"
@@ -319,14 +332,20 @@ onMounted(() => void load())
           <div>
             <div class="text-14 font-500 text-[var(--c-text)]">{{ g.name }}</div>
             <div class="text-14 text-[var(--c-text-sub)]">
-              {{ servers.filter((s) => s.group_id === g.id).length }} 个节点
+              {{
+                t('adminNodes.nodeCount', {
+                  count: servers.filter((s) => s.group_id === g.id).length,
+                })
+              }}
             </div>
           </div>
           <div class="flex gap-2">
             <button class="btn-soft-primary h-7 px-2.5 text-14" @click="openGroupEdit(g)">
-              编辑
+              {{ t('adminNodes.edit') }}
             </button>
-            <button class="btn-danger h-7 px-2.5 text-14" @click="removeGroup(g)">删除</button>
+            <button class="btn-danger h-7 px-2.5 text-14" @click="removeGroup(g)">
+              {{ t('adminNodes.delete') }}
+            </button>
           </div>
         </div>
       </div>
@@ -336,57 +355,57 @@ onMounted(() => void load())
     <n-modal
       v-model:show="nodeModal"
       preset="card"
-      :title="editingNode === null ? '新建节点' : '编辑节点'"
+      :title="editingNode === null ? t('adminNodes.createNode') : t('adminNodes.editNode')"
       style="width: 560px"
     >
       <n-form label-placement="top">
         <div class="grid grid-cols-2 gap-x-4">
-          <n-form-item label="名称">
-            <n-input v-model:value="nodeForm.name" placeholder="节点名称" />
+          <n-form-item :label="t('adminNodes.name')">
+            <n-input v-model:value="nodeForm.name" :placeholder="t('adminNodes.namePlaceholder')" />
           </n-form-item>
-          <n-form-item label="分组">
+          <n-form-item :label="t('adminNodes.group')">
             <n-select
               v-model:value="nodeForm.group_id"
               :options="groups.map((g) => ({ label: g.name, value: g.id }))"
             />
           </n-form-item>
-          <n-form-item label="协议">
+          <n-form-item :label="t('adminNodes.protocol')">
             <n-select v-model:value="nodeForm.type" :options="PROTOCOLS" />
           </n-form-item>
-          <n-form-item label="倍率">
+          <n-form-item :label="t('adminNodes.rate')">
             <n-input-number v-model:value="nodeForm.rate" :min="0.1" :step="0.1" class="w-full" />
           </n-form-item>
-          <n-form-item label="地址 Host">
-            <n-input v-model:value="nodeForm.host" placeholder="example.com 或 IP" />
+          <n-form-item :label="t('adminNodes.hostLabel')">
+            <n-input v-model:value="nodeForm.host" :placeholder="t('adminNodes.hostPlaceholder')" />
           </n-form-item>
-          <n-form-item label="端口">
+          <n-form-item :label="t('adminNodes.portLabel')">
             <n-input-number v-model:value="nodeForm.port" :min="1" :max="65535" class="w-full" />
           </n-form-item>
-          <n-form-item label="状态">
+          <n-form-item :label="t('adminNodes.status')">
             <n-select
               v-model:value="nodeForm.status"
               :options="[
-                { label: '正常', value: 1 },
-                { label: '拥挤', value: 2 },
-                { label: '维护', value: 3 },
+                { label: t('node.normal'), value: 1 },
+                { label: t('node.busy'), value: 2 },
+                { label: t('node.maintenance'), value: 3 },
               ]"
             />
           </n-form-item>
-          <n-form-item label="排序">
+          <n-form-item :label="t('adminNodes.sort')">
             <n-input-number v-model:value="nodeForm.sort" class="w-full" />
           </n-form-item>
         </div>
-        <n-form-item label="标签">
+        <n-form-item :label="t('adminNodes.tagsLabel')">
           <n-select
             v-model:value="nodeForm.tags"
             multiple
             filterable
             tag
             :options="[]"
-            placeholder="回车添加标签,如:旗舰 / 中转"
+            :placeholder="t('adminNodes.tagsPlaceholder')"
           />
         </n-form-item>
-        <n-form-item label="协议配置(JSON)">
+        <n-form-item :label="t('adminNodes.configLabel')">
           <n-input
             v-model:value="nodeForm.config"
             type="textarea"
@@ -394,15 +413,17 @@ onMounted(() => void load())
             placeholder='{"password":"...","method":"aes-256-gcm"}'
           />
         </n-form-item>
-        <n-form-item label="展示">
+        <n-form-item :label="t('adminNodes.showLabel')">
           <n-switch v-model:value="nodeForm.is_show" />
         </n-form-item>
       </n-form>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <button class="btn-soft-neutral h-9 px-4 text-14" @click="nodeModal = false">取消</button>
+          <button class="btn-soft-neutral h-9 px-4 text-14" @click="nodeModal = false">
+            {{ t('common.cancel') }}
+          </button>
           <button class="btn-primary h-9 px-4 text-14" :disabled="nodeSaving" @click="saveNode">
-            保存
+            {{ t('common.save') }}
           </button>
         </div>
       </template>
@@ -412,24 +433,24 @@ onMounted(() => void load())
     <n-modal
       v-model:show="groupModal"
       preset="card"
-      :title="editingGroup === null ? '新建分组' : '编辑分组'"
+      :title="editingGroup === null ? t('adminNodes.createGroup') : t('adminNodes.editGroup')"
       style="width: 360px"
     >
       <n-form label-placement="top">
-        <n-form-item label="分组名称">
-          <n-input v-model:value="groupName" placeholder="如:香港 / 美国" />
+        <n-form-item :label="t('adminNodes.groupNameLabel')">
+          <n-input v-model:value="groupName" :placeholder="t('adminNodes.groupNamePlaceholder')" />
         </n-form-item>
-        <n-form-item label="排序">
+        <n-form-item :label="t('adminNodes.sortLabel')">
           <n-input-number v-model:value="groupSort" class="w-full" />
         </n-form-item>
       </n-form>
       <template #footer>
         <div class="flex justify-end gap-2">
           <button class="btn-soft-neutral h-9 px-4 text-14" @click="groupModal = false">
-            取消
+            {{ t('common.cancel') }}
           </button>
           <button class="btn-primary h-9 px-4 text-14" :disabled="groupSaving" @click="saveGroup">
-            保存
+            {{ t('common.save') }}
           </button>
         </div>
       </template>

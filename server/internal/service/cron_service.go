@@ -11,6 +11,7 @@ import (
 	"gorm.io/gorm"
 
 	"ylink-backend/internal/config"
+	"ylink-backend/internal/middleware"
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/logger"
 	"ylink-backend/internal/pkg/mailer"
@@ -34,17 +35,31 @@ func NewCronService(db *gorm.DB, rdb *redis.Client, repos *repo.Repos, cfg *conf
 }
 
 // WithLock 分布式锁包装：仅单实例执行任务。
+// 打点 cron_job_runs_total / cron_job_duration_seconds（worker /metrics 暴露，供 Grafana 看板与告警）。
 func (s *CronService) WithLock(name string, fn func()) func() {
 	return func() {
 		ctx := context.Background()
 		ok, err := s.rdb.SetNX(ctx, redispkg.Key("cron", "lock", name), "1", 15*time.Minute).Result()
 		if err != nil || !ok {
 			logger.L().Info("cron lock skipped", zapS("job", name))
+			middleware.CronJobInc(name, "skipped")
 			return
 		}
 		defer s.rdb.Del(ctx, redispkg.Key("cron", "lock", name))
 		logger.L().Info("cron job start", zapS("job", name))
-		fn()
+		start := time.Now()
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					middleware.CronJobInc(name, "error")
+					middleware.CronJobDuration(name, time.Since(start))
+					panic(r)
+				}
+			}()
+			fn()
+			middleware.CronJobInc(name, "success")
+			middleware.CronJobDuration(name, time.Since(start))
+		}()
 		logger.L().Info("cron job done", zapS("job", name))
 	}
 }

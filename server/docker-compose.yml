@@ -66,16 +66,26 @@ services:
       - caddy_data:/data
 
   # 可观测性(可选):docker compose --profile obs up -d 启用
-  # Prometheus 经 compose 内网抓取 api:8081/metrics;Grafana http://127.0.0.1:3000(admin/admin 首登改密)
+  # Prometheus 经 compose 内网抓取 api:8081/metrics、worker:8082/metrics、node-exporter:9100/metrics;
+  # Grafana http://127.0.0.1:3000(admin/admin 首登改密);告警经 alertmanager 邮件通知(需配置 ALERT_EMAIL_TO)。
+  # 数据保留半年:--storage.tsdb.retention.time=180d(2026-08-22 起,原默认 15d)。
   prometheus:
     profiles: ["obs"]
     container_name: backend-prometheus
     image: prom/prometheus:v2.53.0
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=180d'
+      - '--storage.tsdb.retention.size=20GB'   # 兜底上限,防指标异常膨胀撑爆磁盘(与 time 先到者生效)
     volumes:
       - ./deploy/obs/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deploy/obs/rules.yml:/etc/prometheus/rules.yml:ro
       - prometheus_data:/prometheus
     depends_on:
       - api
+      - worker
+      - node-exporter
+      - alertmanager
 
   grafana:
     profiles: ["obs"]
@@ -93,9 +103,49 @@ services:
     depends_on:
       - prometheus
 
+  # 告警通知:SMTP 复用 env_file 的 APP_SMTP_*;收件人 ALERT_EMAIL_TO(未配置默认发 admin@example.com,生产必配)。
+  # entrypoint 用 sed 把模板占位符替换为环境变量(取值含 | 需调整模板分隔符,见 alertmanager.yml.tmpl 注释)。
+  alertmanager:
+    profiles: ["obs"]
+    container_name: backend-alertmanager
+    image: prom/alertmanager:v0.27.0
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        sed -e "s|__SMTP_HOST__|$${APP_SMTP_HOST}|g" \
+            -e "s|__SMTP_PORT__|$${APP_SMTP_PORT}|g" \
+            -e "s|__SMTP_USER__|$${APP_SMTP_USERNAME}|g" \
+            -e "s|__SMTP_PASS__|$${APP_SMTP_PASSWORD}|g" \
+            -e "s|__SMTP_FROM__|$${APP_SMTP_USERNAME}|g" \
+            -e "s|__ALERT_TO__|$${ALERT_EMAIL_TO:-admin@example.com}|g" \
+            /etc/alertmanager/alertmanager.yml.tmpl > /etc/alertmanager/alertmanager.yml && \
+        exec /bin/alertmanager --config.file=/etc/alertmanager/alertmanager.yml --storage.path=/alertmanager --log.level=info
+    env_file: ${ENV_FILE:-.env.dev}
+    volumes:
+      - ./deploy/obs/alertmanager/alertmanager.yml.tmpl:/etc/alertmanager/alertmanager.yml.tmpl:ro
+      - alertmanager_data:/alertmanager
+    ports:
+      - "127.0.0.1:9093:9093"     # 运维查看告警状态 UI(仅本机)
+
+  # 主机层指标(CPU/内存/磁盘/网络),供看板与磁盘/资源告警
+  node-exporter:
+    profiles: ["obs"]
+    container_name: backend-node-exporter
+    image: prom/node-exporter:v1.8.2
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+    restart: unless-stopped
+
 volumes:
   postgres_data: {}
   redis_data: {}
   caddy_data: {}
   prometheus_data: {}
   grafana_data: {}
+  alertmanager_data: {}

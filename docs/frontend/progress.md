@@ -2,7 +2,7 @@
 
 > 本文档记录 `src/` 目录 Vue 3 用户端应用的开发状态,是 docs/frontend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-22(**Stylelint 引入**(候补清零):stylelint 17 + config-standard + postcss-html,`pnpm lint:css` 0 违规,接入 CI frontend-quality 与 lint-staged,格式类/色值记法规则关闭避免与 Prettier 冲突;**模式 A 配套**:管理端节点列表新增「上报密钥」列(CopyText 复制)+「重置密钥」按钮(确认弹窗,apiAdmin.resetServerNodeKey + mock 同步);vitest 实测 **59 用例**全绿)
+> 最后更新:2026-08-25(**0.9.0 评审**:`src-tauri/nsis/installer-hooks.nsh` 入库,补齐 `tauri.conf.json` installerHooks 路径,Windows NSIS 打包不再因缺失文件失败;此前 2026-08-22 为 Stylelint 引入与模式 A 管理端配套,见下)
 
 ---
 
@@ -103,6 +103,7 @@
 | 更新卡片 UI | `utils/updater.ts`(checkForUpdate / downloadAndInstall,动态 import,Web 端自动降级)+ `components/app/UpdateCard.vue`(右下角浮动卡片:版本号 + 更新日志 + 下载进度 + 立即更新/稍后,监听 `app:check-update` 事件)+ App.vue 挂载启动静默检查 + 设置页「检查更新」入口(仅 Tauri 显示,含当前版本号);失败静默忽略 | `src/utils/updater.ts`、`src/components/app/UpdateCard.vue`、`src/App.vue`、`views/profile/ProfileView.vue` |
 | 单实例深链接转发 | `lib.rs` 单实例回调从 argv 提取 `ylink://` URL,用 deep-link 插件同名事件 `deep-link://new-url`(payload URL 数组)emit 给已有实例,前端 `onOpenUrl` 直接路由跳转;端到端链路打通 | `src-tauri/src/lib.rs`(Emitter) |
 | 本地通知触发点 | `utils/notify.ts` 统一封装(Tauri plugin-notification / Web Notification API 降级);触发点:支付成功(PaymentModal)、工单已回复(MainLayout 60s 轮询 + 状态快照去重)、订阅到期 ≤3 天(窗口聚焦刷新检测 + 按到期日去重)。**2026-08-14 增强**:工单已回复在窗口聚焦/可见时立即检查(`onFocus`/`onVisibility` 补 `checkTickets()`),不再依赖最多 60s 轮询延迟 | `src/utils/notify.ts`、`src/composables/useLocalNotifications.ts`、`layouts/MainLayout.vue`、`components/business/PaymentModal.vue` |
+| NSIS installer hooks | `src-tauri/nsis/installer-hooks.nsh` 入库(2026-08-25,0.9.0 评审):提供 4 个 no-op 宏,当前无自定义逻辑,但文件必须保留,否则 `tauri.conf.json` 的 `installerHooks` 路径缺失会导致 Windows NSIS 打包失败 | `src-tauri/nsis/installer-hooks.nsh`、`tauri.conf.json` |
 
 ### 工程化与质量门禁(✅ 完成)
 

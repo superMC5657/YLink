@@ -136,7 +136,7 @@ coupon_usages：id、coupon_id、user_id、order_no，唯一索引 `(coupon_id, 
 
 server_groups：id、name、sort。
 servers：id、group_id INDEX、name、type（`shadowsocks/vmess/vless/trojan/hysteria2/tuic`）、host、port、config JSONB（协议私有参数：密码/SNI/ALPN 等）、rate DECIMAL(3,1) DEFAULT 1.0（流量倍率）、tags JSONB、status SMALLINT（1=正常 2=拥挤 3=维护）、is_show、sort、node_key CHAR(32) UNIQUE NOT NULL（节点上报密钥，迁移 0004 新增；管理端可重置）。
-说明：host/port/config 仅用于订阅生成，`GET /servers` 用户接口只输出 name/type/rate/status/tags；订阅凭证改为每用户 `users.uuid`（config 中的密码/uuid 不再下发给用户，仅作节点侧遗留兼容）。
+说明：host/port/config 仅用于订阅生成，`GET /servers` 用户接口只输出 name/type/rate/status/tags；`config` 为协议私有参数 JSON，可含 `per_user_credentials: true` 开启每用户凭证。未开启时订阅继续使用 config 中的共享密码/uuid（存量节点兼容）；开启后改为每用户 `users.uuid`（config 中的密码/uuid 不再下发给用户）。
 
 ### 2.9 notices（公告）/ knowledges（知识库）
 

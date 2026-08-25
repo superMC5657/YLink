@@ -267,27 +267,30 @@ func (s *SubscribeService) userInfo(ctx context.Context, user *model.User) (stri
 	return ui, nil
 }
 
-// toNode 将 servers 行转换为订阅节点;cred 为每用户凭证(users.uuid,覆盖 config 中的共享密码/uuid)。
+// toNode 将 servers 行转换为订阅节点;cred 为每用户凭证(users.uuid)。
+// 仅当节点 config 显式开启 per_user_credentials 时使用,否则保留 config 中的共享凭证,
+// 避免存量节点 inbound 尚未配发每用户凭证时订阅刷新即断连。
 func toNode(srv model.Server, groupName, cred string) subscribe.Node {
 	var conf struct {
-		Password string `json:"password"`
-		UUID     string `json:"uuid"`
-		ID       string `json:"id"`
-		Method   string `json:"method"`
-		Cipher   string `json:"cipher"`
-		SNI      string `json:"sni"`
-		Network  string `json:"network"`
-		Security string `json:"security"`
-		Alpn     string `json:"alpn"`
-		Path     string `json:"path"`
+		Password           string `json:"password"`
+		UUID               string `json:"uuid"`
+		ID                 string `json:"id"`
+		Method             string `json:"method"`
+		Cipher             string `json:"cipher"`
+		SNI                string `json:"sni"`
+		Network            string `json:"network"`
+		Security           string `json:"security"`
+		Alpn               string `json:"alpn"`
+		Path               string `json:"path"`
+		PerUserCredentials bool   `json:"per_user_credentials"`
 	}
 	_ = json.Unmarshal([]byte(srv.Config), &conf)
 	name := srv.Name
 	if groupName != "" {
 		name = groupName + " " + srv.Name
 	}
-	if cred == "" {
-		// 兜底:无用户凭证时回落 config 凭证(不应到达,Generate 已保证 uuid 存在)
+	if !conf.PerUserCredentials {
+		// 存量节点默认使用 config 共享凭证;升级时先配发 inbound,再开启 per_user_credentials。
 		cred = conf.Password
 		if cred == "" {
 			cred = conf.UUID

@@ -104,14 +104,11 @@ func main() {
 	}
 }
 
-// reportOnce 随机增量推进累计值并上报。
+// reportOnce 上报当前累计值,随后推进下一轮随机增量。
 func reportOnce(client *http.Client, endpoint, key string, counters map[string]reportItem, rng *rand.Rand) {
 	items := make([]reportItem, 0, len(counters))
 	for id, c := range counters {
-		c.U += int64(rng.Intn(50)+1) * 1024 * 1024  // 每轮 1–50 MiB 上行
-		c.D += int64(rng.Intn(500)+1) * 1024 * 1024 // 每轮 1–500 MiB 下行
-		counters[id] = c
-		items = append(items, c)
+		items = append(items, reportItem{UUID: id, U: c.U, D: c.D})
 	}
 	body, _ := json.Marshal(reportReq{Data: items})
 	req, err := http.NewRequest(http.MethodPost, endpoint+"/node/report", bytes.NewReader(body))
@@ -135,11 +132,18 @@ func reportOnce(client *http.Client, endpoint, key string, counters map[string]r
 	}
 	if resp.StatusCode != http.StatusOK || rr.Code != 0 {
 		log.Printf("上报被拒(HTTP %d code=%d): %s", resp.StatusCode, rr.Code, raw)
-		return
+	} else {
+		log.Printf("上报 %d 条: accepted=%d skipped=%d", len(items), rr.Data.Accepted, len(rr.Data.Skipped))
+		for _, sk := range rr.Data.Skipped {
+			log.Printf("  跳过 %s: %s", sk.UUID, sk.Reason)
+		}
 	}
-	log.Printf("上报 %d 条: accepted=%d skipped=%d", len(items), rr.Data.Accepted, len(rr.Data.Skipped))
-	for _, sk := range rr.Data.Skipped {
-		log.Printf("  跳过 %s: %s", sk.UUID, sk.Reason)
+
+	// 首轮先上报 0 基线,建立服务端快照后再推进下一轮累计值。
+	for id, c := range counters {
+		c.U += int64(rng.Intn(50)+1) * 1024 * 1024  // 每轮 1–50 MiB 上行
+		c.D += int64(rng.Intn(500)+1) * 1024 * 1024 // 每轮 1–500 MiB 下行
+		counters[id] = c
 	}
 }
 

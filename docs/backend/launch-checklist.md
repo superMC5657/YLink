@@ -30,7 +30,7 @@
 | 项 | 要求 | 状态 | 实际值/进度 |
 |---|---|---|---|
 | 易支付商户 | 彩虹协议兼容网关;拿到 gateway / pid / key;后台配置异步通知 `https://{API域名}/api/v1/payment/notify/{method}` | ☐ | |
-| SMTP 发信 | 如 QQ 邮箱授权码(smtp.qq.com:465);验证码/回执邮件依赖,**未配置则注册/找回不可用** | ☐ | |
+| SMTP 发信 | 如 QQ 邮箱授权码(smtp.qq.com:465)用于后端邮件;obs 的 Alertmanager 需另走 STARTTLS 端口(默认 587),见 deploy.md §5 | ☐ | |
 | (可选)内网穿透 | 本机联调支付回调时用,生产不需要 | ☐ | |
 
 ## 4. `.env.release` 真实值(`cp server/.env.example server/.env.release` 后逐项替换)

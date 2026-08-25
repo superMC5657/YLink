@@ -107,7 +107,7 @@ func hashPassword(p string) (string, error) {
 
 func intPtr(i int) *int { return &i }
 
-func TestGeneratePerUserCredential(t *testing.T) {
+func TestGeneratePerUserCredentialOptIn(t *testing.T) {
 	e := newTestEnv(t)
 	svc := NewSubscribeService(e.db, e.rdb, &repo.Repos{}, &config.Config{App: config.AppConfig{BaseURL: "https://api.example.com"}})
 
@@ -117,7 +117,29 @@ func TestGeneratePerUserCredential(t *testing.T) {
 		PlanID: int64Ptr(9), ExpiredAt: &future, TransferEnable: 1 << 30, CreatedAt: time.Now(), UpdatedAt: time.Now()}
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"users\"")).WillReturnRows(userRow(u))
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"plans\"")).WillReturnRows(planRow(&model.Plan{ID: 9, Name: "白羊", GroupIDs: "[1]", IsShow: true}))
-	// 节点 config 中的共享密码不应下发
+	// 节点显式开启 per_user_credentials 后,才下发用户 uuid;config 共享密码不应下发
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "servers" WHERE is_show = true AND group_id IN`)).WillReturnRows(serverRow(
+		&model.Server{ID: 5, GroupID: 1, Name: "HK-01", Type: "trojan", Host: "hk.example.com", Port: 443,
+			Config: `{"password":"legacy-shared-pass","per_user_credentials":true}`, Rate: 1.0, NodeKey: "k1"}))
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "server_groups"`)).WillReturnRows(
+		sqlmock.NewRows([]string{"id", "name", "sort"}).AddRow(1, "香港", 0))
+
+	res, err := svc.Generate(context.Background(), "tok", "clash", "")
+	require.NoError(t, err)
+	assert.Contains(t, string(res.Content), "11111111-2222-3333-4444-555555555555", "下发凭证应为用户 uuid")
+	assert.NotContains(t, string(res.Content), "legacy-shared-pass", "config 共享密码不应再下发")
+}
+
+func TestGenerateLegacySharedCredentialFallback(t *testing.T) {
+	e := newTestEnv(t)
+	svc := NewSubscribeService(e.db, e.rdb, &repo.Repos{}, &config.Config{App: config.AppConfig{BaseURL: "https://api.example.com"}})
+
+	// 存量节点未配置 per_user_credentials:inbound 仍接受 config 共享凭证,订阅必须继续下发该凭证
+	future := time.Now().Add(24 * time.Hour)
+	u := &model.User{ID: 1, Email: "a@b.com", SubToken: "tok", UUID: "11111111-2222-3333-4444-555555555555",
+		PlanID: int64Ptr(9), ExpiredAt: &future, TransferEnable: 1 << 30, CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"users\"")).WillReturnRows(userRow(u))
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"plans\"")).WillReturnRows(planRow(&model.Plan{ID: 9, Name: "白羊", GroupIDs: "[1]", IsShow: true}))
 	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "servers" WHERE is_show = true AND group_id IN`)).WillReturnRows(serverRow(
 		&model.Server{ID: 5, GroupID: 1, Name: "HK-01", Type: "trojan", Host: "hk.example.com", Port: 443,
 			Config: `{"password":"legacy-shared-pass"}`, Rate: 1.0, NodeKey: "k1"}))
@@ -126,6 +148,6 @@ func TestGeneratePerUserCredential(t *testing.T) {
 
 	res, err := svc.Generate(context.Background(), "tok", "clash", "")
 	require.NoError(t, err)
-	assert.Contains(t, string(res.Content), "11111111-2222-3333-4444-555555555555", "下发凭证应为用户 uuid")
-	assert.NotContains(t, string(res.Content), "legacy-shared-pass", "config 共享密码不应再下发")
+	assert.Contains(t, string(res.Content), "legacy-shared-pass", "存量节点应继续使用 config 共享凭证")
+	assert.NotContains(t, string(res.Content), "11111111-2222-3333-4444-555555555555", "未配发每用户 inbound 前不应下发用户 uuid")
 }

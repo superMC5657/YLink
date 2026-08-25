@@ -109,6 +109,8 @@ func TestNodeReportFirstReport(t *testing.T) {
 	u := activeUser(1, "uuid-1")
 	u.SubToken = "tok-1"
 	e.expectReportUsers([]model.User{*u})
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "plans"`)).
+		WillReturnRows(planRow(&model.Plan{ID: 9, GroupIDs: "[1]"}))
 
 	e.mock.ExpectBegin()
 	// 首次上报:无快照(gorm.ErrRecordNotFound)→ 增量 = 累计值全量
@@ -131,6 +133,8 @@ func TestNodeReportIdempotentRetry(t *testing.T) {
 	e.expectServerByID(&model.Server{ID: 5, GroupID: 1, Name: "HK-01", Type: "trojan", Rate: 1.0, NodeKey: "k1"})
 	u := activeUser(1, "uuid-1")
 	e.expectReportUsers([]model.User{*u})
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "plans"`)).
+		WillReturnRows(planRow(&model.Plan{ID: 9, GroupIDs: "[1]"}))
 
 	e.mock.ExpectBegin()
 	// 快照与上报值相同 → 差分 0,不写 users/traffic_logs,仅刷新快照
@@ -151,6 +155,8 @@ func TestNodeReportCounterReset(t *testing.T) {
 	e.expectServerByID(&model.Server{ID: 5, GroupID: 1, Name: "HK-01", Type: "trojan", Rate: 1.0, NodeKey: "k1"})
 	u := activeUser(1, "uuid-1")
 	e.expectReportUsers([]model.User{*u})
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "plans"`)).
+		WillReturnRows(planRow(&model.Plan{ID: 9, GroupIDs: "[1]"}))
 
 	e.mock.ExpectBegin()
 	// 计数器回退(u: 500 → 100 视为节点重启,增量取当前值 100;d 正常差分 200-50=150)
@@ -175,6 +181,8 @@ func TestNodeReportRateScale(t *testing.T) {
 	u := activeUser(1, "uuid-1")
 	u.SubToken = "tok-1"
 	e.expectReportUsers([]model.User{*u})
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "plans"`)).
+		WillReturnRows(planRow(&model.Plan{ID: 9, GroupIDs: "[1]"}))
 
 	e.mock.ExpectBegin()
 	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "node_user_stats" WHERE`)).WillReturnError(gorm.ErrRecordNotFound)
@@ -197,6 +205,8 @@ func TestNodeReportSkips(t *testing.T) {
 	u := activeUser(1, "uuid-1")
 	u.PlanID = nil
 	e.expectReportUsers([]model.User{*u})
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "plans"`)).
+		WillReturnRows(planRow(&model.Plan{ID: 9, GroupIDs: "[1]"}))
 
 	e.mock.ExpectBegin()
 	e.mock.ExpectCommit()
@@ -211,6 +221,45 @@ func TestNodeReportSkips(t *testing.T) {
 	reasons := map[string]string{resp.Skipped[0].UUID: resp.Skipped[0].Reason, resp.Skipped[1].UUID: resp.Skipped[1].Reason}
 	assert.Equal(t, "not_subscribed", reasons["uuid-1"])
 	assert.Equal(t, "unknown_user", reasons["uuid-3"])
+}
+
+func TestNodeReportGroupMismatch(t *testing.T) {
+	e, svc := newNodeEnv(t)
+	ctx := context.Background()
+
+	// 节点分组 1,用户套餐仅含分组 2 → 不得为该节点计费
+	e.expectServerByID(&model.Server{ID: 5, GroupID: 1, Name: "HK-01", Type: "trojan", Rate: 1.0, NodeKey: "k1"})
+	u := activeUser(1, "uuid-1")
+	u.PlanID = int64Ptr(10)
+	e.expectReportUsers([]model.User{*u})
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "plans"`)).
+		WillReturnRows(planRow(&model.Plan{ID: 9, GroupIDs: "[1]"}))
+
+	e.mock.ExpectBegin()
+	e.mock.ExpectCommit()
+
+	resp, err := svc.Report(ctx, 5, &NodeReportReq{Data: []NodeReportItem{{UUID: "uuid-1", U: 1000, D: 2000}}})
+	require.NoError(t, err)
+	assert.Equal(t, 0, resp.Accepted)
+	require.Len(t, resp.Skipped, 1)
+	assert.Equal(t, "not_subscribed", resp.Skipped[0].Reason)
+}
+
+func TestNodeReportDuplicateUUID(t *testing.T) {
+	e, svc := newNodeEnv(t)
+	ctx := context.Background()
+
+	// 同一 UUID 出现多次时,在查用户/开事务前整体拒绝,不能按多个累计值逐个差分计费
+	e.expectServerByID(&model.Server{ID: 5, GroupID: 1, Name: "HK-01", Type: "trojan", Rate: 1.0, NodeKey: "k1"})
+	resp, err := svc.Report(ctx, 5, &NodeReportReq{Data: []NodeReportItem{
+		{UUID: "uuid-1", U: 100, D: 200},
+		{UUID: "uuid-1", U: 200, D: 400},
+	}})
+	require.NoError(t, err)
+	assert.Equal(t, 0, resp.Accepted)
+	require.Len(t, resp.Skipped, 2)
+	assert.Equal(t, "duplicate_uuid", resp.Skipped[0].Reason)
+	assert.Equal(t, "duplicate_uuid", resp.Skipped[1].Reason)
 }
 
 func TestNodeReportServerError(t *testing.T) {

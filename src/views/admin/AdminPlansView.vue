@@ -4,11 +4,13 @@
  * 数据:GET/POST/PUT/DELETE /admin/plans + GET /admin/server-groups(docs/api/README.md §16)
  */
 import { onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { apiAdmin } from '@/api/admin'
 import type { AdminPlanItem, AdminPlanReq, AdminServerGroupItem } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { useMessage, useDialog } from 'naive-ui'
 
+const { t } = useI18n()
 const message = useMessage()
 const dialog = useDialog()
 
@@ -89,17 +91,17 @@ function openEdit(p: AdminPlanItem) {
 
 async function save() {
   if (!form.name.trim()) {
-    message.warning('请输入套餐名称')
+    message.warning(t('adminPlans.enterName'))
     return
   }
   saving.value = true
   try {
     if (editingId.value === null) {
       await apiAdmin.createPlan({ ...form })
-      message.success('套餐已创建')
+      message.success(t('adminPlans.created'))
     } else {
       await apiAdmin.updatePlan(editingId.value, { ...form })
-      message.success('套餐已更新')
+      message.success(t('adminPlans.updated'))
     }
     modal.value = false
     void load()
@@ -110,13 +112,13 @@ async function save() {
 
 function remove(p: AdminPlanItem) {
   dialog.warning({
-    title: '删除套餐',
-    content: `确定删除套餐「${p.name}」吗?该操作不可恢复。`,
-    positiveText: '删除',
-    negativeText: '取消',
+    title: t('adminPlans.deleteTitle'),
+    content: t('adminPlans.deleteConfirm', { name: p.name }),
+    positiveText: t('adminPlans.delete'),
+    negativeText: t('common.cancel'),
     onPositiveClick: async () => {
       await apiAdmin.deletePlan(p.id)
-      message.success('已删除')
+      message.success(t('adminPlans.deleted'))
       void load()
     },
   })
@@ -131,14 +133,14 @@ onMounted(() => void load())
 
 <template>
   <div>
-    <PageHeader title="套餐管理" subtitle="上架/隐藏套餐与周期定价">
+    <PageHeader :title="t('adminPlans.pageTitle')" :subtitle="t('adminPlans.subtitle')">
       <template #actions>
         <div class="flex items-center gap-2">
           <button class="btn-soft-neutral h-9 px-3 text-14" @click="load">
-            <AppIcon name="refresh" :size="15" /> 刷新
+            <AppIcon name="refresh" :size="15" /> {{ t('common.refresh') }}
           </button>
           <button class="btn-primary h-9 px-4 text-14" @click="openCreate">
-            <AppIcon name="plus" :size="15" /> 新建套餐
+            <AppIcon name="plus" :size="15" /> {{ t('adminPlans.newPlan') }}
           </button>
         </div>
       </template>
@@ -150,17 +152,17 @@ onMounted(() => void load())
           <thead>
             <tr>
               <th>ID</th>
-              <th>名称</th>
-              <th>月付</th>
-              <th>季付</th>
-              <th>半年</th>
-              <th>年付</th>
-              <th>一次性</th>
-              <th>流量</th>
-              <th>设备数</th>
-              <th>状态</th>
-              <th>排序</th>
-              <th>操作</th>
+              <th>{{ t('adminPlans.name') }}</th>
+              <th>{{ t('adminPlans.month') }}</th>
+              <th>{{ t('adminPlans.quarter') }}</th>
+              <th>{{ t('adminPlans.halfYear') }}</th>
+              <th>{{ t('adminPlans.year') }}</th>
+              <th>{{ t('adminPlans.onetime') }}</th>
+              <th>{{ t('adminPlans.traffic') }}</th>
+              <th>{{ t('adminPlans.devices') }}</th>
+              <th>{{ t('adminPlans.status') }}</th>
+              <th>{{ t('adminPlans.sort') }}</th>
+              <th>{{ t('common.action') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -173,24 +175,26 @@ onMounted(() => void load())
               <td class="num-font">{{ price(p.year_price) }}</td>
               <td class="num-font">{{ price(p.onetime_price) }}</td>
               <td>{{ p.traffic_gb }} GB</td>
-              <td>{{ p.device_limit ?? '不限' }}</td>
+              <td>{{ p.device_limit ?? t('adminPlans.unlimited') }}</td>
               <td>
                 <StatusBadge :type="p.is_show ? 'success' : 'neutral'">
-                  {{ p.is_show ? '上架' : '隐藏' }}
+                  {{ p.is_show ? t('adminPlans.onSale') : t('adminPlans.hidden') }}
                 </StatusBadge>
               </td>
               <td class="num-font">{{ p.sort }}</td>
               <td>
                 <div class="flex gap-2">
                   <button class="btn-soft-primary h-7 px-3 text-14" @click="openEdit(p)">
-                    编辑
+                    {{ t('adminPlans.edit') }}
                   </button>
-                  <button class="btn-danger h-7 px-3 text-14" @click="remove(p)">删除</button>
+                  <button class="btn-danger h-7 px-3 text-14" @click="remove(p)">
+                    {{ t('adminPlans.delete') }}
+                  </button>
                 </div>
               </td>
             </tr>
             <tr v-if="!loading && list.length === 0">
-              <td colspan="12"><EmptyState text="暂无套餐" /></td>
+              <td colspan="12"><EmptyState :text="t('adminPlans.empty')" /></td>
             </tr>
           </tbody>
         </n-table>
@@ -201,67 +205,69 @@ onMounted(() => void load())
     <n-modal
       v-model:show="modal"
       preset="card"
-      :title="editingId === null ? '新建套餐' : '编辑套餐'"
+      :title="editingId === null ? t('adminPlans.createTitle') : t('adminPlans.editTitle')"
       style="width: 560px"
     >
       <n-form label-placement="top">
         <div class="grid grid-cols-2 gap-x-4">
-          <n-form-item label="名称">
-            <n-input v-model:value="form.name" placeholder="套餐名称" />
+          <n-form-item :label="t('adminPlans.name')">
+            <n-input v-model:value="form.name" :placeholder="t('adminPlans.namePlaceholder')" />
           </n-form-item>
-          <n-form-item label="流量(GB)">
+          <n-form-item :label="t('adminPlans.trafficLabel')">
             <n-input-number v-model:value="form.traffic_gb" :min="0" class="w-full" />
           </n-form-item>
-          <n-form-item label="月付(元)">
+          <n-form-item :label="t('adminPlans.monthLabel')">
             <n-input-number v-model:value="form.month_price" :min="0" class="w-full" />
           </n-form-item>
-          <n-form-item label="季付(元)">
+          <n-form-item :label="t('adminPlans.quarterLabel')">
             <n-input-number v-model:value="form.quarter_price" :min="0" class="w-full" />
           </n-form-item>
-          <n-form-item label="半年付(元)">
+          <n-form-item :label="t('adminPlans.halfYearLabel')">
             <n-input-number v-model:value="form.half_year_price" :min="0" class="w-full" />
           </n-form-item>
-          <n-form-item label="年付(元)">
+          <n-form-item :label="t('adminPlans.yearLabel')">
             <n-input-number v-model:value="form.year_price" :min="0" class="w-full" />
           </n-form-item>
-          <n-form-item label="一次性(元)">
+          <n-form-item :label="t('adminPlans.onetimeLabel')">
             <n-input-number v-model:value="form.onetime_price" :min="0" class="w-full" />
           </n-form-item>
-          <n-form-item label="设备数限制">
+          <n-form-item :label="t('adminPlans.deviceLimitLabel')">
             <n-input-number v-model:value="form.device_limit" :min="0" class="w-full" />
           </n-form-item>
-          <n-form-item label="限速(Mbps)">
+          <n-form-item :label="t('adminPlans.speedLimitLabel')">
             <n-input-number v-model:value="form.speed_limit" :min="0" class="w-full" />
           </n-form-item>
-          <n-form-item label="排序">
+          <n-form-item :label="t('adminPlans.sortLabel')">
             <n-input-number v-model:value="form.sort" class="w-full" />
           </n-form-item>
         </div>
-        <n-form-item label="可见节点分组">
+        <n-form-item :label="t('adminPlans.groupsLabel')">
           <n-select
             v-model:value="form.group_ids"
             multiple
             :options="groups.map((g) => ({ label: g.name, value: g.id }))"
-            placeholder="不选则对全部用户开放"
+            :placeholder="t('adminPlans.groupsPlaceholder')"
           />
         </n-form-item>
-        <n-form-item label="上架">
+        <n-form-item :label="t('adminPlans.onSaleLabel')">
           <n-switch v-model:value="form.is_show" />
         </n-form-item>
-        <n-form-item label="内容说明(Markdown)">
+        <n-form-item :label="t('adminPlans.contentLabel')">
           <n-input
             v-model:value="form.content"
             type="textarea"
             :rows="3"
-            placeholder="套餐卖点,支持 Markdown"
+            :placeholder="t('adminPlans.contentPlaceholder')"
           />
         </n-form-item>
       </n-form>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <button class="btn-soft-neutral h-9 px-4 text-14" @click="modal = false">取消</button>
+          <button class="btn-soft-neutral h-9 px-4 text-14" @click="modal = false">
+            {{ t('common.cancel') }}
+          </button>
           <button class="btn-primary h-9 px-4 text-14" :disabled="saving" @click="save">
-            保存
+            {{ t('common.save') }}
           </button>
         </div>
       </template>

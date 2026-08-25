@@ -4,11 +4,13 @@
  * 数据:GET /admin/commission-logs(docs/api/README.md §16.1)
  */
 import { onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { apiAdmin } from '@/api/admin'
 import type { AdminCommissionItem, CommissionStatus } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { formatMoney, formatTime } from '@/utils/format'
 
+const { t } = useI18n()
 const loading = ref(false)
 const list = ref<AdminCommissionItem[]>([])
 const total = ref(0)
@@ -16,13 +18,18 @@ const page = ref(1)
 const pageSize = 10
 const statusFilter = ref<'' | CommissionStatus>('')
 
-const STATUS_TEXT: Record<
-  CommissionStatus,
-  { text: string; type: 'warning' | 'success' | 'danger' }
-> = {
-  0: { text: '确认中', type: 'warning' },
-  1: { text: '已发放', type: 'success' },
-  2: { text: '已撤销', type: 'danger' },
+const STATUS_KEY: Record<CommissionStatus, string> = {
+  0: 'adminCommissionLogs.confirming',
+  1: 'adminCommissionLogs.paid',
+  2: 'adminCommissionLogs.revoked',
+}
+
+function statusText(status: CommissionStatus): string {
+  return t(STATUS_KEY[status])
+}
+
+function statusType(status: CommissionStatus): 'warning' | 'success' | 'danger' {
+  return status === 0 ? 'warning' : status === 1 ? 'success' : 'danger'
 }
 
 async function load() {
@@ -55,17 +62,20 @@ onMounted(() => void load())
 
 <template>
   <div>
-    <PageHeader title="佣金日志" subtitle="邀请佣金的发放与回滚记录(含邀请人与被邀请人)">
+    <PageHeader
+      :title="t('adminCommissionLogs.title')"
+      :subtitle="t('adminCommissionLogs.subtitle')"
+    >
       <template #actions>
         <div class="flex items-center gap-2">
           <n-radio-group v-model:value="statusFilter" @update:value="onFilter">
-            <n-radio-button :value="''">全部</n-radio-button>
-            <n-radio-button :value="0">确认中</n-radio-button>
-            <n-radio-button :value="1">已发放</n-radio-button>
-            <n-radio-button :value="2">已撤销</n-radio-button>
+            <n-radio-button :value="''">{{ t('adminCommissionLogs.all') }}</n-radio-button>
+            <n-radio-button :value="0">{{ t('adminCommissionLogs.confirming') }}</n-radio-button>
+            <n-radio-button :value="1">{{ t('adminCommissionLogs.paid') }}</n-radio-button>
+            <n-radio-button :value="2">{{ t('adminCommissionLogs.revoked') }}</n-radio-button>
           </n-radio-group>
           <button class="btn-soft-neutral h-9 px-3 text-14" @click="load">
-            <AppIcon name="refresh" :size="15" /> 刷新
+            <AppIcon name="refresh" :size="15" /> {{ t('common.refresh') }}
           </button>
         </div>
       </template>
@@ -77,15 +87,15 @@ onMounted(() => void load())
           <thead>
             <tr>
               <th>ID</th>
-              <th>邀请人</th>
-              <th>被邀请人</th>
-              <th>订单号</th>
-              <th>订单金额(元)</th>
-              <th>比例</th>
-              <th>佣金(元)</th>
-              <th>状态</th>
-              <th>确认时间</th>
-              <th>创建时间</th>
+              <th>{{ t('adminCommissionLogs.inviter') }}</th>
+              <th>{{ t('adminCommissionLogs.invitee') }}</th>
+              <th>{{ t('adminCommissionLogs.orderNo') }}</th>
+              <th>{{ t('adminCommissionLogs.orderAmount') }}</th>
+              <th>{{ t('adminCommissionLogs.rate') }}</th>
+              <th>{{ t('adminCommissionLogs.amount') }}</th>
+              <th>{{ t('adminCommissionLogs.status') }}</th>
+              <th>{{ t('adminCommissionLogs.confirmedAt') }}</th>
+              <th>{{ t('adminCommissionLogs.createdAt') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -100,8 +110,8 @@ onMounted(() => void load())
                 {{ formatMoney(c.amount) }}
               </td>
               <td>
-                <StatusBadge :type="STATUS_TEXT[c.status]?.type ?? 'neutral'">
-                  {{ STATUS_TEXT[c.status]?.text ?? c.status }}
+                <StatusBadge :type="statusType(c.status)">
+                  {{ statusText(c.status) }}
                 </StatusBadge>
               </td>
               <td class="text-14 text-[var(--c-text-sub)]">
@@ -110,7 +120,7 @@ onMounted(() => void load())
               <td class="text-14 text-[var(--c-text-sub)]">{{ formatTime(c.created_at) }}</td>
             </tr>
             <tr v-if="!loading && list.length === 0">
-              <td colspan="10"><EmptyState text="暂无佣金记录" /></td>
+              <td colspan="10"><EmptyState :text="t('adminCommissionLogs.empty')" /></td>
             </tr>
           </tbody>
         </n-table>

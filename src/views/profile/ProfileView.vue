@@ -167,7 +167,9 @@ onMounted(() => {
                 <div class="text-14 font-500 text-[var(--c-text)]">
                   {{ t('profile.remindExpire') }}
                 </div>
-                <div class="text-14 text-[var(--c-text-sub)]">订阅到期前邮件提醒</div>
+                <div class="text-14 text-[var(--c-text-sub)]">
+                  {{ t('profile.remindExpireDesc') }}
+                </div>
               </div>
               <n-switch v-model:value="remindExpire" @update:value="onNotifyChange" />
             </div>
@@ -176,7 +178,9 @@ onMounted(() => {
                 <div class="text-14 font-500 text-[var(--c-text)]">
                   {{ t('profile.remindTraffic') }}
                 </div>
-                <div class="text-14 text-[var(--c-text-sub)]">流量不足 20% 时邮件提醒</div>
+                <div class="text-14 text-[var(--c-text-sub)]">
+                  {{ t('profile.remindTrafficDesc') }}
+                </div>
               </div>
               <n-switch v-model:value="remindTraffic" @update:value="onNotifyChange" />
             </div>

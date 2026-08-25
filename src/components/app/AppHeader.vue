@@ -30,8 +30,8 @@ function goProfile() {
 
 function onLogout() {
   dialog.warning({
-    title: '退出登录',
-    content: '确定要退出当前账号吗?',
+    title: t('common.logout'),
+    content: t('common.logoutConfirm'),
     positiveText: t('common.confirm'),
     negativeText: t('common.cancel'),
     onPositiveClick: async () => {
@@ -84,13 +84,13 @@ function onLogout() {
         :options="[
           ...(auth.isAdmin
             ? [
-                { label: '管理后台', key: 'admin' },
+                { label: t('nav.groupAdmin'), key: 'admin' },
                 { type: 'divider', key: 'd0' },
               ]
             : []),
-          { label: '个人信息', key: 'profile' },
+          { label: t('nav.profile'), key: 'profile' },
           { type: 'divider', key: 'd1' },
-          { label: '退出登录', key: 'logout' },
+          { label: t('common.logout'), key: 'logout' },
         ]"
         @select="
           (k: string) => {

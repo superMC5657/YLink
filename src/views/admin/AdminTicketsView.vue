@@ -4,11 +4,13 @@
  * 数据:GET /admin/tickets、GET /admin/tickets/{id}、POST reply|close(docs/api/README.md §16)
  */
 import { onMounted, ref, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { apiAdmin } from '@/api/admin'
 import type { AdminTicketDetail, AdminTicketItem, TicketLevel, TicketStatus } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { useMessage, useDialog } from 'naive-ui'
 
+const { t } = useI18n()
 const message = useMessage()
 const dialog = useDialog()
 
@@ -26,19 +28,32 @@ const replyText = ref('')
 const sending = ref(false)
 const msgListRef = ref<HTMLElement | null>(null)
 
-const LEVEL_LABEL: Record<TicketLevel, { text: string; type: 'neutral' | 'warning' | 'danger' }> = {
-  0: { text: '低', type: 'neutral' },
-  1: { text: '中', type: 'warning' },
-  2: { text: '高', type: 'danger' },
+const LEVEL_KEY: Record<TicketLevel, string> = {
+  0: 'adminTickets.low',
+  1: 'adminTickets.medium',
+  2: 'adminTickets.high',
 }
 
-const STATUS_LABEL: Record<
-  TicketStatus,
-  { text: string; type: 'warning' | 'primary' | 'neutral' }
-> = {
-  0: { text: '待回复', type: 'warning' },
-  1: { text: '已回复', type: 'primary' },
-  2: { text: '已关闭', type: 'neutral' },
+const STATUS_KEY: Record<TicketStatus, string> = {
+  0: 'adminTickets.pending',
+  1: 'adminTickets.replied',
+  2: 'adminTickets.closed',
+}
+
+function levelText(level: TicketLevel): string {
+  return t(LEVEL_KEY[level])
+}
+
+function levelType(level: TicketLevel): 'neutral' | 'warning' | 'danger' {
+  return level === 0 ? 'neutral' : level === 1 ? 'warning' : 'danger'
+}
+
+function statusText(status: TicketStatus): string {
+  return t(STATUS_KEY[status])
+}
+
+function statusType(status: TicketStatus): 'warning' | 'primary' | 'neutral' {
+  return status === 0 ? 'warning' : status === 1 ? 'primary' : 'neutral'
 }
 
 async function load() {
@@ -85,7 +100,7 @@ async function sendReply() {
     detail.value = await apiAdmin.ticketDetail(detail.value.id)
     replyText.value = ''
     scrollToBottom()
-    message.success('回复成功')
+    message.success(t('adminTickets.replySuccess'))
     void load()
   } catch (e) {
     message.error((e as Error).message)
@@ -97,13 +112,13 @@ async function sendReply() {
 function onClose() {
   if (!detail.value) return
   dialog.warning({
-    title: '关闭工单',
-    content: '确定关闭该工单吗?关闭后用户无法继续回复。',
-    positiveText: '关闭',
-    negativeText: '取消',
+    title: t('adminTickets.closeTitle'),
+    content: t('adminTickets.closeConfirm'),
+    positiveText: t('adminTickets.closeBtn'),
+    negativeText: t('common.cancel'),
     onPositiveClick: async () => {
       await apiAdmin.closeTicket(detail.value!.id)
-      message.success('工单已关闭')
+      message.success(t('adminTickets.closeSuccess'))
       detail.value = await apiAdmin.ticketDetail(detail.value!.id)
       void load()
     },
@@ -115,10 +130,10 @@ onMounted(() => void load())
 
 <template>
   <div>
-    <PageHeader title="工单管理" subtitle="全量工单(含发起用户)/ 客服回复 / 关闭">
+    <PageHeader :title="t('adminTickets.title')" :subtitle="t('adminTickets.subtitle')">
       <template #actions>
         <button class="btn-soft-neutral h-9 px-3 text-14" @click="load">
-          <AppIcon name="refresh" :size="15" /> 刷新
+          <AppIcon name="refresh" :size="15" /> {{ t('common.refresh') }}
         </button>
       </template>
     </PageHeader>
@@ -129,46 +144,46 @@ onMounted(() => void load())
           <thead>
             <tr>
               <th>ID</th>
-              <th>用户</th>
-              <th>主题</th>
-              <th>优先级</th>
-              <th>状态</th>
-              <th>最后回复</th>
-              <th>创建时间</th>
-              <th>操作</th>
+              <th>{{ t('adminTickets.user') }}</th>
+              <th>{{ t('adminTickets.subject') }}</th>
+              <th>{{ t('adminTickets.level') }}</th>
+              <th>{{ t('adminTickets.status') }}</th>
+              <th>{{ t('adminTickets.lastReply') }}</th>
+              <th>{{ t('adminTickets.createdAt') }}</th>
+              <th>{{ t('common.action') }}</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="t in list" :key="t.id">
-              <td>{{ t.id }}</td>
-              <td class="text-14 text-[var(--c-text-sub)]">{{ t.user_email }}</td>
-              <td class="max-w-60 truncate font-500 text-[var(--c-text)]">{{ t.subject }}</td>
+            <tr v-for="tk in list" :key="tk.id">
+              <td>{{ tk.id }}</td>
+              <td class="text-14 text-[var(--c-text-sub)]">{{ tk.user_email }}</td>
+              <td class="max-w-60 truncate font-500 text-[var(--c-text)]">{{ tk.subject }}</td>
               <td>
-                <StatusBadge :type="LEVEL_LABEL[t.level]?.type ?? 'neutral'">
-                  {{ LEVEL_LABEL[t.level]?.text ?? t.level }}
+                <StatusBadge :type="levelType(tk.level)">
+                  {{ levelText(tk.level) }}
                 </StatusBadge>
               </td>
               <td>
-                <StatusBadge :type="STATUS_LABEL[t.status]?.type ?? 'neutral'">
-                  {{ STATUS_LABEL[t.status]?.text ?? t.status }}
+                <StatusBadge :type="statusType(tk.status)">
+                  {{ statusText(tk.status) }}
                 </StatusBadge>
               </td>
               <td class="text-14 text-[var(--c-text-sub)]">
-                {{ t.last_reply_at ? t.last_reply_at.slice(0, 16).replace('T', ' ') : '-' }}
+                {{ tk.last_reply_at ? tk.last_reply_at.slice(0, 16).replace('T', ' ') : '-' }}
               </td>
               <td class="text-14 text-[var(--c-text-sub)]">
-                {{ t.created_at.slice(0, 16).replace('T', ' ') }}
+                {{ tk.created_at.slice(0, 16).replace('T', ' ') }}
               </td>
               <td>
                 <div class="flex">
-                  <button class="btn-soft-blue h-7 px-3 text-14" @click="openDetail(t)">
-                    查看
+                  <button class="btn-soft-blue h-7 px-3 text-14" @click="openDetail(tk)">
+                    {{ t('adminTickets.view') }}
                   </button>
                 </div>
               </td>
             </tr>
             <tr v-if="!loading && list.length === 0">
-              <td colspan="8"><EmptyState text="暂无工单" /></td>
+              <td colspan="8"><EmptyState :text="t('adminTickets.empty')" /></td>
             </tr>
           </tbody>
         </n-table>
@@ -195,11 +210,15 @@ onMounted(() => void load())
             {{ detail?.subject }}
           </div>
           <div v-if="detail" class="mt-1 flex items-center gap-2">
-            <StatusBadge :type="STATUS_LABEL[detail.status]?.type ?? 'neutral'">
-              {{ STATUS_LABEL[detail.status]?.text ?? detail.status }}
+            <StatusBadge :type="statusType(detail.status)">
+              {{ statusText(detail.status) }}
             </StatusBadge>
             <span class="text-14 text-[var(--c-text-sub)]">
-              创建于 {{ detail.created_at.slice(0, 16).replace('T', ' ') }}
+              {{
+                t('adminTickets.created', {
+                  time: detail.created_at.slice(0, 16).replace('T', ' '),
+                })
+              }}
             </span>
           </div>
         </div>
@@ -237,7 +256,9 @@ onMounted(() => void load())
             >
               <div class="mb-1 flex items-center justify-between gap-3">
                 <span class="text-14 font-500">
-                  {{ m.sender_type === 0 ? '用户' : '客服' }}
+                  {{
+                    m.sender_type === 0 ? t('adminTickets.userRole') : t('adminTickets.agentRole')
+                  }}
                 </span>
                 <span class="text-14 opacity-60">
                   {{ m.created_at.slice(0, 16).replace('T', ' ') }}
@@ -246,7 +267,7 @@ onMounted(() => void load())
               <div class="whitespace-pre-wrap">{{ m.message }}</div>
             </div>
           </div>
-          <EmptyState v-if="detail.messages.length === 0" text="暂无消息" />
+          <EmptyState v-if="detail.messages.length === 0" :text="t('adminTickets.emptyMessages')" />
         </div>
       </n-spin>
 
@@ -257,18 +278,20 @@ onMounted(() => void load())
           type="textarea"
           :rows="3"
           :disabled="isClosed()"
-          :placeholder="isClosed() ? '工单已关闭,无法回复' : '输入回复内容…'"
+          :placeholder="
+            isClosed() ? t('adminTickets.closedPlaceholder') : t('adminTickets.replyPlaceholder')
+          "
         />
         <div class="mt-3 flex justify-end gap-2">
           <button class="btn-soft-danger h-9 px-4 text-14" :disabled="isClosed()" @click="onClose">
-            {{ isClosed() ? '已关闭' : '关闭工单' }}
+            {{ isClosed() ? t('adminTickets.closedBtn') : t('adminTickets.closeTicket') }}
           </button>
           <button
             class="btn-primary h-9 px-5 text-14"
             :disabled="sending || isClosed() || !replyText.trim()"
             @click="sendReply"
           >
-            回复
+            {{ t('adminTickets.reply') }}
           </button>
         </div>
       </div>

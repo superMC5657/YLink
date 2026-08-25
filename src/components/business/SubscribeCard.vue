@@ -133,7 +133,7 @@ const expireBadge = computed(() => {
           class="text-14 font-600"
           :style="{ color: sub?.is_expired ? 'var(--c-danger)' : 'var(--c-success)' }"
         >
-          {{ sub?.is_expired ? '是' : '否' }}
+          {{ sub?.is_expired ? t('common.yes') : t('common.no') }}
         </span>
       </div>
     </div>

@@ -100,7 +100,7 @@ onBeforeUnmount(() => orderStore.stopPolling())
             { label: t('common.cancelled'), value: 2 },
             { label: t('common.refunded'), value: 3 },
           ]"
-          placeholder="全部"
+          :placeholder="t('order.all')"
           clearable
           @update:value="
             (v: number | null) => {

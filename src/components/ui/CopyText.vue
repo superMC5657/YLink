@@ -31,7 +31,7 @@ async function onCopy() {
     if (!props.silent) message.success(t('common.copied'))
     setTimeout(() => (copied.value = false), 1500)
   } else if (!props.silent) {
-    message.error('复制失败')
+    message.error(t('common.copyFailed'))
   }
 }
 

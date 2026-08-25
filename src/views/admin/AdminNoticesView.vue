@@ -4,12 +4,14 @@
  * 数据:GET/POST/PUT/DELETE /admin/notices(docs/api/README.md §16.1)
  */
 import { onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { apiAdmin } from '@/api/admin'
 import type { AdminNoticeItem, AdminNoticeReq } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { useMessage, useDialog } from 'naive-ui'
 import { formatTime } from '@/utils/format'
 
+const { t } = useI18n()
 const message = useMessage()
 const dialog = useDialog()
 
@@ -51,21 +53,21 @@ function openEdit(n: AdminNoticeItem) {
 
 async function save() {
   if (!form.title.trim()) {
-    message.warning('请输入公告标题')
+    message.warning(t('adminNotices.enterTitle'))
     return
   }
   if (!form.content.trim()) {
-    message.warning('请输入公告内容')
+    message.warning(t('adminNotices.enterContent'))
     return
   }
   saving.value = true
   try {
     if (editingId.value === null) {
       await apiAdmin.createNotice({ ...form })
-      message.success('公告已创建')
+      message.success(t('adminNotices.created'))
     } else {
       await apiAdmin.updateNotice(editingId.value, { ...form })
-      message.success('公告已更新')
+      message.success(t('adminNotices.updated'))
     }
     modal.value = false
     void load()
@@ -76,13 +78,13 @@ async function save() {
 
 function remove(n: AdminNoticeItem) {
   dialog.warning({
-    title: '删除公告',
-    content: `确定删除公告「${n.title}」吗?该操作不可恢复。`,
-    positiveText: '删除',
-    negativeText: '取消',
+    title: t('adminNotices.deleteTitle'),
+    content: t('adminNotices.deleteConfirm', { title: n.title }),
+    positiveText: t('adminNotices.delete'),
+    negativeText: t('common.cancel'),
     onPositiveClick: async () => {
       await apiAdmin.deleteNotice(n.id)
-      message.success('已删除')
+      message.success(t('adminNotices.deleted'))
       void load()
     },
   })
@@ -93,14 +95,14 @@ onMounted(() => void load())
 
 <template>
   <div>
-    <PageHeader title="公告管理" subtitle="仪表板公告的发布、隐藏与删除">
+    <PageHeader :title="t('adminNotices.pageTitle')" :subtitle="t('adminNotices.subtitle')">
       <template #actions>
         <div class="flex items-center gap-2">
           <button class="btn-soft-neutral h-9 px-3 text-14" @click="load">
-            <AppIcon name="refresh" :size="15" /> 刷新
+            <AppIcon name="refresh" :size="15" /> {{ t('common.refresh') }}
           </button>
           <button class="btn-primary h-9 px-4 text-14" @click="openCreate">
-            <AppIcon name="plus" :size="15" /> 发布公告
+            <AppIcon name="plus" :size="15" /> {{ t('adminNotices.publish') }}
           </button>
         </div>
       </template>
@@ -112,12 +114,12 @@ onMounted(() => void load())
           <thead>
             <tr>
               <th>ID</th>
-              <th>标题</th>
-              <th>内容</th>
-              <th>状态</th>
-              <th>排序</th>
-              <th>创建时间</th>
-              <th>操作</th>
+              <th>{{ t('adminNotices.title') }}</th>
+              <th>{{ t('adminNotices.content') }}</th>
+              <th>{{ t('adminNotices.status') }}</th>
+              <th>{{ t('adminNotices.sort') }}</th>
+              <th>{{ t('adminNotices.createdAt') }}</th>
+              <th>{{ t('common.action') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -129,7 +131,7 @@ onMounted(() => void load())
               </td>
               <td>
                 <StatusBadge :type="n.is_show ? 'success' : 'neutral'">
-                  {{ n.is_show ? '展示中' : '已隐藏' }}
+                  {{ n.is_show ? t('adminNotices.showing') : t('adminNotices.hidden') }}
                 </StatusBadge>
               </td>
               <td class="num-font">{{ n.sort }}</td>
@@ -137,14 +139,16 @@ onMounted(() => void load())
               <td>
                 <div class="flex gap-2">
                   <button class="btn-soft-primary h-7 px-3 text-14" @click="openEdit(n)">
-                    编辑
+                    {{ t('adminNotices.edit') }}
                   </button>
-                  <button class="btn-danger h-7 px-3 text-14" @click="remove(n)">删除</button>
+                  <button class="btn-danger h-7 px-3 text-14" @click="remove(n)">
+                    {{ t('adminNotices.delete') }}
+                  </button>
                 </div>
               </td>
             </tr>
             <tr v-if="!loading && list.length === 0">
-              <td colspan="7"><EmptyState text="暂无公告" /></td>
+              <td colspan="7"><EmptyState :text="t('adminNotices.empty')" /></td>
             </tr>
           </tbody>
         </n-table>
@@ -155,35 +159,37 @@ onMounted(() => void load())
     <n-modal
       v-model:show="modal"
       preset="card"
-      :title="editingId === null ? '发布公告' : '编辑公告'"
+      :title="editingId === null ? t('adminNotices.createTitle') : t('adminNotices.editTitle')"
       style="width: 600px"
     >
       <n-form label-placement="top">
         <div class="grid grid-cols-2 gap-x-4">
-          <n-form-item label="标题">
-            <n-input v-model:value="form.title" placeholder="公告标题" />
+          <n-form-item :label="t('adminNotices.title')">
+            <n-input v-model:value="form.title" :placeholder="t('adminNotices.titlePlaceholder')" />
           </n-form-item>
-          <n-form-item label="排序">
+          <n-form-item :label="t('adminNotices.sort')">
             <n-input-number v-model:value="form.sort" class="w-full" />
           </n-form-item>
         </div>
-        <n-form-item label="内容(Markdown)">
+        <n-form-item :label="t('adminNotices.contentLabel')">
           <n-input
             v-model:value="form.content"
             type="textarea"
             :rows="6"
-            placeholder="公告正文,支持 Markdown"
+            :placeholder="t('adminNotices.contentPlaceholder')"
           />
         </n-form-item>
-        <n-form-item label="展示">
+        <n-form-item :label="t('adminNotices.show')">
           <n-switch v-model:value="form.is_show" />
         </n-form-item>
       </n-form>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <button class="btn-soft-neutral h-9 px-4 text-14" @click="modal = false">取消</button>
+          <button class="btn-soft-neutral h-9 px-4 text-14" @click="modal = false">
+            {{ t('common.cancel') }}
+          </button>
           <button class="btn-primary h-9 px-4 text-14" :disabled="saving" @click="save">
-            保存
+            {{ t('common.save') }}
           </button>
         </div>
       </template>

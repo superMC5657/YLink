@@ -60,9 +60,9 @@ onBeforeUnmount(() => server.stopPolling())
               <AppIcon name="server" :size="17" />
             </span>
             <h3 class="text-16 font-600 text-[var(--c-text)]">{{ group.group }}</h3>
-            <span class="ml-auto text-14 text-[var(--c-text-sub)]"
-              >{{ group.servers.length }} 节点</span
-            >
+            <span class="ml-auto text-14 text-[var(--c-text-sub)]">{{
+              t('node.nodeCount', { count: group.servers.length })
+            }}</span>
           </div>
 
           <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

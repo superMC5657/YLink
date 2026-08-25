@@ -131,10 +131,10 @@ function openPayment(method: string) {
               {{
                 detail.pay_method
                   ? detail.pay_method === 'balance'
-                    ? '余额支付'
+                    ? t('order.payMethodBalance')
                     : detail.pay_method === 'epay_alipay'
-                      ? '支付宝'
-                      : '微信支付'
+                      ? t('order.payMethodAlipay')
+                      : t('order.payMethodWxpay')
                   : '-'
               }}
             </span>
@@ -156,9 +156,9 @@ function openPayment(method: string) {
             <div class="grid grid-cols-3 gap-2">
               <button
                 v-for="m in [
-                  { code: 'epay_alipay', name: '支付宝', icon: 'credit' },
-                  { code: 'epay_wxpay', name: '微信支付', icon: 'credit' },
-                  { code: 'balance', name: '余额支付', icon: 'wallet' },
+                  { code: 'epay_alipay', name: t('order.payMethodAlipay'), icon: 'credit' },
+                  { code: 'epay_wxpay', name: t('order.payMethodWxpay'), icon: 'credit' },
+                  { code: 'balance', name: t('order.payMethodBalance'), icon: 'wallet' },
                 ]"
                 :key="m.code"
                 class="flex cursor-pointer flex-col items-center gap-1 rounded-xl border py-3 transition-colors"

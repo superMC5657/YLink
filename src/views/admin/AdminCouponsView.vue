@@ -4,12 +4,14 @@
  * 数据:GET/POST/PUT/DELETE /admin/coupons + GET /admin/plans(docs/api/README.md §16.1)
  */
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { apiAdmin } from '@/api/admin'
 import type { AdminCouponItem, AdminCouponReq, AdminNoticeReq, AdminPlanItem } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { useMessage, useDialog } from 'naive-ui'
 import { formatTime } from '@/utils/format'
 
+const { t } = useI18n()
 const message = useMessage()
 const dialog = useDialog()
 
@@ -18,11 +20,11 @@ const list = ref<AdminCouponItem[]>([])
 const plans = ref<AdminPlanItem[]>([])
 
 const PERIODS = [
-  { value: 'month', label: '月付' },
-  { value: 'quarter', label: '季付' },
-  { value: 'half_year', label: '半年付' },
-  { value: 'year', label: '年付' },
-  { value: 'onetime', label: '一次性' },
+  { value: 'month', labelKey: 'adminCoupons.month' },
+  { value: 'quarter', labelKey: 'adminCoupons.quarter' },
+  { value: 'half_year', labelKey: 'adminCoupons.halfYear' },
+  { value: 'year', labelKey: 'adminCoupons.year' },
+  { value: 'onetime', labelKey: 'adminCoupons.onetime' },
 ]
 
 // 新建/编辑弹窗
@@ -51,16 +53,17 @@ const noticeForm = reactive<AdminNoticeReq>({ title: '', content: '', is_show: t
 
 /** 依据优惠券生成公告草稿（优惠码用反引号包裹，用户端 NoticePanel 渲染为高亮可复制 chip） */
 function buildNoticeDraft(c: AdminCouponItem) {
-  const discount = c.type === 1 ? `立减 ${c.value.toFixed(2)} 元` : `享 ${c.value}% 折扣`
-  const gate = c.min_spend > 0 ? `（满 ${c.min_spend.toFixed(2)} 元可用）` : ''
+  const discount =
+    c.type === 1
+      ? t('adminCoupons.draftDiscountFixed', { amount: c.value.toFixed(2) })
+      : t('adminCoupons.draftDiscountPercent', { value: c.value })
+  const gate =
+    c.min_spend > 0 ? t('adminCoupons.draftGate', { amount: c.min_spend.toFixed(2) }) : ''
   const period = periodText(c.valid_periods)
   const plan = planText(c.plan_ids)
   return {
-    title: `限时福利:优惠码 ${c.code}`,
-    content:
-      `## 限时福利\n\n` +
-      `使用优惠码 **${c.code}** 下单${discount}${gate},适用${period}·${plan}。\n\n` +
-      `优惠码:\`${c.code}\`(点击复制,下单时输入或直接点选「可用优惠券」)`,
+    title: t('adminCoupons.draftTitle', { code: c.code }),
+    content: t('adminCoupons.draftBody', { code: c.code, discount, gate, period, plan }),
   }
 }
 
@@ -72,24 +75,26 @@ function openNotice(c: AdminCouponItem) {
 
 async function publishNotice() {
   if (!noticeForm.title.trim()) {
-    message.warning('请输入公告标题')
+    message.warning(t('adminCoupons.enterNoticeTitle'))
     return
   }
   if (!noticeForm.content.trim()) {
-    message.warning('请输入公告内容')
+    message.warning(t('adminCoupons.enterNoticeContent'))
     return
   }
   noticeSaving.value = true
   try {
     await apiAdmin.createNotice({ ...noticeForm })
-    message.success(`公告已发布,用户端仪表板立即可见（含优惠码 ${noticeFrom.value?.code ?? ''}）`)
+    message.success(t('adminCoupons.noticePublished', { code: noticeFrom.value?.code ?? '' }))
     noticeModal.value = false
   } finally {
     noticeSaving.value = false
   }
 }
 
-const typeLabel = computed(() => (form.type === 1 ? '固定金额' : '百分比'))
+const typeLabel = computed(() =>
+  form.type === 1 ? t('adminCoupons.fixed') : t('adminCoupons.percent'),
+)
 
 async function load() {
   loading.value = true
@@ -140,21 +145,21 @@ function openEdit(c: AdminCouponItem) {
 
 async function save() {
   if (!form.code.trim()) {
-    message.warning('请输入优惠码')
+    message.warning(t('adminCoupons.enterCode'))
     return
   }
   if (typeof form.value !== 'number' || form.value <= 0) {
-    message.warning(`请输入${typeLabel.value}金额`)
+    message.warning(t('adminCoupons.enterValue', { type: typeLabel.value }))
     return
   }
   saving.value = true
   try {
     if (editingId.value === null) {
       await apiAdmin.createCoupon({ ...form })
-      message.success('优惠券已创建')
+      message.success(t('adminCoupons.created'))
     } else {
       await apiAdmin.updateCoupon(editingId.value, { ...form })
-      message.success('优惠券已更新')
+      message.success(t('adminCoupons.updated'))
     }
     modal.value = false
     void load()
@@ -165,13 +170,13 @@ async function save() {
 
 function remove(c: AdminCouponItem) {
   dialog.warning({
-    title: '删除优惠券',
-    content: `确定删除优惠券「${c.code}」吗?该操作不可恢复。`,
-    positiveText: '删除',
-    negativeText: '取消',
+    title: t('adminCoupons.deleteTitle'),
+    content: t('adminCoupons.deleteConfirm', { code: c.code }),
+    positiveText: t('adminCoupons.delete'),
+    negativeText: t('common.cancel'),
     onPositiveClick: async () => {
       await apiAdmin.deleteCoupon(c.id)
-      message.success('已删除')
+      message.success(t('adminCoupons.deleted'))
       void load()
     },
   })
@@ -182,18 +187,21 @@ function discountText(c: AdminCouponItem): string {
 }
 
 function periodText(periods: string[]): string {
-  if (!periods || periods.length === 0) return '全部周期'
-  return periods.map((p) => PERIODS.find((x) => x.value === p)?.label ?? p).join(', ')
+  if (!periods || periods.length === 0) return t('adminCoupons.allPeriods')
+  return periods
+    .map((p) => PERIODS.find((x) => x.value === p)?.labelKey ?? p)
+    .map((k) => t(k))
+    .join(', ')
 }
 
 function planText(ids: number[]): string {
-  if (!ids || ids.length === 0) return '全部套餐'
+  if (!ids || ids.length === 0) return t('adminCoupons.allPlans')
   const names = ids.map((id) => plans.value.find((p) => p.id === id)?.name)
   return names.filter(Boolean).join(', ') || String(ids.length)
 }
 
 function periodOptions() {
-  return PERIODS.map((p) => ({ label: p.label, value: p.value }))
+  return PERIODS.map((p) => ({ label: t(p.labelKey), value: p.value }))
 }
 
 function planOptions() {
@@ -205,14 +213,14 @@ onMounted(() => void load())
 
 <template>
   <div>
-    <PageHeader title="优惠券管理" subtitle="折扣码与满减券的新建、编辑与上下架">
+    <PageHeader :title="t('adminCoupons.pageTitle')" :subtitle="t('adminCoupons.subtitle')">
       <template #actions>
         <div class="flex items-center gap-2">
           <button class="btn-soft-neutral h-9 px-3 text-14" @click="load">
-            <AppIcon name="refresh" :size="15" /> 刷新
+            <AppIcon name="refresh" :size="15" /> {{ t('common.refresh') }}
           </button>
           <button class="btn-primary h-9 px-4 text-14" @click="openCreate">
-            <AppIcon name="plus" :size="15" /> 新建优惠券
+            <AppIcon name="plus" :size="15" /> {{ t('adminCoupons.newCoupon') }}
           </button>
         </div>
       </template>
@@ -224,55 +232,65 @@ onMounted(() => void load())
           <thead>
             <tr>
               <th>ID</th>
-              <th>优惠码</th>
-              <th>类型</th>
-              <th>面值</th>
-              <th>最低消费</th>
-              <th>每人限用</th>
-              <th>总量</th>
-              <th>已用</th>
-              <th>适用周期</th>
-              <th>适用套餐</th>
-              <th>有效期</th>
-              <th>状态</th>
-              <th>操作</th>
+              <th>{{ t('adminCoupons.code') }}</th>
+              <th>{{ t('adminCoupons.type') }}</th>
+              <th>{{ t('adminCoupons.value') }}</th>
+              <th>{{ t('adminCoupons.minSpend') }}</th>
+              <th>{{ t('adminCoupons.perUserLimit') }}</th>
+              <th>{{ t('adminCoupons.total') }}</th>
+              <th>{{ t('adminCoupons.used') }}</th>
+              <th>{{ t('adminCoupons.periods') }}</th>
+              <th>{{ t('adminCoupons.plans') }}</th>
+              <th>{{ t('adminCoupons.validUntil') }}</th>
+              <th>{{ t('adminCoupons.status') }}</th>
+              <th>{{ t('common.action') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="c in list" :key="c.id">
               <td class="num-font">{{ c.id }}</td>
               <td class="font-500 text-[var(--c-text)]">{{ c.code }}</td>
-              <td class="text-14">{{ c.type === 1 ? '固定金额' : '百分比' }}</td>
+              <td class="text-14">
+                {{ c.type === 1 ? t('adminCoupons.fixed') : t('adminCoupons.percent') }}
+              </td>
               <td class="num-font">{{ discountText(c) }}</td>
-              <td class="num-font">{{ c.min_spend > 0 ? `¥${c.min_spend.toFixed(2)}` : '无' }}</td>
-              <td class="num-font">{{ c.limit_per_user > 0 ? c.limit_per_user : '不限' }}</td>
-              <td class="num-font">{{ c.total_limit > 0 ? c.total_limit : '不限' }}</td>
+              <td class="num-font">
+                {{ c.min_spend > 0 ? `¥${c.min_spend.toFixed(2)}` : t('adminCoupons.none') }}
+              </td>
+              <td class="num-font">
+                {{ c.limit_per_user > 0 ? c.limit_per_user : t('adminCoupons.unlimited') }}
+              </td>
+              <td class="num-font">
+                {{ c.total_limit > 0 ? c.total_limit : t('adminCoupons.unlimited') }}
+              </td>
               <td class="num-font">{{ c.used_count }}</td>
               <td class="text-14 text-[var(--c-text-sub)]">{{ periodText(c.valid_periods) }}</td>
               <td class="text-14 text-[var(--c-text-sub)]">{{ planText(c.plan_ids) }}</td>
               <td class="text-14 text-[var(--c-text-sub)]">
-                {{ c.started_at ? formatTime(c.started_at, false) : '不限' }} ~
-                {{ c.ended_at ? formatTime(c.ended_at, false) : '不限' }}
+                {{ c.started_at ? formatTime(c.started_at, false) : t('adminCoupons.unlimited') }} ~
+                {{ c.ended_at ? formatTime(c.ended_at, false) : t('adminCoupons.unlimited') }}
               </td>
               <td>
                 <StatusBadge :type="c.is_enable ? 'success' : 'neutral'">
-                  {{ c.is_enable ? '启用' : '停用' }}
+                  {{ c.is_enable ? t('adminCoupons.enabled') : t('adminCoupons.disabled') }}
                 </StatusBadge>
               </td>
               <td>
                 <div class="flex gap-2">
                   <button class="btn-soft-primary h-7 px-3 text-14" @click="openEdit(c)">
-                    编辑
+                    {{ t('adminCoupons.edit') }}
                   </button>
                   <button class="btn-soft-warning h-7 px-3 text-14" @click="openNotice(c)">
-                    发公告
+                    {{ t('adminCoupons.publishNotice') }}
                   </button>
-                  <button class="btn-danger h-7 px-3 text-14" @click="remove(c)">删除</button>
+                  <button class="btn-danger h-7 px-3 text-14" @click="remove(c)">
+                    {{ t('adminCoupons.delete') }}
+                  </button>
                 </div>
               </td>
             </tr>
             <tr v-if="!loading && list.length === 0">
-              <td colspan="13"><EmptyState text="暂无优惠券" /></td>
+              <td colspan="13"><EmptyState :text="t('adminCoupons.empty')" /></td>
             </tr>
           </tbody>
         </n-table>
@@ -283,41 +301,43 @@ onMounted(() => void load())
     <n-modal
       v-model:show="modal"
       preset="card"
-      :title="editingId === null ? '新建优惠券' : '编辑优惠券'"
+      :title="editingId === null ? t('adminCoupons.createTitle') : t('adminCoupons.editTitle')"
       style="width: 600px"
     >
       <n-form label-placement="top">
         <div class="grid grid-cols-2 gap-x-4">
-          <n-form-item label="优惠码">
-            <n-input v-model:value="form.code" placeholder="如 WELCOME10" />
+          <n-form-item :label="t('adminCoupons.code')">
+            <n-input v-model:value="form.code" :placeholder="t('adminCoupons.codePlaceholder')" />
           </n-form-item>
-          <n-form-item label="类型">
+          <n-form-item :label="t('adminCoupons.type')">
             <n-radio-group v-model:value="form.type">
-              <n-radio-button :value="2">百分比</n-radio-button>
-              <n-radio-button :value="1">固定金额</n-radio-button>
+              <n-radio-button :value="2">{{ t('adminCoupons.percent') }}</n-radio-button>
+              <n-radio-button :value="1">{{ t('adminCoupons.fixed') }}</n-radio-button>
             </n-radio-group>
           </n-form-item>
-          <n-form-item :label="typeLabel === '固定金额' ? '面值(元)' : '折扣(%)'">
+          <n-form-item
+            :label="form.type === 1 ? t('adminCoupons.valueFixed') : t('adminCoupons.valuePercent')"
+          >
             <n-input-number v-model:value="form.value" :min="0" class="w-full" />
           </n-form-item>
-          <n-form-item label="最低消费(元,0=不限)">
+          <n-form-item :label="t('adminCoupons.minSpendLabel')">
             <n-input-number v-model:value="form.min_spend" :min="0" class="w-full" />
           </n-form-item>
-          <n-form-item label="每人限用次数(0=不限)">
+          <n-form-item :label="t('adminCoupons.perUserLimitLabel')">
             <n-input-number v-model:value="form.limit_per_user" :min="0" class="w-full" />
           </n-form-item>
-          <n-form-item label="总发放量(0=不限)">
+          <n-form-item :label="t('adminCoupons.totalLimitLabel')">
             <n-input-number v-model:value="form.total_limit" :min="0" class="w-full" />
           </n-form-item>
         </div>
-        <n-form-item label="适用周期(不选=全部)">
+        <n-form-item :label="t('adminCoupons.periodsLabel')">
           <n-select v-model:value="form.valid_periods" multiple :options="periodOptions()" />
         </n-form-item>
-        <n-form-item label="适用套餐(不选=全部)">
+        <n-form-item :label="t('adminCoupons.plansLabel')">
           <n-select v-model:value="form.plan_ids" multiple :options="planOptions()" />
         </n-form-item>
         <div class="grid grid-cols-2 gap-x-4">
-          <n-form-item label="生效时间(留空=立即)">
+          <n-form-item :label="t('adminCoupons.startedAt')">
             <n-date-picker
               v-model:formatted-value="form.started_at"
               value-format="yyyy-MM-dd'T'HH:mm:ssXXX"
@@ -326,7 +346,7 @@ onMounted(() => void load())
               class="w-full"
             />
           </n-form-item>
-          <n-form-item label="失效时间(留空=长期)">
+          <n-form-item :label="t('adminCoupons.endedAt')">
             <n-date-picker
               v-model:formatted-value="form.ended_at"
               value-format="yyyy-MM-dd'T'HH:mm:ssXXX"
@@ -336,15 +356,17 @@ onMounted(() => void load())
             />
           </n-form-item>
         </div>
-        <n-form-item label="启用">
+        <n-form-item :label="t('adminCoupons.enable')">
           <n-switch v-model:value="form.is_enable" />
         </n-form-item>
       </n-form>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <button class="btn-soft-neutral h-9 px-4 text-14" @click="modal = false">取消</button>
+          <button class="btn-soft-neutral h-9 px-4 text-14" @click="modal = false">
+            {{ t('common.cancel') }}
+          </button>
           <button class="btn-primary h-9 px-4 text-14" :disabled="saving" @click="save">
-            保存
+            {{ t('common.save') }}
           </button>
         </div>
       </template>
@@ -354,41 +376,44 @@ onMounted(() => void load())
     <n-modal
       v-model:show="noticeModal"
       preset="card"
-      :title="`发布公告 · 优惠码 ${noticeFrom?.code ?? ''}`"
+      :title="t('adminCoupons.noticeTitle', { code: noticeFrom?.code ?? '' })"
       style="width: 640px"
     >
       <n-form label-placement="top">
         <div class="grid grid-cols-2 gap-x-4">
-          <n-form-item label="标题">
-            <n-input v-model:value="noticeForm.title" placeholder="公告标题" />
+          <n-form-item :label="t('adminNotices.title')">
+            <n-input
+              v-model:value="noticeForm.title"
+              :placeholder="t('adminCoupons.noticeTitlePlaceholder')"
+            />
           </n-form-item>
-          <n-form-item label="排序">
+          <n-form-item :label="t('adminCoupons.sort')">
             <n-input-number v-model:value="noticeForm.sort" class="w-full" />
           </n-form-item>
         </div>
-        <n-form-item label="内容(Markdown,优惠码用反引号包裹会在用户端高亮可复制)">
+        <n-form-item :label="t('adminCoupons.contentLabel')">
           <n-input
             v-model:value="noticeForm.content"
             type="textarea"
             :rows="7"
-            placeholder="公告正文,支持 Markdown"
+            :placeholder="t('adminCoupons.contentPlaceholder')"
           />
         </n-form-item>
-        <n-form-item label="展示">
+        <n-form-item :label="t('adminCoupons.show')">
           <n-switch v-model:value="noticeForm.is_show" />
         </n-form-item>
       </n-form>
       <template #footer>
         <div class="flex justify-end gap-2">
           <button class="btn-soft-neutral h-9 px-4 text-14" @click="noticeModal = false">
-            取消
+            {{ t('common.cancel') }}
           </button>
           <button
             class="btn-primary h-9 px-4 text-14"
             :disabled="noticeSaving"
             @click="publishNotice"
           >
-            发布公告
+            {{ t('adminCoupons.publish') }}
           </button>
         </div>
       </template>

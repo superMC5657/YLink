@@ -77,9 +77,9 @@ watch(
               style="background: linear-gradient(180deg, #6558f5, #8b5cf6)"
             />
             <h3 class="text-16 font-600 text-[var(--c-text)]">{{ group.category }}</h3>
-            <span class="ml-auto text-14 text-[var(--c-text-sub)]"
-              >{{ group.items.length }} 篇</span
-            >
+            <span class="ml-auto text-14 text-[var(--c-text-sub)]">{{
+              t('docs.itemCount', { count: group.items.length })
+            }}</span>
           </div>
 
           <div v-if="group.items.length" class="divide-y divide-[var(--c-border)]">

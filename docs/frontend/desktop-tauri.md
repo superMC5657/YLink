@@ -28,6 +28,7 @@ src-tauri/
 | `beforeBuildCommand` / `frontendDist` | `pnpm build` / `../dist` | 打包联动 |
 | `app.security.csp` | `default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'` | 接口走 http 插件，无需放宽 connect-src |
 | `bundle.targets` | `nsis`（Win）/ `dmg`（macOS）/ `appimage, deb`（Linux） | 当前为 `"targets": "nsis"`（仅 Windows NSIS，不产 MSI；Android APK 由 `tauri android build` 独立控制，不受此影响） |
+| `bundle.windows.nsis.installerHooks` | `nsis/installer-hooks.nsh` | NSIS 自定义安装/卸载钩子文件已入库（含 4 个 no-op 宏）；当前无自定义逻辑，文件必须保留否则 Windows NSIS 构建失败 |
 | `plugins.updater.endpoints` | 已配置（含 pubkey；endpoints 指向公开产物仓库 `superMC5657/ylink-releases` 的 latest.json，gh-proxy.com 优先 + 直连兑底） | updater 已接入（见 §5）；前端更新卡片已实现（2026-08-12，见 §5） |
 
 ## 3. 插件清单与用途

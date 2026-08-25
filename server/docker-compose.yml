@@ -103,8 +103,10 @@ services:
     depends_on:
       - prometheus
 
-  # 告警通知:SMTP 复用 env_file 的 APP_SMTP_*;收件人 ALERT_EMAIL_TO(未配置默认发 admin@example.com,生产必配)。
-  # entrypoint 用 sed 把模板占位符替换为环境变量(取值含 | 需调整模板分隔符,见 alertmanager.yml.tmpl 注释)。
+  # 告警通知:SMTP 复用 env_file 的 APP_SMTP_HOST/USERNAME/PASSWORD;收件人 ALERT_EMAIL_TO(未配置默认发 admin@example.com,生产必配)。
+  # Alertmanager 只支持 STARTTLS,端口默认 ALERT_SMTP_PORT=587;QQ 465 是隐式 SMTPS,不能直接用。
+  # entrypoint 用 AWK 逐字替换模板占位符,并把值按 YAML 单引号规则转义(单引号 → ''),
+  # 避免用户名/密码含 &、\、|、' 时被 sed/awk 替换语法误解。
   alertmanager:
     profiles: ["obs"]
     container_name: backend-alertmanager
@@ -112,13 +114,34 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
-        sed -e "s|__SMTP_HOST__|$${APP_SMTP_HOST}|g" \
-            -e "s|__SMTP_PORT__|$${APP_SMTP_PORT}|g" \
-            -e "s|__SMTP_USER__|$${APP_SMTP_USERNAME}|g" \
-            -e "s|__SMTP_PASS__|$${APP_SMTP_PASSWORD}|g" \
-            -e "s|__SMTP_FROM__|$${APP_SMTP_USERNAME}|g" \
-            -e "s|__ALERT_TO__|$${ALERT_EMAIL_TO:-admin@example.com}|g" \
-            /etc/alertmanager/alertmanager.yml.tmpl > /etc/alertmanager/alertmanager.yml && \
+        export ALERT_SMTP_HOST="$${ALERT_SMTP_HOST:-$${APP_SMTP_HOST}}"
+        export ALERT_SMTP_PORT="$${ALERT_SMTP_PORT:-587}"
+        export ALERT_SMTP_FROM="$${ALERT_SMTP_FROM:-$${APP_SMTP_USERNAME}}"
+        export ALERT_EMAIL_TO="$${ALERT_EMAIL_TO:-admin@example.com}"
+        awk '
+          function rep(s, token, val,    out, i) {
+            out = ""
+            while ((i = index(s, token)) > 0) {
+              out = out substr(s, 1, i - 1) val
+              s = substr(s, i + length(token))
+            }
+            return out s
+          }
+          function esc(v, o) {
+            o = v
+            gsub(/\047/, "\047\047", o)
+            return o
+          }
+          {
+            $0 = rep($0, "__SMTP_HOST__", esc(ENVIRON["ALERT_SMTP_HOST"]))
+            $0 = rep($0, "__SMTP_PORT__", esc(ENVIRON["ALERT_SMTP_PORT"]))
+            $0 = rep($0, "__SMTP_USER__", esc(ENVIRON["APP_SMTP_USERNAME"]))
+            $0 = rep($0, "__SMTP_PASS__", esc(ENVIRON["APP_SMTP_PASSWORD"]))
+            $0 = rep($0, "__SMTP_FROM__", esc(ENVIRON["ALERT_SMTP_FROM"]))
+            $0 = rep($0, "__ALERT_TO__", esc(ENVIRON["ALERT_EMAIL_TO"]))
+            print
+          }
+        ' /etc/alertmanager/alertmanager.yml.tmpl > /etc/alertmanager/alertmanager.yml && \
         exec /bin/alertmanager --config.file=/etc/alertmanager/alertmanager.yml --storage.path=/alertmanager --log.level=info
     env_file: ${ENV_FILE:-.env.dev}
     volumes:

@@ -2,7 +2,7 @@
 
 > 本文档记录 `server/` 目录 Go/Gin 后端的开发状态,是 docs/backend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-25(**可观测性二期扩展全量落地**,见 §2.4/增强表:worker 指标 `:8082/metrics`(`cron_job_runs_total`/`cron_job_duration_seconds`,WithLock 打点含 panic 捕获)、Prometheus 数据**保留半年**(retention 180d+20GB 兜底,原 15d)、新看板「YLink 基础设施」(cron+机器层)、告警闭环 alertmanager 邮件通知(6 条规则:进程存活/5xx/CPU/内存/磁盘,`ALERT_EMAIL_TO` 收件)、node-exporter 机器指标;obs profile 现含 prometheus+grafana+alertmanager+node-exporter;上一期 2026-08-22 二期流量模式 A 全量落地与 Grafana 首版见下)  
+> 最后更新:2026-08-25(**0.9.0 评审修复**:存量节点共享凭证兼容、节点上报分组校验/重复 UUID 拒绝、demo agent 零基线、Alertmanager STARTTLS+SMTP 转义、NSIS hooks 入库;另含此前可观测性二期扩展全量落地,见下)
 
 ---
 
@@ -124,12 +124,24 @@
 | 项 | 说明 | 位置 |
 |---|---|---|
 | 迁移 0004 | `users.uuid`(gen_random_uuid 回填,每用户订阅凭证)、`servers.node_key`(md5 回填,X-Node-Key)、新表 `node_user_stats`(server_id,user_id,last_u,last_d 快照) | `server/migrations/0004_node_report.*` |
-| 每用户凭证 | 注册即生成 uuid;订阅下发凭证从 servers.config 共享密码/uuid 改为 `users.uuid`(老用户 Generate 懒生成兜底);config 凭证不再下发 | `subscribe_service.go`(toNode/buildNodes)、`auth_service.go` |
+| 每用户凭证 | 注册即生成 uuid;节点 config 显式开启 `per_user_credentials: true` 后订阅下发 `users.uuid`(老用户 Generate 懒生成兜底);未开启的存量节点继续使用 config 共享凭证,避免 inbound 未配发前断连 | `subscribe_service.go`(toNode/buildNodes)、`auth_service.go` |
 | NodeAuth 中间件 | `X-Node-Key` → server_id,Redis 缓存 60s(`node:key:{k}`),缺失/未知 40100;lookup 由路由注入,中间件不依赖数据层 | `internal/middleware/node_auth.go` |
 | `GET /node/users` | 节点分组下有效订阅且未封禁用户(uuid/u/d/transfer_enable/expired_at unix)+ 节点 rate;套餐含下架(存量订阅仍有效) | `internal/service/node_service.go` |
-| `POST /node/report` | **累计值口径**:node_user_stats 行锁快照差分得增量(重复上报差分 0 天然幂等;累计回退视为节点重启,增量取当前值)→ ×rate(四舍五入)→ 事务内 `users.u/d` 原子累加 + `traffic_logs` 增量聚合(`ON CONFLICT DO UPDATE SET u=u+?`,与模式 B 覆盖式区分)→ 批量删 `sub:userinfo:{token}` 缓存;未知 uuid / 无订阅跳过并在响应 `skipped` 返回;data 1–1000 条 | `node_service.go`、`repo/node.go` |
+| `POST /node/report` | **累计值口径**:node_user_stats 行锁快照差分得增量(重复上报差分 0 天然幂等;累计回退视为节点重启,增量取当前值)→ ×rate(四舍五入)→ 事务内 `users.u/d` 原子累加 + `traffic_logs` 增量聚合(`ON CONFLICT DO UPDATE SET u=u+?`,与模式 B 覆盖式区分)→ 批量删 `sub:userinfo:{token}` 缓存;仅接受套餐 group_ids 含本节点分组的用户,同一 UUID 重复整体拒绝(`duplicate_uuid`);未知 uuid / 无订阅/封禁/过期跳过并在响应 `skipped` 返回;data 1–1000 条 | `node_service.go`、`repo/node.go` |
 | 管理端配套 | AdminServerView 暴露 node_key;新建节点自动生成;`POST /admin/servers/{id}/node-key/reset` 重置(审计 + 旧密钥缓存即刻失效) | `admin_crud.go`、`handler/admin.go` |
-| 演示 agent | `go run ./cmd/node-agent -endpoint ... -key ...`:自动拉取 /node/users,模拟累计值(1–50/1–500 MiB 随机增量)定时上报,日志打印 accepted/skipped;真实代理后端(Xray stats 等)对接为后续候补 | `server/cmd/node-agent/main.go` |
+| 演示 agent | `go run ./cmd/node-agent -endpoint ... -key ...`:自动拉取 /node/users,模拟累计值(1–50/1–500 MiB 随机增量)定时上报,日志打印 accepted/skipped;**首轮先上报 0 基线建立快照,再推进累计值**;真实代理后端(Xray stats 等)对接为后续候补 | `server/cmd/node-agent/main.go` |
+
+### 0.9.0 评审修复(✅ 已修复,2026-08-25,见 docs/reviews/review-0.9.0.md)
+
+| 问题 | 状态/修复 |
+|---|---|
+| [P1] 每用户凭证在节点 inbound 未配发前替换共享凭证,存量订阅刷新即断连 | ✅ 修复:节点 config 显式开启 `per_user_credentials: true` 才下发 `users.uuid`;未开启继续使用 config 共享密码/uuid;存量节点先配发 inbound 再开开关 |
+| [P1] Alertmanager 用 QQ 465 隐式 SMTPS,SMTP 邮件无法投递 | ✅ 修复:Alertmanager 固定走 STARTTLS(默认 `ALERT_SMTP_PORT=587`),465 场景需前置 SMTPS→STARTTLS relay;支持 `ALERT_SMTP_HOST/FROM` 覆盖 |
+| [P1] NSIS installerHooks 指向不存在文件,Windows 打包失败 | ✅ 修复:入库 `src-tauri/nsis/installer-hooks.nsh`(当前无自定义逻辑,保留占位) |
+| [P2] 节点上报未校验用户套餐分组,可跨节点计费 | ✅ 修复:`POST /node/report` 按节点分组加载允许套餐,非本分组用户返回 `not_subscribed`;新增回归测试 |
+| [P2] 同请求重复 UUID 被逐个差分,可产生错误增量 | ✅ 修复:重复 UUID 在查库/开事务前整体拒绝,响应 `duplicate_uuid`;新增回归测试 |
+| [P2] node-agent 首轮在建立基线前已推进随机增量,首次即计费 | ✅ 修复:先上报当前值(首轮 0),发送后再推进下一轮累计值 |
+| [P2] Alertmanager SMTP 用户名/密码未转义,含 `&`/`\`/`|`/`'` 时配置损坏 | ✅ 修复:compose entrypoint 改用 AWK 逐字替换模板,并按 YAML 单引号规则转义 |
 
 ### 管理端 API(✅ 完成,契约第 16 节全量)
 
@@ -204,10 +216,10 @@
 | 支付回执邮件 | 在线回调与余额支付成功后异步发送(`[站点] 支付成功`),未配置 SMTP 静默跳过 |
 | agent-audit cron | 每月 1 日 03:00 复核代理有效邀请数,不达标降级 role=0 |
 
-### 测试状态(✅ 已更新,2026-08-22 实测)
+### 测试状态(✅ 已更新,2026-08-25 实测)
 
 - `go build ./...` / `go vet ./...` / `gofmt -l`(0 输出)全部通过
-- `go test ./... -count=1` 全绿;**82 个测试函数**(2026-08-22:模式 A 新增 11 例——NodeUsers 同步/onetime 无到期、首次上报全量、同值重报幂等(不写 users/traffic)、计数器回退重启判定、0.5 倍率乘算、unknown_user+not_subscribed 跳过、servers 错误上抛、cumDelta/scaleRate 边界、NodeAuth(无头 401/未知 401/有效注入+缓存命中不再查库)、每用户凭证下发(含 config 共享密码不下发断言)、admin 重置密钥(含 404)),此前覆盖:错误码映射、JWT(含 SV 会话版本号)、密码、验证码限频/已注册、注册/登录锁定/刷新旋转、优惠券试算(固定/百分比/封顶)/超限 12001/原子占用/每人限用、下单幂等、续期状态机、回调幂等、epay 验签与篡改拒绝、订阅生成(3 格式)、佣金划转、代理申请、工单流转、工单重开、佣金确认竞态、超时关单(含优惠券回退)、取消并发已支付回滚、退款(余额/券/佣金/订阅收回/onetime/异套餐)、代理审批、bluemonday 清洗、Auth 中间件、余额调整负值拒绝、管理端订单佣金查询、CORS
+- `go test ./... -count=1` 全绿;**85 个测试函数**(2026-08-25:0.9.0 新增 3 例——重复 UUID 整体拒绝、节点分组不匹配 `not_subscribed`、存量共享凭证回退;此前 2026-08-22 模式 A 新增 11 例——NodeUsers 同步/onetime 无到期、首次上报全量、同值重报幂等(不写 users/traffic)、计数器回退重启判定、0.5 倍率乘算、unknown_user+not_subscribed 跳过、servers 错误上抛、cumDelta/scaleRate 边界、NodeAuth(无头 401/未知 401/有效注入+缓存命中不再查库)、每用户凭证下发(opt-in 时 config 共享密码不下发断言)、admin 重置密钥(含 404)),此前覆盖:错误码映射、JWT(含 SV 会话版本号)、密码、验证码限频/已注册、注册/登录锁定/刷新旋转、优惠券试算(固定/百分比/封顶)/超限 12001/原子占用/每人限用、下单幂等、续期状态机、回调幂等、epay 验签与篡改拒绝、订阅生成(3 格式)、佣金划转、代理申请、工单流转、工单重开、佣金确认竞态、超时关单(含优惠券回退)、取消并发已支付回滚、退款(余额/券/佣金/订阅收回/onetime/异套餐)、代理审批、bluemonday 清洗、Auth 中间件、余额调整负值拒绝、管理端订单佣金查询、CORS
 
 ---
 
@@ -270,7 +282,7 @@
 
 | 项 | 状态 | 依赖/说明 |
 |---|---|---|
-| 流量模式 A(节点上报 `POST /node/report`) | ✅ 已实现(2026-08-22,二期):每用户凭证 + X-Node-Key 鉴权 + 累计值差分幂等累加,详见 §1 B8;演示 agent `cmd/node-agent` | 契约 §17;真实代理后端(Xray stats 等)对接为后续候补 |
+| 流量模式 A(节点上报 `POST /node/report`) | ✅ 已实现(2026-08-22,二期):每用户凭证(节点 config 开启后) + X-Node-Key 鉴权 + 累计值差分幂等累加,详见 §1 B8;演示 agent `cmd/node-agent` | 契约 §17;真实代理后端(Xray stats 等)对接为后续候补 |
 | 订阅「重开一次」工单 | ✅ 已实现(2026-08-12):`POST /tickets/{id}/reopen` + `reopen_count` 字段(迁移 0003);前端详情页已关闭且未重开时显示「重新打开」 | core-flows 第 7 节 |
 | 订单超时主动查单后关闭待支付支付单 | ✅ 已完善(2026-08-13):超时关单同步关闭该订单残留待支付支付单;查单任务发现订单已非待支付时关闭支付单并跳过查单(防残留反复轮询) | `cron_service.go` + `PaymentRepo.ClosePendingByOrderNo` + 2 测试 |
 | 后端 CI / Release 接入 | ❌ 不接入(项目决策,2026-08-12 确认) | 后端不走 GitHub Actions——无 CI job、无镜像构建/部署流水线;`backend` job 与 `deploy-backend.yml` 已删除;构建/部署走本机 `make` + 手动流程(见 deploy.md) |

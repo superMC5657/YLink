@@ -123,7 +123,7 @@ type NodeReportReq struct {
 	Data []NodeReportItem `json:"data" binding:"required,min=1,max=1000,dive"`
 }
 
-// NodeSkipItem 跳过项及原因(unknown_user / not_subscribed)。
+// NodeSkipItem 跳过项及原因(unknown_user / not_subscribed / duplicate_uuid)。
 type NodeSkipItem struct {
 	UUID   string `json:"uuid"`
 	Reason string `json:"reason"`
@@ -135,14 +135,21 @@ type NodeReportResp struct {
 	Skipped  []NodeSkipItem `json:"skipped"`
 }
 
-// Report 流量上报:快照差分(幂等)→ 乘倍率 → 累加 users.u/d + traffic_logs 日聚合 → 清 userinfo 缓存。
+// Report 流量上报:校验节点分组/重复 UUID → 快照差分(幂等)→ 乘倍率 → 累加 users.u/d + traffic_logs 日聚合 → 清 userinfo 缓存。
 func (s *NodeService) Report(ctx context.Context, serverID int64, req *NodeReportReq) (*NodeReportResp, error) {
 	srv, err := s.repos.Server.GetByID(s.db, serverID)
 	if err != nil {
 		return nil, errs.ErrNotFound
 	}
-	uuids := make([]string, 0, len(req.Data))
-	for _, it := range req.Data {
+
+	items, skipped := dedupeReportItems(req.Data)
+	resp := &NodeReportResp{Skipped: skipped}
+	if len(items) == 0 {
+		return resp, nil
+	}
+
+	uuids := make([]string, 0, len(items))
+	for _, it := range items {
 		uuids = append(uuids, it.UUID)
 	}
 	users, err := s.repos.User.ListByUUIDs(s.db, uuids)
@@ -154,19 +161,31 @@ func (s *NodeService) Report(ctx context.Context, serverID int64, req *NodeRepor
 		byUUID[users[i].UUID] = &users[i]
 	}
 
+	planIDs, err := s.planIDsContainingGroup(srv.GroupID)
+	if err != nil {
+		return nil, err
+	}
+	allowedPlans := make(map[int64]struct{}, len(planIDs))
+	for _, id := range planIDs {
+		allowedPlans[id] = struct{}{}
+	}
+
 	now := time.Now()
 	today := now.Format("2006-01-02")
-	resp := &NodeReportResp{Skipped: []NodeSkipItem{}}
 	var affected []model.User
 
 	err = repo.WithTx(s.db, func(tx *gorm.DB) error {
-		for _, it := range req.Data {
+		for _, it := range items {
 			u, ok := byUUID[it.UUID]
 			if !ok {
 				resp.Skipped = append(resp.Skipped, NodeSkipItem{UUID: it.UUID, Reason: "unknown_user"})
 				continue
 			}
-			if u.PlanID == nil || u.IsBanned || (u.ExpiredAt != nil && u.ExpiredAt.Before(now)) {
+			if u.PlanID == nil {
+				resp.Skipped = append(resp.Skipped, NodeSkipItem{UUID: it.UUID, Reason: "not_subscribed"})
+				continue
+			}
+			if _, ok := allowedPlans[*u.PlanID]; !ok || u.IsBanned || (u.ExpiredAt != nil && u.ExpiredAt.Before(now)) {
 				resp.Skipped = append(resp.Skipped, NodeSkipItem{UUID: it.UUID, Reason: "not_subscribed"})
 				continue
 			}
@@ -204,6 +223,30 @@ func (s *NodeService) Report(ctx context.Context, serverID int64, req *NodeRepor
 		s.rdb.Del(ctx, redispkg.Key("sub", "userinfo", u.SubToken))
 	}
 	return resp, nil
+}
+
+// dedupeReportItems 拒绝同一 UUID 的多次上报:任一 UUID 重复时该 UUID 的全部条目均不处理,
+// 避免多个累计值在同一请求内被逐个差分、产生错误增量。
+func dedupeReportItems(items []NodeReportItem) ([]NodeReportItem, []NodeSkipItem) {
+	seen := make(map[string]struct{}, len(items))
+	duplicates := make(map[string]struct{}, len(items))
+	for _, it := range items {
+		if _, ok := seen[it.UUID]; ok {
+			duplicates[it.UUID] = struct{}{}
+		}
+		seen[it.UUID] = struct{}{}
+	}
+
+	unique := make([]NodeReportItem, 0, len(items))
+	skipped := make([]NodeSkipItem, 0, len(items))
+	for _, it := range items {
+		if _, ok := duplicates[it.UUID]; ok {
+			skipped = append(skipped, NodeSkipItem{UUID: it.UUID, Reason: "duplicate_uuid"})
+			continue
+		}
+		unique = append(unique, it)
+	}
+	return unique, skipped
 }
 
 // cumDelta 累计值差分:cur < last 视为节点计数器重启,增量取当前值(对侧不变仍走差分)。

@@ -79,7 +79,7 @@ YLink/
 | [docs/api/README.md](docs/api/README.md) | 接口契约：通用约定、错误码、全量端点（前后端唯一事实来源） |
 | [docs/frontend/progress.md](docs/frontend/progress.md) | 前端进度追踪（已完成/未完成/前置条件） |
 | [docs/backend/progress.md](docs/backend/progress.md) | 后端进度追踪（已完成/未完成/前置条件） |
-| [docs/reviews/](docs/reviews/) | 代码评审记录（review-0.2.0 ~ 0.7.0，中英文对照） |
+| [docs/reviews/](docs/reviews/) | 代码评审记录（review-0.2.0 ~ 0.9.0，中英文对照） |
 
 ## 环境要求
 

@@ -565,7 +565,9 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 
 本接口不走 envelope 格式；独立限流（如 10 次/分钟/token）。
 
-下发配置中的密码/uuid 字段为**每用户独立凭证**（`users.uuid`，注册时生成）：同一节点对不同用户下发不同凭证，节点侧据此区分用户流量（模式 A 上报的归因依据）。
+下发配置中的密码/uuid 字段由节点 `servers.config.per_user_credentials` 决定：
+- `true`：下发**每用户独立凭证**（`users.uuid`，注册时生成），同一节点对不同用户下发不同凭证，节点侧据此区分用户流量（模式 A 上报的归因依据）。
+- `false`/缺省：继续下发 `servers.config` 中的共享密码/uuid，保持存量节点 inbound 未配发前订阅不因刷新断连。
 
 ---
 
@@ -591,7 +593,7 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 ### 16.1 管理端响应字段约定（2026-08-10 细化）
 
 - `GET /admin/plans` 返回 `{list: AdminPlanView[]}`：价格字段（`month_price`/`quarter_price`/`half_year_price`/`year_price`/`onetime_price`）**单位为元**（`null` 表示未开放该周期），并展开 `group_ids: number[]`、`is_show`、`sort`、`traffic_gb`、`speed_limit`、`device_limit`。请求体 `AdminPlanReq` 同字段，价格传元。
-- `GET /admin/servers` 返回 `{list: AdminServerView[]}`：展开用户端隐藏的 `group_id`/`host`/`port`/`config`/`is_show`/`sort`，`tags: string[]`，并含 `node_key`（节点上报密钥，见 §17）。请求体 `AdminServerReq` 中 `type ∈ {shadowsocks,vmess,vless,trojan,hysteria2,tuic}`、`status ∈ {1=正常,2=拥挤,3=维护}`、`config` 为协议私有参数 JSON 字符串；新建节点服务端自动生成 `node_key`（请求体不传）。
+- `GET /admin/servers` 返回 `{list: AdminServerView[]}`：展开用户端隐藏的 `group_id`/`host`/`port`/`config`/`is_show`/`sort`，`tags: string[]`，并含 `node_key`（节点上报密钥，见 §17）。请求体 `AdminServerReq` 中 `type ∈ {shadowsocks,vmess,vless,trojan,hysteria2,tuic}`、`status ∈ {1=正常,2=拥挤,3=维护}`、`config` 为协议私有参数 JSON 字符串（配发每用户 inbound 后加 `"per_user_credentials": true`）；新建节点服务端自动生成 `node_key`（请求体不传）。
 - `GET /admin/users` 分页返回 `{list,total,page,page_size}`，`balance`/`commission_balance` 单位为元；`PUT /admin/users/{id}` 请求体 `{role?, banned?}`（`role ∈ {0,1,2}`）；`POST /admin/users/{id}/balance` 请求体 `{amount(元，可正可负), remark?}`。
 - `GET /admin/orders` 分页返回 `{list,total,page,page_size}`，`status ∈ {0=待支付,1=已完成,2=已取消,3=已退款}`，金额单位为元；列表项含 `commission_amount`（该订单产生的佣金，元；无佣金记录为 `null`，余额支付订单恒为 `null`）。
 - `GET /admin/coupons` 返回 `{list: AdminCouponView[]}`：展开 `type ∈ {1=固定金额,2=百分比}`、`value`（type=1 为元、type=2 为百分比数值，如 10 表示 10%）、`min_spend` 单位为元、`limit_per_user`/`total_limit`/`used_count`、`valid_periods: string[]`（仅限可用周期）、`plan_ids: number[]`（仅限可用套餐，空=全部）、`started_at`/`ended_at`（null=不限）、`is_enable`、`created_at`。请求体 `AdminCouponReq` 同字段（`valid_periods`/`plan_ids` 传数组）。
@@ -612,7 +614,7 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 
 `GET /node/users`
 
-返回该节点分组下所有**有效订阅**用户（当前套餐 `group_ids` 含本节点分组且未过期；节点侧据此配置 inbound 每用户凭证并做本地限速掐断）。
+返回该节点分组下所有**有效订阅**用户（当前套餐 `group_ids` 含本节点分组且未过期；节点侧据此配置 inbound 每用户凭证并做本地限速掐断；未开启 `per_user_credentials` 的存量节点仍用 config 共享凭证，先完成 inbound 配发再开启开关）。
 
 ```json
 { "code": 0, "message": "ok",
@@ -621,7 +623,7 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
                  "transfer_enable": 107374182400, "expired_at": 1767225600 } ] } }
 ```
 
-- `uuid`：用户订阅凭证（vmess/vless/tuic 即 uuid；shadowsocks/trojan/hysteria2 作为密码下发），节点 inbound 按此区分用户。
+- `uuid`：用户订阅凭证（vmess/vless/tuic 即 uuid；shadowsocks/trojan/hysteria2 作为密码下发），节点 inbound 按此区分用户；仅当该节点开启 `per_user_credentials` 时订阅端才使用此值。
 - `u`/`d`/`transfer_enable`：字节；`expired_at`：unix 秒（null=不限期，如 onetime）。
 - 用户侧 `u/d` 由面板累加（含倍率），节点仅作本地掐断参考。
 
@@ -639,7 +641,7 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 | 计数器回退 | `u` 或 `d` 小于上次快照视为节点计数器重启：该字段增量取当前值（未回退字段仍按差分） |
 | 计费 | 增量 × 节点 `rate`（倍率）累加 `users.u/d`，并按日聚合增量写入 `traffic_logs`（与模式 B 同表；同日手工导入**覆盖**节点上报值，作为校准手段） |
 | 缓存 | 受影响用户的 `subscription-userinfo` 缓存（30s）立即失效，客户端下次拉订阅即见新用量 |
-| 响应 | `{ "accepted": 10, "skipped": [ { "uuid": "...", "reason": "unknown_user | not_subscribed" } ] }`；未知 uuid/无订阅用户跳过，不报错 |
+| 响应 | `{ "accepted": 10, "skipped": [ { "uuid": "...", "reason": "unknown_user | not_subscribed | duplicate_uuid" } ] }`；未知 uuid、套餐分组不包含本节点/无订阅/封禁/过期、同一 UUID 重复出现的条目跳过，不报错 |
 
 - `data` 1–1000 条；建议上报周期 60s。
 - 配套演示工具：`server/cmd/node-agent`（模拟累计值定时上报，本地联调用）。

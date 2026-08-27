@@ -2,11 +2,21 @@
 
 > 本文档记录 `src/` 目录 Vue 3 用户端应用的开发状态,是 docs/frontend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-25(**i18n 全量接入**:13 个管理端视图 + 用户端视图/共享组件/工具层硬编码中文全部接入 vue-i18n,zh/en 语言包 key 增至 784 个并完全对齐,新增 `adminOverview/adminUsers/adminOrders/adminCommissionLogs/adminTickets/adminNotices/adminKnowledges/adminCoupons/adminNodes/adminPlans/adminSettings/adminTrafficImport/adminAgentApplies/lang/theme` 命名空间与 `common/network/profile/order/plan` 扩展 key;format/http/deeplink 工具函数改用全局 `i18n.global.t`(新增 `src/test/setup.ts` 在 vitest 预载 zh-CN);随后为 0.9.0 评审:NSIS hooks 入库;此前 2026-08-22 为 Stylelint 引入与模式 A 管理端配套,见下)
+> 最后更新:2026-08-28(**第一批 Xboard 缺口补齐·前端部分**:F08 审计日志页 `AdminAuditLogsView.vue` + 侧边栏入口,F05 用户管理增强交互——多选批量封禁/解封/调余额/发邮件、CSV 导出下载、行内重置订阅,`api/admin.ts` 路径段经 `VITE_ADMIN_PATH` 支持 F22 admin_path 定制;此前 2026-08-25 为 i18n 全量接入,见下)
 
 ---
 
 ## 1. 已完成项
+
+### Xboard 缺口补齐 · 第一批前端(✅ 完成,2026-08-28,对齐 .scratch/xboard-gap-fill/spec.md)
+
+| 项 | 说明 | 位置 |
+|---|---|---|
+| F08 审计日志页 | `/admin/audit-logs`:操作人 ID/动作(下拉取自后端 actions)/目标/日期范围筛选 + 分页(20/50/100) + 明细弹窗(JSON 美化);侧边栏「审计日志」入口 | `views/admin/AdminAuditLogsView.vue`、`router/index.ts`、`router/nav.ts` |
+| F05 用户管理增强 | 用户页多选(n-checkbox 全选/行选) + 批量工具栏(封禁/解封/调余额/发邮件,结果汇总 toast 列出失败原因) + CSV 导出(blob→浏览器下载) + 行内「重置订阅」(确认后弹窗展示新链接) | `views/admin/AdminUsersView.vue` |
+| F22 admin_path 适配 | `api/admin.ts` 全部路径经 `ap()` helper 拼接,路径段取 `VITE_ADMIN_PATH`(默认 admin),与后端 `security.admin_path` 同值部署 | `src/api/admin.ts` |
+| http 下载能力 | `download(url, query)`:GET + Bearer + 401 静默刷新重试一次,返回 blob(CSV 不走 envelope) | `utils/http.ts` |
+| i18n | `adminAuditLogs` 命名空间 + `adminUsers` 扩展 key(zh/en 对齐) | `locales/zh-CN.ts`、`locales/en-US.ts` |
 
 ### M1 脚手架(✅ 完成)
 

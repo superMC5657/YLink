@@ -177,6 +177,23 @@ ticket_messages：id、ticket_id INDEX、sender_type（0=用户 1=客服）、se
 settings：`key` VARCHAR(64) PK、`value` JSONB（站点名、logo、TG 链接、客服地址、佣金比例、代理条件、支付开关、SMTP 模板等）。
 audit_logs：id、admin_id、action（如 `adjust_balance/refund/ban_user`）、target、detail JSONB、ip、created_at。
 
+### 2.13 mail_logs（邮件发送日志，迁移 0005 新增，2026-08-28）
+
+管理端向用户发送邮件的留痕（F05）：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| id | BIGSERIAL PK | |
+| user_id | BIGINT NOT NULL | 收件用户 ID，`(user_id, created_at DESC)` 索引 |
+| email | VARCHAR(190) | 收件邮箱 |
+| subject | VARCHAR(255) | 邮件主题（已 sanitize） |
+| status | SMALLINT | 0=发送失败 1=发送成功 |
+| error | VARCHAR(512) | 失败原因（SMTP 报错截断） |
+| admin_id | BIGINT | 操作管理员 |
+| created_at | TIMESTAMP(3) | |
+
+批量操作 / CSV 导出 / 重置订阅密钥（F05 其余子项）不引入新表，审计统一走 `audit_logs`（新增动作 `send_mail`、`reset_sub_token`）。
+
 ## 3. Redis Key 设计
 
 | Key 模式 | 类型/TTL | 用途 |

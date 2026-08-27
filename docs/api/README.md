@@ -573,12 +573,15 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 
 ## 16. 管理端 API 附录（`/api/v1/admin`，role=admin）
 
+> 2026-08-28（F22）：路径段 `admin` 可经 `security.admin_path`（config.yaml / `APP_SECURITY_ADMIN_PATH`）定制，前端以 `VITE_ADMIN_PATH` 同步；默认 `admin` 不变。
+
 用户端 App 不调用；供管理后台使用（前端 13 模块全部实现：M8 核心 6 模块 总览/用户/套餐/节点/订单/工单 + M9 二期 7 模块 优惠券/公告/知识库/代理审批/佣金日志/流量导入/站点设置）。响应走统一信封。
 
 | 模块 | 端点 |
 |---|---|
 | 仪表盘 | `GET /admin/stat/overview`（用户/订单/收入/在售套餐统计） |
-| 用户 | `GET /admin/users`、`PUT /admin/users/{id}`（封禁/角色）、`POST /admin/users/{id}/balance`（调余额，审计） |
+| 用户 | `GET /admin/users`、`PUT /admin/users/{id}`（封禁/角色）、`POST /admin/users/{id}/balance`（调余额，审计）、`GET /admin/users/export`（CSV 流式导出）、`POST /admin/users/batch`（批量封禁/解封/调余额）、`POST /admin/users/mail`（发送邮件）、`POST /admin/users/{id}/sub-token/reset`（重置订阅密钥，审计） |
+| 审计日志 | `GET /admin/audit-logs`（F08 只读：筛选/分页/明细） |
 | 套餐 | `GET/POST/PUT/DELETE /admin/plans` |
 | 节点 | `GET/POST/PUT/DELETE /admin/servers`、`/admin/server-groups`、`POST /admin/servers/{id}/node-key/reset`（重置节点密钥，审计；旧密钥立即失效） |
 | 订单 | `GET /admin/orders`、`POST /admin/orders/{no}/refund`（审计 + 佣金回滚）、`POST /admin/orders/{no}/close`（关闭待支付订单，审计） |
@@ -595,6 +598,11 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 - `GET /admin/plans` 返回 `{list: AdminPlanView[]}`：价格字段（`month_price`/`quarter_price`/`half_year_price`/`year_price`/`onetime_price`）**单位为元**（`null` 表示未开放该周期），并展开 `group_ids: number[]`、`is_show`、`sort`、`traffic_gb`、`speed_limit`、`device_limit`。请求体 `AdminPlanReq` 同字段，价格传元。
 - `GET /admin/servers` 返回 `{list: AdminServerView[]}`：展开用户端隐藏的 `group_id`/`host`/`port`/`config`/`is_show`/`sort`，`tags: string[]`，并含 `node_key`（节点上报密钥，见 §17）。请求体 `AdminServerReq` 中 `type ∈ {shadowsocks,vmess,vless,trojan,hysteria2,tuic}`、`status ∈ {1=正常,2=拥挤,3=维护}`、`config` 为协议私有参数 JSON 字符串（配发每用户 inbound 后加 `"per_user_credentials": true`）；新建节点服务端自动生成 `node_key`（请求体不传）。
 - `GET /admin/users` 分页返回 `{list,total,page,page_size}`，`balance`/`commission_balance` 单位为元；`PUT /admin/users/{id}` 请求体 `{role?, banned?}`（`role ∈ {0,1,2}`）；`POST /admin/users/{id}/balance` 请求体 `{amount(元，可正可负), remark?}`。
+- `GET /admin/users/export`（2026-08-28 F05）：CSV 流式导出（与列表同一 `keyword` 筛选，UTF-8 BOM，每批 500 分批写防内存峰值）。列：`id,email,balance,commission_balance,plan,expired_at,transfer_bytes,u_bytes,d_bytes,created_at,inviter_email`（金额元；流量字节；时间 RFC3339）。
+- `POST /admin/users/batch`（2026-08-28 F05）：请求体 `{action ∈ {ban,unban,adjust_balance}, ids(1..500), amount?(元, adjust_balance 必填), remark?}`；逐个执行（复用单用户状态机与负值保护），返回 `{success, failed: [{id, reason}]}`；ban/unban 会 bump 会话版本号踢下线。
+- `POST /admin/users/mail`（2026-08-28 F05）：请求体 `{ids(1..100), subject(≤200), body(≤10000)}`；SMTP 同步逐发，结果写 `mail_logs`（失败原因留痕），整体写审计（`send_mail`）；返回 `{sent, failed: [{id, reason}]}`。
+- `POST /admin/users/{id}/sub-token/reset`（2026-08-28 F05）：管理端重置订阅 token（无需用户密码），旧订阅链接立即失效（清 `sub:userinfo`/`sub:rl` 缓存），返回 `{subscribe_url}`，写审计（`reset_sub_token`）。
+- `GET /admin/audit-logs`（2026-08-28 F08）：审计日志只读查询。Query：`admin_id?/action?/target?/from?/to?`（日期 YYYY-MM-DD，含 to 当天）+ 分页；返回 `{list, total, page, page_size, actions}`，条目含 `admin_email`（联表操作人）与 `detail`（jsonb 原始字符串）；`actions` 为去重动作列表供筛选。
 - `GET /admin/orders` 分页返回 `{list,total,page,page_size}`，`status ∈ {0=待支付,1=已完成,2=已取消,3=已退款}`，金额单位为元；列表项含 `commission_amount`（该订单产生的佣金，元；无佣金记录为 `null`，余额支付订单恒为 `null`）。
 - `GET /admin/coupons` 返回 `{list: AdminCouponView[]}`：展开 `type ∈ {1=固定金额,2=百分比}`、`value`（type=1 为元、type=2 为百分比数值，如 10 表示 10%）、`min_spend` 单位为元、`limit_per_user`/`total_limit`/`used_count`、`valid_periods: string[]`（仅限可用周期）、`plan_ids: number[]`（仅限可用套餐，空=全部）、`started_at`/`ended_at`（null=不限）、`is_enable`、`created_at`。请求体 `AdminCouponReq` 同字段（`valid_periods`/`plan_ids` 传数组）。
 - `GET /admin/notices` 返回 `{list: AdminNoticeItem[]}`（含隐藏，倒序）：`id/title/content/is_show/sort/created_at`。请求体 `AdminNoticeReq`：`title/content` 必填、`is_show?`、`sort?`。

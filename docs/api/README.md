@@ -580,17 +580,18 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 | 模块 | 端点 |
 |---|---|
 | 仪表盘 | `GET /admin/stat/overview`（用户/订单/收入/在售套餐统计） |
+| 统计报表 | `GET /admin/stat/orders`、`GET /admin/stat/users`、`GET /admin/stat/traffic`（F04 只读，时间范围参数化） |
 | 用户 | `GET /admin/users`、`PUT /admin/users/{id}`（封禁/角色）、`POST /admin/users/{id}/balance`（调余额，审计）、`GET /admin/users/export`（CSV 流式导出）、`POST /admin/users/batch`（批量封禁/解封/调余额）、`POST /admin/users/mail`（发送邮件）、`POST /admin/users/{id}/sub-token/reset`（重置订阅密钥，审计） |
 | 审计日志 | `GET /admin/audit-logs`（F08 只读：筛选/分页/明细） |
 | 套餐 | `GET/POST/PUT/DELETE /admin/plans` |
-| 节点 | `GET/POST/PUT/DELETE /admin/servers`、`/admin/server-groups`、`POST /admin/servers/{id}/node-key/reset`（重置节点密钥，审计；旧密钥立即失效） |
+| 节点 | `GET/POST/PUT/DELETE /admin/servers`、`POST /admin/servers/batch`（F09 批量删除/更新公共字段）、`POST /admin/servers/{id}/copy`（F09 复制节点）、`POST /admin/servers/sort`（F09 批量排序）、`/admin/server-groups`、`POST /admin/servers/{id}/node-key/reset`（重置节点密钥，审计；旧密钥立即失效） |
 | 订单 | `GET /admin/orders`、`POST /admin/orders/{no}/refund`（审计 + 佣金回滚）、`POST /admin/orders/{no}/close`（关闭待支付订单，审计） |
 | 优惠券 | `GET/POST/PUT/DELETE /admin/coupons` |
 | 内容 | `GET/POST/PUT/DELETE /admin/notices`、`/admin/knowledges` |
 | 工单 | `GET /admin/tickets`、`GET /admin/tickets/{id}`、`POST /admin/tickets/{id}/reply`、`/close` |
 | 代理 | `GET /admin/agent/applies`、`POST /admin/agent/applies/{id}/approve|reject` |
 | 佣金 | `GET /admin/commission-logs` |
-| 流量 | `POST /admin/traffic/import`（一期模式 B 手工导入） |
+| 流量 | `POST /admin/traffic/import`（一期模式 B 手工导入）、`POST /admin/traffic/reset`（F16 按用户重置流量）、`GET /admin/traffic/resets`（F16 重置记录分页） |
 | 配置 | `GET/PUT /admin/settings` |
 
 ### 16.1 管理端响应字段约定（2026-08-10 细化）
@@ -610,6 +611,14 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 - `GET /admin/agent/applies` 分页返回 `{list,total,page,page_size}`，`status ∈ {0=待审核,1=通过,2=拒绝}`（`-1` 或缺省=全部）；列表项含 `user_email`/`valid_invites`。`POST /admin/agent/applies/{id}/approve|reject` 请求体 `{remark?}`，仅待审核可审（否则 409）。
 - `GET /admin/commission-logs` 分页返回 `{list,total,page,page_size}`，`status ∈ {0=确认中,1=已发放,2=已撤销}`；列表项含 `invite_email`/`from_email`/`order_no`/`order_amount`/`rate`/`amount`（元）/`confirmed_at`/`created_at`。
 - `POST /admin/traffic/import` 请求体 `{items: [{user_id, date(YYYY-MM-DD), u, d}]}`（至少 1 项，流量单位为字节），成功后写审计。
+- `POST /admin/servers/batch`（2026-08-28 F09）：请求体 `{action ∈ {delete,update}, ids(1..500), status?(1|2|3), is_show?, group_id?, rate?}`；`update` 至少提供一项公共字段（`rate` 须为正数）。整批单事务执行、逐节点汇总，返回 `{success, failed: [{id, reason}]}`（不存在/更新失败记录原因不中断）；整体写审计（`batch_server_delete`/`batch_server_update`）。
+- `POST /admin/servers/{id}/copy`（2026-08-28 F09）：复制节点，全字段相同、名称追加 `-copy`，**重新生成 `node_key`**（不与源节点共享）；返回新节点 `AdminServerView`，写审计（`copy_server`）。
+- `POST /admin/servers/sort`（2026-08-28 F09）：请求体 `{items: [{id, sort}]}`（1..500 项），单事务按传入 sort 值更新，写审计（`sort_server`）；前端按展示顺序生成 0..n。
+- `POST /admin/traffic/reset`（2026-08-28 F16）：请求体 `{user_ids(1..500), mode ∈ {clear_usage, reset_quota}}`。逐用户单事务：行锁读用户 → `clear_usage` 清零 `u/d`（不动 `transfer_enable`），`reset_quota` 另将 `transfer_enable` 重置为当前套餐流量额度（无生效套餐记失败）→ 写 `traffic_reset_logs`。**保留 `node_user_stats` 快照**：下次上报按既有累计值差分，仅重置后新流量计入（清空快照会导致全量累计重复计费）。返回 `{success, failed: [{id, reason}]}`；写审计（`traffic_reset`）。
+- `GET /admin/traffic/resets`（2026-08-28 F16）：重置记录分页（Query `user_id?` + 分页），条目含 `user_email`（联表）、`mode`、`before_u/before_d/before_transfer_enable/after_transfer_enable`（字节）、`created_at`。
+- `GET /admin/stat/orders?days=`（2026-08-28 F04）：订单日趋势，`days ∈ 1..365`（默认 30）。返回 `{days, items: [{date, order_count, completed_count, revenue, refunded}]}`；`order_count` 按创建日、`completed_count`/`revenue` 按 `paid_at`（已完成订单）、`refunded` 按 `updated_at` 近似（已退款订单）；金额单位元；逐日补零便于绘图。
+- `GET /admin/stat/users?days=`（2026-08-28 F04）：返回 `{days, register_trend: [{date, count}], plan_distribution: [{plan_id, plan_name, users}]}`；注册按 `created_at` 逐日补零，套餐分布为当前生效订阅（`plan_id` 非空）按套餐聚合、按人数降序。
+- `GET /admin/stat/traffic?days=`（2026-08-28 F04）：返回 `{days, user_top: [{user_id, email, total_bytes}], node_top: [{server_id, name, bytes}]}` 各 Top10；`user_top` 按 `traffic_logs` 日明细 `u+d` 合计（受 `days` 限定），`node_top` 按 `node_user_stats` 上报累计值合计（未乘倍率，节点全周期，无时间维度）。
 - `GET /admin/settings` 返回 `{list: [{key, value}]}`，`value` 为配置项 JSON 字符串（`site`/`payment`/`invite`/`agent`/`order`/`templates`）；`PUT /admin/settings` 请求体 `{key, value}`（单 key 保存，写后失效配置缓存）。
 
 ---

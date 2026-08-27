@@ -2,11 +2,21 @@
 
 > 本文档记录 `src/` 目录 Vue 3 用户端应用的开发状态,是 docs/frontend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-28(**第一批 Xboard 缺口补齐·前端部分**:F08 审计日志页 `AdminAuditLogsView.vue` + 侧边栏入口,F05 用户管理增强交互——多选批量封禁/解封/调余额/发邮件、CSV 导出下载、行内重置订阅,`api/admin.ts` 路径段经 `VITE_ADMIN_PATH` 支持 F22 admin_path 定制;此前 2026-08-25 为 i18n 全量接入,见下)
+> 最后更新:2026-08-28(**第二批 Xboard 缺口补齐·前端部分**:F09 节点页批量操作/复制/排序弹窗、F16 流量页三标签(导入/重置/重置记录)、F04 统计报表页 `AdminReportsView.vue`(ECharts 五图),`api/admin.ts` 与类型同步扩展;第一批(F08/F22/F05)见下;此前 2026-08-25 为 i18n 全量接入,见下)
 
 ---
 
 ## 1. 已完成项
+
+### Xboard 缺口补齐 · 第二批前端(✅ 完成,2026-08-28,对齐 .scratch/xboard-gap-fill/spec.md)
+
+| 项 | 说明 | 位置 |
+|---|---|---|
+| F09 节点批量/复制/排序 | 节点页复选框多选(n-checkbox 全选/行选)+ 批量工具栏(批量上架/下架/删除、批量修改弹窗:状态/分组/倍率可清空字段「不修改」语义)+ 行内「复制」按钮(确认后调 `/servers/{id}/copy`)+ 「节点排序」弹窗(↑/↓ 调序,保存按 0..n 写入 `/servers/sort`);批量结果汇总 toast 列出失败原因(与用户批量同风格) | `views/admin/AdminNodesView.vue` |
+| F16 流量重置 | 「流量导入」页改造为「流量管理」三标签:导入(原功能不变)/重置(用户 ID 列表 textarea + 模式单选 清零用量/重新给量 + 快照保留提示,确认弹窗后调 `/traffic/reset`,汇总成功/失败)/重置记录(分页表:用户/模式/重置前后用量与额度,`user_id` 筛选) | `views/admin/AdminTrafficImportView.vue` |
+| F04 统计报表页 | 新增 `/admin/reports` 页:近 7/30/90 天范围切换,ECharts 五图——营收与退款趋势(双折线)、注册趋势(柱状)、套餐分布(横向条形)、用户流量 Top10(横向,formatBytes)、节点流量 Top10(横向);CSS 变量取色随暗色模式重渲染,resize/dispose 生命周期与 TrafficView 一致;侧边栏「统计报表」入口(总览之下) | `views/admin/AdminReportsView.vue`、`router/index.ts`、`router/nav.ts`、`components/ui/AppIcon.vue`(新增 chart 图标) |
+| api/类型/mock | `api/admin.ts` 新增 batchServers/copyServer/sortServers/resetTraffic/trafficResets/statOrders/statUsers/statTraffic;`types/api.d.ts` 新增 F09/F16/F04 全部请求/响应类型;`mock/admin.ts` 补齐 8 个新端点(含重置记录与报表演示数据) | `src/api/admin.ts`、`src/types/api.d.ts`、`mock/admin.ts` |
+| i18n | `adminReports` 新命名空间、`adminNodes` 批量/复制/排序 key、`adminTrafficImport` 重置/记录 key(zh/en 对齐);`nav.adminReports`、`admin.reports`;流量导航改名「流量管理/Traffic」 | `locales/zh-CN.ts`、`locales/en-US.ts` |
 
 ### Xboard 缺口补齐 · 第一批前端(✅ 完成,2026-08-28,对齐 .scratch/xboard-gap-fill/spec.md)
 

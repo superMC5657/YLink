@@ -194,6 +194,25 @@ audit_logs：id、admin_id、action（如 `adjust_balance/refund/ban_user`）、
 
 批量操作 / CSV 导出 / 重置订阅密钥（F05 其余子项）不引入新表，审计统一走 `audit_logs`（新增动作 `send_mail`、`reset_sub_token`）。
 
+### 2.14 traffic_reset_logs（流量重置记录，迁移 0006 新增，2026-08-28）
+
+管理端按用户重置流量的留痕（F16）：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| id | BIGSERIAL PK | |
+| user_id | BIGINT NOT NULL | 被重置用户，`(user_id, created_at DESC)` 索引 |
+| admin_id | BIGINT NOT NULL | 操作管理员 |
+| mode | VARCHAR(16) NOT NULL | `clear_usage`=清零用量；`reset_quota`=重新给量（按当前套餐额度） |
+| before_u / before_d | BIGINT DEFAULT 0 | 重置前已用上下行（字节） |
+| before_transfer_enable | BIGINT DEFAULT 0 | 重置前总额度 |
+| after_transfer_enable | BIGINT DEFAULT 0 | 重置后总额度（clear_usage 不变，reset_quota=套餐流量） |
+| created_at | TIMESTAMP(3) | |
+
+重置语义（与节点上报差分幂等兼容）：重置只清零 `users.u/d`（`reset_quota` 另重置 `transfer_enable`），**保留 `node_user_stats` 快照**——下次上报按既有累计值差分，仅重置后的新流量计入；若清空快照，节点全周期累计值会被整体重算（重复计费）。重置同时写 `audit_logs`（动作 `traffic_reset`）。
+
+迁移 0006 同时为 F04 报表聚合补时间索引：`traffic_logs(date)`、`orders(paid_at) WHERE paid_at IS NOT NULL`（部分索引）、`users(created_at)`。
+
 ## 3. Redis Key 设计
 
 | Key 模式 | 类型/TTL | 用途 |

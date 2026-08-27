@@ -122,7 +122,7 @@ func (s *SubscribeService) ResetSubscribe(ctx context.Context, userID int64, pas
 }
 
 func (s *SubscribeService) subscribeURL(token string) string {
-	return s.cfg.App.BaseURL + "/api/v1/client/subscribe/" + token
+	return s.cfg.App.BaseURL + "/api/v1/" + s.cfg.Security.SubscribePathOrDefault() + "/subscribe/" + token
 }
 
 // TrafficLogs GET /user/traffic-logs。

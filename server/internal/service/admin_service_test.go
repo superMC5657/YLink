@@ -14,6 +14,7 @@ import (
 
 	"ylink-backend/internal/config"
 	"ylink-backend/internal/model"
+	"ylink-backend/internal/pkg/mailer"
 	redispkg "ylink-backend/internal/pkg/redis"
 	"ylink-backend/internal/pkg/sanitize"
 	"ylink-backend/internal/repo"
@@ -99,7 +100,7 @@ func TestAdminRefundWithCommissionRollback(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	set := NewSettingService(e.db, e.rdb, repos)
-	svc := NewAdminService(e.db, e.rdb, repos, nil, set)
+	svc := NewAdminService(e.db, e.rdb, repos, nil, set, nil)
 
 	now := time.Now()
 	payMethod := "epay_alipay"
@@ -144,7 +145,7 @@ func TestAdminReviewAgentApprove(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	set := NewSettingService(e.db, e.rdb, repos)
-	svc := NewAdminService(e.db, e.rdb, repos, nil, set)
+	svc := NewAdminService(e.db, e.rdb, repos, nil, set, nil)
 
 	now := time.Now()
 	// 事务：读申请 → 改角色 → 更新申请 → 审计
@@ -166,7 +167,7 @@ func TestAdminListCoupons(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	set := NewSettingService(e.db, e.rdb, repos)
-	svc := NewAdminService(e.db, e.rdb, repos, nil, set)
+	svc := NewAdminService(e.db, e.rdb, repos, nil, set, nil)
 
 	now := time.Now()
 	validPeriods := `["month","year"]`
@@ -201,7 +202,7 @@ func TestAdminListNotices(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	set := NewSettingService(e.db, e.rdb, repos)
-	svc := NewAdminService(e.db, e.rdb, repos, nil, set)
+	svc := NewAdminService(e.db, e.rdb, repos, nil, set, nil)
 
 	now := time.Now()
 	n := &model.Notice{ID: 1, Title: "维护公告", Content: "正文", IsShow: false, Sort: 2, CreatedAt: now}
@@ -221,7 +222,7 @@ func TestAdminListKnowledges(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	set := NewSettingService(e.db, e.rdb, repos)
-	svc := NewAdminService(e.db, e.rdb, repos, nil, set)
+	svc := NewAdminService(e.db, e.rdb, repos, nil, set, nil)
 
 	now := time.Now()
 	k := &model.Knowledge{
@@ -245,7 +246,7 @@ func TestAdminAdjustBalanceNegativeRejected(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	set := NewSettingService(e.db, e.rdb, repos)
-	svc := NewAdminService(e.db, e.rdb, repos, nil, set)
+	svc := NewAdminService(e.db, e.rdb, repos, nil, set, nil)
 
 	now := time.Now()
 	// 事务：行锁读用户（余额 0）→ 调 -100 → 服务层拒绝，回滚
@@ -263,7 +264,7 @@ func TestAdminUpdateUserBanBumpsSessionVersion(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	set := NewSettingService(e.db, e.rdb, repos)
-	svc := NewAdminService(e.db, e.rdb, repos, nil, set)
+	svc := NewAdminService(e.db, e.rdb, repos, nil, set, nil)
 
 	now := time.Now()
 	u := &model.User{ID: 5, Email: "u@b.com", Role: 0, IsBanned: false, CreatedAt: now, UpdatedAt: now}
@@ -290,7 +291,7 @@ func TestAdminUpdateUserRoleBumpsSessionVersion(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	set := NewSettingService(e.db, e.rdb, repos)
-	svc := NewAdminService(e.db, e.rdb, repos, nil, set)
+	svc := NewAdminService(e.db, e.rdb, repos, nil, set, nil)
 
 	now := time.Now()
 	u := &model.User{ID: 6, Email: "r@b.com", Role: 0, IsBanned: false, CreatedAt: now, UpdatedAt: now}
@@ -317,7 +318,7 @@ func TestAdminRefundRevokesOnetimeTraffic(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	set := NewSettingService(e.db, e.rdb, repos)
-	svc := NewAdminService(e.db, e.rdb, repos, nil, set)
+	svc := NewAdminService(e.db, e.rdb, repos, nil, set, nil)
 
 	now := time.Now()
 	payMethod := "epay_alipay"
@@ -347,7 +348,7 @@ func TestAdminRefundKeepsOtherPlanSubscription(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	set := NewSettingService(e.db, e.rdb, repos)
-	svc := NewAdminService(e.db, e.rdb, repos, nil, set)
+	svc := NewAdminService(e.db, e.rdb, repos, nil, set, nil)
 
 	now := time.Now()
 	payMethod := "epay_alipay"
@@ -378,7 +379,7 @@ func TestAdminListOrdersCommission(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	set := NewSettingService(e.db, e.rdb, repos)
-	svc := NewAdminService(e.db, e.rdb, repos, &config.Config{}, set)
+	svc := NewAdminService(e.db, e.rdb, repos, &config.Config{}, set, nil)
 	now := time.Now()
 	pm := "epay_alipay"
 	o := &model.Order{ID: 1, OrderNo: "O2026", UserID: 7, PlanID: 1, Period: "month",
@@ -430,7 +431,7 @@ func TestAdminListOrdersCommissionQueryError(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	set := NewSettingService(e.db, e.rdb, repos)
-	svc := NewAdminService(e.db, e.rdb, repos, &config.Config{}, set)
+	svc := NewAdminService(e.db, e.rdb, repos, &config.Config{}, set, nil)
 	now := time.Now()
 	pm := "epay_alipay"
 	o := &model.Order{ID: 1, OrderNo: "O2026", UserID: 7, PlanID: 1, Period: "month",
@@ -461,7 +462,7 @@ func TestAdminListOrdersCommissionQueryError(t *testing.T) {
 func TestResetNodeKey(t *testing.T) {
 	e := newTestEnv(t)
 	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
-	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, nil, set)
+	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, nil, set, nil)
 
 	// 节点存在 → 更新密钥(默认事务包裹) + 审计
 	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "servers"`)).WillReturnRows(serverRow(
@@ -481,8 +482,280 @@ func TestResetNodeKey(t *testing.T) {
 
 	// 节点不存在 → 40400
 	e2 := newTestEnv(t)
-	svc2 := NewAdminService(e2.db, e2.rdb, &repo.Repos{}, nil, set)
+	svc2 := NewAdminService(e2.db, e2.rdb, &repo.Repos{}, nil, set, nil)
 	e2.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "servers"`)).WillReturnError(gorm.ErrRecordNotFound)
 	_, err = svc2.ResetNodeKey(context.Background(), 1, 99, "127.0.0.1")
 	assert.Equal(t, 40400, codeOf(err))
+}
+
+func auditLogRows(items []model.AdminAuditLogItem) *sqlmock.Rows {
+	rows := sqlmock.NewRows([]string{
+		"id", "admin_id", "admin_email", "action", "target", "detail", "ip", "created_at",
+	})
+	for _, it := range items {
+		rows.AddRow(it.ID, it.AdminID, it.AdminEmail, it.Action, it.Target, it.Detail, it.IP, it.CreatedAt)
+	}
+	return rows
+}
+
+func TestListAuditLogs(t *testing.T) {
+	e := newTestEnv(t)
+	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
+	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, nil, set, nil)
+	ctx := context.Background()
+
+	// 无筛选：count + 分页 + 动作列表
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "audit_logs" JOIN users ON users.id = audit_logs.admin_id`)).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(2))
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT`)).WillReturnRows(auditLogRows([]model.AdminAuditLogItem{
+		{ID: 2, AdminID: 1, AdminEmail: "admin@y.link", Action: "adjust_balance", Target: strPtr("7"), CreatedAt: time.Now()},
+		{ID: 1, AdminID: 1, AdminEmail: "admin@y.link", Action: "ban_user", Target: strPtr("8"), CreatedAt: time.Now()},
+	}))
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT DISTINCT "action" FROM "audit_logs"`)).WillReturnRows(
+		sqlmock.NewRows([]string{"action"}).AddRow("ban_user").AddRow("adjust_balance"))
+
+	list, total, actions, err := svc.ListAuditLogs(ctx, AuditLogFilter{}, 1, 20)
+	require.NoError(t, err)
+	assert.EqualValues(t, 2, total)
+	assert.Len(t, list, 2)
+	assert.Equal(t, "admin@y.link", list[0].AdminEmail, "联表取操作人邮箱")
+	assert.Equal(t, []string{"ban_user", "adjust_balance"}, actions)
+
+	// 非法日期 → 40000
+	_, _, _, err = svc.ListAuditLogs(ctx, AuditLogFilter{From: "2026/08/28"}, 1, 20)
+	assert.Equal(t, 40000, codeOf(err))
+	_, _, _, err = svc.ListAuditLogs(ctx, AuditLogFilter{To: "bad-date"}, 1, 20)
+	assert.Equal(t, 40000, codeOf(err))
+}
+
+func strPtr(s string) *string { return &s }
+
+// ---- F05 用户管理增强 ----
+
+func TestBatchUsersBanAndMissing(t *testing.T) {
+	e := newTestEnv(t)
+	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
+	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, nil, set, nil)
+	ctx := context.Background()
+
+	u7 := &model.User{ID: 7, Email: "u7@y.link", SubToken: "t7", UUID: "uuid-7"}
+	u8 := &model.User{ID: 8, Email: "u8@y.link", SubToken: "t8", UUID: "uuid-8"}
+	_ = u8
+
+	// 用户 7：查询 + 封禁更新（gorm 单写包事务）+ 审计（同样包事务）
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
+		WillReturnRows(userRow(u7))
+	e.mock.ExpectBegin()
+	e.mock.ExpectExec(regexp.QuoteMeta(`UPDATE "users" SET`)).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectCommit()
+	e.mock.ExpectBegin()
+	e.mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "audit_logs"`)).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	e.mock.ExpectCommit()
+	// 用户 8：不存在
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
+		WillReturnError(gorm.ErrRecordNotFound)
+
+	resp, err := svc.BatchUsers(ctx, 1, &model.AdminBatchUserReq{Action: "ban", IDs: []int64{7, 8}}, "127.0.0.1")
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, resp.Success, "用户 7 封禁成功")
+	require.Len(t, resp.Failed, 1)
+	assert.EqualValues(t, 8, resp.Failed[0].ID)
+	assert.Equal(t, "资源不存在", resp.Failed[0].Reason)
+}
+
+func TestBatchUsersAdjustBalanceNegativeGuard(t *testing.T) {
+	e := newTestEnv(t)
+	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
+	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, nil, set, nil)
+	ctx := context.Background()
+
+	u := &model.User{ID: 7, Email: "u7@y.link", Balance: 100, SubToken: "t7", UUID: "uuid-7"}
+	// WithTx：Begin → FOR UPDATE 查询 → 校验失败 Rollback
+	e.mock.ExpectBegin()
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
+		WillReturnRows(userRow(u))
+	e.mock.ExpectRollback()
+
+	amount := -99.0 // 调整后 100 分 - 9900 分 < 0
+	resp, err := svc.BatchUsers(ctx, 1, &model.AdminBatchUserReq{
+		Action: "adjust_balance", IDs: []int64{7}, Amount: &amount,
+	}, "127.0.0.1")
+	require.NoError(t, err)
+	assert.EqualValues(t, 0, resp.Success)
+	require.Len(t, resp.Failed, 1)
+	assert.Equal(t, "调整后余额不能为负", resp.Failed[0].Reason)
+}
+
+func TestBatchUsersRequiresAmount(t *testing.T) {
+	e := newTestEnv(t)
+	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
+	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, nil, set, nil)
+	_, err := svc.BatchUsers(context.Background(), 1, &model.AdminBatchUserReq{
+		Action: "adjust_balance", IDs: []int64{7},
+	}, "127.0.0.1")
+	assert.Equal(t, 40000, codeOf(err))
+}
+
+func TestSendMailLogsFailures(t *testing.T) {
+	e := newTestEnv(t)
+	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
+	ml := mailer.New(config.SMTPConfig{Host: "invalid.invalid", Port: 1}) // 不可达 SMTP
+	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, nil, set, ml)
+	ctx := context.Background()
+
+	users := []model.User{
+		{ID: 7, Email: "u7@y.link", SubToken: "t7", UUID: "uuid-7"},
+	}
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE id IN`)).
+		WillReturnRows(userRows(users))
+	// SMTP 不可达 → 发送失败 → mail_logs 记录失败（gorm 单写包事务）+ 审计（包事务）
+	e.mock.ExpectBegin()
+	e.mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "mail_logs"`)).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	e.mock.ExpectCommit()
+	e.mock.ExpectBegin()
+	e.mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "audit_logs"`)).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	e.mock.ExpectCommit()
+
+	resp, err := svc.SendMail(ctx, 1, &model.AdminSendMailReq{
+		IDs: []int64{7}, Subject: "公告", Body: "<b>hello</b><script>alert(1)</script>",
+	}, "127.0.0.1")
+	require.NoError(t, err)
+	assert.EqualValues(t, 0, resp.Sent, "SMTP 不可达时发送失败")
+	require.Len(t, resp.Failed, 1)
+}
+
+func TestSendMailMailerNotConfigured(t *testing.T) {
+	e := newTestEnv(t)
+	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
+	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, nil, set, nil) // 无 mailer
+
+	// 仍先查用户，再进入“未配置”分支：全部失败且留痕
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE id IN`)).
+		WillReturnRows(userRows(nil))
+	e.mock.ExpectBegin()
+	e.mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "audit_logs"`)).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	e.mock.ExpectCommit()
+
+	resp, err := svc.SendMail(context.Background(), 1, &model.AdminSendMailReq{
+		IDs: []int64{7, 8}, Subject: "hi", Body: "hi",
+	}, "127.0.0.1")
+	require.NoError(t, err)
+	assert.EqualValues(t, 0, resp.Sent)
+	require.Len(t, resp.Failed, 2, "SMTP 未配置时全部失败且留痕")
+}
+
+func TestSendMailMissingUser(t *testing.T) {
+	e := newTestEnv(t)
+	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
+	ml := mailer.New(config.SMTPConfig{Host: "invalid.invalid", Port: 1})
+	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, nil, set, ml)
+
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE id IN`)).
+		WillReturnRows(userRows(nil))
+	e.mock.ExpectBegin()
+	e.mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "audit_logs"`)).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	e.mock.ExpectCommit()
+
+	resp, err := svc.SendMail(context.Background(), 1, &model.AdminSendMailReq{
+		IDs: []int64{42}, Subject: "hi", Body: "hi",
+	}, "127.0.0.1")
+	require.NoError(t, err)
+	require.Len(t, resp.Failed, 1)
+	assert.Equal(t, "用户不存在", resp.Failed[0].Reason)
+}
+
+func TestResetUserSubTokenByAdmin(t *testing.T) {
+	cfg := &config.Config{}
+	cfg.App.BaseURL = "https://api.example.com"
+	e := newTestEnv(t)
+	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
+	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, cfg, set, nil)
+
+	u := &model.User{ID: 7, Email: "u7@y.link", SubToken: "old-token", UUID: "uuid-7"}
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
+		WillReturnRows(userRow(u))
+	e.mock.ExpectBegin()
+	e.mock.ExpectExec(regexp.QuoteMeta(`UPDATE "users" SET`)).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectCommit()
+	e.mock.ExpectBegin()
+	e.mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "audit_logs"`)).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	e.mock.ExpectCommit()
+
+	url, err := svc.ResetUserSubToken(context.Background(), 1, 7, "127.0.0.1")
+	require.NoError(t, err)
+	assert.Contains(t, url, "https://api.example.com/api/v1/client/subscribe/")
+	assert.NotContains(t, url, "old-token", "新链接不得包含旧 token")
+	// 旧 token 缓存已清除
+	assert.False(t, e.mr.Exists("sub:userinfo:old-token"))
+
+	// 用户不存在 → 40400
+	e2 := newTestEnv(t)
+	svc2 := NewAdminService(e2.db, e2.rdb, &repo.Repos{}, cfg, set, nil)
+	e2.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
+		WillReturnError(gorm.ErrRecordNotFound)
+	_, err = svc2.ResetUserSubToken(context.Background(), 1, 99, "127.0.0.1")
+	assert.Equal(t, 40400, codeOf(err))
+}
+
+func userRows(users []model.User) *sqlmock.Rows {
+	rows := sqlmock.NewRows([]string{
+		"id", "email", "password_hash", "role", "balance", "commission_balance", "invite_by_id",
+		"is_banned", "remind_expire", "remind_traffic", "telegram_id", "plan_id", "expired_at",
+		"transfer_enable", "u", "d", "speed_limit", "device_limit", "sub_token", "uuid", "created_at", "updated_at",
+	})
+	for _, u := range users {
+		rows.AddRow(u.ID, u.Email, u.PasswordHash, u.Role, u.Balance, u.CommissionBalance, u.InviteByID,
+			u.IsBanned, u.RemindExpire, u.RemindTraffic, u.TelegramID, u.PlanID, u.ExpiredAt,
+			u.TransferEnable, u.U, u.D, u.SpeedLimit, u.DeviceLimit, u.SubToken, u.UUID, u.CreatedAt, u.UpdatedAt)
+	}
+	return rows
+}
+
+func TestExportUsersStreamsBatches(t *testing.T) {
+	e := newTestEnv(t)
+	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
+	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, nil, set, nil)
+	ctx := context.Background()
+
+	mPrice := int64(1000)
+	plan := &model.Plan{ID: 1, Name: "白羊座", MonthPrice: &mPrice}
+	inviter := model.User{ID: 3, Email: "inviter@y.link", SubToken: "t3", UUID: "uuid-3"}
+	u := model.User{ID: 7, Email: "u7@y.link", Balance: 1000, CommissionBalance: 500,
+		InviteByID: &inviter.ID, PlanID: &plan.ID, TransferEnable: 100, SubToken: "t7", UUID: "uuid-7"}
+
+	// 1) 套餐名称映射
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "plans"`)).
+		WillReturnRows(planRow(plan))
+	// 2) 第一批（含 1 个用户）
+	e.mock.ExpectQuery(`SELECT \* FROM "users" WHERE id >`).
+		WillReturnRows(userRows([]model.User{u}))
+	// 3) 批内邀请人补齐
+	e.mock.ExpectQuery(`SELECT \* FROM "users" WHERE id IN`).
+		WillReturnRows(userRows([]model.User{inviter}))
+	// 4) 第二批为空 → 结束
+	e.mock.ExpectQuery(`SELECT \* FROM "users" WHERE id >`).
+		WillReturnRows(userRows(nil))
+
+	var got [][]string
+	err := svc.ExportUsers(ctx, "", func(rows [][]string) error {
+		got = append(got, rows...)
+		return nil
+	})
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, "7", got[0][0])
+	assert.Equal(t, "u7@y.link", got[0][1])
+	assert.Equal(t, "10.00", got[0][2], "余额分→元")
+	assert.Equal(t, "5.00", got[0][3])
+	assert.Equal(t, "白羊座", got[0][4])
+	assert.Equal(t, "100", got[0][6], "流量导出为字节")
+	assert.Equal(t, "inviter@y.link", got[0][10])
 }

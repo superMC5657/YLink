@@ -336,3 +336,17 @@ type AgentApply struct {
 }
 
 func (AgentApply) TableName() string { return "agent_applies" }
+
+// MailLog 对应 mail_logs 表：管理端邮件发送日志（F05）。
+type MailLog struct {
+	ID        int64     `gorm:"primaryKey" json:"id"`
+	UserID    int64     `gorm:"index:idx_mail_logs_user,priority:1" json:"-"`
+	Email     string    `gorm:"size:190" json:"email"`
+	Subject   string    `gorm:"size:255" json:"subject"`
+	Status    int       `gorm:"default:0" json:"status"` // 0=发送失败 1=发送成功
+	Error     *string   `gorm:"size:512" json:"error"`
+	AdminID   int64     `json:"-"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func (MailLog) TableName() string { return "mail_logs" }

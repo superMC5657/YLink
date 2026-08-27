@@ -285,3 +285,53 @@ type AdminSettingsResp struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
 }
+
+// ---- 管理端 · 审计日志（F08） ----
+
+// AdminAuditLogItem 管理端审计日志条目（含操作人邮箱；detail 为 jsonb 原始字符串）。
+type AdminAuditLogItem struct {
+	ID         int64      `json:"id"`
+	AdminID    int64      `json:"admin_id"`
+	AdminEmail string     `json:"admin_email"`
+	Action     string     `json:"action"`
+	Target     *string    `json:"target"`
+	Detail     *string    `json:"detail"`
+	IP         *string    `json:"ip"`
+	CreatedAt  time.Time  `json:"created_at"`
+}
+
+// ---- 管理端 · 用户批量操作 / 邮件（F05） ----
+
+// AdminBatchUserReq 批量用户操作：ban/unban/adjust_balance。
+type AdminBatchUserReq struct {
+	Action string   `json:"action" binding:"required,oneof=ban unban adjust_balance"`
+	IDs    []int64  `json:"ids" binding:"required,min=1,max=500"`
+	Amount *float64 `json:"amount"` // adjust_balance 必填（元，可正可负）
+	Remark string   `json:"remark"`
+}
+
+// AdminBatchFailedItem 批量操作失败明细。
+type AdminBatchFailedItem struct {
+	ID     int64  `json:"id"`
+	Reason string `json:"reason"`
+}
+
+// AdminBatchUserResp 批量操作结果汇总。
+type AdminBatchUserResp struct {
+	Success int64                  `json:"success"`
+	Failed  []AdminBatchFailedItem `json:"failed"`
+}
+
+// AdminSendMailReq 管理端向用户发送邮件。
+type AdminSendMailReq struct {
+	IDs     []int64 `json:"ids" binding:"required,min=1,max=100"`
+	Subject string  `json:"subject" binding:"required,max=200"`
+	Body    string  `json:"body" binding:"required,max=10000"`
+}
+
+// AdminSendMailResp 发送结果汇总。
+type AdminSendMailResp struct {
+	Sent   int64                  `json:"sent"`
+	Failed []AdminBatchFailedItem `json:"failed"`
+}
+

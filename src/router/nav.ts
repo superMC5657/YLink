@@ -70,6 +70,7 @@ export const ADMIN_NAV_GROUPS: NavGroup[] = [
     items: [
       { name: 'nav.adminOverview', path: '/admin/overview', icon: 'sliders' },
       { name: 'nav.adminUsers', path: '/admin/users', icon: 'users' },
+      { name: 'nav.adminAuditLogs', path: '/admin/audit-logs', icon: 'shield-check' },
       { name: 'nav.adminPlans', path: '/admin/plans', icon: 'zap' },
       { name: 'nav.adminNodes', path: '/admin/nodes', icon: 'server' },
       { name: 'nav.adminOrders', path: '/admin/orders', icon: 'order' },

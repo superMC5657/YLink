@@ -2,7 +2,7 @@
 
 > 本文档记录 `server/` 目录 Go/Gin 后端的开发状态,是 docs/backend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-28(**第一批 Xboard 缺口补齐**:F08 审计日志查询界面、F22 安全部署项(admin_path/subscribe_path/safe_mode 启动注入)、F05 用户管理增强(CSV 流式导出/批量操作/管理端发邮件+mail_logs 迁移 0005/重置订阅密钥);此前 2026-08-25 为 0.9.0 评审修复,见下)
+> 最后更新:2026-08-28(**第二批 Xboard 缺口补齐**:F09 节点批量操作/复制/排序、F16 流量重置管理(traffic_reset_logs 迁移 0006)、F04 管理端统计报表增强(stat/orders|users|traffic);第一批(F08/F22/F05)见下;此前 2026-08-25 为 0.9.0 评审修复,见下)
 
 ---
 
@@ -227,10 +227,26 @@
 | F05 发送邮件 | `POST /admin/users/mail`:ids≤100,SMTP 同步逐发,结果写 `mail_logs`(迁移 0005,失败原因截断 512),整体审计 `send_mail`;mailer 未注入/SMTP 不可达均优雅失败留痕;测试 3 例 | `internal/service/admin_service.go`、`internal/repo/admin.go`、`migrations/0005_admin_users_enhance.{up,down}.sql` |
 | F05 重置订阅密钥 | `POST /admin/users/{id}/sub-token/reset`:无需用户密码,旧 token 缓存(sub:userinfo/sub:rl)即删,返回新 subscribe_url,审计 `reset_sub_token`;测试含 404 与缓存清理断言 | `internal/service/admin_service.go` |
 
-### 测试状态(✅ 已更新,2026-08-25 实测)
+### Xboard 缺口补齐 · 第二批(✅ 完成,2026-08-28,对齐 .scratch/xboard-gap-fill/spec.md)
+
+| 项 | 说明 | 位置 |
+|---|---|---|
+| F09 批量操作 | `POST /admin/servers/batch`:`action ∈ {delete, update}`,ids≤500,`update` 至少一项公共字段(status/is_show/group_id/rate,rate 须>0);整批单事务、逐节点汇总 `{success, failed:[{id,reason}]}`(不存在/失败不中断);审计 `batch_server_delete`/`batch_server_update` | `internal/service/admin_node_batch.go`、`internal/handler/admin.go`、`internal/router/router.go` |
+| F09 复制节点 | `POST /admin/servers/{id}/copy`:全字段复制、名称追加 `-copy`(64 字符截断)、**重新生成 node_key**(不与源节点共享);返回新 AdminServerView,审计 `copy_server` | 同上 |
+| F09 排序 | `POST /admin/servers/sort`:`{items:[{id,sort}]}`≤500,单事务批量更新 sort,审计 `sort_server` | 同上 |
+| F16 流量重置 | `POST /admin/traffic/reset`:`{user_ids≤500, mode ∈ {clear_usage, reset_quota}}`,逐用户单事务(行锁)清零 u/d、reset_quota 另按当前套餐额度重置 transfer_enable(无套餐记失败),写 `traffic_reset_logs`(迁移 0006);**保留 node_user_stats 快照**防节点累计值重复计费;审计 `traffic_reset` | `internal/service/admin_traffic_reset.go`、`migrations/0006_admin_batch_stats.{up,down}.sql` |
+| F16 重置记录 | `GET /admin/traffic/resets`:`user_id?` 筛选 + 分页,JOIN users 取邮箱,含 before/after 字段(字节) | `internal/repo/admin.go`(TrafficResetRepo)、`internal/handler/admin.go` |
+| F04 订单统计 | `GET /admin/stat/orders?days=1..365(默认30)`:逐日 order_count(按 created_at)/completed_count+revenue(按 paid_at,已完成)/refunded(按 updated_at 近似,已退款);金额分→元,无数据日补零 | `internal/repo/stat.go`、`internal/service/admin_stats.go`、`internal/handler/admin.go`、`internal/router/router.go` |
+| F04 用户统计 | `GET /admin/stat/users?days=`:注册趋势(逐日补零)+ 套餐分布(当前生效订阅按套餐聚合,联套餐名) | 同上 |
+| F04 流量统计 | `GET /admin/stat/traffic?days=`:用户流量 Top10(traffic_logs 时间范围 u+d 合计联邮箱)+ 节点流量 Top10(node_user_stats 上报累计,未乘倍率,全周期口径) | 同上 |
+| F04 聚合索引 | 迁移 0006 补 `traffic_logs(date)`、`orders(paid_at) WHERE paid_at IS NOT NULL`(部分索引)、`users(created_at)`,时间范围 GROUP BY 避免全表扫描 | `migrations/0006_admin_batch_stats.{up,down}.sql` |
+
+新增测试 6 例(`admin_batch_stats_test.go`):批量删除汇总(不存在记失败)、update 缺字段/rate≤0 拒绝、批量更新、复制节点新 node_key、排序单事务、流量重置保留快照(期望序列无 node_user_stats DELETE)、reset_quota 无套餐失败、报表补零/TopN。
+
+### 测试状态(✅ 已更新,2026-08-28 实测)
 
 - `go build ./...` / `go vet ./...` / `gofmt -l`(0 输出)全部通过
-- `go test ./... -count=1` 全绿;**85 个测试函数**(2026-08-25:0.9.0 新增 3 例——重复 UUID 整体拒绝、节点分组不匹配 `not_subscribed`、存量共享凭证回退;此前 2026-08-22 模式 A 新增 11 例——NodeUsers 同步/onetime 无到期、首次上报全量、同值重报幂等(不写 users/traffic)、计数器回退重启判定、0.5 倍率乘算、unknown_user+not_subscribed 跳过、servers 错误上抛、cumDelta/scaleRate 边界、NodeAuth(无头 401/未知 401/有效注入+缓存命中不再查库)、每用户凭证下发(opt-in 时 config 共享密码不下发断言)、admin 重置密钥(含 404)),此前覆盖:错误码映射、JWT(含 SV 会话版本号)、密码、验证码限频/已注册、注册/登录锁定/刷新旋转、优惠券试算(固定/百分比/封顶)/超限 12001/原子占用/每人限用、下单幂等、续期状态机、回调幂等、epay 验签与篡改拒绝、订阅生成(3 格式)、佣金划转、代理申请、工单流转、工单重开、佣金确认竞态、超时关单(含优惠券回退)、取消并发已支付回滚、退款(余额/券/佣金/订阅收回/onetime/异套餐)、代理审批、bluemonday 清洗、Auth 中间件、余额调整负值拒绝、管理端订单佣金查询、CORS
+- `go test ./... -count=1` 全绿;**107 个测试函数**(2026-08-28 第二批新增 9 例——批量节点删除汇总/update 参数校验/批量更新/复制节点新 node_key/排序单事务/流量重置保留快照/reset_quota 无套餐失败/报表补零/流量 TopN;2026-08-25:0.9.0 新增 3 例——重复 UUID 整体拒绝、节点分组不匹配 `not_subscribed`、存量共享凭证回退;此前 2026-08-22 模式 A 新增 11 例——NodeUsers 同步/onetime 无到期、首次上报全量、同值重报幂等(不写 users/traffic)、计数器回退重启判定、0.5 倍率乘算、unknown_user+not_subscribed 跳过、servers 错误上抛、cumDelta/scaleRate 边界、NodeAuth(无头 401/未知 401/有效注入+缓存命中不再查库)、每用户凭证下发(opt-in 时 config 共享密码不下发断言)、admin 重置密钥(含 404)),此前覆盖:错误码映射、JWT(含 SV 会话版本号)、密码、验证码限频/已注册、注册/登录锁定/刷新旋转、优惠券试算(固定/百分比/封顶)/超限 12001/原子占用/每人限用、下单幂等、续期状态机、回调幂等、epay 验签与篡改拒绝、订阅生成(3 格式)、佣金划转、代理申请、工单流转、工单重开、佣金确认竞态、超时关单(含优惠券回退)、取消并发已支付回滚、退款(余额/券/佣金/订阅收回/onetime/异套餐)、代理审批、bluemonday 清洗、Auth 中间件、余额调整负值拒绝、管理端订单佣金查询、CORS
 
 ---
 

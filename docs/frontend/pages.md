@@ -25,6 +25,7 @@
 | `/admin` | → redirect `/admin/overview` | AdminLayout | 管理员 | — |
 | `/admin/overview` | 管理后台·总览 | AdminLayout | 管理员(role=1) | 管理端侧边栏-管理后台 |
 | `/admin/users` | 管理后台·用户 | AdminLayout | 管理员 | 管理端侧边栏-管理后台 |
+| `/admin/audit-logs` | 管理后台·审计日志（F08，只读查询） | AdminLayout | 管理员 | 管理端侧边栏-管理后台 |
 | `/admin/plans` | 管理后台·套餐 | AdminLayout | 管理员 | 管理端侧边栏-管理后台 |
 | `/admin/nodes` | 管理后台·节点 | AdminLayout | 管理员 | 管理端侧边栏-管理后台 |
 | `/admin/orders` | 管理后台·订单 | AdminLayout | 管理员 | 管理端侧边栏-管理后台 |

@@ -41,12 +41,25 @@ payment:
 cors:
   allow_origins: ["https://panel.example.com"]   # Web 前端域名(https)；Tauri 端无 CORS 需求
 
+# 安全部署项（F22，2026-08-28）：全部启动注入（config.yaml 或 APP_SECURITY_* 环境变量），不落库
+security:
+  admin_path: "admin"       # 管理端 API 路径段（/api/v1/{admin_path}/...）；改后前端需以 VITE_ADMIN_PATH 同值重新构建
+  subscribe_path: "client"  # 订阅下发路径段（/api/v1/{subscribe_path}/subscribe/{token}）；订阅 URL 由服务端拼接下发
+  safe_mode: false          # true 时仅白名单域名可访问 /api/v1/*（App.base_url 的 host 自动纳入），其余 403
+  safe_domains: []          # 追加白名单域名，如 ["panel.example.com", "sub.example.com"]
+
 log:
   level: info
   dir: ./logs
 ```
 
 规则：敏感值只经环境变量注入；`app.env=development` 时开启 Swagger 路由 `/swagger/index.html` 与 debug 日志，生产关闭。
+
+### 1.1 安全部署项（F22）变更步骤
+
+1. **后台路径定制（`security.admin_path`）**：改 config.yaml（或环境变量 `APP_SECURITY_ADMIN_PATH`）→ 重启后端 → 前端以 `VITE_ADMIN_PATH=<同值>` 重新构建部署。路径只影响 API 分组，`/admin` 下的 SPA 前端页面路由不受影响。
+2. **订阅路径定制（`security.subscribe_path`）**：重启后生效；订阅 URL 均由服务端拼接下发，变更后旧 URL 立即 404，用户需在用户中心重新复制订阅链接。
+3. **safe_mode 域名白名单（`security.safe_mode` + `security.safe_domains`）**：开启后 `Host` 不在白名单（`app.base_url` 的 host + `safe_domains`）的请求一律 403（统一信封 code=40300）。`/healthz`、`/readyz`、`/metrics` 不受影响。确保先把真实面板/订阅域名写入 `safe_domains` 再开启，否则会拒绝合法流量。
 
 ## 2. Dockerfile（多阶段）
 

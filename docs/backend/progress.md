@@ -2,7 +2,7 @@
 
 > 本文档记录 `server/` 目录 Go/Gin 后端的开发状态,是 docs/backend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-25(**0.9.0 评审修复**:存量节点共享凭证兼容、节点上报分组校验/重复 UUID 拒绝、demo agent 零基线、Alertmanager STARTTLS+SMTP 转义、NSIS hooks 入库;另含此前可观测性二期扩展全量落地;节点 agent 部署对接说明见 [node-agent-guide.md](node-agent-guide.md),见下)
+> 最后更新:2026-08-28(**第一批 Xboard 缺口补齐**:F08 审计日志查询界面、F22 安全部署项(admin_path/subscribe_path/safe_mode 启动注入)、F05 用户管理增强(CSV 流式导出/批量操作/管理端发邮件+mail_logs 迁移 0005/重置订阅密钥);此前 2026-08-25 为 0.9.0 评审修复,见下)
 
 ---
 
@@ -215,6 +215,17 @@
 | `GET /swagger/*` | gin-swagger,仅 development 环境;`make swagger` 重新生成 |
 | 支付回执邮件 | 在线回调与余额支付成功后异步发送(`[站点] 支付成功`),未配置 SMTP 静默跳过 |
 | agent-audit cron | 每月 1 日 03:00 复核代理有效邀请数,不达标降级 role=0 |
+
+### Xboard 缺口补齐 · 第一批(✅ 完成,2026-08-28,对齐 .scratch/xboard-gap-fill/spec.md)
+
+| 项 | 说明 | 位置 |
+|---|---|---|
+| F08 审计日志查询 | `GET /admin/audit-logs` 只读:操作人/动作/目标/时间范围筛选 + 分页 + 去重动作列表,JOIN users 取操作人邮箱;测试 `TestListAuditLogs`(含非法日期 40000) | `internal/handler/admin.go`、`internal/service/admin_service.go`、`internal/repo/admin.go` |
+| F22 安全部署项 | `security.admin_path`(管理端 API 路径段,默认 admin)、`security.subscribe_path`(订阅路径段,默认 client,`subscribeURL` 同步拼接)、`safe_mode`+`safe_domains`(域名白名单,非白名单 403/40300,healthz/metrics 不受影响);启动注入不落库;测试 SafeMode 放行/拦截/带端口/大小写、normalizeHost、路由注册无冲突 | `internal/config/config.go`、`internal/middleware/safe_mode.go`、`internal/router/router.go`、`internal/service/subscribe_service.go`、`configs/config.yaml` |
+| F05 CSV 导出 | `GET /admin/users/export`:与列表同 keyword 筛选,每批 500 流式写 + UTF-8 BOM;列含套餐名(批内联 plans)与邀请人邮箱(批内联 users);测试 `TestExportUsersStreamsBatches` | `internal/handler/admin.go`、`internal/service/admin_service.go`、`internal/repo/admin.go`(StreamForExport) |
+| F05 批量操作 | `POST /admin/users/batch`:`ban/unban/adjust_balance`,ids≤500,逐个执行复用单用户状态机(负值保护/操作自己拒绝/SV bump/审计),返回 `{success, failed:[{id,reason}]}`;测试 3 例(封禁+不存在/负值拦截/缺 amount 40000) | `internal/handler/admin.go`、`internal/service/admin_service.go` |
+| F05 发送邮件 | `POST /admin/users/mail`:ids≤100,SMTP 同步逐发,结果写 `mail_logs`(迁移 0005,失败原因截断 512),整体审计 `send_mail`;mailer 未注入/SMTP 不可达均优雅失败留痕;测试 3 例 | `internal/service/admin_service.go`、`internal/repo/admin.go`、`migrations/0005_admin_users_enhance.{up,down}.sql` |
+| F05 重置订阅密钥 | `POST /admin/users/{id}/sub-token/reset`:无需用户密码,旧 token 缓存(sub:userinfo/sub:rl)即删,返回新 subscribe_url,审计 `reset_sub_token`;测试含 404 与缓存清理断言 | `internal/service/admin_service.go` |
 
 ### 测试状态(✅ 已更新,2026-08-25 实测)
 

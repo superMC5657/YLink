@@ -134,7 +134,7 @@ sequenceDiagram
   - `POST /node/report` 定时（建议 60s）上报**每用户累计值** `[{uuid, u, d}]`。服务端流程：`node_user_stats` 快照差分得增量（重复上报差分 0，天然幂等；累计值回退视为节点计数器重启，增量取当前值）→ 增量 × 节点 `rate` → 事务内累加 `users.u/d` + `traffic_logs` 增量聚合（`ON CONFLICT DO UPDATE SET u = u + ?`）→ 删除受影响用户 `sub:userinfo:{token}` 缓存。同一 UUID 在单次请求重复出现会整体拒绝（`duplicate_uuid`）；未知 uuid、套餐分组不包含本节点、无订阅/封禁/过期用户跳过并在响应 `skipped` 返回。
   - 归因前提：节点 config 已开启 `per_user_credentials: true`，订阅下发 `users.uuid`（见第 6 节），节点 inbound 按凭证区分用户；存量节点应先配发每用户 inbound，再开启该开关。
 - **模式 B（手工/对账，一期）**：管理端可手工录入或导入流量数据（**覆盖**式，同日导入覆盖模式 A 聚合值，作为校准手段）；`traffic_logs` 有数据则前端展示，无数据显示空态。
-- 演示工具：`server/cmd/node-agent` 模拟累计值定时上报，本地全链路联调（首轮先上报 0 基线建立快照）；真实代理后端（Xray stats 等）对接为后续候补。
+- 演示工具：`server/cmd/node-agent` 模拟累计值定时上报，本地全链路联调（首轮先上报 0 基线建立快照）；真实代理后端（Xray stats 等）对接见 [node-agent-guide.md](node-agent-guide.md)。
 - 流量用尽（u+d ≥ transfer_enable）或到期：MarkPaid 之外的独立校验，订阅下发与提醒逻辑均以此判断；`remind_traffic=1` 且用量 ≥80% 时发一次提醒邮件（Redis 记录已提醒标记，周期内不重复）。
 
 ## 9. 定时任务总览（cmd/worker，robfig/cron）

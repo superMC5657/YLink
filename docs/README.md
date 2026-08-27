@@ -57,6 +57,7 @@
 | [backend/core-flows.md](backend/core-flows.md) | 后端：注册登录、下单支付、佣金、订阅下发等核心流程 |
 | [backend/deploy.md](backend/deploy.md) | 后端：配置、Docker 部署、运维 |
 | [backend/progress.md](backend/progress.md) | 后端：开发进度追踪（已完成 / 未完成 / 前置条件） |
+| [backend/node-agent-guide.md](backend/node-agent-guide.md) | 后端：节点 agent（Xray 流量上报）部署对接说明 |
 | [api/README.md](api/README.md) | 接口契约：通用约定、错误码、全量端点定义 |
 
 ## 5. 全局约定

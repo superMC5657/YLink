@@ -739,6 +739,110 @@ export interface AdminSendMailResp {
   failed: AdminBatchFailedItem[]
 }
 
+// ---------- 管理端 · 节点批量 / 复制 / 排序（F09） ----------
+
+export type AdminBatchServerAction = 'delete' | 'update'
+
+export interface AdminBatchServerReq {
+  action: AdminBatchServerAction
+  ids: number[]
+  /** update 可选公共字段 */
+  status?: ServerStatus
+  is_show?: boolean
+  group_id?: number
+  rate?: number
+}
+
+export interface AdminBatchServerResp {
+  success: number
+  failed: AdminBatchFailedItem[]
+}
+
+export interface AdminSortItem {
+  id: number
+  sort: number
+}
+
+export interface AdminSortServerReq {
+  items: AdminSortItem[]
+}
+
+// ---------- 管理端 · 流量重置（F16） ----------
+
+export type TrafficResetMode = 'clear_usage' | 'reset_quota'
+
+export interface AdminTrafficResetReq {
+  user_ids: number[]
+  mode: TrafficResetMode
+}
+
+export interface AdminTrafficResetResp {
+  success: number
+  failed: AdminBatchFailedItem[]
+}
+
+export interface AdminTrafficResetLogItem {
+  id: number
+  user_id: number
+  user_email: string
+  mode: TrafficResetMode
+  before_u: number
+  before_d: number
+  before_transfer_enable: number
+  after_transfer_enable: number
+  created_at: string
+}
+
+// ---------- 管理端 · 统计报表（F04） ----------
+
+export interface AdminStatOrderPoint {
+  date: string
+  order_count: number
+  completed_count: number
+  revenue: number
+  refunded: number
+}
+
+export interface AdminStatOrdersResp {
+  days: number
+  items: AdminStatOrderPoint[]
+}
+
+export interface AdminStatUserPoint {
+  date: string
+  count: number
+}
+
+export interface AdminStatPlanSlice {
+  plan_id: number
+  plan_name: string
+  users: number
+}
+
+export interface AdminStatUsersResp {
+  days: number
+  register_trend: AdminStatUserPoint[]
+  plan_distribution: AdminStatPlanSlice[]
+}
+
+export interface AdminStatUserTraffic {
+  user_id: number
+  email: string
+  total_bytes: number
+}
+
+export interface AdminStatNodeTraffic {
+  server_id: number
+  name: string
+  bytes: number
+}
+
+export interface AdminStatTrafficResp {
+  days: number
+  user_top: AdminStatUserTraffic[]
+  node_top: AdminStatNodeTraffic[]
+}
+
 export interface TrafficImportItem {
   user_id: number
   date: string // YYYY-MM-DD

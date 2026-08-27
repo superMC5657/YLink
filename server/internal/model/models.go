@@ -337,6 +337,21 @@ type AgentApply struct {
 
 func (AgentApply) TableName() string { return "agent_applies" }
 
+// TrafficResetLog 对应 traffic_reset_logs 表：管理端流量重置记录（F16）。
+type TrafficResetLog struct {
+	ID                   int64     `gorm:"primaryKey" json:"-"`
+	UserID               int64     `gorm:"index:idx_traffic_reset_logs_user,priority:1" json:"-"`
+	AdminID              int64     `json:"-"`
+	Mode                 string    `gorm:"size:16" json:"mode"` // clear_usage=清零用量 reset_quota=重新给量
+	BeforeU              int64     `json:"-"`
+	BeforeD              int64     `json:"-"`
+	BeforeTransferEnable int64     `json:"-"`
+	AfterTransferEnable  int64     `json:"-"`
+	CreatedAt            time.Time `json:"created_at"`
+}
+
+func (TrafficResetLog) TableName() string { return "traffic_reset_logs" }
+
 // MailLog 对应 mail_logs 表：管理端邮件发送日志（F05）。
 type MailLog struct {
 	ID        int64     `gorm:"primaryKey" json:"id"`

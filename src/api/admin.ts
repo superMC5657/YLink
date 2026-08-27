@@ -3,6 +3,9 @@ import type {
   AdjustBalanceReq,
   AdminAgentApplyItem,
   AdminApproveReq,
+  AdminAuditLogsResp,
+  AdminBatchServerReq,
+  AdminBatchServerResp,
   AdminBatchUserReq,
   AdminBatchUserResp,
   AdminSendMailReq,
@@ -25,11 +28,17 @@ import type {
   AdminServerReq,
   AdminSettingsItem,
   AdminSettingsReq,
+  AdminSortServerReq,
+  AdminStatOrdersResp,
+  AdminStatTrafficResp,
+  AdminStatUsersResp,
   AdminTicketDetail,
   AdminTicketItem,
+  AdminTrafficResetLogItem,
+  AdminTrafficResetReq,
+  AdminTrafficResetResp,
   AdminUpdateUserReq,
   AdminUserItem,
-  AdminAuditLogsResp,
   PageResult,
   RefundReq,
   TrafficImportReq,
@@ -76,6 +85,12 @@ export const apiAdmin = {
   deleteServer: (id: number) => http.delete<null>(ap(`servers/${id}`)),
   resetServerNodeKey: (id: number) =>
     http.post<{ node_key: string }>(ap(`servers/${id}/node-key/reset`)),
+
+  // 节点批量 / 复制 / 排序（F09）
+  batchServers: (body: AdminBatchServerReq) =>
+    http.post<AdminBatchServerResp>(ap('servers/batch'), { body }),
+  copyServer: (id: number) => http.post<AdminServerItem>(ap(`servers/${id}/copy`)),
+  sortServers: (body: AdminSortServerReq) => http.post<null>(ap('servers/sort'), { body }),
   serverGroups: () => http.get<{ list: AdminServerGroupItem[] }>(ap('server-groups')),
   createServerGroup: (body: AdminServerGroupReq) =>
     http.post<AdminServerGroupItem>(ap('server-groups'), { body }),
@@ -144,6 +159,20 @@ export const apiAdmin = {
 
   // 流量导入(模式 B)
   importTraffic: (body: TrafficImportReq) => http.post<null>(ap('traffic/import'), { body }),
+
+  // 流量重置(F16)
+  resetTraffic: (body: AdminTrafficResetReq) =>
+    http.post<AdminTrafficResetResp>(ap('traffic/reset'), { body }),
+  trafficResets: (query: { page?: number; page_size?: number; user_id?: number | '' }) =>
+    http.get<PageResult<AdminTrafficResetLogItem>>(ap('traffic/resets'), { query }),
+
+  // 统计报表(F04)
+  statOrders: (query: { days?: number }) =>
+    http.get<AdminStatOrdersResp>(ap('stat/orders'), { query }),
+  statUsers: (query: { days?: number }) =>
+    http.get<AdminStatUsersResp>(ap('stat/users'), { query }),
+  statTraffic: (query: { days?: number }) =>
+    http.get<AdminStatTrafficResp>(ap('stat/traffic'), { query }),
 
   // 站点设置
   settings: () => http.get<{ list: AdminSettingsItem[] }>(ap('settings')),

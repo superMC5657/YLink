@@ -335,6 +335,49 @@ func (TrafficLogRepo) Upsert(db *gorm.DB, t *model.TrafficLog) error {
 	return db.Create(t).Error
 }
 
+// ---- 管理端 · 流量重置记录（F16） ----
+
+type TrafficResetRepo struct{}
+
+func (TrafficResetRepo) Create(db *gorm.DB, l *model.TrafficResetLog) error {
+	return db.Create(l).Error
+}
+
+// TrafficResetQuery 流量重置记录筛选条件。
+type TrafficResetQuery struct {
+	UserID *int64
+}
+
+// ListByPage 重置记录分页（联表取用户邮箱，id 倒序）。
+func (TrafficResetRepo) ListByPage(db *gorm.DB, q TrafficResetQuery, page, pageSize int) ([]model.AdminTrafficResetLogItem, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+	w := func(tx *gorm.DB) *gorm.DB {
+		tx = tx.Joins("JOIN users ON users.id = traffic_reset_logs.user_id")
+		if q.UserID != nil {
+			tx = tx.Where("traffic_reset_logs.user_id = ?", *q.UserID)
+		}
+		return tx
+	}
+	var total int64
+	if err := w(db.Model(&model.TrafficResetLog{})).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var rows []model.AdminTrafficResetLogItem
+	err := w(db.Model(&model.TrafficResetLog{}).
+		Select("traffic_reset_logs.id, traffic_reset_logs.user_id, users.email AS user_email, traffic_reset_logs.mode, " +
+			"traffic_reset_logs.before_u, traffic_reset_logs.before_d, traffic_reset_logs.before_transfer_enable, " +
+			"traffic_reset_logs.after_transfer_enable, traffic_reset_logs.created_at")).
+		Order("traffic_reset_logs.id DESC").
+		Offset((page - 1) * pageSize).Limit(pageSize).
+		Scan(&rows).Error
+	return rows, total, err
+}
+
 // ---- 管理端 · 邮件日志（F05） ----
 
 type MailLogRepo struct{}
@@ -345,23 +388,25 @@ func (MailLogRepo) Create(db *gorm.DB, l *model.MailLog) error { return db.Creat
 
 // Repos 聚合全部仓储，注入 service 层。
 type Repos struct {
-	User       UserRepo
-	Invite     InviteCodeRepo
-	Setting    SettingRepo
-	Notice     NoticeRepo
-	Knowledge  KnowledgeRepo
-	Plan       PlanRepo
-	Server     ServerRepo
-	Order      OrderRepo
-	Payment    PaymentRepo
-	Coupon     CouponRepo
-	Commission CommissionRepo
-	Traffic    TrafficLogRepo
-	NodeStat   NodeUserStatRepo
-	AgentApply AgentApplyRepo
-	Ticket     TicketRepo
-	Audit      AuditLogRepo
-	MailLog    MailLogRepo
+	User         UserRepo
+	Invite       InviteCodeRepo
+	Setting      SettingRepo
+	Notice       NoticeRepo
+	Knowledge    KnowledgeRepo
+	Plan         PlanRepo
+	Server       ServerRepo
+	Order        OrderRepo
+	Payment      PaymentRepo
+	Coupon       CouponRepo
+	Commission   CommissionRepo
+	Traffic      TrafficLogRepo
+	TrafficReset TrafficResetRepo
+	NodeStat     NodeUserStatRepo
+	Stat         StatRepo
+	AgentApply   AgentApplyRepo
+	Ticket       TicketRepo
+	Audit        AuditLogRepo
+	MailLog      MailLogRepo
 }
 
 // EnsureAdmin 幂等初始化首个管理员：users 表无管理员且环境变量齐全时创建。

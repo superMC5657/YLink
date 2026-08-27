@@ -1,12 +1,13 @@
 <script setup lang="ts">
 /**
- * 管理后台 · 节点管理:节点分组 CRUD + 节点 CRUD。
- * 数据:/admin/servers、/admin/server-groups(docs/api/README.md §16)
+ * 管理后台 · 节点管理:节点分组 CRUD + 节点 CRUD + 批量操作/复制/排序(F09)。
+ * 数据:/admin/servers、/admin/server-groups、/admin/servers/batch|sort|{id}/copy(docs/api/README.md §16)
  */
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { apiAdmin } from '@/api/admin'
 import type {
+  AdminBatchServerResp,
   AdminServerGroupItem,
   AdminServerItem,
   AdminServerReq,
@@ -176,6 +177,187 @@ function resetNodeKey(srv: AdminServerItem) {
   })
 }
 
+// ---- F09: 多选 / 批量操作 / 复制 / 排序 ----
+
+const selectedIds = ref<number[]>([])
+
+function isSelected(id: number): boolean {
+  return selectedIds.value.includes(id)
+}
+
+function toggleRow(id: number, checked: boolean) {
+  if (checked) {
+    if (!selectedIds.value.includes(id)) selectedIds.value = [...selectedIds.value, id]
+  } else {
+    selectedIds.value = selectedIds.value.filter((v) => v !== id)
+  }
+}
+
+const allChecked = computed(
+  () => servers.value.length > 0 && servers.value.every((s) => selectedIds.value.includes(s.id)),
+)
+
+function toggleAll(checked: boolean) {
+  selectedIds.value = checked ? servers.value.map((s) => s.id) : []
+}
+
+function clearSelection() {
+  selectedIds.value = []
+}
+
+/** 批量结果汇总提示:成功 n,失败列出原因(与用户端批量同风格) */
+function reportBatch(resp: AdminBatchServerResp) {
+  const title = t('adminNodes.batchDone')
+  if (resp.failed.length === 0) {
+    message.success(`${title}: ${resp.success}`)
+  } else {
+    const detail = resp.failed.map((f) => `#${f.id} ${f.reason}`).join('; ')
+    message.warning(
+      `${title}: ${resp.success} / ${t('adminNodes.batchFailed')} ${resp.failed.length} — ${detail}`,
+    )
+  }
+}
+
+const batchSaving = ref(false)
+
+function batchDelete() {
+  const ids = [...selectedIds.value]
+  dialog.warning({
+    title: t('adminNodes.batchDelete'),
+    content: t('adminNodes.batchDeleteConfirm', { count: ids.length }),
+    positiveText: t('adminNodes.delete'),
+    negativeText: t('common.cancel'),
+    onPositiveClick: async () => {
+      batchSaving.value = true
+      try {
+        const resp = await apiAdmin.batchServers({ action: 'delete', ids })
+        reportBatch(resp)
+        clearSelection()
+        void load()
+      } finally {
+        batchSaving.value = false
+      }
+    },
+  })
+}
+
+async function batchShow(isShow: boolean) {
+  batchSaving.value = true
+  try {
+    const resp = await apiAdmin.batchServers({
+      action: 'update',
+      ids: [...selectedIds.value],
+      is_show: isShow,
+    })
+    reportBatch(resp)
+    clearSelection()
+    await load()
+  } finally {
+    batchSaving.value = false
+  }
+}
+
+// 批量修改公共字段弹窗
+const batchModal = ref(false)
+const batchStatus = ref<ServerStatus | null>(null)
+const batchGroup = ref<number | null>(null)
+const batchRate = ref<number | null>(null)
+
+function openBatchUpdate() {
+  batchStatus.value = null
+  batchGroup.value = null
+  batchRate.value = null
+  batchModal.value = true
+}
+
+async function saveBatchUpdate() {
+  const payload: {
+    action: 'update'
+    ids: number[]
+    status?: ServerStatus
+    group_id?: number
+    rate?: number
+  } = {
+    action: 'update',
+    ids: [...selectedIds.value],
+  }
+  let hasAny = false
+  if (batchStatus.value !== null) {
+    payload.status = batchStatus.value
+    hasAny = true
+  }
+  if (batchGroup.value !== null) {
+    payload.group_id = batchGroup.value
+    hasAny = true
+  }
+  if (batchRate.value !== null) {
+    payload.rate = batchRate.value
+    hasAny = true
+  }
+  if (!hasAny) {
+    message.warning(t('adminNodes.batchUpdateEmpty'))
+    return
+  }
+  batchSaving.value = true
+  try {
+    const resp = await apiAdmin.batchServers(payload)
+    reportBatch(resp)
+    batchModal.value = false
+    clearSelection()
+    await load()
+  } finally {
+    batchSaving.value = false
+  }
+}
+
+function copyNode(srv: AdminServerItem) {
+  dialog.warning({
+    title: t('adminNodes.copyTitle'),
+    content: t('adminNodes.copyConfirm', { name: srv.name }),
+    positiveText: t('adminNodes.copy'),
+    negativeText: t('common.cancel'),
+    onPositiveClick: async () => {
+      await apiAdmin.copyServer(srv.id)
+      message.success(t('adminNodes.copied', { name: srv.name }))
+      void load()
+    },
+  })
+}
+
+// 排序弹窗:上下移调整顺序,保存时按最终顺序写 0..n
+const sortModal = ref(false)
+const sortItems = ref<{ id: number; name: string }[]>([])
+const sortSaving = ref(false)
+
+function openSortModal() {
+  sortItems.value = [...servers.value]
+    .sort((a, b) => a.sort - b.sort || a.id - b.id)
+    .map((s) => ({ id: s.id, name: s.name }))
+  sortModal.value = true
+}
+
+function moveSortItem(index: number, delta: number) {
+  const target = index + delta
+  if (target < 0 || target >= sortItems.value.length) return
+  const items = [...sortItems.value]
+  ;[items[index], items[target]] = [items[target], items[index]]
+  sortItems.value = items
+}
+
+async function saveSort() {
+  sortSaving.value = true
+  try {
+    await apiAdmin.sortServers({
+      items: sortItems.value.map((s, i) => ({ id: s.id, sort: i })),
+    })
+    message.success(t('adminNodes.sortSaved'))
+    sortModal.value = false
+    await load()
+  } finally {
+    sortSaving.value = false
+  }
+}
+
 function openGroupCreate() {
   editingGroup.value = null
   groupName.value = ''
@@ -242,6 +424,9 @@ onMounted(() => void load())
           <button class="btn-soft-primary h-9 px-4 text-14" @click="openGroupCreate">
             {{ t('adminNodes.newGroup') }}
           </button>
+          <button class="btn-soft-primary h-9 px-4 text-14" @click="openSortModal">
+            {{ t('adminNodes.sortTitle') }}
+          </button>
           <button class="btn-primary h-9 px-4 text-14" @click="openNodeCreate">
             <AppIcon name="plus" :size="15" /> {{ t('adminNodes.newNode') }}
           </button>
@@ -249,11 +434,48 @@ onMounted(() => void load())
       </template>
     </PageHeader>
 
+    <!-- F09 批量操作工具栏(选中 > 0 时显示) -->
+    <div v-if="selectedIds.length > 0" class="card-base mb-4 flex flex-wrap items-center gap-2 p-3">
+      <span class="text-14 text-[var(--c-text-sub)]">
+        {{ t('adminNodes.selectedCount', { count: selectedIds.length }) }}
+      </span>
+      <button
+        class="btn-soft-success h-8 px-3 text-14"
+        :disabled="batchSaving"
+        @click="batchShow(true)"
+      >
+        {{ t('adminNodes.batchShow') }}
+      </button>
+      <button
+        class="btn-soft-warning h-8 px-3 text-14"
+        :disabled="batchSaving"
+        @click="batchShow(false)"
+      >
+        {{ t('adminNodes.batchHide') }}
+      </button>
+      <button
+        class="btn-soft-primary h-8 px-3 text-14"
+        :disabled="batchSaving"
+        @click="openBatchUpdate"
+      >
+        {{ t('adminNodes.batchUpdate') }}
+      </button>
+      <button class="btn-soft-danger h-8 px-3 text-14" :disabled="batchSaving" @click="batchDelete">
+        {{ t('adminNodes.batchDelete') }}
+      </button>
+      <button class="btn-soft-neutral h-8 px-3 text-14" @click="clearSelection">
+        {{ t('adminNodes.clearSelection') }}
+      </button>
+    </div>
+
     <div class="card-base overflow-x-auto">
       <n-spin :show="loading">
-        <n-table :bordered="false" :single-line="false" class="min-w-[980px]">
+        <n-table :bordered="false" :single-line="false" class="min-w-[1060px]">
           <thead>
             <tr>
+              <th class="w-10">
+                <n-checkbox :checked="allChecked" @update:checked="toggleAll" />
+              </th>
               <th>ID</th>
               <th>{{ t('adminNodes.name') }}</th>
               <th>{{ t('adminNodes.group') }}</th>
@@ -269,6 +491,12 @@ onMounted(() => void load())
           </thead>
           <tbody>
             <tr v-for="s in servers" :key="s.id">
+              <td>
+                <n-checkbox
+                  :checked="isSelected(s.id)"
+                  @update:checked="(v: boolean) => toggleRow(s.id, v)"
+                />
+              </td>
               <td>{{ s.id }}</td>
               <td class="font-500 text-[var(--c-text)]">{{ s.name }}</td>
               <td class="text-14 text-[var(--c-text-sub)]">{{ groupNameOf(s.group_id) }}</td>
@@ -295,6 +523,9 @@ onMounted(() => void load())
                   <button class="btn-soft-primary h-7 px-3 text-14" @click="openNodeEdit(s)">
                     {{ t('adminNodes.edit') }}
                   </button>
+                  <button class="btn-soft-neutral h-7 px-3 text-14" @click="copyNode(s)">
+                    {{ t('adminNodes.copy') }}
+                  </button>
                   <button class="btn-soft-neutral h-7 px-3 text-14" @click="resetNodeKey(s)">
                     {{ t('adminNodes.resetKey') }}
                   </button>
@@ -305,7 +536,7 @@ onMounted(() => void load())
               </td>
             </tr>
             <tr v-if="!loading && servers.length === 0">
-              <td colspan="11"><EmptyState :text="t('adminNodes.emptyNodes')" /></td>
+              <td colspan="12"><EmptyState :text="t('adminNodes.emptyNodes')" /></td>
             </tr>
           </tbody>
         </n-table>
@@ -451,6 +682,112 @@ onMounted(() => void load())
           </button>
           <button class="btn-primary h-9 px-4 text-14" :disabled="groupSaving" @click="saveGroup">
             {{ t('common.save') }}
+          </button>
+        </div>
+      </template>
+    </n-modal>
+
+    <!-- F09 批量修改公共字段弹窗 -->
+    <n-modal
+      v-model:show="batchModal"
+      preset="card"
+      :title="t('adminNodes.batchUpdate')"
+      style="width: 420px"
+    >
+      <n-form label-placement="top">
+        <n-form-item :label="t('adminNodes.batchUpdateHint')">
+          <span class="text-14 text-[var(--c-text-sub)]">
+            {{ t('adminNodes.selectedCount', { count: selectedIds.length }) }}
+          </span>
+        </n-form-item>
+        <n-form-item :label="t('adminNodes.status')">
+          <n-select
+            v-model:value="batchStatus"
+            clearable
+            :options="[
+              { label: t('node.normal'), value: 1 },
+              { label: t('node.busy'), value: 2 },
+              { label: t('node.maintenance'), value: 3 },
+            ]"
+            :placeholder="t('adminNodes.batchUnchanged')"
+          />
+        </n-form-item>
+        <n-form-item :label="t('adminNodes.group')">
+          <n-select
+            v-model:value="batchGroup"
+            clearable
+            :options="groups.map((g) => ({ label: g.name, value: g.id }))"
+            :placeholder="t('adminNodes.batchUnchanged')"
+          />
+        </n-form-item>
+        <n-form-item :label="t('adminNodes.rate')">
+          <n-input-number
+            v-model:value="batchRate"
+            clearable
+            :min="0.1"
+            :step="0.1"
+            class="w-full"
+            :placeholder="t('adminNodes.batchUnchanged')"
+          />
+        </n-form-item>
+      </n-form>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <button class="btn-soft-neutral h-9 px-4 text-14" @click="batchModal = false">
+            {{ t('common.cancel') }}
+          </button>
+          <button
+            class="btn-primary h-9 px-4 text-14"
+            :disabled="batchSaving"
+            @click="saveBatchUpdate"
+          >
+            {{ t('common.save') }}
+          </button>
+        </div>
+      </template>
+    </n-modal>
+
+    <!-- F09 排序弹窗 -->
+    <n-modal
+      v-model:show="sortModal"
+      preset="card"
+      :title="t('adminNodes.sortTitle')"
+      style="width: 420px"
+    >
+      <p class="mb-3 text-14 text-[var(--c-text-sub)]">{{ t('adminNodes.sortHint') }}</p>
+      <div class="flex flex-col gap-2">
+        <div
+          v-for="(item, i) in sortItems"
+          :key="item.id"
+          class="flex items-center justify-between rounded-lg border border-[var(--c-border)] px-3 py-2"
+        >
+          <span class="num-font mr-2 text-14 text-[var(--c-text-sub)]">{{ i + 1 }}</span>
+          <span class="flex-1 truncate text-14 font-500 text-[var(--c-text)]">{{ item.name }}</span>
+          <div class="flex gap-1">
+            <button
+              class="btn-soft-neutral h-7 px-2 text-14"
+              :disabled="i === 0"
+              @click="moveSortItem(i, -1)"
+            >
+              ↑
+            </button>
+            <button
+              class="btn-soft-neutral h-7 px-2 text-14"
+              :disabled="i === sortItems.length - 1"
+              @click="moveSortItem(i, 1)"
+            >
+              ↓
+            </button>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <button class="btn-soft-neutral h-9 px-4 text-14" @click="sortModal = false">
+            {{ t('common.cancel') }}
+          </button>
+          <button class="btn-primary h-9 px-4 text-14" :disabled="sortSaving" @click="saveSort">
+            {{ t('adminNodes.sortSave') }}
           </button>
         </div>
       </template>

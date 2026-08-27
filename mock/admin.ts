@@ -126,6 +126,82 @@ const serverGroups = [
   { id: 3, name: '日本', sort: 3 },
 ]
 
+// ---------- F16 重置记录演示数据 ----------
+const trafficResets = [
+  {
+    id: 1,
+    user_id: 10086,
+    user_email: '2734921923@qq.com',
+    mode: 'clear_usage',
+    before_u: 21474836480,
+    before_d: 10737418240,
+    before_transfer_enable: 107374182400,
+    after_transfer_enable: 107374182400,
+    created_at: '2026-08-28T10:00:00+08:00',
+  },
+  {
+    id: 2,
+    user_id: 2,
+    user_email: 'agent@example.com',
+    mode: 'reset_quota',
+    before_u: 107374182400,
+    before_d: 53687091200,
+    before_transfer_enable: 536870912000,
+    after_transfer_enable: 536870912000,
+    created_at: '2026-08-27T15:30:00+08:00',
+  },
+]
+
+// ---------- F04 报表演示数据(近 30 天逐日) ----------
+function lastDays(n: number): string[] {
+  const out: string[] = []
+  const base = new Date('2026-08-28T00:00:00+08:00')
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(base.getTime() - i * 86400000)
+    out.push(d.toISOString().slice(0, 10))
+  }
+  return out
+}
+
+const statOrders = {
+  days: 30,
+  items: lastDays(30).map((date, i) => ({
+    date,
+    order_count: 3 + ((i * 7) % 11),
+    completed_count: 2 + ((i * 5) % 9),
+    revenue: Math.round((80 + ((i * 137) % 260)) * 100) / 100,
+    refunded: i % 9 === 0 ? 12 : 0,
+  })),
+}
+
+const statUsers = {
+  days: 30,
+  register_trend: lastDays(30).map((date, i) => ({
+    date,
+    count: (i * 3) % 8,
+  })),
+  plan_distribution: [
+    { plan_id: 1, plan_name: '白羊座', users: 86 },
+    { plan_id: 2, plan_name: '金牛座', users: 54 },
+    { plan_id: 3, plan_name: '射手座', users: 23 },
+  ],
+}
+
+const statTraffic = {
+  days: 30,
+  user_top: [
+    { user_id: 2, email: 'agent@example.com', total_bytes: 536870912000 },
+    { user_id: 10086, email: '2734921923@qq.com', total_bytes: 214748364800 },
+    { user_id: 10087, email: 'user3@example.com', total_bytes: 107374182400 },
+    { user_id: 10088, email: 'user6@example.com', total_bytes: 53687091200 },
+    { user_id: 10089, email: 'user7@example.com', total_bytes: 32212254720 },
+  ],
+  node_top: [
+    { server_id: 1, name: '香港 01', bytes: 640000000000 },
+    { server_id: 2, name: '美国 01', bytes: 320000000000 },
+  ],
+}
+
 const servers = [
   {
     id: 1,
@@ -533,6 +609,73 @@ export default [
       return ok({ list: servers })
     },
   },
+  // F09 批量 / 复制 / 排序
+  {
+    url: '/api/v1/admin/servers/batch',
+    method: 'post',
+    response: ({
+      headers,
+      body,
+    }: {
+      headers: Record<string, string>
+      body: { action?: string; ids?: number[] }
+    }) => {
+      if (!verifyAdmin(headers)) return unauthorized()
+      const ids = body.ids ?? []
+      if (!body.action || ids.length === 0) {
+        return { code: 40000, message: '参数校验失败: action/ids 必填', data: null }
+      }
+      if (body.action === 'delete') {
+        for (const id of ids) {
+          const idx = servers.findIndex((s) => s.id === id)
+          if (idx >= 0) servers.splice(idx, 1)
+        }
+      } else {
+        for (const id of ids) {
+          const s = servers.find((x) => x.id === id)
+          if (s) Object.assign(s, body)
+        }
+      }
+      return ok({ success: ids.length, failed: [] })
+    },
+  },
+  {
+    url: '/api/v1/admin/servers/sort',
+    method: 'post',
+    response: ({
+      headers,
+      body,
+    }: {
+      headers: Record<string, string>
+      body: { items?: { id: number; sort: number }[] }
+    }) => {
+      if (!verifyAdmin(headers)) return unauthorized()
+      for (const it of body.items ?? []) {
+        const s = servers.find((x) => x.id === it.id)
+        if (s) s.sort = it.sort
+      }
+      return ok(null)
+    },
+  },
+  {
+    url: '/api/v1/admin/servers/:id/copy',
+    method: 'post',
+    response: ({ headers, query }: { headers: Record<string, string>; query: { id?: string } }) => {
+      if (!verifyAdmin(headers)) return unauthorized()
+      const src = servers.find((s) => s.id === Number(query.id))
+      if (!src) return { code: 40400, message: '节点不存在', data: null }
+      const arr = new Uint8Array(16)
+      crypto.getRandomValues(arr)
+      const copy = {
+        ...src,
+        id: Math.max(...servers.map((s) => s.id)) + 1,
+        name: `${src.name}-copy`,
+        node_key: Array.from(arr, (b) => b.toString(16).padStart(2, '0')).join(''),
+      }
+      servers.push(copy)
+      return ok(copy)
+    },
+  },
   {
     url: '/api/v1/admin/servers/:id/node-key/reset',
     method: 'post',
@@ -892,7 +1035,7 @@ export default [
     },
   },
 
-  // ---------- 流量导入 ----------
+  // ---------- 流量导入 / 重置(F16) / 报表(F04) ----------
   {
     url: '/api/v1/admin/traffic/import',
     method: 'post',
@@ -908,6 +1051,84 @@ export default [
         return { code: 40000, message: '参数校验失败: items 至少 1 项', data: null }
       }
       return ok(null)
+    },
+  },
+  {
+    url: '/api/v1/admin/traffic/reset',
+    method: 'post',
+    response: ({
+      headers,
+      body,
+    }: {
+      headers: Record<string, string>
+      body: { user_ids?: number[]; mode?: string }
+    }) => {
+      if (!verifyAdmin(headers)) return unauthorized()
+      const ids = body.user_ids ?? []
+      if (ids.length === 0 || !body.mode) {
+        return { code: 40000, message: '参数校验失败: user_ids/mode 必填', data: null }
+      }
+      // 演示:最后一个 ID 记为失败,展示失败明细 UI
+      trafficResets.unshift({
+        id: trafficResets.length + 1,
+        user_id: ids[0],
+        user_email: users.find((u) => u.id === ids[0])?.email ?? `#${ids[0]}`,
+        mode: body.mode,
+        before_u: 21474836480,
+        before_d: 10737418240,
+        before_transfer_enable: 107374182400,
+        after_transfer_enable: body.mode === 'reset_quota' ? 107374182400 : 107374182400,
+        created_at: '2026-08-28T10:00:00+08:00',
+      })
+      return ok({
+        success: Math.max(0, ids.length - 1),
+        failed: [],
+      })
+    },
+  },
+  {
+    url: '/api/v1/admin/traffic/resets',
+    method: 'get',
+    response: ({
+      headers,
+      query,
+    }: {
+      headers: Record<string, string>
+      query: Record<string, string>
+    }) => {
+      if (!verifyAdmin(headers)) return unauthorized()
+      const page = Number(query.page ?? 1)
+      const pageSize = Number(query.page_size ?? 10)
+      const uid = query.user_id
+      const filtered =
+        uid === undefined || uid === ''
+          ? trafficResets
+          : trafficResets.filter((l) => String(l.user_id) === uid)
+      return ok(paged(filtered, page, pageSize))
+    },
+  },
+  {
+    url: '/api/v1/admin/stat/orders',
+    method: 'get',
+    response: ({ headers }: { headers: Record<string, string> }) => {
+      if (!verifyAdmin(headers)) return unauthorized()
+      return ok(statOrders)
+    },
+  },
+  {
+    url: '/api/v1/admin/stat/users',
+    method: 'get',
+    response: ({ headers }: { headers: Record<string, string> }) => {
+      if (!verifyAdmin(headers)) return unauthorized()
+      return ok(statUsers)
+    },
+  },
+  {
+    url: '/api/v1/admin/stat/traffic',
+    method: 'get',
+    response: ({ headers }: { headers: Record<string, string> }) => {
+      if (!verifyAdmin(headers)) return unauthorized()
+      return ok(statTraffic)
     },
   },
 

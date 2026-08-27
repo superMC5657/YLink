@@ -290,14 +290,121 @@ type AdminSettingsResp struct {
 
 // AdminAuditLogItem 管理端审计日志条目（含操作人邮箱；detail 为 jsonb 原始字符串）。
 type AdminAuditLogItem struct {
-	ID         int64      `json:"id"`
-	AdminID    int64      `json:"admin_id"`
-	AdminEmail string     `json:"admin_email"`
-	Action     string     `json:"action"`
-	Target     *string    `json:"target"`
-	Detail     *string    `json:"detail"`
-	IP         *string    `json:"ip"`
-	CreatedAt  time.Time  `json:"created_at"`
+	ID         int64     `json:"id"`
+	AdminID    int64     `json:"admin_id"`
+	AdminEmail string    `json:"admin_email"`
+	Action     string    `json:"action"`
+	Target     *string   `json:"target"`
+	Detail     *string   `json:"detail"`
+	IP         *string   `json:"ip"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+// ---- 管理端 · 节点批量操作 / 复制 / 排序（F09） ----
+
+// AdminBatchServerReq 节点批量操作：delete=删除；update=批量更新公共字段（至少一项，status/is_show/group_id/rate）。
+type AdminBatchServerReq struct {
+	Action  string   `json:"action" binding:"required,oneof=delete update"`
+	IDs     []int64  `json:"ids" binding:"required,min=1,max=500"`
+	Status  *int     `json:"status" binding:"omitempty,oneof=1 2 3"`
+	IsShow  *bool    `json:"is_show"`
+	GroupID *int64   `json:"group_id"`
+	Rate    *float64 `json:"rate"`
+}
+
+// AdminBatchServerResp 批量节点操作结果汇总（复用 F05 的失败明细结构）。
+type AdminBatchServerResp struct {
+	Success int64                  `json:"success"`
+	Failed  []AdminBatchFailedItem `json:"failed"`
+}
+
+// AdminSortServerReq 节点排序：items 按 sort 值更新（前端按展示顺序传 0..n）。
+type AdminSortServerReq struct {
+	Items []AdminSortItem `json:"items" binding:"required,min=1,max=500,dive"`
+}
+
+type AdminSortItem struct {
+	ID   int64 `json:"id" binding:"required"`
+	Sort int   `json:"sort"`
+}
+
+// ---- 管理端 · 流量重置（F16） ----
+
+// AdminTrafficResetReq 按用户批量重置流量：clear_usage=清零用量；reset_quota=另按当前套餐额度重新给量。
+type AdminTrafficResetReq struct {
+	UserIDs []int64 `json:"user_ids" binding:"required,min=1,max=500"`
+	Mode    string  `json:"mode" binding:"required,oneof=clear_usage reset_quota"`
+}
+
+// AdminTrafficResetResp 重置结果汇总。
+type AdminTrafficResetResp struct {
+	Success int64                  `json:"success"`
+	Failed  []AdminBatchFailedItem `json:"failed"`
+}
+
+// AdminTrafficResetLogItem 重置记录条目（含用户邮箱联表）。
+type AdminTrafficResetLogItem struct {
+	ID                   int64     `json:"id"`
+	UserID               int64     `json:"user_id"`
+	UserEmail            string    `json:"user_email"`
+	Mode                 string    `json:"mode"`
+	BeforeU              int64     `json:"before_u"`
+	BeforeD              int64     `json:"before_d"`
+	BeforeTransferEnable int64     `json:"before_transfer_enable"`
+	AfterTransferEnable  int64     `json:"after_transfer_enable"`
+	CreatedAt            time.Time `json:"created_at"`
+}
+
+// ---- 管理端 · 统计报表（F04） ----
+
+// AdminStatOrderPoint 订单日趋势点（date=YYYY-MM-DD）。
+type AdminStatOrderPoint struct {
+	Date           string  `json:"date"`
+	OrderCount     int64   `json:"order_count"`     // 当日创建订单数
+	CompletedCount int64   `json:"completed_count"` // 当日完成订单数
+	Revenue        float64 `json:"revenue"`         // 当日实收（元，按 paid_at）
+	Refunded       float64 `json:"refunded"`        // 当日退款额（元，按 updated_at 近似）
+}
+
+type AdminStatOrdersResp struct {
+	Days  int                   `json:"days"`
+	Items []AdminStatOrderPoint `json:"items"` // 含无数据日补零，便于折线图
+}
+
+type AdminStatUserPoint struct {
+	Date  string `json:"date"`
+	Count int64  `json:"count"`
+}
+
+// AdminStatPlanSlice 套餐分布切片（当前生效订阅按套餐聚合）。
+type AdminStatPlanSlice struct {
+	PlanID   int64  `json:"plan_id"`
+	PlanName string `json:"plan_name"`
+	Users    int64  `json:"users"`
+}
+
+type AdminStatUsersResp struct {
+	Days             int                  `json:"days"`
+	RegisterTrend    []AdminStatUserPoint `json:"register_trend"` // 含无数据日补零
+	PlanDistribution []AdminStatPlanSlice `json:"plan_distribution"`
+}
+
+type AdminStatUserTraffic struct {
+	UserID     int64  `json:"user_id"`
+	Email      string `json:"email"`
+	TotalBytes int64  `json:"total_bytes"` // 时间范围内 u+d 合计
+}
+
+type AdminStatNodeTraffic struct {
+	ServerID int64  `json:"server_id"`
+	Name     string `json:"name"`
+	Bytes    int64  `json:"bytes"` // 上报累计值合计（未乘倍率，节点全周期）
+}
+
+type AdminStatTrafficResp struct {
+	Days    int                    `json:"days"`
+	UserTop []AdminStatUserTraffic `json:"user_top"` // 流量消耗 TopN
+	NodeTop []AdminStatNodeTraffic `json:"node_top"` // 节点流量分布 TopN
 }
 
 // ---- 管理端 · 用户批量操作 / 邮件（F05） ----
@@ -334,4 +441,3 @@ type AdminSendMailResp struct {
 	Sent   int64                  `json:"sent"`
 	Failed []AdminBatchFailedItem `json:"failed"`
 }
-

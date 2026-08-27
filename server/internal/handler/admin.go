@@ -394,6 +394,74 @@ func (h *Admin) ResetNodeKey(c *gin.Context) {
 	resp.OK(c, gin.H{"node_key": key})
 }
 
+// ---- 节点批量 / 复制 / 排序（F09） ----
+
+// BatchServers 批量节点操作
+// @Summary 批量删除/更新节点公共字段（≤500 个，返回成功数与失败原因）
+// @Tags 管理端
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param body body model.AdminBatchServerReq true "请求"
+// @Success 200 {object} resp.Body{data=model.AdminBatchServerResp}
+// @Router /admin/servers/batch [post]
+func (h *Admin) BatchServers(c *gin.Context) {
+	var req model.AdminBatchServerReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+		return
+	}
+	data, err := h.svc.BatchServers(c.Request.Context(), h.adminID(c), &req, c.ClientIP())
+	if err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.OK(c, data)
+}
+
+// CopyServer 复制节点
+// @Summary 复制节点（全字段复制，名称追加 -copy，重新生成 node_key）
+// @Tags 管理端
+// @Security BearerAuth
+// @Produce json
+// @Param id path int true "节点 ID"
+// @Success 200 {object} resp.Body{data=model.AdminServerView}
+// @Router /admin/servers/{id}/copy [post]
+func (h *Admin) CopyServer(c *gin.Context) {
+	id, ok := idParam(c)
+	if !ok {
+		return
+	}
+	data, err := h.svc.CopyServer(c.Request.Context(), h.adminID(c), id, c.ClientIP())
+	if err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.OK(c, data)
+}
+
+// SortServers 节点排序
+// @Summary 批量更新节点排序（单事务，按展示顺序传 items）
+// @Tags 管理端
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param body body model.AdminSortServerReq true "请求"
+// @Success 200 {object} resp.Body
+// @Router /admin/servers/sort [post]
+func (h *Admin) SortServers(c *gin.Context) {
+	var req model.AdminSortServerReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+		return
+	}
+	if err := h.svc.SortServers(c.Request.Context(), h.adminID(c), req.Items, c.ClientIP()); err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.OK(c, nil)
+}
+
 func (h *Admin) ListServerGroups(c *gin.Context) {
 	data, err := h.svc.ListAllServerGroups(c.Request.Context())
 	if err != nil {
@@ -819,6 +887,116 @@ func (h *Admin) ImportTraffic(c *gin.Context) {
 		return
 	}
 	resp.OK(c, nil)
+}
+
+// ResetTraffic 流量重置（F16）
+// @Summary 按用户批量重置流量（清零用量/重新给量，写重置记录与审计；保留节点上报快照防重复计费）
+// @Tags 管理端
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param body body model.AdminTrafficResetReq true "请求"
+// @Success 200 {object} resp.Body{data=model.AdminTrafficResetResp}
+// @Router /admin/traffic/reset [post]
+func (h *Admin) ResetTraffic(c *gin.Context) {
+	var req model.AdminTrafficResetReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+		return
+	}
+	data, err := h.svc.ResetTraffic(c.Request.Context(), h.adminID(c), &req, c.ClientIP())
+	if err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.OK(c, data)
+}
+
+// ListTrafficResets 流量重置记录（F16）
+// @Summary 重置记录分页（可按用户筛选，联表取用户邮箱）
+// @Tags 管理端
+// @Security BearerAuth
+// @Produce json
+// @Param user_id query int false "用户 ID"
+// @Param page query int false "页码"
+// @Param page_size query int false "每页条数（≤100）"
+// @Success 200 {object} resp.Body{data=resp.Page}
+// @Router /admin/traffic/resets [get]
+func (h *Admin) ListTrafficResets(c *gin.Context) {
+	page, pageSize := pageParams(c)
+	var userID *int64
+	if v := c.Query("user_id"); v != "" {
+		id, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			resp.FailWithCode(c, 40000, "参数校验失败: user_id 不合法")
+			return
+		}
+		userID = &id
+	}
+	list, total, err := h.svc.ListTrafficResets(c.Request.Context(), userID, page, pageSize)
+	if err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.PageOK(c, list, total, page, pageSize)
+}
+
+// ---- 统计报表（F04） ----
+
+func statDays(c *gin.Context) int {
+	days, _ := strconv.Atoi(c.DefaultQuery("days", "30"))
+	return days
+}
+
+// StatOrders 订单统计（F04）
+// @Summary 订单/营收/退款日趋势（默认近 30 天，含无数据日补零）
+// @Tags 管理端
+// @Security BearerAuth
+// @Produce json
+// @Param days query int false "天数（1-365，默认 30）"
+// @Success 200 {object} resp.Body{data=model.AdminStatOrdersResp}
+// @Router /admin/stat/orders [get]
+func (h *Admin) StatOrders(c *gin.Context) {
+	data, err := h.svc.StatOrders(c.Request.Context(), statDays(c))
+	if err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.OK(c, data)
+}
+
+// StatUsers 用户统计（F04）
+// @Summary 注册趋势 + 套餐分布（默认近 30 天）
+// @Tags 管理端
+// @Security BearerAuth
+// @Produce json
+// @Param days query int false "天数（1-365，默认 30）"
+// @Success 200 {object} resp.Body{data=model.AdminStatUsersResp}
+// @Router /admin/stat/users [get]
+func (h *Admin) StatUsers(c *gin.Context) {
+	data, err := h.svc.StatUsers(c.Request.Context(), statDays(c))
+	if err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.OK(c, data)
+}
+
+// StatTraffic 流量统计（F04）
+// @Summary 用户流量消耗 TopN（时间范围内）+ 节点流量分布 TopN（上报累计）
+// @Tags 管理端
+// @Security BearerAuth
+// @Produce json
+// @Param days query int false "天数（1-365，默认 30，仅作用于用户 Top）"
+// @Success 200 {object} resp.Body{data=model.AdminStatTrafficResp}
+// @Router /admin/stat/traffic [get]
+func (h *Admin) StatTraffic(c *gin.Context) {
+	data, err := h.svc.StatTraffic(c.Request.Context(), statDays(c))
+	if err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.OK(c, data)
 }
 
 // ---- 设置 ----

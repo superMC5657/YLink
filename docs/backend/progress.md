@@ -2,7 +2,7 @@
 
 > 本文档记录 `server/` 目录 Go/Gin 后端的开发状态,是 docs/backend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-25(**0.9.0 评审修复**:存量节点共享凭证兼容、节点上报分组校验/重复 UUID 拒绝、demo agent 零基线、Alertmanager STARTTLS+SMTP 转义、NSIS hooks 入库;另含此前可观测性二期扩展全量落地,见下)
+> 最后更新:2026-08-25(**0.9.0 评审修复**:存量节点共享凭证兼容、节点上报分组校验/重复 UUID 拒绝、demo agent 零基线、Alertmanager STARTTLS+SMTP 转义、NSIS hooks 入库;另含此前可观测性二期扩展全量落地;节点 agent 部署对接说明见 [node-agent-guide.md](node-agent-guide.md),见下)
 
 ---
 
@@ -129,7 +129,7 @@
 | `GET /node/users` | 节点分组下有效订阅且未封禁用户(uuid/u/d/transfer_enable/expired_at unix)+ 节点 rate;套餐含下架(存量订阅仍有效) | `internal/service/node_service.go` |
 | `POST /node/report` | **累计值口径**:node_user_stats 行锁快照差分得增量(重复上报差分 0 天然幂等;累计回退视为节点重启,增量取当前值)→ ×rate(四舍五入)→ 事务内 `users.u/d` 原子累加 + `traffic_logs` 增量聚合(`ON CONFLICT DO UPDATE SET u=u+?`,与模式 B 覆盖式区分)→ 批量删 `sub:userinfo:{token}` 缓存;仅接受套餐 group_ids 含本节点分组的用户,同一 UUID 重复整体拒绝(`duplicate_uuid`);未知 uuid / 无订阅/封禁/过期跳过并在响应 `skipped` 返回;data 1–1000 条 | `node_service.go`、`repo/node.go` |
 | 管理端配套 | AdminServerView 暴露 node_key;新建节点自动生成;`POST /admin/servers/{id}/node-key/reset` 重置(审计 + 旧密钥缓存即刻失效) | `admin_crud.go`、`handler/admin.go` |
-| 演示 agent | `go run ./cmd/node-agent -endpoint ... -key ...`:自动拉取 /node/users,模拟累计值(1–50/1–500 MiB 随机增量)定时上报,日志打印 accepted/skipped;**首轮先上报 0 基线建立快照,再推进累计值**;真实代理后端(Xray stats 等)对接为后续候补 | `server/cmd/node-agent/main.go` |
+| 演示 agent | `go run ./cmd/node-agent -endpoint ... -key ...`:自动拉取 /node/users,模拟累计值(1–50/1–500 MiB 随机增量)定时上报,日志打印 accepted/skipped;**首轮先上报 0 基线建立快照,再推进累计值**;真实代理后端(Xray stats 等)对接见 [node-agent-guide.md](node-agent-guide.md) | `server/cmd/node-agent/main.go` |
 
 ### 0.9.0 评审修复(✅ 已修复,2026-08-25,见 docs/reviews/review-0.9.0.md)
 
@@ -282,7 +282,7 @@
 
 | 项 | 状态 | 依赖/说明 |
 |---|---|---|
-| 流量模式 A(节点上报 `POST /node/report`) | ✅ 已实现(2026-08-22,二期):每用户凭证(节点 config 开启后) + X-Node-Key 鉴权 + 累计值差分幂等累加,详见 §1 B8;演示 agent `cmd/node-agent` | 契约 §17;真实代理后端(Xray stats 等)对接为后续候补 |
+| 流量模式 A(节点上报 `POST /node/report`) | ✅ 已实现(2026-08-22,二期):每用户凭证(节点 config 开启后) + X-Node-Key 鉴权 + 累计值差分幂等累加,详见 §1 B8;演示 agent `cmd/node-agent` | 契约 §17;真实代理后端(Xray stats 等)对接见 [node-agent-guide.md](node-agent-guide.md) |
 | 订阅「重开一次」工单 | ✅ 已实现(2026-08-12):`POST /tickets/{id}/reopen` + `reopen_count` 字段(迁移 0003);前端详情页已关闭且未重开时显示「重新打开」 | core-flows 第 7 节 |
 | 订单超时主动查单后关闭待支付支付单 | ✅ 已完善(2026-08-13):超时关单同步关闭该订单残留待支付支付单;查单任务发现订单已非待支付时关闭支付单并跳过查单(防残留反复轮询) | `cron_service.go` + `PaymentRepo.ClosePendingByOrderNo` + 2 测试 |
 | 后端 CI / Release 接入 | ❌ 不接入(项目决策,2026-08-12 确认) | 后端不走 GitHub Actions——无 CI job、无镜像构建/部署流水线;`backend` job 与 `deploy-backend.yml` 已删除;构建/部署走本机 `make` + 手动流程(见 deploy.md) |

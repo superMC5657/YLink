@@ -16,6 +16,8 @@ export default {
     traffic: '流量明细',
     mine: '我的',
     collapse: '收起',
+    backToUser: '返回用户中心',
+    enterAdmin: '进入管理后台',
     groupAdmin: '管理后台',
     adminOverview: '总览',
     adminUsers: '用户管理',
@@ -30,6 +32,12 @@ export default {
     adminCommissionLogs: '佣金日志',
     adminTrafficImport: '流量导入',
     adminSettings: '站点设置',
+  },
+  portal: {
+    title: '门户',
+    welcome: '欢迎回来',
+    userCenter: '用户中心',
+    adminConsole: '管理后台',
   },
   admin: {
     overview: '总览',

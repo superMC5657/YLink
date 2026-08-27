@@ -44,7 +44,8 @@ async function onSubmit() {
   try {
     await auth.login(form.value.email, form.value.password)
     message.success(t('auth.loginSuccess'))
-    const redirect = (route.query.redirect as string) || '/dashboard'
+    // redirect 参数优先;无 redirect 时管理员落门户分流页,普通用户落仪表板
+    const redirect = (route.query.redirect as string) || (auth.isAdmin ? '/portal' : '/dashboard')
     router.replace(redirect)
   } catch {
     // 错误提示由 http 层统一 toast,这里仅阻止异常冒泡为 unhandled error

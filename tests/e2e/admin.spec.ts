@@ -2,8 +2,11 @@ import { expect, test } from './fixtures'
 import type { Page } from '@playwright/test'
 
 /**
- * 角色区分 E2E:管理员登录可见管理后台入口并可访问 admin 页面;
- * 普通用户不可见管理菜单,直接访问 /admin/* 被重定向到 /dashboard。
+ * 角色区分 E2E(管理端/用户端分拆布局):
+ * - 管理员登录落点为门户分流页 #/portal,双卡片二选一(用户中心/管理后台);
+ * - 管理端(AdminLayout)侧边栏/移动抽屉只含 13 项管理菜单,底部「返回用户中心」;
+ * - 用户端侧边栏/抽屉不再出现管理菜单,管理员通过底部按钮/顶栏下拉进入管理端;
+ * - 普通用户不可见管理入口,访问 /admin/* 与 /portal 均重定向 /dashboard。
  * Mock 管理员:admin@example.com / Admin@123456(见 mock/auth.ts)。
  */
 async function loginAs(page: Page, email: string, password: string) {
@@ -11,15 +14,26 @@ async function loginAs(page: Page, email: string, password: string) {
   await page.getByPlaceholder('邮箱').fill(email)
   await page.getByPlaceholder('密码').fill(password)
   await page.locator('button', { hasText: '登录' }).first().click()
-  await expect(page).toHaveURL(/#\/dashboard/)
+  // 管理员登录落点:门户分流页(spec admin-console-split §3.4)
+  await expect(page).toHaveURL(/#\/portal/)
+}
+
+/** 从门户页进入指定端(entryText = 卡片标题) */
+async function enterPortal(page: Page, entryText: string, urlPattern: RegExp) {
+  await page.getByText(entryText).click()
+  await expect(page).toHaveURL(urlPattern)
 }
 
 test.describe('角色区分(管理员)', () => {
   test.use({ viewport: { width: 1440, height: 900 } })
 
-  test('管理员登录后侧边栏显示管理后台菜单并可进入用户管理', async ({ page }) => {
+  test('管理员登录落门户页并可进入管理后台查看用户管理', async ({ page }) => {
     await loginAs(page, 'admin@example.com', 'Admin@123456')
-    await expect(page.getByText('管理后台')).toBeVisible()
+    // 门户双卡片(用户中心/管理后台)
+    await expect(page.getByText('用户中心')).toBeVisible()
+    await enterPortal(page, '管理后台', /#\/admin\/overview/)
+    // 管理端侧边栏只含管理菜单,无用户端菜单(A3)
+    await expect(page.getByText('仪表板')).toBeHidden()
     await page.getByText('用户管理').first().click()
     await expect(page).toHaveURL(/#\/admin\/users/)
     // 用户列表渲染(Mock)
@@ -27,29 +41,46 @@ test.describe('角色区分(管理员)', () => {
     await expect(page.getByText('admin@example.com').first()).toBeVisible()
   })
 
-  test('移动端抽屉内显示管理后台菜单', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 })
+  test('管理端底部「返回用户中心」回到用户端,侧边栏底部按钮进入管理端', async ({ page }) => {
     await loginAs(page, 'admin@example.com', 'Admin@123456')
-    // 打开抽屉菜单(顶栏汉堡钮)
-    await page.locator('header button').first().click()
-    await expect(page.getByText('管理后台')).toBeVisible()
-    await page.getByText('用户管理').first().click()
-    await expect(page).toHaveURL(/#\/admin\/users/)
+    // 用户中心卡 → 用户端
+    await enterPortal(page, '用户中心', /#\/dashboard/)
+    // 用户端侧边栏底部「进入管理后台」→ 管理端
+    await page.getByText('进入管理后台').click()
+    await expect(page).toHaveURL(/#\/admin\/overview/)
+    // 管理端侧边栏底部「返回用户中心」→ 用户端(A3)
+    await page.getByText('返回用户中心').click()
+    await expect(page).toHaveURL(/#\/dashboard/)
   })
 
-  test('管理员顶栏下拉出现管理后台入口', async ({ page }) => {
+  test('管理员顶栏下拉出现进入管理后台入口(用户端)', async ({ page }) => {
     await loginAs(page, 'admin@example.com', 'Admin@123456')
+    await enterPortal(page, '用户中心', /#\/dashboard/)
     await page
       .locator('button[title*="浅色"], button[title*="深色"], button[title*="跟随系统"]')
       .first()
       .waitFor()
     // 打开用户下拉(顶栏最右侧按钮)
     await page.locator('header button').last().click()
-    await expect(page.getByText('管理后台').first()).toBeVisible()
+    await expect(page.locator('.n-dropdown-option', { hasText: '进入管理后台' })).toBeVisible()
+  })
+
+  test('两端顶栏下拉对称互切(A4)', async ({ page }) => {
+    await loginAs(page, 'admin@example.com', 'Admin@123456')
+    await enterPortal(page, '管理后台', /#\/admin\/overview/)
+    // 管理端下拉:返回用户中心
+    await page.locator('header button').last().click()
+    await page.locator('.n-dropdown-option', { hasText: '返回用户中心' }).click()
+    await expect(page).toHaveURL(/#\/dashboard/)
+    // 用户端下拉:进入管理后台
+    await page.locator('header button').last().click()
+    await page.locator('.n-dropdown-option', { hasText: '进入管理后台' }).click()
+    await expect(page).toHaveURL(/#\/admin\/overview/)
   })
 
   test('管理员可查看并回复用户工单', async ({ page }) => {
     await loginAs(page, 'admin@example.com', 'Admin@123456')
+    await enterPortal(page, '管理后台', /#\/admin\/overview/)
     await page.getByText('工单管理').first().click()
     await expect(page).toHaveURL(/#\/admin\/tickets/)
     // 工单列表渲染(有数据行,含发起用户)
@@ -64,6 +95,37 @@ test.describe('角色区分(管理员)', () => {
   })
 })
 
+test.describe('角色区分(管理员·移动端)', () => {
+  test('移动端用户端抽屉不含管理菜单(A5)', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await loginAs(page, 'admin@example.com', 'Admin@123456')
+    await enterPortal(page, '用户中心', /#\/dashboard/)
+    // 打开用户端抽屉(顶栏汉堡钮),断言限定在抽屉(role=dialog)内
+    await page.locator('header button').first().click()
+    const drawer = page.getByRole('dialog')
+    await expect(drawer.getByRole('button', { name: '仪表板' })).toBeVisible()
+    // 用户端抽屉无管理菜单(分组标题/管理项均不可见)
+    await expect(drawer.getByText('管理后台')).toBeHidden()
+    await expect(drawer.getByText('用户管理')).toBeHidden()
+  })
+
+  test('移动端管理端独立抽屉只含管理菜单并可操作(A5)', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await loginAs(page, 'admin@example.com', 'Admin@123456')
+    await enterPortal(page, '管理后台', /#\/admin\/overview/)
+    // 打开管理端独立抽屉
+    await page.locator('header button').first().click()
+    const drawer = page.getByRole('dialog')
+    await expect(drawer.getByRole('button', { name: '用户管理' })).toBeVisible()
+    // 独立抽屉不含用户端菜单
+    await expect(drawer.getByText('仪表板')).toBeHidden()
+    // 可正常操作:进入用户管理
+    await drawer.getByRole('button', { name: '用户管理' }).click()
+    await expect(page).toHaveURL(/#\/admin\/users/)
+    await expect(page.locator('table tbody tr').first()).toBeVisible()
+  })
+})
+
 test.describe('角色区分(普通用户)', () => {
   test('普通用户看不到管理后台菜单', async ({ authedPage }) => {
     await authedPage.goto('/#/dashboard')
@@ -73,6 +135,11 @@ test.describe('角色区分(普通用户)', () => {
 
   test('普通用户直接访问 admin 页面被重定向到仪表板', async ({ authedPage }) => {
     await authedPage.goto('/#/admin/overview')
+    await expect(authedPage).toHaveURL(/#\/dashboard/)
+  })
+
+  test('普通用户访问门户页被重定向到仪表板(A6)', async ({ authedPage }) => {
+    await authedPage.goto('/#/portal')
     await expect(authedPage).toHaveURL(/#\/dashboard/)
   })
 })

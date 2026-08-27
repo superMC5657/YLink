@@ -21,25 +21,27 @@
 | `/tickets` | 我的工单 | MainLayout | 登录 | 底栏 Tab 3 |
 | `/tickets/:id` | 工单详情 | MainLayout | 登录 | — |
 | `/traffic` | 流量明细 | MainLayout | 登录 | 抽屉-用户 |
-| `/admin/overview` | 管理后台·总览 | MainLayout | 管理员(role=1) | 侧边栏-管理后台 |
-| `/admin/users` | 管理后台·用户 | MainLayout | 管理员 | 侧边栏-管理后台 |
-| `/admin/plans` | 管理后台·套餐 | MainLayout | 管理员 | 侧边栏-管理后台 |
-| `/admin/nodes` | 管理后台·节点 | MainLayout | 管理员 | 侧边栏-管理后台 |
-| `/admin/orders` | 管理后台·订单 | MainLayout | 管理员 | 侧边栏-管理后台 |
-| `/admin/tickets` | 管理后台·工单 | MainLayout | 管理员 | 侧边栏-管理后台 |
-| `/admin/coupons` | 管理后台·优惠券 | MainLayout | 管理员 | 侧边栏-管理后台 |
-| `/admin/notices` | 管理后台·公告 | MainLayout | 管理员 | 侧边栏-管理后台 |
-| `/admin/knowledges` | 管理后台·知识库 | MainLayout | 管理员 | 侧边栏-管理后台 |
-| `/admin/agent-applies` | 管理后台·代理审批 | MainLayout | 管理员 | 侧边栏-管理后台 |
-| `/admin/commission-logs` | 管理后台·佣金日志 | MainLayout | 管理员 | 侧边栏-管理后台 |
-| `/admin/traffic-import` | 管理后台·流量导入 | MainLayout | 管理员 | 侧边栏-管理后台 |
-| `/admin/settings` | 管理后台·站点设置 | MainLayout | 管理员 | 侧边栏-管理后台 |
+| `/portal` | 门户分流页（用户中心/管理后台二选一） | 无（独立全屏页） | 管理员(role=1) | — |
+| `/admin` | → redirect `/admin/overview` | AdminLayout | 管理员 | — |
+| `/admin/overview` | 管理后台·总览 | AdminLayout | 管理员(role=1) | 管理端侧边栏-管理后台 |
+| `/admin/users` | 管理后台·用户 | AdminLayout | 管理员 | 管理端侧边栏-管理后台 |
+| `/admin/plans` | 管理后台·套餐 | AdminLayout | 管理员 | 管理端侧边栏-管理后台 |
+| `/admin/nodes` | 管理后台·节点 | AdminLayout | 管理员 | 管理端侧边栏-管理后台 |
+| `/admin/orders` | 管理后台·订单 | AdminLayout | 管理员 | 管理端侧边栏-管理后台 |
+| `/admin/tickets` | 管理后台·工单 | AdminLayout | 管理员 | 管理端侧边栏-管理后台 |
+| `/admin/coupons` | 管理后台·优惠券 | AdminLayout | 管理员 | 管理端侧边栏-管理后台 |
+| `/admin/notices` | 管理后台·公告 | AdminLayout | 管理员 | 管理端侧边栏-管理后台 |
+| `/admin/knowledges` | 管理后台·知识库 | AdminLayout | 管理员 | 管理端侧边栏-管理后台 |
+| `/admin/agent-applies` | 管理后台·代理审批 | AdminLayout | 管理员 | 管理端侧边栏-管理后台 |
+| `/admin/commission-logs` | 管理后台·佣金日志 | AdminLayout | 管理员 | 管理端侧边栏-管理后台 |
+| `/admin/traffic-import` | 管理后台·流量导入 | AdminLayout | 管理员 | 管理端侧边栏-管理后台 |
+| `/admin/settings` | 管理后台·站点设置 | AdminLayout | 管理员 | 管理端侧边栏-管理后台 |
 | `/:pathMatch(.*)*` | 404 | MainLayout | — | — |
 
 守卫规则：
-- `meta.guest` 页面：已登录访问直接重定向 `/dashboard`。
-- 其余页面：未登录跳转 `/login?redirect=<原路径>`，登录成功后回跳。
-- `meta.admin` 页面：非管理员（role≠1）访问重定向 `/dashboard`（见 [progress.md](progress.md) M8）。
+- `meta.guest` 页面：已登录访问 → 管理员重定向 `/portal`，普通用户重定向 `/dashboard`。
+- 其余页面：未登录跳转 `/login?redirect=<原路径>`，登录成功后回跳；登录提交成功若无 `redirect` 参数，管理员 → `/portal`，普通用户 → `/dashboard`（见 LoginView.vue）。
+- `meta.admin` 页面（`/portal` 与 `/admin/*`，父记录 AdminLayout 挂 `meta.admin`，vue-router 父子 meta 自动合并）：非管理员（role≠1）访问重定向 `/dashboard`（见 [progress.md](progress.md) M8）。
 - Token 过期由 http 层静默刷新；刷新失败才清会话跳登录（见 [data-layer.md](data-layer.md)）。
 
 ## 2. 布局
@@ -58,8 +60,8 @@
                                     右下角：客服浮球（可配置外链）
 ```
 
-- AppSidebar：宽 240px，折叠后 72px（仅图标 + tooltip）；激活项为 `--c-primary-soft` 底胶囊 + `--c-primary-text` 文字；分组标题小字 `--c-text-sub`。
-- AppHeader：吸顶，毛玻璃（`backdrop-filter`），含侧边栏折叠钮、站点名、主题切换、语言下拉、用户邮箱 chip（点击进 `/profile`，下拉含退出登录）。
+- AppSidebar：宽 240px，折叠后 72px（仅图标 + tooltip）；激活项为 `--c-primary-soft` 底胶囊 + `--c-primary-text` 文字；分组标题小字 `--c-text-sub`。菜单源仅 `NAV_GROUPS`（基础/财务/订阅/用户 4 组 10 项），**不含管理菜单**；管理员在底部额外有「进入管理后台」按钮（`v-if="auth.isAdmin"`，跳 `/admin/overview`）。
+- AppHeader：吸顶，毛玻璃（`backdrop-filter`），含侧边栏折叠钮、站点名、主题切换、语言下拉、用户邮箱 chip（点击进 `/profile`，下拉含退出登录）；管理员下拉首项为「进入管理后台」（对称互切，见 A4）。
 
 ### 2.2 MainLayout（手机 <768px）
 
@@ -74,19 +76,43 @@
 └──────────────────────────┘
 ```
 
-- 抽屉菜单 DrawerMenu：左滑出，内容与桌面侧边栏一致，底部附用户信息与退出。
+- 抽屉菜单 DrawerMenu：左滑出，内容与桌面侧边栏一致（仅用户端菜单，**不含管理菜单**），底部附用户信息与退出。
 - TabBar：仪表板 / 购买订阅 / 我的工单 / 我的（`/profile`），图标 + 文字，激活主色。
 
 ### 2.3 AuthLayout
 
 居中卡片（420px）+ 品牌区插画背景；移动端全屏卡片贴顶。登录/注册/找回三页共享，右上角放语言切换与主题切换。
 
+### 2.4 AdminLayout（管理端独立布局，`/admin/*`）
+
+```
+┌────────────┬──────────────────────────────────────────┐
+│AdminSidebar│ AppHeader(admin)（折叠/站点名/管理后台徽标｜主题/语言/用户）│
+│  管理后台   ├──────────────────────────────────────────┤
+│ 13 项菜单   │            <router-view>                 │
+│(仅此一个源) │         （滚动容器）                      │
+│            │                                          │
+│ 返回用户中心 │                                          │
+└────────────┴──────────────────────────────────────────┘
+```
+
+- AdminSidebar（`src/components/app/AdminSidebar.vue`）：唯一菜单源 `ADMIN_NAV_GROUPS`（13 项），底部固定「返回用户中心」按钮（回 `/dashboard`）；`fill` 模式（宽度 100%、固定展开、隐藏折叠钮）供移动端抽屉复用。
+- AppHeader 传 `admin` prop：站点名旁显示「管理后台」徽标，用户下拉首项为「返回用户中心」（与用户端「进入管理后台」对称互切）。
+- 手机 <768px：顶栏汉堡打开**独立抽屉**（内容与桌面侧边栏一致，仅管理菜单）；**不渲染 MobileTabBar、不渲染客服浮球**。
+- 不接 `usePullToRefresh` 等用户端设施。
+
+### 2.5 门户分流页 `/portal`（独立全屏页）
+
+- `src/views/portal/PortalView.vue`：视觉复用 AuthLayout 风格（氛围背景 + 居中内容 + 右上语言/主题），不带任何侧边菜单。
+- 品牌 Logo + 站点名 + 欢迎语（含当前登录邮箱）；两张分流卡片：「用户中心 → /dashboard」「管理后台 → /admin/overview」；底部退出登录。
+- 仅管理员可进（`meta.admin` 兜底）；管理员登录默认落点即此页。
+
 ## 3. 逐页拆解
 
 ### 3.1 登录 `/login`（截图未含，按风格补齐）
 
 - 组件：`AuthCard`（站点 Logo + 欢迎语）、`NForm`（邮箱、密码 + 校验）、登录按钮（主色渐变）、注册/找回链接。
-- 交互：提交中按钮 loading；失败 toast 显示后端 message；成功写 `useAuthStore` 并按 `redirect` 回跳。
+- 交互：提交中按钮 loading；失败 toast 显示后端 message；成功写 `useAuthStore` 并按 `redirect` 回跳；无 `redirect` 时管理员 → `/portal`、普通用户 → `/dashboard`。
 - 数据：`POST /auth/login`。
 
 ### 3.2 注册 `/register` / 找回 `/forgot`
@@ -189,6 +215,8 @@ DashboardPage
 - 404 页：插画 + 返回首页按钮；接口异常统一 toast；网络断开顶部横幅提示（`navigator.onLine` 监听），恢复自动重试关键数据。
 
 ### 3.14 管理后台 `/admin/*`（M8 + M9，13 模块，role=1）
+
+- 布局：独立 `AdminLayout`（§2.4），侧边栏/移动抽屉只含 13 项管理菜单；管理员经门户分流页 `/portal`（§2.5）或用户端底部按钮/顶栏下拉进入；`meta.admin` 挂 AdminLayout 父记录。
 
 M8 核心 6 模块：
 

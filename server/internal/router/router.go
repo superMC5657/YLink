@@ -193,13 +193,17 @@ func registerAdmin(g *gin.RouterGroup, d Deps, a *app) {
 
 	// 仪表盘
 	admin.GET("/stat/overview", a.adminH.Overview)
+	// 统计报表（F04 只读）
+	admin.GET("/stat/orders", a.adminH.StatOrders)
+	admin.GET("/stat/users", a.adminH.StatUsers)
+	admin.GET("/stat/traffic", a.adminH.StatTraffic)
 	// 用户
 	admin.GET("/users", a.adminH.ListUsers)
 	admin.GET("/users/export", a.adminH.ExportUsersCSV) // F05 CSV 导出（置于 :id 之前避免路由歧义）
 	admin.PUT("/users/:id", a.adminH.UpdateUser)
 	admin.POST("/users/:id/balance", a.adminH.AdjustBalance)
-	admin.POST("/users/batch", a.adminH.BatchUsers) // F05 批量操作
-	admin.POST("/users/mail", a.adminH.SendMail)    // F05 发送邮件
+	admin.POST("/users/batch", a.adminH.BatchUsers)                      // F05 批量操作
+	admin.POST("/users/mail", a.adminH.SendMail)                         // F05 发送邮件
 	admin.POST("/users/:id/sub-token/reset", a.adminH.ResetUserSubToken) // F05 重置订阅密钥
 	// 审计日志（F08 只读）
 	admin.GET("/audit-logs", a.adminH.ListAuditLogs)
@@ -211,9 +215,12 @@ func registerAdmin(g *gin.RouterGroup, d Deps, a *app) {
 	// 节点
 	admin.GET("/servers", a.adminH.ListServers)
 	admin.POST("/servers", a.adminH.CreateServer)
+	admin.POST("/servers/batch", a.adminH.BatchServers) // F09 批量操作（POST 无 :id 路由，无歧义）
+	admin.POST("/servers/sort", a.adminH.SortServers)   // F09 排序
 	admin.PUT("/servers/:id", a.adminH.UpdateServer)
 	admin.DELETE("/servers/:id", a.adminH.DeleteServer)
 	admin.POST("/servers/:id/node-key/reset", a.adminH.ResetNodeKey)
+	admin.POST("/servers/:id/copy", a.adminH.CopyServer) // F09 复制节点
 	admin.GET("/server-groups", a.adminH.ListServerGroups)
 	admin.POST("/server-groups", a.adminH.CreateServerGroup)
 	admin.PUT("/server-groups/:id", a.adminH.UpdateServerGroup)
@@ -248,7 +255,10 @@ func registerAdmin(g *gin.RouterGroup, d Deps, a *app) {
 	// 佣金
 	admin.GET("/commission-logs", a.adminH.ListCommissions)
 	// 流量
+	// 流量
 	admin.POST("/traffic/import", a.adminH.ImportTraffic)
+	admin.POST("/traffic/reset", a.adminH.ResetTraffic)      // F16 流量重置
+	admin.GET("/traffic/resets", a.adminH.ListTrafficResets) // F16 重置记录
 	// 设置
 	admin.GET("/settings", a.adminH.ListSettings)
 	admin.PUT("/settings", a.adminH.SaveSetting)

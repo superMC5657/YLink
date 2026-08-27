@@ -16,6 +16,8 @@ export default {
     traffic: 'Traffic',
     mine: 'Me',
     collapse: 'Collapse',
+    backToUser: 'Back to User Center',
+    enterAdmin: 'Enter Admin',
     groupAdmin: 'Admin',
     adminOverview: 'Overview',
     adminUsers: 'Users',
@@ -30,6 +32,12 @@ export default {
     adminCommissionLogs: 'Commission Logs',
     adminTrafficImport: 'Traffic Import',
     adminSettings: 'Settings',
+  },
+  portal: {
+    title: 'Portal',
+    welcome: 'Welcome back',
+    userCenter: 'User Center',
+    adminConsole: 'Admin Console',
   },
   admin: {
     overview: 'Overview',

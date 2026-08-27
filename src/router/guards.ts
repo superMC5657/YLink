@@ -4,8 +4,9 @@ import { i18n } from '@/i18n'
 
 /**
  * 登录守卫:
- * - guest 页:已登录 → /dashboard
+ * - guest 页:已登录 → 管理员 /portal / 普通用户 /dashboard
  * - 其余:未登录 → /login?redirect=原路径
+ * - meta.admin:非管理员(role=1)重定向 /dashboard
  */
 export function setupGuards(router: Router): void {
   router.beforeEach((to) => {
@@ -13,7 +14,7 @@ export function setupGuards(router: Router): void {
     const loggedIn = auth.isLoggedIn
 
     if (to.meta.guest) {
-      if (loggedIn) return { name: 'dashboard' }
+      if (loggedIn) return auth.isAdmin ? { path: '/portal' } : { name: 'dashboard' }
       return true
     }
 

@@ -5,10 +5,9 @@
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useConfigStore } from '@/stores/config'
-import { ADMIN_NAV_GROUPS, NAV_GROUPS } from '@/router/nav'
+import { NAV_GROUPS } from '@/router/nav'
 import { useMessage, useDialog } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
-import { computed } from 'vue'
 
 const auth = useAuthStore()
 const config = useConfigStore()
@@ -18,8 +17,8 @@ const message = useMessage()
 const dialog = useDialog()
 const { t } = useI18n()
 
-/** 用户菜单 + (管理员)管理菜单 */
-const groups = computed(() => [...NAV_GROUPS, ...(auth.isAdmin ? ADMIN_NAV_GROUPS : [])])
+/** 用户端抽屉只含用户菜单(管理菜单在 AdminLayout 独立抽屉) */
+const groups = NAV_GROUPS
 
 const props = defineProps<{ show: boolean }>()
 const emit = defineEmits<{ (e: 'update:show', v: boolean): void }>()

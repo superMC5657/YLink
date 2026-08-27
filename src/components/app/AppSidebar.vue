@@ -7,7 +7,7 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
-import { ADMIN_NAV_GROUPS, NAV_GROUPS } from '@/router/nav'
+import { NAV_GROUPS } from '@/router/nav'
 import { useConfigStore } from '@/stores/config'
 import { useI18n } from 'vue-i18n'
 
@@ -19,8 +19,8 @@ const router = useRouter()
 const { t } = useI18n()
 
 const collapsed = computed(() => app.sidebarCollapsed)
-/** 用户菜单 + (管理员)管理菜单 */
-const groups = computed(() => [...NAV_GROUPS, ...(auth.isAdmin ? ADMIN_NAV_GROUPS : [])])
+/** 用户端侧边栏只含用户菜单(管理菜单在 AdminLayout/AdminSidebar) */
+const groups = NAV_GROUPS
 
 function isActive(path: string): boolean {
   if (path === '/dashboard') return route.path === '/dashboard'
@@ -82,8 +82,17 @@ function go(path: string) {
       </div>
     </nav>
 
-    <!-- 底部折叠按钮 -->
+    <!-- 底部:管理后台入口(仅管理员,对称互切) + 折叠按钮 -->
     <div class="shrink-0 border-t border-[var(--c-border)] p-3">
+      <button
+        v-if="auth.isAdmin"
+        class="flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-[var(--r-control)] text-14 text-[var(--c-text-sub)] transition-colors hover:bg-[var(--c-bg-hover)]"
+        :title="collapsed ? t('nav.enterAdmin') : undefined"
+        @click="router.push('/admin/overview')"
+      >
+        <AppIcon name="sliders" :size="18" />
+        <span v-if="!collapsed" class="truncate">{{ t('nav.enterAdmin') }}</span>
+      </button>
       <button
         class="flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-[var(--r-control)] text-[var(--c-text-sub)] transition-colors hover:bg-[var(--c-bg-hover)]"
         @click="app.toggleSidebar"

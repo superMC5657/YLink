@@ -1,6 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import MainLayout from '@/layouts/MainLayout.vue'
+import AdminLayout from '@/layouts/AdminLayout.vue'
 import AuthLayout from '@/layouts/AuthLayout.vue'
 
 declare module 'vue-router' {
@@ -112,84 +113,99 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/traffic/TrafficView.vue'),
         meta: { title: 'traffic.title' },
       },
-      // ---------- 管理后台(仅 role=1,守卫见 guards.ts) ----------
+    ],
+  },
+  {
+    // 门户分流页:管理员登录后二选一(用户中心/管理后台),仅 role=1 可访问
+    path: '/portal',
+    name: 'portal',
+    component: () => import('@/views/portal/PortalView.vue'),
+    meta: { admin: true, title: 'portal.title' },
+  },
+  {
+    // 管理后台独立布局(仅 role=1):meta.admin 挂父记录,vue-router 父子 meta 自动合并
+    path: '/admin',
+    component: AdminLayout,
+    redirect: '/admin/overview',
+    meta: { admin: true },
+    children: [
       {
-        path: 'admin/overview',
+        path: 'overview',
         name: 'admin-overview',
         component: () => import('@/views/admin/AdminOverviewView.vue'),
-        meta: { admin: true, title: 'admin.overview' },
+        meta: { title: 'admin.overview' },
       },
       {
-        path: 'admin/users',
+        path: 'users',
         name: 'admin-users',
         component: () => import('@/views/admin/AdminUsersView.vue'),
-        meta: { admin: true, title: 'admin.users' },
+        meta: { title: 'admin.users' },
       },
       {
-        path: 'admin/plans',
+        path: 'plans',
         name: 'admin-plans',
         component: () => import('@/views/admin/AdminPlansView.vue'),
-        meta: { admin: true, title: 'admin.plans' },
+        meta: { title: 'admin.plans' },
       },
       {
-        path: 'admin/nodes',
+        path: 'nodes',
         name: 'admin-nodes',
         component: () => import('@/views/admin/AdminNodesView.vue'),
-        meta: { admin: true, title: 'admin.nodes' },
+        meta: { title: 'admin.nodes' },
       },
       {
-        path: 'admin/orders',
+        path: 'orders',
         name: 'admin-orders',
         component: () => import('@/views/admin/AdminOrdersView.vue'),
-        meta: { admin: true, title: 'admin.orders' },
+        meta: { title: 'admin.orders' },
       },
       {
-        path: 'admin/tickets',
+        path: 'tickets',
         name: 'admin-tickets',
         component: () => import('@/views/admin/AdminTicketsView.vue'),
-        meta: { admin: true, title: 'admin.tickets' },
+        meta: { title: 'admin.tickets' },
       },
       {
-        path: 'admin/coupons',
+        path: 'coupons',
         name: 'admin-coupons',
         component: () => import('@/views/admin/AdminCouponsView.vue'),
-        meta: { admin: true, title: 'admin.coupons' },
+        meta: { title: 'admin.coupons' },
       },
       {
-        path: 'admin/notices',
+        path: 'notices',
         name: 'admin-notices',
         component: () => import('@/views/admin/AdminNoticesView.vue'),
-        meta: { admin: true, title: 'admin.notices' },
+        meta: { title: 'admin.notices' },
       },
       {
-        path: 'admin/knowledges',
+        path: 'knowledges',
         name: 'admin-knowledges',
         component: () => import('@/views/admin/AdminKnowledgesView.vue'),
-        meta: { admin: true, title: 'admin.knowledges' },
+        meta: { title: 'admin.knowledges' },
       },
       {
-        path: 'admin/agent-applies',
+        path: 'agent-applies',
         name: 'admin-agent-applies',
         component: () => import('@/views/admin/AdminAgentAppliesView.vue'),
-        meta: { admin: true, title: 'admin.agentApplies' },
+        meta: { title: 'admin.agentApplies' },
       },
       {
-        path: 'admin/commission-logs',
+        path: 'commission-logs',
         name: 'admin-commission-logs',
         component: () => import('@/views/admin/AdminCommissionLogsView.vue'),
-        meta: { admin: true, title: 'admin.commissionLogs' },
+        meta: { title: 'admin.commissionLogs' },
       },
       {
-        path: 'admin/traffic-import',
+        path: 'traffic-import',
         name: 'admin-traffic-import',
         component: () => import('@/views/admin/AdminTrafficImportView.vue'),
-        meta: { admin: true, title: 'admin.trafficImport' },
+        meta: { title: 'admin.trafficImport' },
       },
       {
-        path: 'admin/settings',
+        path: 'settings',
         name: 'admin-settings',
         component: () => import('@/views/admin/AdminSettingsView.vue'),
-        meta: { admin: true, title: 'admin.settings' },
+        meta: { title: 'admin.settings' },
       },
     ],
   },

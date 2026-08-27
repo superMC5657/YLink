@@ -182,6 +182,23 @@
 | E2E 调试残留 | 删除 `zz-errfail.spec.ts`;`mobile.spec.ts` 未断言调用改为 `expect(...).toBeVisible()` |
 | Mock 优惠券可无限次使用(2026-08-12) | `mock/order.ts` 的 `POST /orders` 原先无任何限用校验,任意用户可无限次用同一张券下单;补齐「每人限用」:`couponLimitPerUser`/`couponUsage`(下单即占用,种子订单计入) + `/coupons/available` 过滤已用满 + `/coupons/check` 与 `/orders` 拒绝 12001;同时统一三处折扣口径(couponDiscount 共享),修掉 WELCOME 在 check=5.0 与 orders=1.5 不一致;真实后端校验本就完整,另把 `validateCoupon`/`AvailableCoupons` 中 `err == nil &&` 的宽松判断改为查询失败保守拒绝/过滤 |
 
+### 管理端与用户端分拆 · 门户分流(✅ 完成,2026-08-28)
+
+spec 见 `.scratch/admin-console-split/spec.md`(A1-A7 全勾)。管理员登录后与普通用户共用布局/菜单混排的问题,按「两端彻底分拆 + 门户分流页」方案落地,后端零改动(role=1 判定不变):
+
+| 项 | 实现 |
+|---|---|
+| 门户分流页 | 新增 `src/views/portal/PortalView.vue`(`/portal`,meta.admin):AuthLayout 风格全屏页,双卡片「用户中心 → /dashboard」「管理后台 → /admin/overview」,含登录邮箱与退出登录 |
+| 管理端独立布局 | 新增 `src/layouts/AdminLayout.vue` + `src/components/app/AdminSidebar.vue`(唯一菜单源 `ADMIN_NAV_GROUPS` 13 项,底部「返回用户中心」);不渲染 MobileTabBar/客服浮球、不接下拉刷新;移动端汉堡打开独立管理抽屉(复用 AdminSidebar `fill` 模式) |
+| 路由迁移 | `router/index.ts`:13 条 admin 子路由从 MainLayout 迁出挂 `/admin`(AdminLayout,`meta.admin` 上移父记录,父子 meta 自动合并),新增 `/admin` → `/admin/overview` redirect;MainLayout children 不再含任何 admin 路由 |
+| 用户端去混排 | `AppSidebar`/`DrawerMenu` 菜单源只取 `NAV_GROUPS`;AppSidebar 底部新增「进入管理后台」按钮(`v-if=auth.isAdmin`);`AppHeader` 加 `admin` prop:管理端显示「管理后台」徽标,下拉首项两端对称互切(管理端「返回用户中心」/ 用户端「进入管理后台」) |
+| 守卫与登录落点 | `guards.ts`:guest 页已登录 → 管理员 `/portal`、普通用户 `/dashboard`;`LoginView.vue`:登录成功无 `redirect` 参数时同规则分流;普通用户访问 `/portal`/`/admin/*` 仍重定向 `/dashboard` |
+| i18n | zh-CN/en-US 新增 `portal.title/welcome/userCenter/adminConsole`、`nav.backToUser/enterAdmin` |
+| e2e | `tests/e2e/admin.spec.ts`:`loginAs` 落点改 `#/portal`;新增门户双卡、两端底部按钮互切、两端顶栏下拉互切、移动端双抽屉隔离、普通用户访问 `/portal` 重定向等用例(抽屉断言用 `getByRole('dialog')` 限定);20/20 全绿 |
+| 文档 | `docs/frontend/pages.md` §1 路由表(/portal + /admin + AdminLayout)、守卫规则、§2.1/2.2、新增 §2.4/§2.5、§3.14 已同步 |
+
+验证:`pnpm typecheck` / `pnpm test`(vitest 59/59)/ `pnpm e2e tests/e2e/admin.spec.ts`(20/20)/ `pnpm lint` 全绿。
+
 ---
 
 ## 2. 未完成项

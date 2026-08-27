@@ -4,14 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
 	"ylink-backend/internal/config"
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/errs"
+	"ylink-backend/internal/pkg/mailer"
+	redispkg "ylink-backend/internal/pkg/redis"
 	"ylink-backend/internal/pkg/sanitize"
 	"ylink-backend/internal/repo"
 )
@@ -23,10 +27,11 @@ type AdminService struct {
 	repos *repo.Repos
 	cfg   *config.Config
 	set   *SettingService
+	ml    *mailer.Mailer
 }
 
-func NewAdminService(db *gorm.DB, rdb *redis.Client, repos *repo.Repos, cfg *config.Config, set *SettingService) *AdminService {
-	return &AdminService{db: db, rdb: rdb, repos: repos, cfg: cfg, set: set}
+func NewAdminService(db *gorm.DB, rdb *redis.Client, repos *repo.Repos, cfg *config.Config, set *SettingService, ml *mailer.Mailer) *AdminService {
+	return &AdminService{db: db, rdb: rdb, repos: repos, cfg: cfg, set: set, ml: ml}
 }
 
 // ---- 审计 ----
@@ -171,6 +176,219 @@ func (s *AdminService) AdjustBalance(ctx context.Context, adminID, userID int64,
 			"email": user.Email, "amount": amountFen, "remark": sanitize.Text(remark),
 		})
 	})
+}
+
+// ---- 用户管理增强（F05） ----
+
+// ExportUsers F05 CSV 导出：分批流式回调（每批 500），行内容已联套餐名与邀请人邮箱。
+// 行字段顺序与 handler 表头一致：id,email,balance,commission_balance,plan,expired_at,
+// transfer_bytes,u_bytes,d_bytes,created_at,inviter_email。
+func (s *AdminService) ExportUsers(ctx context.Context, keyword string, fn func(rows [][]string) error) error {
+	plans, err := s.repos.Plan.ListAll(s.db)
+	if err != nil {
+		return err
+	}
+	planNames := make(map[int64]string, len(plans))
+	for _, p := range plans {
+		planNames[p.ID] = p.Name
+	}
+	return s.repos.User.StreamForExport(s.db, keyword, 500, func(batch []model.User) error {
+		// 批内补齐邀请人邮箱
+		invIDs := make([]int64, 0, len(batch))
+		for i := range batch {
+			if batch[i].InviteByID != nil {
+				invIDs = append(invIDs, *batch[i].InviteByID)
+			}
+		}
+		invEmail := make(map[int64]string, len(invIDs))
+		if len(invIDs) > 0 {
+			inviters, err := s.repos.User.ListByIDs(s.db, invIDs)
+			if err != nil {
+				return err
+			}
+			for _, iv := range inviters {
+				invEmail[iv.ID] = iv.Email
+			}
+		}
+		rows := make([][]string, 0, len(batch))
+		for i := range batch {
+			u := batch[i]
+			plan := ""
+			if u.PlanID != nil {
+				plan = planNames[*u.PlanID]
+			}
+			inv := ""
+			if u.InviteByID != nil {
+				inv = invEmail[*u.InviteByID]
+			}
+			expired := ""
+			if u.ExpiredAt != nil {
+				expired = u.ExpiredAt.Format(time.RFC3339)
+			}
+			rows = append(rows, []string{
+				strconv.FormatInt(u.ID, 10),
+				u.Email,
+				fmt.Sprintf("%.2f", model.FenToYuan(u.Balance)),
+				fmt.Sprintf("%.2f", model.FenToYuan(u.CommissionBalance)),
+				plan,
+				expired,
+				strconv.FormatInt(u.TransferEnable, 10),
+				strconv.FormatInt(u.U, 10),
+				strconv.FormatInt(u.D, 10),
+				u.CreatedAt.Format(time.RFC3339),
+				inv,
+			})
+		}
+		return fn(rows)
+	})
+}
+
+// BatchUsers F05 批量用户操作：ban/unban/adjust_balance，逐个执行并汇总成功/失败。
+// 失败不打断整体：单用户失败（不存在/操作自己/余额为负等）记入 failed 列表。
+func (s *AdminService) BatchUsers(ctx context.Context, adminID int64, req *model.AdminBatchUserReq, ip string) (*model.AdminBatchUserResp, error) {
+	if req.Action == "adjust_balance" && req.Amount == nil {
+		return nil, errs.New(40000, "参数校验失败: adjust_balance 需提供 amount")
+	}
+	resp := &model.AdminBatchUserResp{Failed: make([]model.AdminBatchFailedItem, 0)}
+	for _, id := range req.IDs {
+		var err error
+		switch req.Action {
+		case "ban":
+			banned := true
+			err = s.UpdateUser(ctx, adminID, id, &model.AdminUpdateUserReq{Banned: &banned}, ip)
+		case "unban":
+			banned := false
+			err = s.UpdateUser(ctx, adminID, id, &model.AdminUpdateUserReq{Banned: &banned}, ip)
+		case "adjust_balance":
+			err = s.AdjustBalance(ctx, adminID, id, model.YuanToFen(*req.Amount), req.Remark, ip)
+		}
+		if err != nil {
+			resp.Failed = append(resp.Failed, model.AdminBatchFailedItem{
+				ID: id, Reason: errs.From(err).Message,
+			})
+			continue
+		}
+		resp.Success++
+	}
+	return resp, nil
+}
+
+// SendMail F05 管理端发邮件：SMTP 同步逐发，结果写 mail_logs，整体操作写审计。
+// 单封失败不中断其余收件人（失败原因进 mail_logs 与响应）。
+func (s *AdminService) SendMail(ctx context.Context, adminID int64, req *model.AdminSendMailReq, ip string) (*model.AdminSendMailResp, error) {
+	users, err := s.repos.User.ListByIDs(s.db, req.IDs)
+	if err != nil {
+		return nil, err
+	}
+	byID := make(map[int64]model.User, len(users))
+	for _, u := range users {
+		byID[u.ID] = u
+	}
+	resp := &model.AdminSendMailResp{Failed: make([]model.AdminBatchFailedItem, 0)}
+	subject := sanitize.Text(req.Subject)
+	if s.ml == nil {
+		// SMTP 未注入（未配置）：全部记为失败，留痕不丢
+		for _, id := range req.IDs {
+			resp.Failed = append(resp.Failed, model.AdminBatchFailedItem{ID: id, Reason: "邮件服务未配置"})
+		}
+		_ = s.audit(s.db, adminID, "send_mail", fmt.Sprint(req.IDs), ip, map[string]any{
+			"subject": subject, "sent": 0, "failed": len(resp.Failed), "error": "mailer not configured",
+		})
+		return resp, nil
+	}
+	for _, id := range req.IDs {
+		u, ok := byID[id]
+		if !ok {
+			resp.Failed = append(resp.Failed, model.AdminBatchFailedItem{ID: id, Reason: "用户不存在"})
+			continue
+		}
+		sendErr := s.ml.Send(u.Email, subject, mailer.Template(sanitize.Markdown(req.Body)))
+		log := model.MailLog{
+			UserID: u.ID, Email: u.Email, Subject: subject, AdminID: adminID,
+		}
+		if sendErr != nil {
+			log.Status = 0
+			msg := sendErr.Error()
+			if len(msg) > 512 {
+				msg = msg[:512]
+			}
+			log.Error = &msg
+			resp.Failed = append(resp.Failed, model.AdminBatchFailedItem{ID: id, Reason: "邮件发送失败"})
+		} else {
+			log.Status = 1
+			resp.Sent++
+		}
+		if err := s.repos.MailLog.Create(s.db, &log); err != nil {
+			return nil, err
+		}
+	}
+	_ = s.audit(s.db, adminID, "send_mail", fmt.Sprint(req.IDs), ip, map[string]any{
+		"subject": subject, "sent": resp.Sent, "failed": len(resp.Failed),
+	})
+	return resp, nil
+}
+
+// ResetUserSubToken F05 管理端重置用户订阅密钥：无需用户密码，旧链接立即失效，写审计。
+func (s *AdminService) ResetUserSubToken(ctx context.Context, adminID, userID int64, ip string) (string, error) {
+	user, err := s.repos.User.GetByID(s.db, userID)
+	if err != nil {
+		return "", errs.ErrNotFound
+	}
+	oldToken := user.SubToken
+	user.SubToken = uuid.NewString()
+	if err := s.repos.User.Update(s.db, user); err != nil {
+		return "", err
+	}
+	// 清除旧 token 缓存（userinfo / 限流计数），与用户端自助重置一致
+	s.rdb.Del(ctx, redispkg.Key("sub", "userinfo", oldToken))
+	s.rdb.Del(ctx, redispkg.Key("sub", "rl", oldToken))
+	_ = s.audit(s.db, adminID, "reset_sub_token", fmt.Sprint(userID), ip, map[string]any{
+		"email": user.Email,
+	})
+	return s.cfg.App.BaseURL + "/api/v1/" + s.cfg.Security.SubscribePathOrDefault() + "/subscribe/" + user.SubToken, nil
+}
+
+// ---- 审计日志（F08） ----
+
+// AuditLogFilter 审计日志筛选参数（handler 解析后的 query）。
+type AuditLogFilter struct {
+	AdminID *int64
+	Action  string
+	Target  string
+	From    string // YYYY-MM-DD，可空
+	To      string // YYYY-MM-DD，可空（含当天）
+}
+
+// ListAuditLogs GET /admin/audit-logs：审计日志分页查询（只读，数据源为 audit_logs 表）。
+func (s *AdminService) ListAuditLogs(ctx context.Context, f AuditLogFilter, page, pageSize int) ([]model.AdminAuditLogItem, int64, []string, error) {
+	q := repo.AuditLogQuery{AdminID: f.AdminID, Action: f.Action, Target: f.Target}
+	parseDay := func(s string) (time.Time, error) {
+		return time.ParseInLocation("2006-01-02", s, time.Local)
+	}
+	if f.From != "" {
+		t, err := parseDay(f.From)
+		if err != nil {
+			return nil, 0, nil, errs.New(40000, "参数校验失败: from 需为 YYYY-MM-DD")
+		}
+		q.From = &t
+	}
+	if f.To != "" {
+		t, err := parseDay(f.To)
+		if err != nil {
+			return nil, 0, nil, errs.New(40000, "参数校验失败: to 需为 YYYY-MM-DD")
+		}
+		t = t.AddDate(0, 0, 1) // 含 to 当天
+		q.To = &t
+	}
+	list, total, err := s.repos.Audit.ListByPage(s.db, q, page, pageSize)
+	if err != nil {
+		return nil, 0, nil, err
+	}
+	actions, err := s.repos.Audit.ListActions(s.db)
+	if err != nil {
+		return list, total, nil, nil // 动作列表失败不阻断主查询
+	}
+	return list, total, actions, nil
 }
 
 // ---- 订单与退款 ----

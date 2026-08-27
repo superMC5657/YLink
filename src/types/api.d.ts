@@ -686,6 +686,59 @@ export interface AdminCommissionItem {
   created_at: string
 }
 
+/** 管理端审计日志条目(F08,detail 为 jsonb 原始字符串) */
+export interface AdminAuditLogItem {
+  id: number
+  admin_id: number
+  admin_email: string
+  action: string
+  target: string | null
+  detail: string | null
+  ip: string | null
+  created_at: string
+}
+
+/** 审计日志查询响应(含可选动作聚合,供筛选下拉) */
+export interface AdminAuditLogsResp {
+  list: AdminAuditLogItem[]
+  total: number
+  page: number
+  page_size: number
+  actions?: string[]
+}
+
+/** F05 批量用户操作:ban/unban/adjust_balance */
+export type AdminBatchAction = 'ban' | 'unban' | 'adjust_balance'
+
+export interface AdminBatchUserReq {
+  action: AdminBatchAction
+  ids: number[]
+  /** adjust_balance 必填(元,可正可负) */
+  amount?: number
+  remark?: string
+}
+
+export interface AdminBatchFailedItem {
+  id: number
+  reason: string
+}
+
+export interface AdminBatchUserResp {
+  success: number
+  failed: AdminBatchFailedItem[]
+}
+
+export interface AdminSendMailReq {
+  ids: number[]
+  subject: string
+  body: string
+}
+
+export interface AdminSendMailResp {
+  sent: number
+  failed: AdminBatchFailedItem[]
+}
+
 export interface TrafficImportItem {
   user_id: number
   date: string // YYYY-MM-DD

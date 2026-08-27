@@ -239,6 +239,52 @@ export const http = {
   delete: <T>(url: string, opts?: HttpOptions) => request<T>('DELETE', url, opts),
 }
 
+/** 拼接查询串(与 request 内部一致) */
+function buildQueryStr(query?: HttpOptions['query']): string {
+  if (!query) return ''
+  const pairs = Object.entries(query).filter(([, v]) => v !== undefined && v !== null && v !== '')
+  if (pairs.length === 0) return ''
+  return (
+    '?' +
+    pairs.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`).join('&')
+  )
+}
+
+/**
+ * 下载二进制资源(F05 用户 CSV 导出):GET + Bearer,401 时静默刷新重试一次。
+ * 与 request<T> 分离:CSV 不走 envelope,响应体由调用方消费(blob)。
+ */
+export async function download(url: string, query?: HttpOptions['query']): Promise<Blob> {
+  const queryStr = buildQueryStr(query)
+  const doFetch = async (): Promise<Response> => {
+    const headers: Record<string, string> = {
+      Accept: 'text/csv, application/json;q=0.8, */*;q=0.5',
+      'Accept-Language': language,
+      'X-Client': clientTag(),
+    }
+    const tokens = readTokens()
+    if (tokens?.accessToken) headers.Authorization = `Bearer ${tokens.accessToken}`
+    const fetcher = await resolveFetcher()
+    return fetcher(resolveApiBase() + url + queryStr, { method: 'GET', headers })
+  }
+
+  let resp = await doFetch()
+  if (resp.status === 401) {
+    const ok = await refreshTokens()
+    if (ok) resp = await doFetch()
+  }
+  if (!resp.ok) {
+    const err = new ApiErrorImpl(
+      resp.status * 100,
+      tt('network.requestFailedStatus', { status: resp.status }),
+      resp.status,
+    )
+    showErrorToast(err.message)
+    throw err
+  }
+  return resp.blob()
+}
+
 /** 供外部读取当前解析后的 API 基址(与请求层一致) */
 export function getApiBaseUrl(): string {
   return resolveApiBase()

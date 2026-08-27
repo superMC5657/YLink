@@ -81,9 +81,13 @@ func New(d Deps) *gin.Engine {
 	}
 
 	api := r.Group("/api/v1")
+	// F22 safe_mode：开启后非白名单域名（App.BaseURL host + security.safe_domains）一律 403。
+	// 白名单含支付回调与订阅端点的访问域名；healthz/metrics 在 api group 之外不受影响。
+	allowedHosts := append([]string{d.Cfg.App.BaseURL}, d.Cfg.Security.SafeDomains...)
+	api.Use(middleware.SafeMode(d.Cfg.Security.SafeMode, allowedHosts))
 	registerUser(api, d, a)    // 用户端 API
-	registerAdmin(api, d, a)   // 管理端 API（role=admin）
-	registerClient(api, d, a)  // 订阅下发（免登录）
+	registerAdmin(api, d, a)   // 管理端 API（role=admin，路径段可经 security.admin_path 定制）
+	registerClient(api, d, a)  // 订阅下发（免登录，路径段可经 security.subscribe_path 定制）
 	registerWebhook(api, d, a) // 支付回调（免登录）
 	registerNode(api, d, a)    // 节点上报（X-Node-Key）
 
@@ -102,7 +106,7 @@ func newApp(d Deps) *app {
 	subSvc := service.NewSubscribeService(d.DB, d.Redis, repos, d.Cfg)
 	inviteSvc := service.NewInviteService(d.DB, d.Redis, repos, d.Cfg)
 	ticketSvc := service.NewTicketService(d.DB, d.Redis, repos)
-	adminSvc := service.NewAdminService(d.DB, d.Redis, repos, d.Cfg, settingSvc)
+	adminSvc := service.NewAdminService(d.DB, d.Redis, repos, d.Cfg, settingSvc, d.Mailer)
 	nodeSvc := service.NewNodeService(d.DB, d.Redis, repos)
 	return &app{
 		repos:      repos,
@@ -182,17 +186,23 @@ func registerUser(g *gin.RouterGroup, d Deps, a *app) {
 	authed.POST("/tickets/:id/reopen", a.ticketH.Reopen)
 }
 
-// registerAdmin 管理端 API（role=admin）。
+// registerAdmin 管理端 API（role=admin）。路径段由 security.admin_path 配置（F22，默认 admin）。
 func registerAdmin(g *gin.RouterGroup, d Deps, a *app) {
-	admin := g.Group("/admin")
+	admin := g.Group("/" + d.Cfg.Security.AdminPathOrDefault())
 	admin.Use(middleware.Auth(d.JWT, d.Redis), middleware.RequireRole(1))
 
 	// 仪表盘
 	admin.GET("/stat/overview", a.adminH.Overview)
 	// 用户
 	admin.GET("/users", a.adminH.ListUsers)
+	admin.GET("/users/export", a.adminH.ExportUsersCSV) // F05 CSV 导出（置于 :id 之前避免路由歧义）
 	admin.PUT("/users/:id", a.adminH.UpdateUser)
 	admin.POST("/users/:id/balance", a.adminH.AdjustBalance)
+	admin.POST("/users/batch", a.adminH.BatchUsers) // F05 批量操作
+	admin.POST("/users/mail", a.adminH.SendMail)    // F05 发送邮件
+	admin.POST("/users/:id/sub-token/reset", a.adminH.ResetUserSubToken) // F05 重置订阅密钥
+	// 审计日志（F08 只读）
+	admin.GET("/audit-logs", a.adminH.ListAuditLogs)
 	// 套餐
 	admin.GET("/plans", a.adminH.ListPlans)
 	admin.POST("/plans", a.adminH.CreatePlan)
@@ -245,8 +255,10 @@ func registerAdmin(g *gin.RouterGroup, d Deps, a *app) {
 }
 
 // registerClient 订阅下发端点：代理客户端直连，免登录、任意来源。
+// 路径段由 security.subscribe_path 配置（F22，默认 client），改路径需同步前端订阅链接缓存——
+// 订阅 URL 均由服务端拼接下发，此处变更后旧 URL 立即 404，用户重新复制即可。
 func registerClient(g *gin.RouterGroup, d Deps, a *app) {
-	cli := g.Group("/client")
+	cli := g.Group("/" + d.Cfg.Security.SubscribePathOrDefault())
 	cli.Use(middleware.CORSAny())
 	cli.GET("/subscribe/:token", a.subH.ClientSubscribe)
 }

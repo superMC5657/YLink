@@ -2,6 +2,7 @@ package repo
 
 import (
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -36,6 +37,44 @@ func (UserRepo) SetBanned(db *gorm.DB, id int64, banned bool) error {
 // UpdateRole 更新角色。
 func (UserRepo) UpdateRole(db *gorm.DB, id int64, role int) error {
 	return db.Model(&model.User{}).Where("id = ?", id).Update("role", role).Error
+}
+
+// StreamForExport F05 CSV 导出：按 keyword 筛选，每批 batchSize 分批回调，避免整表载入内存。
+func (UserRepo) StreamForExport(db *gorm.DB, keyword string, batchSize int, fn func(batch []model.User) error) error {
+	if batchSize <= 0 {
+		batchSize = 500
+	}
+	lastID := int64(0)
+	for {
+		var batch []model.User
+		q := db.Model(&model.User{}).Where("id > ?", lastID)
+		if keyword != "" {
+			q = q.Where("email LIKE ?", "%"+keyword+"%")
+		}
+		if err := q.Order("id ASC").Limit(batchSize).Find(&batch).Error; err != nil {
+			return err
+		}
+		if len(batch) == 0 {
+			return nil
+		}
+		lastID = batch[len(batch)-1].ID
+		if err := fn(batch); err != nil {
+			return err
+		}
+		if len(batch) < batchSize {
+			return nil
+		}
+	}
+}
+
+// ListByIDs 按 ID 集合查询（保持传入顺序由调用方自行处理）。
+func (UserRepo) ListByIDs(db *gorm.DB, ids []int64) ([]model.User, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	var list []model.User
+	err := db.Where("id IN ?", ids).Find(&list).Error
+	return list, err
 }
 
 // ---- 管理端 · 套餐 ----
@@ -227,6 +266,62 @@ type AuditLogRepo struct{}
 
 func (AuditLogRepo) Create(db *gorm.DB, l *model.AuditLog) error { return db.Create(l).Error }
 
+// AuditLogQuery 审计日志筛选条件（全部可空）。
+type AuditLogQuery struct {
+	AdminID *int64
+	Action  string
+	Target  string
+	From    *time.Time // created_at >= From
+	To      *time.Time // created_at <  To
+}
+
+// ListByPage 审计日志分页（JOIN users 取操作人邮箱，id 倒序）。
+func (AuditLogRepo) ListByPage(db *gorm.DB, q AuditLogQuery, page, pageSize int) ([]model.AdminAuditLogItem, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+	w := func(tx *gorm.DB) *gorm.DB {
+		tx = tx.Joins("JOIN users ON users.id = audit_logs.admin_id")
+		if q.AdminID != nil {
+			tx = tx.Where("audit_logs.admin_id = ?", *q.AdminID)
+		}
+		if q.Action != "" {
+			tx = tx.Where("audit_logs.action = ?", q.Action)
+		}
+		if q.Target != "" {
+			tx = tx.Where("audit_logs.target = ?", q.Target)
+		}
+		if q.From != nil {
+			tx = tx.Where("audit_logs.created_at >= ?", *q.From)
+		}
+		if q.To != nil {
+			tx = tx.Where("audit_logs.created_at < ?", *q.To)
+		}
+		return tx
+	}
+	var total int64
+	if err := w(db.Model(&model.AuditLog{})).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var rows []model.AdminAuditLogItem
+	err := w(db.Model(&model.AuditLog{}).
+		Select("audit_logs.id, audit_logs.admin_id, users.email AS admin_email, audit_logs.action, audit_logs.target, audit_logs.detail, audit_logs.ip, audit_logs.created_at")).
+		Order("audit_logs.id DESC").
+		Offset((page - 1) * pageSize).Limit(pageSize).
+		Scan(&rows).Error
+	return rows, total, err
+}
+
+// ListActions 去重动作列表（筛选项提示用）。
+func (AuditLogRepo) ListActions(db *gorm.DB) ([]string, error) {
+	var actions []string
+	err := db.Model(&model.AuditLog{}).Distinct("action").Order("action ASC").Pluck("action", &actions).Error
+	return actions, err
+}
+
 // ---- 管理端 · 流量 ----
 
 // Upsert 按 (user_id, date) 覆盖导入。
@@ -239,6 +334,12 @@ func (TrafficLogRepo) Upsert(db *gorm.DB, t *model.TrafficLog) error {
 	}
 	return db.Create(t).Error
 }
+
+// ---- 管理端 · 邮件日志（F05） ----
+
+type MailLogRepo struct{}
+
+func (MailLogRepo) Create(db *gorm.DB, l *model.MailLog) error { return db.Create(l).Error }
 
 // ---- Repos 聚合更新 ----
 
@@ -260,6 +361,7 @@ type Repos struct {
 	AgentApply AgentApplyRepo
 	Ticket     TicketRepo
 	Audit      AuditLogRepo
+	MailLog    MailLogRepo
 }
 
 // EnsureAdmin 幂等初始化首个管理员：users 表无管理员且环境变量齐全时创建。

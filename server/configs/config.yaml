@@ -51,3 +51,10 @@ site:
   agent_required_valid_invites: 50  # 代理申请有效邀请数阈值
   commission_confirm_days: 3        # 佣金确认期（天）
   order_expire_minutes: 30          # 订单超时关闭（分钟）
+
+# 安全部署项（F22）：全部启动注入，生产环境优先用 APP_SECURITY_* 环境变量覆盖
+security:
+  admin_path: "admin"       # 管理端 API 路径段（/api/v1/{admin_path}/...），改后前端需同步 VITE_ADMIN_PATH 构建重打包
+  subscribe_path: "client"  # 订阅下发路径段（/api/v1/{subscribe_path}/subscribe/{token}），订阅 URL 由服务端拼接下发
+  safe_mode: false          # 开启后仅白名单域名可访问 API（App.base_url 的 host 自动纳入）
+  safe_domains: []          # 追加白名单域名，如 ["panel.example.com", "sub.example.com"]

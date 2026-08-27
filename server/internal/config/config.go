@@ -19,6 +19,7 @@ type Config struct {
 	CORS     CORSConfig     `mapstructure:"cors"`
 	Log      LogConfig      `mapstructure:"log"`
 	Site     SiteConfig     `mapstructure:"site"`
+	Security SecurityConfig `mapstructure:"security"`
 }
 
 type AppConfig struct {
@@ -74,6 +75,31 @@ type CORSConfig struct {
 type LogConfig struct {
 	Level string `mapstructure:"level"`
 	Dir   string `mapstructure:"dir"`
+}
+
+// SecurityConfig 安全部署项（F22）：后台路径定制 / safe_mode 域名白名单 / 订阅路径定制。
+// 全部启动注入（config.yaml + APP_SECURITY_* 环境变量），不落库，避免改路径后需迁移数据库。
+type SecurityConfig struct {
+	AdminPath     string   `mapstructure:"admin_path"`     // 管理端 API 路径段，默认 admin
+	SubscribePath string   `mapstructure:"subscribe_path"` // 订阅下发路径段，默认 client
+	SafeMode      bool     `mapstructure:"safe_mode"`      // 开启后非白名单域名的请求一律 403
+	SafeDomains   []string `mapstructure:"safe_domains"`   // 额外白名单域名（App.BaseURL 的 host 自动纳入）
+}
+
+// AdminPathOrDefault 返回管理端路径段（空值兜底 admin）。
+func (s SecurityConfig) AdminPathOrDefault() string {
+	if s.AdminPath == "" {
+		return "admin"
+	}
+	return s.AdminPath
+}
+
+// SubscribePathOrDefault 返回订阅路径段（空值兜底 client）。
+func (s SecurityConfig) SubscribePathOrDefault() string {
+	if s.SubscribePath == "" {
+		return "client"
+	}
+	return s.SubscribePath
 }
 
 type SiteConfig struct {

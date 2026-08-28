@@ -27,7 +27,7 @@ func httpStatus(code int) int {
 		return http.StatusOK
 	case 10003:
 		return http.StatusTooManyRequests
-	case 11003, 14001, 14002, 15002:
+	case 11003, 14001, 14002, 14003, 15002:
 		return http.StatusConflict
 	}
 	switch code / 100 {
@@ -100,9 +100,15 @@ var (
 	// ErrWithdrawForbidden 13003 仅代理商可发起佣金提现（F02），HTTP 显式 403
 	ErrWithdrawForbidden = &Error{Code: 13003, Message: "仅代理商可发起佣金提现", HTTP: http.StatusForbidden}
 	ErrWithdrawStatus    = New(13004, "提现单状态不允许该操作")
+	// ErrAmountInvalid 13005 金额无效：含 float64 元→分转换的溢出/精度防护
+	// （超大金额 YuanToFen 会回绕为负数，绕过余额校验造成资金异常），划转/提现共用。
+	ErrAmountInvalid = New(13005, "金额无效或超出可处理范围")
 
 	ErrTicketClosed      = New(14001, "工单已关闭")
 	ErrTicketReopenLimit = New(14002, "工单仅可重开一次")
+	// ErrTicketWithdrawClose 14003 提现工单（type=1）生命周期由管理员审核闭环，
+	// 用户不可关闭/重开（关闭后管理端审核入口被禁用，佣金可能长期停留在已扣减状态）。
+	ErrTicketWithdrawClose = New(14003, "提现工单不可手动关闭")
 
 	ErrAgentNotQualified = New(15001, "暂不满足代理申请条件")
 	ErrAgentDuplicated   = New(15002, "代理申请审核中，请勿重复提交")

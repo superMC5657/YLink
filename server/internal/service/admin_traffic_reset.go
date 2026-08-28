@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 
 	"gorm.io/gorm"
 
@@ -29,8 +28,8 @@ func (s *AdminService) ResetTraffic(ctx context.Context, adminID int64, req *mod
 		}
 		resp.Success++
 	}
-	_ = s.audit(s.db, adminID, "traffic_reset", fmt.Sprint(req.UserIDs), ip, map[string]any{
-		"mode": req.Mode, "success": resp.Success, "failed": len(resp.Failed),
+	_ = s.audit(s.db, adminID, "traffic_reset", batchAuditTarget(len(req.UserIDs)), ip, map[string]any{
+		"mode": req.Mode, "success": resp.Success, "failed": len(resp.Failed), "user_ids": req.UserIDs,
 	})
 	return resp, nil
 }

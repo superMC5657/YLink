@@ -80,8 +80,10 @@
 | 13002 | 400 | 可划转佣金不足 |
 | 13003 | 403 | 仅代理商可发起佣金提现（F02） |
 | 13004 | 409 | 提现单状态不允许该操作（重复确认/已处理，F02） |
+| 13005 | 400 | 金额无效或超出可处理范围（元→分转换溢出/精度防护，划转/提现共用） |
 | 14001 | 409 | 工单已关闭 |
 | 14002 | 409 | 工单仅可重开一次 |
+| 14003 | 409 | 提现工单不可手动关闭（用户 close/reopen type=1 工单，F02） |
 | 15001 | 400 | 不满足代理申请条件 |
 | 15002 | 409 | 代理申请审核中，请勿重复提交 |
 
@@ -260,7 +262,7 @@
                          "created_at": "2026-08-28T10:00:00+08:00" } ] } }
 ```
 
-活跃会话列表（refresh 白名单维度，Redis 元数据）。`jti` 为会话标识；`current` 标记当前会话；升级前登录的历史会话 `ip`/`user_agent`/`created_at` 可能为空（降级展示）。
+活跃会话列表（refresh 白名单维度，Redis 元数据）。`jti` 为会话标识；`current` 标记当前会话；升级前登录的历史会话 `ip`/`user_agent` 可能为空，`created_at` 为 **null**（无元数据时后端不透出零值时间，前端降级显示「--」）。
 
 `DELETE /user/sessions/{jti}` — 踢下线指定会话：删除 refresh 白名单并写入踢下线标记，该会话 access **立即失效**，其余会话不受影响；当前会话不可自行踢除（40000），会话不存在返回 40400。
 
@@ -498,7 +500,7 @@ status：0=确认中 1=已发放 2=已撤销；列表页只展示已发放（sta
 
 请求：`{ "amount": 100.00, "method": "alipay", "account": "agent@example.com" }`
 响应 data：提现单对象 `{ "id", "amount"(元), "method", "account", "status"(0=处理中/1=已发放/2=已退回), "review_remark", "ticket_id", "reviewed_at", "created_at" }`。
-错误：13003 非代理商（HTTP 403）/ 13002 佣金不足。提交成功后自动创建 `type=1` 提现工单（首条消息为结构化提现信息）。
+错误：13003 非代理商（HTTP 403）/ 13002 佣金不足 / 13005 金额无效（元→分转换溢出或超安全域，HTTP 400）。金额仅作溢出/精度防护（有效域 `(0, 2^52]` 分），非业务限额（spec F02 不引入限额设置）。提交成功后自动创建 `type=1` 提现工单（首条消息为结构化提现信息）。
 
 `GET /invite/withdraws?page=&page_size=` — 本人提现记录分页（字段同上）。
 
@@ -562,8 +564,8 @@ status：0=待回复 1=已回复 2=已关闭；level：0=低 1=中 2=高；type�
 ```
 
 `POST /tickets/{id}/reply`：`{ "message": "…" }`；已关闭返回 14001。回复后状态：用户回复→0，客服回复→1。
-`POST /tickets/{id}/close`：返回更新后工单。
-`POST /tickets/{id}/reopen`：重新打开工单（状态回 0，reopen_count+1）。仅已关闭且未重开过（reopen_count=0）可重开，未关闭返回 40900，已重开过返回 14002；返回更新后工单。
+`POST /tickets/{id}/close`：返回更新后工单。**提现工单（type=1）不可由用户关闭**（返回 14003）：提交即扣减佣金，生命周期由管理员 pay/reject 审核闭环，用户关闭会阻塞管理端审核入口。
+`POST /tickets/{id}/reopen`：重新打开工单（状态回 0，reopen_count+1）。仅已关闭且未重开过（reopen_count=0）可重开，未关闭返回 40900，已重开过返回 14002；**提现工单（type=1）不可重开**（返回 14003，审核完成后资金闭环）；返回更新后工单。
 
 > F02：提现工单（type=1）的详情响应附带 `withdraw` 对象（提现单金额/方式/账号/状态，见 §11.5）；管理端通过 §16 的 `POST /admin/tickets/{id}/withdraw/pay|reject` 审核后工单自动关闭。
 
@@ -640,6 +642,7 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 - `POST /admin/users/{id}/sub-token/reset`（2026-08-28 F05）：管理端重置订阅 token（无需用户密码），旧订阅链接立即失效（清 `sub:userinfo`/`sub:rl` 缓存），返回 `{subscribe_url}`，写审计（`reset_sub_token`）。
 - `GET /admin/audit-logs`（2026-08-28 F08）：审计日志只读查询。Query：`admin_id?/action?/target?/from?/to?`（日期 YYYY-MM-DD，含 to 当天）+ 分页；返回 `{list, total, page, page_size, actions}`，条目含 `admin_email`（联表操作人）与 `detail`（jsonb 原始字符串）；`actions` 为去重动作列表供筛选。
   - **2026-08-28 可读化增强**：条目新增 `target_kind`（`user`/`users`/`server`/`knowledge_category`/`order`/`mail_template`，按 action 分派；未收录动作或空 target 为 `null`）与 `target_display`（target 反查的可读名称：用户邮箱 / 节点名 / 分类名；订单号与邮件模板名原样透出；多用户列表取前 3 个邮箱，超出显示 `…(+N)`）。**用户类目标一律以邮箱表示**；用户已被删除（users 表查不到）时用 detail 里留痕的 `email` 兜底（`ban_user`/`update_role`/`adjust_balance`/`reset_sub_token` 写入时留痕）。反查与兜底均失败时字段为 `null`，由前端回退显示原始 target；展示增强失败不影响主查询。筛选参数仍使用原始 `action`/`target` 值。
+  - **批量动作 target 为摘要（2026-08-28 安全修复）**：`send_mail`/`traffic_reset` 等 ID 列表类批量动作的 target 写入 `batch:<count>` 摘要（target 列 VARCHAR(128)，完整 ID 列表超长会导致审计插入失败、操作成功但审计静默丢失），完整 ID 列表留痕在 detail JSON（`ids`/`user_ids`）；可读化对 `batch:` 前缀直接透出摘要不再反查实体。历史数据的 ID 列表格式（`"7"`/`"[7 8 9]"`/`"7,8,9"`）仍兼容解析。
 - `GET /admin/orders` 分页返回 `{list,total,page,page_size}`，`status ∈ {0=待支付,1=已完成,2=已取消,3=已退款}`，金额单位为元；列表项含 `commission_amount`（该订单产生的佣金，元；无佣金记录为 `null`，余额支付订单恒为 `null`）。
 - `GET /admin/coupons` 返回 `{list: AdminCouponView[]}`：展开 `type ∈ {1=固定金额,2=百分比}`、`value`（type=1 为元、type=2 为百分比数值，如 10 表示 10%）、`min_spend` 单位为元、`limit_per_user`/`total_limit`/`used_count`、`valid_periods: string[]`（仅限可用周期）、`plan_ids: number[]`（仅限可用套餐，空=全部）、`started_at`/`ended_at`（null=不限）、`is_enable`、`created_at`。请求体 `AdminCouponReq` 同字段（`valid_periods`/`plan_ids` 传数组）。
 - `GET /admin/notices` 返回 `{list: AdminNoticeItem[]}`（含隐藏，倒序）：`id/title/content/is_show/sort/created_at`。请求体 `AdminNoticeReq`：`title/content` 必填、`is_show?`、`sort?`。

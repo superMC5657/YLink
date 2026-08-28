@@ -24,8 +24,8 @@ func newTicketEnv(t *testing.T) (*testEnv, *TicketService) {
 
 func ticketRow(t *model.Ticket) *sqlmock.Rows {
 	return sqlmock.NewRows([]string{
-		"id", "user_id", "subject", "level", "status", "reopen_count", "last_reply_at", "created_at",
-	}).AddRow(t.ID, t.UserID, t.Subject, t.Level, t.Status, t.ReopenCount, t.LastReplyAt, t.CreatedAt)
+		"id", "user_id", "subject", "level", "type", "status", "reopen_count", "last_reply_at", "created_at",
+	}).AddRow(t.ID, t.UserID, t.Subject, t.Level, t.Type, t.Status, t.ReopenCount, t.LastReplyAt, t.CreatedAt)
 }
 
 func TestTicketCreate(t *testing.T) {
@@ -39,6 +39,44 @@ func TestTicketCreate(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(7), resp.ID)
 	assert.Equal(t, 0, resp.Status) // 待回复
+}
+
+// TestTicketCloseWithdrawRejected 提现工单（type=1）不可由用户关闭（14003）：
+// 提交即扣减佣金，生命周期依赖管理员 pay/reject，用户关闭会阻塞管理端审核入口。
+func TestTicketCloseWithdrawRejected(t *testing.T) {
+	e, svc := newTicketEnv(t)
+	now := time.Now()
+	tk := &model.Ticket{ID: 7, UserID: 1, Subject: "佣金提现申请", Level: 0, Type: model.TicketTypeWithdraw, Status: 0, CreatedAt: now}
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"tickets\"")).WillReturnRows(ticketRow(tk))
+
+	_, err := svc.Close(context.Background(), 1, 7)
+	assert.Equal(t, 14003, codeOf(err))
+}
+
+// TestTicketReopenWithdrawRejected 提现工单审核完成（管理员关闭）后同样不可重开（14003）。
+func TestTicketReopenWithdrawRejected(t *testing.T) {
+	e, svc := newTicketEnv(t)
+	now := time.Now()
+	tk := &model.Ticket{ID: 7, UserID: 1, Subject: "佣金提现申请", Level: 0, Type: model.TicketTypeWithdraw, Status: 2, CreatedAt: now}
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"tickets\"")).WillReturnRows(ticketRow(tk))
+
+	_, err := svc.Reopen(context.Background(), 1, 7)
+	assert.Equal(t, 14003, codeOf(err))
+}
+
+// TestTicketCloseNormalStillAllowed 普通工单（type=0）关闭行为不受影响。
+func TestTicketCloseNormalStillAllowed(t *testing.T) {
+	e, svc := newTicketEnv(t)
+	now := time.Now()
+	tk := &model.Ticket{ID: 7, UserID: 1, Subject: "s", Level: 1, Type: 0, Status: 1, CreatedAt: now}
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"tickets\"")).WillReturnRows(ticketRow(tk))
+	e.mock.ExpectBegin()
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"tickets\"")).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectCommit()
+
+	resp, err := svc.Close(context.Background(), 1, 7)
+	require.NoError(t, err)
+	assert.Equal(t, 2, resp.Status)
 }
 
 func TestTicketReplyClosed(t *testing.T) {

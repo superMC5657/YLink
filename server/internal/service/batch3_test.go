@@ -175,6 +175,12 @@ func TestListAndRevokeSessions(t *testing.T) {
 			current++
 			assert.Equal(t, "sess-a", it.JTI)
 			assert.Equal(t, "1.2.3.4", it.IP)
+			assert.NotNil(t, it.CreatedAt, "有元数据的会话应返回登录时间")
+		} else {
+			// 历史会话（白名单值 "1"）无元数据：CreatedAt 必须为 nil（JSON null），
+			// 不得透出 Go 零值时间（会被渲染成 0001/1/1）
+			assert.Nil(t, it.CreatedAt)
+			assert.Equal(t, "sess-b", it.JTI)
 		}
 	}
 	assert.Equal(t, 1, current)

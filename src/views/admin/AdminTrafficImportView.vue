@@ -12,7 +12,7 @@ import { apiAdmin } from '@/api/admin'
 import type { AdminTrafficResetLogItem, TrafficImportItem, TrafficResetMode } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { useMessage, useDialog } from 'naive-ui'
-import { formatBytes } from '@/utils/format'
+import { formatBytes, localDateKey } from '@/utils/format'
 
 const { t } = useI18n()
 const message = useMessage()
@@ -23,13 +23,13 @@ const activeTab = ref<'import' | 'reset' | 'logs'>('import')
 // ---- 导入 ----
 
 const rows = reactive<TrafficImportItem[]>([
-  { user_id: 10086, date: new Date().toISOString().slice(0, 10), u: 0, d: 0 },
+  { user_id: 10086, date: localDateKey(new Date()), u: 0, d: 0 },
 ])
 
 const submitting = ref(false)
 
 function addRow() {
-  rows.push({ user_id: 0, date: new Date().toISOString().slice(0, 10), u: 0, d: 0 })
+  rows.push({ user_id: 0, date: localDateKey(new Date()), u: 0, d: 0 })
 }
 
 function removeRow(index: number) {

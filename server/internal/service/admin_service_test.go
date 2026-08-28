@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"database/sql/driver"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -698,6 +700,48 @@ func TestSendMailLogsFailures(t *testing.T) {
 	require.NoError(t, err)
 	assert.EqualValues(t, 0, resp.Sent, "SMTP 不可达时发送失败")
 	require.Len(t, resp.Failed, 1)
+}
+
+// ---- 审计写入参数断言辅助 ----
+
+// argEq 断言 SQL 参数为指定字符串（audit_logs.target / ip 等）。
+type argEq string
+
+func (w argEq) Match(v driver.Value) bool {
+	s, ok := v.(string)
+	return ok && s == string(w)
+}
+
+// argContains 断言 SQL 参数（字符串）包含指定子串（用于 detail JSON）。
+type argContains string
+
+func (w argContains) Match(v driver.Value) bool {
+	s, ok := v.(string)
+	return ok && strings.Contains(s, string(w))
+}
+
+// TestSendMailAuditTargetSummary 批量邮件审计 target 必须是 batch:<count> 摘要
+// （target 列 VARCHAR(128)，完整 ID 列表超长会导致审计写入失败静默丢失），
+// 完整 ID 列表留痕在 detail JSON 的 ids 字段。
+func TestSendMailAuditTargetSummary(t *testing.T) {
+	e := newTestEnv(t)
+	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
+	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, nil, set, nil) // 无 mailer
+
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE id IN`)).
+		WillReturnRows(userRows(nil))
+	e.mock.ExpectBegin()
+	e.mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "audit_logs"`)).
+		WithArgs(int64(1), "send_mail", argEq("batch:2"), argContains(`"ids":[7,8]`),
+			argEq("127.0.0.1"), sqlmock.AnyArg()).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	e.mock.ExpectCommit()
+
+	resp, err := svc.SendMail(context.Background(), 1, &model.AdminSendMailReq{
+		IDs: []int64{7, 8}, Subject: "hi", Body: "hi",
+	}, "127.0.0.1")
+	require.NoError(t, err)
+	require.Len(t, resp.Failed, 2, "SMTP 未配置时全部失败且留痕")
 }
 
 func TestSendMailMailerNotConfigured(t *testing.T) {

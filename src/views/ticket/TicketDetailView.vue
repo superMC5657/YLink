@@ -24,6 +24,8 @@ const listRef = ref<HTMLElement | null>(null)
 
 const detail = computed(() => ticket.detail)
 const isClosed = computed(() => detail.value?.status === 2)
+/** 提现工单（type=1）：生命周期由管理员审核闭环，用户不可关闭/重开（后端 14003） */
+const isWithdraw = computed(() => detail.value?.type === 1)
 
 function scrollToBottom() {
   void nextTick(() => {
@@ -101,15 +103,15 @@ onMounted(async () => {
         </div>
       </div>
       <button
-        v-if="detail && !isClosed"
+        v-if="detail && !isClosed && !isWithdraw"
         class="btn-soft-danger h-8 shrink-0 px-3 text-14"
         @click="onClose"
       >
         {{ t('ticket.closeTicket') }}
       </button>
-      <!-- 已关闭且未重开过:显示「重新打开」(core-flows §7:仅可重开一次) -->
+      <!-- 已关闭且未重开过:显示「重新打开」(core-flows §7:仅可重开一次);提现工单不可重开 -->
       <button
-        v-else-if="detail && detail.reopen_count === 0"
+        v-else-if="detail && !isWithdraw && detail.reopen_count === 0"
         class="btn-soft-neutral h-8 shrink-0 px-3 text-14"
         @click="onReopen"
       >

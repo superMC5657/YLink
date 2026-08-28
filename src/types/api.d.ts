@@ -447,7 +447,8 @@ export interface UserSessionItem {
   current: boolean
   ip: string
   user_agent: string
-  created_at: string
+  /** 历史会话可能无元数据（升级前白名单值）→ null，前端显示 -- */
+  created_at: string | null
 }
 
 export interface TicketReplyReq {

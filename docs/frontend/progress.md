@@ -2,11 +2,21 @@
 
 > 本文档记录 `src/` 目录 Vue 3 用户端应用的开发状态,是 docs/frontend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-28(**缺陷修复:审计日志筛选栏「目标」框独占一行**——`.n-input{width:100%}` 运行时注入覆盖 uno 宽度类,`w-44!`/`w-52!` 修复;同日:审计日志页 i18n——补 `common.search` zh/en、naive-ui locale 跟随应用语言、补 mock 缺失的 audit-logs 端点;管理后台「流量管理」页转圈卡死——naive-ui 按需注册缺失 NTabs/NTabPane/NRadio/NCheckbox + 后端分页空列表返回 null,此前为第三批 Xboard 缺口补齐,更早见下)
+> 最后更新:2026-08-28(**缺陷修复:管理后台邮件模板「编辑/测试发送」弹窗无法打开**——locale 文案含 Go template 字面量 `{{.site_name}}` 被 vue-i18n 当插值解析,dev 下编译错误抛出致弹窗渲染中断,改字面量插值 `{'{{.site_name}}'}` 转义;新增 i18n 消息编译回归单测锁全部文案;此前:审计日志筛选栏宽度/审计日志 i18n 与 mock/流量管理页卡死,更早见下)
 
 ---
 
 ## 1. 已完成项
+
+### 缺陷修复 · 管理后台邮件模板「编辑/测试发送」弹窗无法打开(✅ 已修复,2026-08-28)
+
+| 问题 | 修复 |
+|---|---|
+| 邮件模板页(F11)列表正常渲染,但点击「编辑」/「测试发送」弹窗不出现,无任何报错提示 | 根因:`zh-CN.ts`/`en-US.ts` 的 `adminMailTemplates.syntaxTip` 与 `bodyPlaceholder` 文案含 Go template 字面量占位符 `{{.site_name}}`/`{{.code}}`,vue-i18n 消息编译器将其解析为插值语法报 `Not allowed nest placeholder`;dev 模式(`__DEV__`)下该编译错误在渲染期**抛出**,弹窗内 `<n-form>`(`syntaxTip`)与 placeholder(`bodyPlaceholder`)渲染中断 → `n-modal` 内容挂载失败(页面仅 console.warn,无醒目提示) |
+| 修复 | 文案改用 vue-i18n **字面量插值语法**转义:`{'{{.site_name}}'}`(编译期还原为原文,不参与插值);en 同步。影响仅此 4 条文案,其余文案无字面量花括号 |
+| 回归锁 | 新增 `src/locales/__tests__/i18n.spec.ts`:遍历 zh-CN/en-US 每条消息执行 `t()`,任一编译失败即红(可拦住未来任何文案里的字面量花括号);e2e `admin.spec.ts` 新增「邮件模板管理(F11 回归)」用例:编辑弹窗打开→输入→保存成功→测试发送弹窗打开,并断言全程无 pageerror/console.error |
+
+复现与验证:Playwright(mock)复现点击「编辑」后 `.n-modal` 不挂载 + `pageerror: Message compilation error: Not allowed nest placeholder`(栈:`getCompileContext.onError → throw`);修复后编辑弹窗、输入、保存、测试发送弹窗全部正常,无 pageerror。vitest 61 用例(新增 2)、vue-tsc、eslint、e2e 全量 29 用例通过。
 
 ### 缺陷修复 · 管理后台「流量管理」页转圈卡死(✅ 已修复,2026-08-28)
 

@@ -886,7 +886,7 @@ export default {
     name: 'Template',
     subject: 'Subject',
     body: 'Body',
-    bodyPlaceholder: 'Supports {{.site_name}} / {{.code}} placeholders…',
+    bodyPlaceholder: "Supports {'{{.site_name}}'} / {'{{.code}}'} placeholders…",
     remark: 'Usage',
     placeholders: 'Placeholders',
     state: 'State',
@@ -896,7 +896,7 @@ export default {
     edit: 'Edit',
     editTitle: 'Edit template: {name}',
     syntaxTip:
-      'Go template syntax ({{.site_name}}, {{.code}}…); syntax is validated before save, and the branded mail shell is applied on send.',
+      "Go template syntax ({'{{.site_name}}'}, {'{{.code}}'}…); syntax is validated before save, and the branded mail shell is applied on send.",
     saved: 'Template saved',
     reset: 'Reset',
     resetTitle: 'Reset template',

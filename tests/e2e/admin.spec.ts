@@ -143,3 +143,41 @@ test.describe('角色区分(普通用户)', () => {
     await expect(authedPage).toHaveURL(/#\/dashboard/)
   })
 })
+
+test.describe('邮件模板管理(F11 回归:locale 字面量花括号)', () => {
+  /**
+   * 回归背景:zh/en 语言包 adminMailTemplates.syntaxTip/bodyPlaceholder 含 Go template
+   * 字面量 {{.site_name}},被 vue-i18n 当插值解析 → 编译错误在 dev 下抛出 →
+   * 编辑/测试发送弹窗渲染中断,点击「编辑」无反应(见 docs/frontend/progress.md)。
+   * 修复:文案改用字面量插值 {'{{.site_name}}'} 转义;配套 vitest 单测
+   * src/locales/__tests__/i18n.spec.ts 锁全部消息可编译。
+   */
+  test('邮件模板列表可打开编辑弹窗并保存成功,全程无渲染错误', async ({ page }) => {
+    const errors: string[] = []
+    page.on('pageerror', (e) => errors.push('pageerror: ' + e.message))
+    page.on('console', (m) => {
+      if (m.type() === 'error') errors.push('console.error: ' + m.text())
+    })
+
+    await loginAs(page, 'admin@example.com', 'Admin@123456')
+    await enterPortal(page, '管理后台', /#\/admin\/overview/)
+    await page.getByText('邮件模板').first().click()
+    await expect(page).toHaveURL(/#\/admin\/mail-templates/)
+    await expect(page.locator('table tbody tr').first()).toBeVisible()
+
+    // 编辑弹窗打开 + 输入可编辑 + 保存成功
+    await page.locator('tbody tr').first().locator('button', { hasText: '编辑' }).click()
+    await expect(page.getByText('编辑模板：')).toBeVisible()
+    const subject = page.locator('.n-modal input')
+    await subject.fill('回归测试主题')
+    await expect(subject).toHaveValue('回归测试主题')
+    await page.locator('.n-modal button', { hasText: '保存' }).click()
+    await expect(page.getByText('模板已保存')).toBeVisible()
+
+    // 「测试发送」弹窗同一渲染路径
+    await page.locator('tbody tr').first().locator('button', { hasText: '测试发送' }).click()
+    await expect(page.getByText('测试发送：')).toBeVisible()
+
+    expect(errors).toEqual([])
+  })
+})

@@ -78,6 +78,7 @@ export default {
     viewDetail: '查看详情',
     noLimit: '无限制',
     refresh: '刷新',
+    search: '搜索',
     pullToRefresh: '下拉刷新',
     releaseToRefresh: '释放立即刷新',
     refreshing: '刷新中…',

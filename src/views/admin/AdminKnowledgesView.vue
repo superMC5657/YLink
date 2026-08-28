@@ -304,7 +304,7 @@ onMounted(() => void load())
             v-model:value="keyword"
             :placeholder="t('adminKnowledges.searchPlaceholder')"
             clearable
-            class="w-52"
+            class="w-52!"
           />
           <n-radio-group v-model:value="langFilter">
             <n-radio-button value="all">{{ t('adminKnowledges.allLanguages') }}</n-radio-button>

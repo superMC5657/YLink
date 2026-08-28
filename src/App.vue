@@ -5,7 +5,7 @@
  * CSS 设计令牌(tokens.css 变量)与 Naive 主题主色。
  */
 import { computed, watch } from 'vue'
-import { darkTheme } from 'naive-ui'
+import { darkTheme, dateEnUS, dateZhCN, enUS, zhCN } from 'naive-ui'
 import type { GlobalTheme } from 'naive-ui'
 import { useAppStore } from '@/stores/app'
 import { useConfigStore } from '@/stores/config'
@@ -18,6 +18,11 @@ const app = useAppStore()
 const config = useConfigStore()
 
 const theme = computed<GlobalTheme | null>(() => (app.isDark ? darkTheme : null))
+
+// naive-ui 内置文案(日期选择器 Start/End Date、分页、空态等)跟随应用语言,
+// 否则 daterange 占位符永远是内置英文 "Start Date"/"End Date"
+const naiveLocale = computed(() => (app.language === 'en-US' ? enUS : zhCN))
+const naiveDateLocale = computed(() => (app.language === 'en-US' ? dateEnUS : dateZhCN))
 
 // F19 品牌主色:空/非法色值回退默认主题
 const brandColor = computed(() => {
@@ -53,7 +58,12 @@ watch(
 </script>
 
 <template>
-  <n-config-provider :theme="theme" :theme-overrides="themeOverrides">
+  <n-config-provider
+    :theme="theme"
+    :theme-overrides="themeOverrides"
+    :locale="naiveLocale"
+    :date-locale="naiveDateLocale"
+  >
     <n-message-provider>
       <n-dialog-provider>
         <ToastBridge>

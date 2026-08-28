@@ -136,7 +136,8 @@ async function loadLogs() {
       page_size: logPageSize,
       user_id: logUserId.value ?? '',
     })
-    logs.value = res.list
+    // 后端旧版本空列表可能返回 list:null，直接赋值会让模板判空抛 TypeError 卡死页面
+    logs.value = res.list ?? []
     logTotal.value = res.total
   } finally {
     logsLoading.value = false

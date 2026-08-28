@@ -78,6 +78,7 @@ export default {
     viewDetail: 'View detail',
     noLimit: 'Unlimited',
     refresh: 'Refresh',
+    search: 'Search',
     pullToRefresh: 'Pull to refresh',
     releaseToRefresh: 'Release to refresh',
     refreshing: 'Refreshing…',

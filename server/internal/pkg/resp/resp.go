@@ -3,6 +3,7 @@ package resp
 
 import (
 	"net/http"
+	"reflect"
 
 	"github.com/gin-gonic/gin"
 
@@ -47,6 +48,12 @@ type Page struct {
 }
 
 // PageOK 返回分页成功响应。
+// Go nil slice 会被 encoding/json 序列化为 null（如空表查询），前端以 list.length
+// 判空时会对 null 抛 TypeError，导致页面渲染中断（列表区转圈卡死）。
+// 这里统一兜底：nil 切片返回空数组 []，保持分页契约稳定。
 func PageOK(c *gin.Context, list any, total int64, page, pageSize int) {
+	if rv := reflect.ValueOf(list); rv.Kind() == reflect.Slice && rv.IsNil() {
+		list = []any{}
+	}
 	OK(c, Page{List: list, Total: total, Page: page, PageSize: pageSize})
 }

@@ -152,6 +152,70 @@ const trafficResets = [
   },
 ]
 
+// ---------- F08 审计日志演示数据 ----------
+const auditLogs = [
+  {
+    id: 6,
+    admin_id: 1,
+    admin_email: 'admin@example.com',
+    action: 'traffic_reset',
+    target: 'user:10086',
+    detail: '{"mode":"clear_usage","success":1,"failed":0}',
+    ip: '192.168.1.20',
+    created_at: '2026-08-28T10:05:00+08:00',
+  },
+  {
+    id: 5,
+    admin_id: 1,
+    admin_email: 'admin@example.com',
+    action: 'plan_update',
+    target: 'plan:2',
+    detail: '{"name":"白羊座","month_price":15}',
+    ip: '192.168.1.20',
+    created_at: '2026-08-27T18:40:00+08:00',
+  },
+  {
+    id: 4,
+    admin_id: 1,
+    admin_email: 'admin@example.com',
+    action: 'user_ban',
+    target: 'user:10087',
+    detail: '{"banned":true,"reason":"违规使用"}',
+    ip: '10.0.0.8',
+    created_at: '2026-08-26T09:12:00+08:00',
+  },
+  {
+    id: 3,
+    admin_id: 1,
+    admin_email: 'admin@example.com',
+    action: 'order_refund',
+    target: 'order:20260825123456789012',
+    detail: '{"amount":15.00}',
+    ip: '10.0.0.8',
+    created_at: '2026-08-25T15:30:00+08:00',
+  },
+  {
+    id: 2,
+    admin_id: 1,
+    admin_email: 'admin@example.com',
+    action: 'agent_approve',
+    target: 'agent_apply:3',
+    detail: '{"approved":true}',
+    ip: '192.168.1.20',
+    created_at: '2026-08-21T11:00:00+08:00',
+  },
+  {
+    id: 1,
+    admin_id: 1,
+    admin_email: 'admin@example.com',
+    action: 'traffic_import',
+    target: 'user:10086',
+    detail: '{"rows":3,"date":"2026-08-20"}',
+    ip: '192.168.1.20',
+    created_at: '2026-08-20T08:00:00+08:00',
+  },
+]
+
 // ---------- F04 报表演示数据(近 30 天逐日) ----------
 function lastDays(n: number): string[] {
   const out: string[] = []
@@ -565,6 +629,38 @@ export default [
     response: ({ headers }: { headers: Record<string, string> }) => {
       if (!verifyAdmin(headers)) return unauthorized()
       return ok(overview)
+    },
+  },
+  {
+    // F08 审计日志:筛选语义对齐后端(admin_id/action/target 精确,from<=created_at<to)
+    url: '/api/v1/admin/audit-logs',
+    method: 'get',
+    response: ({
+      headers,
+      query,
+    }: {
+      headers: Record<string, string>
+      query: Record<string, string>
+    }) => {
+      if (!verifyAdmin(headers)) return unauthorized()
+      const page = Number(query.page ?? 1)
+      const pageSize = Number(query.page_size ?? 20)
+      const adminId = query.admin_id
+      const action = query.action ?? ''
+      const target = query.target ?? ''
+      const from = query.from ?? ''
+      const to = query.to ?? ''
+      const filtered = auditLogs.filter((l) => {
+        if (adminId !== undefined && adminId !== '' && String(l.admin_id) !== adminId) return false
+        if (action && l.action !== action) return false
+        if (target && l.target !== target) return false
+        const day = l.created_at.slice(0, 10)
+        if (from && day < from) return false
+        if (to && day >= to) return false
+        return true
+      })
+      const actions = [...new Set(auditLogs.map((l) => l.action))].sort()
+      return ok({ ...paged(filtered, page, pageSize), actions })
     },
   },
   {

@@ -292,15 +292,19 @@ type AdminSettingsResp struct {
 // ---- 管理端 · 审计日志（F08） ----
 
 // AdminAuditLogItem 管理端审计日志条目（含操作人邮箱；detail 为 jsonb 原始字符串）。
+// TargetKind/TargetDisplay 为展示增强：按 action 把 target 翻译成实体类型与可读名称
+// （用户邮箱 / 节点名 / 分类名等），解析失败为 null，前端回退显示原始 target。
 type AdminAuditLogItem struct {
-	ID         int64     `json:"id"`
-	AdminID    int64     `json:"admin_id"`
-	AdminEmail string    `json:"admin_email"`
-	Action     string    `json:"action"`
-	Target     *string   `json:"target"`
-	Detail     *string   `json:"detail"`
-	IP         *string   `json:"ip"`
-	CreatedAt  time.Time `json:"created_at"`
+	ID            int64     `json:"id"`
+	AdminID       int64     `json:"admin_id"`
+	AdminEmail    string    `json:"admin_email"`
+	Action        string    `json:"action"`
+	Target        *string   `json:"target"`
+	TargetKind    *string   `json:"target_kind"`
+	TargetDisplay *string   `json:"target_display"`
+	Detail        *string   `json:"detail"`
+	IP            *string   `json:"ip"`
+	CreatedAt     time.Time `json:"created_at"`
 }
 
 // ---- 管理端 · 节点批量操作 / 复制 / 排序（F09） ----

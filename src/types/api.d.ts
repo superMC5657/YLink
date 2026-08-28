@@ -757,6 +757,10 @@ export interface AdminAuditLogItem {
   admin_email: string
   action: string
   target: string | null
+  /** 目标实体类型(user/users/server/knowledge_category/order/mail_template),未收录动作/空 target 为 null */
+  target_kind: string | null
+  /** 目标可读名称(用户邮箱/节点名/分类名等),解析失败为 null,展示时回退 target */
+  target_display: string | null
   detail: string | null
   ip: string | null
   created_at: string

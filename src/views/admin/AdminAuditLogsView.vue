@@ -1,7 +1,9 @@
 <script setup lang="ts">
 /**
  * 管理后台 · 审计日志(F08):只读查询,按操作人/动作/目标/时间范围筛选 + 分页 + 变更明细。
- * 数据:GET /admin/audit-logs(docs/api/README.md §16)
+ * 数据:GET /admin/audit-logs(docs/api/README.md §16)。
+ * 可读化:动作代码经 i18n 映射为文案,目标由后端解析为实体类型+名称(target_kind/target_display),
+ * 失败或未收录时回退原始 action/target;筛选下拉与详情弹窗同规则。
  */
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -10,13 +12,31 @@ import type { AdminAuditLogItem } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { formatTime } from '@/utils/format'
 
-const { t } = useI18n()
+const { t, te } = useI18n()
 const loading = ref(false)
 const list = ref<AdminAuditLogItem[]>([])
 const total = ref(0)
 const page = ref(1)
 const pageSize = ref(20)
 const actions = ref<string[]>([])
+
+/** 动作代码 → 人类可读文案(未收录的动作回退显示原始代码) */
+function actionLabel(action: string): string {
+  const key = `adminAuditLogs.actions.${action}`
+  return te(key) ? t(key) : action
+}
+
+/**
+ * 目标 → 人类可读文案:类型前缀 + 后端解析出的名称,如「用户 a@b.com」「节点 HK-01」;
+ * 无类型(空 target/未收录动作)或名称解析失败时回退原始 target(裸 ID)。
+ */
+function targetLabel(log: AdminAuditLogItem): string {
+  const raw = log.target ?? ''
+  if (!log.target_kind) return raw || '-'
+  const kindKey = `adminAuditLogs.targetKinds.${log.target_kind}`
+  const kind = te(kindKey) ? t(kindKey) : log.target_kind
+  return `${kind} ${log.target_display || `#${raw}`}`
+}
 
 // 筛选条件
 const adminIdFilter = ref<number | null>(null)
@@ -104,7 +124,7 @@ onMounted(() => void load())
       />
       <n-select
         v-model:value="actionFilter"
-        :options="actions.map((a) => ({ label: a, value: a }))"
+        :options="actions.map((a) => ({ label: actionLabel(a), value: a }))"
         :placeholder="t('adminAuditLogs.action')"
         class="w-52"
         clearable
@@ -157,12 +177,8 @@ onMounted(() => void load())
                   >#{{ log.admin_id }}</span
                 >
               </td>
-              <td>
-                <code class="rounded bg-[var(--c-bg-mute)] px-1.5 py-0.5 text-12">{{
-                  log.action
-                }}</code>
-              </td>
-              <td class="num-font text-14">{{ log.target ?? '-' }}</td>
+              <td class="text-14" :title="log.action">{{ actionLabel(log.action) }}</td>
+              <td class="text-14">{{ targetLabel(log) }}</td>
               <td class="num-font text-14 text-[var(--c-text-sub)]">{{ log.ip ?? '-' }}</td>
               <td class="text-14 text-[var(--c-text-sub)]">{{ formatTime(log.created_at) }}</td>
               <td>
@@ -208,11 +224,11 @@ onMounted(() => void load())
         </div>
         <div class="flex justify-between">
           <span class="text-[var(--c-text-sub)]">{{ t('adminAuditLogs.action') }}</span>
-          <code class="rounded bg-[var(--c-bg-mute)] px-1.5">{{ detailItem.action }}</code>
+          <span :title="detailItem.action">{{ actionLabel(detailItem.action) }}</span>
         </div>
         <div class="flex justify-between">
           <span class="text-[var(--c-text-sub)]">{{ t('adminAuditLogs.target') }}</span>
-          <span class="num-font">{{ detailItem.target ?? '-' }}</span>
+          <span>{{ targetLabel(detailItem) }}</span>
         </div>
         <div class="flex justify-between">
           <span class="text-[var(--c-text-sub)]">{{ t('adminAuditLogs.ip') }}</span>

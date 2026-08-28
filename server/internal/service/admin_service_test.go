@@ -504,13 +504,15 @@ func TestListAuditLogs(t *testing.T) {
 	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, nil, set, nil)
 	ctx := context.Background()
 
-	// 无筛选：count + 分页 + 动作列表
+	// 无筛选：count + 分页 + 目标可读化（users 反查）+ 动作列表
 	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "audit_logs" JOIN users ON users.id = audit_logs.admin_id`)).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(2))
 	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT`)).WillReturnRows(auditLogRows([]model.AdminAuditLogItem{
 		{ID: 2, AdminID: 1, AdminEmail: "admin@y.link", Action: "adjust_balance", Target: strPtr("7"), CreatedAt: time.Now()},
 		{ID: 1, AdminID: 1, AdminEmail: "admin@y.link", Action: "ban_user", Target: strPtr("8"), CreatedAt: time.Now()},
 	}))
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT id, email FROM "users" WHERE id IN`)).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "email"}).AddRow(7, "u7@y.link").AddRow(8, "u8@y.link"))
 	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT DISTINCT "action" FROM "audit_logs"`)).WillReturnRows(
 		sqlmock.NewRows([]string{"action"}).AddRow("ban_user").AddRow("adjust_balance"))
 
@@ -520,6 +522,11 @@ func TestListAuditLogs(t *testing.T) {
 	assert.Len(t, list, 2)
 	assert.Equal(t, "admin@y.link", list[0].AdminEmail, "联表取操作人邮箱")
 	assert.Equal(t, []string{"ban_user", "adjust_balance"}, actions)
+	// 目标可读化：user 动作 → 反查邮箱
+	if assert.NotNil(t, list[0].TargetKind) && assert.NotNil(t, list[0].TargetDisplay) {
+		assert.Equal(t, "user", *list[0].TargetKind)
+		assert.Equal(t, "u7@y.link", *list[0].TargetDisplay)
+	}
 
 	// 非法日期 → 40000
 	_, _, _, err = svc.ListAuditLogs(ctx, AuditLogFilter{From: "2026/08/28"}, 1, 20)
@@ -529,6 +536,71 @@ func TestListAuditLogs(t *testing.T) {
 }
 
 func strPtr(s string) *string { return &s }
+
+// TestAuditTargetDisplay 审计日志目标可读化：users 列表 / 节点 / 知识分类 / 订单 / 空 target / 未知动作。
+func TestAuditTargetDisplay(t *testing.T) {
+	e := newTestEnv(t)
+	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
+	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, nil, set, nil)
+	ctx := context.Background()
+
+	// count + 分页（7 条：含用户已删除但 detail 留痕邮箱）+ users/servers/knowledge_categories 批量反查 + 动作列表
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "audit_logs" JOIN users ON users.id = audit_logs.admin_id`)).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(7))
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT`)).WillReturnRows(auditLogRows([]model.AdminAuditLogItem{
+		{ID: 7, AdminID: 1, AdminEmail: "admin@y.link", Action: "adjust_balance", Target: strPtr("99"),
+			Detail: strPtr(`{"email":"deleted@y.link","amount":100}`), CreatedAt: time.Now()}, // 用户 99 已删除
+		{ID: 6, AdminID: 1, AdminEmail: "admin@y.link", Action: "send_mail", Target: strPtr("[7 8 9]"), CreatedAt: time.Now()},
+		{ID: 5, AdminID: 1, AdminEmail: "admin@y.link", Action: "copy_server", Target: strPtr("5"), CreatedAt: time.Now()},
+		{ID: 4, AdminID: 1, AdminEmail: "admin@y.link", Action: "create_knowledge_category", Target: strPtr("3"), CreatedAt: time.Now()},
+		{ID: 3, AdminID: 1, AdminEmail: "admin@y.link", Action: "refund", Target: strPtr("ORD20260828001"), CreatedAt: time.Now()},
+		{ID: 2, AdminID: 1, AdminEmail: "admin@y.link", Action: "batch_server_delete", Target: strPtr(""), CreatedAt: time.Now()},
+		{ID: 1, AdminID: 1, AdminEmail: "admin@y.link", Action: "unknown_action", Target: strPtr("42"), CreatedAt: time.Now()},
+	}))
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT id, email FROM "users" WHERE id IN`)).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "email"}).AddRow(7, "u7@y.link").AddRow(8, "u8@y.link"))
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT id, name FROM "servers" WHERE id IN`)).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(5, "HK-01"))
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT id, name FROM "knowledge_categories" WHERE id IN`)).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(3, "使用教程"))
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT DISTINCT "action" FROM "audit_logs"`)).WillReturnRows(
+		sqlmock.NewRows([]string{"action"}).AddRow("send_mail"))
+
+	list, _, _, err := svc.ListAuditLogs(ctx, AuditLogFilter{}, 1, 20)
+	require.NoError(t, err)
+	require.Len(t, list, 7)
+
+	// 用户已删除：users 表查不到 → detail 里留痕的 email 兜底
+	if assert.NotNil(t, list[0].TargetKind) && assert.NotNil(t, list[0].TargetDisplay) {
+		assert.Equal(t, "user", *list[0].TargetKind)
+		assert.Equal(t, "deleted@y.link", *list[0].TargetDisplay)
+	}
+	// users 列表 "[7 8 9]"：9 已不存在，只展示查到的邮箱
+	if assert.NotNil(t, list[1].TargetKind) && assert.NotNil(t, list[1].TargetDisplay) {
+		assert.Equal(t, "users", *list[1].TargetKind)
+		assert.Equal(t, "u7@y.link, u8@y.link", *list[1].TargetDisplay)
+	}
+	// 节点 → 节点名
+	if assert.NotNil(t, list[2].TargetKind) && assert.NotNil(t, list[2].TargetDisplay) {
+		assert.Equal(t, "server", *list[2].TargetKind)
+		assert.Equal(t, "HK-01", *list[2].TargetDisplay)
+	}
+	// 知识分类 → 分类名
+	if assert.NotNil(t, list[3].TargetKind) && assert.NotNil(t, list[3].TargetDisplay) {
+		assert.Equal(t, "knowledge_category", *list[3].TargetKind)
+		assert.Equal(t, "使用教程", *list[3].TargetDisplay)
+	}
+	// 订单号本身可读：kind 标注 + 原样透出
+	if assert.NotNil(t, list[4].TargetKind) && assert.NotNil(t, list[4].TargetDisplay) {
+		assert.Equal(t, "order", *list[4].TargetKind)
+		assert.Equal(t, "ORD20260828001", *list[4].TargetDisplay)
+	}
+	// 空 target（批量/排序类动作）与未收录动作：不做增强，前端回退
+	assert.Nil(t, list[5].TargetKind)
+	assert.Nil(t, list[5].TargetDisplay)
+	assert.Nil(t, list[6].TargetKind)
+	assert.Nil(t, list[6].TargetDisplay)
+}
 
 // ---- F05 用户管理增强 ----
 

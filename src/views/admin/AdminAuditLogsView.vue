@@ -115,11 +115,13 @@ onMounted(() => void load())
       <n-input
         v-model:value="targetFilter"
         :placeholder="t('adminAuditLogs.target')"
-        class="w-44"
+        class="w-44!"
         clearable
         @keyup.enter="onFilter"
         @clear="onFilter"
       />
+      <!-- w-44! 需 important:naive-ui 运行时注入的 .n-input{width:100%} 会覆盖同特异性的
+           uno.css 宽度类,导致输入框撑满整行独占一行(n-input-number/select/date-picker 无此默认值) -->
       <n-date-picker
         v-model:value="rangeFilter"
         type="daterange"

@@ -2,11 +2,41 @@
 
 > 本文档记录 `src/` 目录 Vue 3 用户端应用的开发状态,是 docs/frontend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-28(**第三批 Xboard 缺口补齐·前端部分**:F02 提现入口与记录页、F14 个人页会话管理卡片、F15 公告/知识库排序与分类管理、F11 邮件模板管理页、F19 品牌配置运行时应用、F20 系统更新页;第二批 F09/F16/F04 与第一批 F08/F22/F05 见下)
+> 最后更新:2026-08-28(**缺陷修复:审计日志筛选栏「目标」框独占一行**——`.n-input{width:100%}` 运行时注入覆盖 uno 宽度类,`w-44!`/`w-52!` 修复;同日:审计日志页 i18n——补 `common.search` zh/en、naive-ui locale 跟随应用语言、补 mock 缺失的 audit-logs 端点;管理后台「流量管理」页转圈卡死——naive-ui 按需注册缺失 NTabs/NTabPane/NRadio/NCheckbox + 后端分页空列表返回 null,此前为第三批 Xboard 缺口补齐,更早见下)
 
 ---
 
 ## 1. 已完成项
+
+### 缺陷修复 · 管理后台「流量管理」页转圈卡死(✅ 已修复,2026-08-28)
+
+| 问题 | 修复 |
+|---|---|
+| naive-ui 按需注册缺失组件 | `main.ts` 的 `create({ components })` 显式注册清单漏了 **NTabs / NTabPane / NRadio / NCheckbox**——模板里的 `<n-tabs>` 等被当作未知元素渲染:tab 栏消失、三个 tab 内容全部堆叠。已补注册(影响面:`AdminTrafficImportView` 的 n-tabs/n-tab-pane/n-radio,`AdminUsersView`/`AdminNodesView` 的 n-checkbox) | 
+| 后端分页空列表返回 `null` | Go nil slice 被 encoding/json 序列化为 `null`,`resp.PageOK` 未兜底;前端 `logs.value = res.list` 后模板以 `logs.length === 0` 判空对 null 抛 `TypeError`,渲染中断 → n-spin 卡在转圈状态(**转圈的直接成因**)。已在 `PageOK` 统一把 nil slice 序列化为 `[]`(全部走 `PageOK` 的分页接口一并受益),并新增单测 `resp_test.go` 覆盖 nil/空/非空三种切片 |
+| 前端列表赋值兜底 | `AdminTrafficImportView.loadLogs` 改 `logs.value = res.list ?? []`,对旧版后端 `list:null` 防御 |
+
+复现与验证:Playwright(真实后端)复现 `TypeError: Cannot read properties of null (reading 'length')` + `unknownTags: n-tabs/n-tab-pane/n-radio`;修复后(mock 环境)tab 栏三标签正常渲染、重置记录列表/空态正常、无 pageerror 与组件解析告警;`go test ./internal/pkg/resp/` 3 用例通过,前端 vitest 59 用例通过。
+
+### 缺陷修复 · 审计日志筛选栏「目标」框独占一行(✅ 已修复,2026-08-28)
+
+| 问题 | 修复 |
+|---|---|
+| 目标输入框撑满整行、独占一行(1440 宽屏即可复现) | 根因:naive-ui 运行时注入的 `.n-input { width: 100% }` 晚于 uno.css 加载,同特异性下覆盖了 UnoCSS 的 `.w-44 { width: 11rem }`(`n-input-number/n-select/n-date-picker` 无此默认值,故仅 `n-input` 中招)。改为 important 语法 `class="w-44!"` 稳赢覆盖,模板处附注释说明 |
+| 同类隐患清理 | `AdminKnowledgesView` 搜索框 `n-input class="w-52"` 同样被覆盖(搜索框实际撑满),一并改 `w-52!`;其余 `w-40/w-52/w-72` 挂在 `n-input-number/n-select/n-date-picker` 上不受影响,`n-input class="w-full"`(25 处)与默认行为一致无需处理 |
+
+验证:Playwright 测量 1440/1280 视口下筛选栏五元素同行(ID 160 + 动作 208 + 目标 176 + 日期 288 + 搜索 60),1024 窄屏下按钮自然换行;知识库搜索框实测 208px;`vue-tsc --noEmit` 通过;vitest 59 用例通过。
+
+### 缺陷修复 · 审计日志页 i18n 与 mock 缺口(✅ 已修复,2026-08-28)
+
+| 问题 | 修复 |
+|---|---|
+| 搜索按钮显示原始 key `common.search` | `common` 命名空间从未定义 `search`(此前只有 `adminUsers.search`),`AdminAuditLogsView` 的 `t('common.search')` 落空回显 key 原文。已在 zh/en 的 `common` 下补 `search: '搜索'/'Search'` |
+| 日期范围占位符显示英文 "Start Date"/"End Date" | `App.vue` 的 `n-config-provider` 从未传 naive-ui `locale`/`date-locale`,组件内置文案恒为英文。现按 `app.language` 动态传 `zhCN/dateZhCN` 与 `enUS/dateEnUS`,所有 naive-ui 内置文案(日期/分页/空态等)随应用语言切换 |
+| mock 缺 `GET /admin/audit-logs` 端点 | API 契约与真实后端均有,仅 mock 缺失,mock/e2e 环境下审计日志页请求 404。已补演示数据(6 条)与筛选语义对齐后端的端点(admin_id/action/target 精确,from≤created_at<to,含 actions 聚合) |
+| 「目标」搜索框 | 非缺陷:审计日志按 target(如 `user:10086`)筛选是 F08 设计内功能,与 API `target` 参数对应 |
+
+验证:Playwright(mock)确认按钮文案「搜索」、日期占位「开始日期/结束日期」、列表 6 行渲染、全页无原始 key 泄漏与 pageerror;`vue-tsc --noEmit` 通过;vitest 59 用例通过。
 
 ### Xboard 缺口补齐 · 第三批前端(✅ 完成,2026-08-28,对齐 .scratch/xboard-gap-fill/spec.md)
 

@@ -2,11 +2,20 @@
 
 > 本文档记录 `server/` 目录 Go/Gin 后端的开发状态,是 docs/backend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-28(**第三批 Xboard 缺口补齐**:F02 佣金提现、F15 公告/知识库排序与分类、F14 会话管理、F11 邮件模板、F19 品牌配置子集、F20 版本检查子集,全部完成,见下;此前为第二批 F09/F16/F04、第一批 F08/F22/F05,更早见下)
+> 最后更新:2026-08-28(**缺陷修复:分页接口空列表返回 `null`**——`resp.PageOK` 对 nil slice 兜底为 `[]`,根治管理后台「流量管理」页转圈卡死;此前为第三批 Xboard 缺口补齐,更早见下)
 
 ---
 
 ## 1. 已完成项
+
+### 缺陷修复 · 分页空列表序列化为 null 致前端页面卡死(✅ 已修复,2026-08-28)
+
+| 问题 | 修复 |
+|---|---|
+| nil slice → JSON `null` | Go 零值切片经 `encoding/json` 序列化为 `null`(空表查询必现,如 `GET /admin/traffic/resets` 无记录时返回 `list:null`)。前端模板以 `list.length === 0` 判空,对 null 抛 `TypeError` 导致 Vue 渲染中断、n-spin 永久转圈。`resp.PageOK` 现统一把 nil slice 兜底为 `[]`,所有走 `PageOK` 的分页接口(用户/审计/订单/工单/公告/知识库/代理/佣金/流量重置等)一并受益 | 
+| 单测 | 新增 `internal/pkg/resp/resp_test.go`:nil slice→`[]`、空 slice→`[]`、非空 slice 原样,3 用例通过;`go build ./...` 与 `go vet` 通过 | 
+
+前端配套:`AdminTrafficImportView.loadLogs` 增加 `res.list ?? []` 防御(兼容未更新的旧后端);naive-ui 注册缺失(NTabs 等)详见 docs/frontend/progress.md 同日记录。
 
 ### B1 骨架(✅ 完成)
 

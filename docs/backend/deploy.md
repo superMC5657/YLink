@@ -8,6 +8,7 @@ app:
   env: production            # development / production
   addr: ":8081"
   base_url: "https://api.example.com"   # 用于拼接订阅链接/支付回调地址
+  version: "0.4.1"           # 后端版本号（F20 管理端版本检查展示；与镜像 tag 一致）
 
 database:
   dsn: "${DB_DSN}"           # host=127.0.0.1 port=5433 user=ylink password=xxx dbname=ylink-backend sslmode=disable
@@ -48,6 +49,10 @@ security:
   safe_mode: false          # true 时仅白名单域名可访问 /api/v1/*（App.base_url 的 host 自动纳入），其余 403
   safe_domains: []          # 追加白名单域名，如 ["panel.example.com", "sub.example.com"]
 
+# 在线更新（F20，2026-08-28）：仅版本检查 + 变更日志展示，自动升级不立项
+update:
+  manifest_url: ""          # 可选；返回 {"version":"x.y.z","notes":"变更日志"} 的 URL，空=不做远端检查
+
 log:
   level: info
   dir: ./logs
@@ -60,6 +65,19 @@ log:
 1. **后台路径定制（`security.admin_path`）**：改 config.yaml（或环境变量 `APP_SECURITY_ADMIN_PATH`）→ 重启后端 → 前端以 `VITE_ADMIN_PATH=<同值>` 重新构建部署。路径只影响 API 分组，`/admin` 下的 SPA 前端页面路由不受影响。
 2. **订阅路径定制（`security.subscribe_path`）**：重启后生效；订阅 URL 均由服务端拼接下发，变更后旧 URL 立即 404，用户需在用户中心重新复制订阅链接。
 3. **safe_mode 域名白名单（`security.safe_mode` + `security.safe_domains`）**：开启后 `Host` 不在白名单（`app.base_url` 的 host + `safe_domains`）的请求一律 403（统一信封 code=40300）。`/healthz`、`/readyz`、`/metrics` 不受影响。确保先把真实面板/订阅域名写入 `safe_domains` 再开启，否则会拒绝合法流量。
+
+### 1.2 版本号与更新源（F20，2026-08-28）
+
+- **当前版本（`app.version`）**：展示于管理端「系统更新」页（`GET /admin/version`）。部署时随 config.yaml 或环境变量 `APP_APP_VERSION` 注入（建议与镜像 tag / 构建号一致），缺省 `dev`。升级版本时同步更新该值，管理端即可核对运行中的版本。
+- **更新源（`update.manifest_url`，可选）**：配置一个返回 JSON 的 URL（如对象存储静态文件）：
+
+  ```json
+  { "version": "0.5.0", "notes": "0.5.0
+- 新增 xx；- 修复 yy" }
+  ```
+
+  配置后管理端可在线检查最新版本与变更日志（服务端 3s 超时拉取、缓存 10 分钟）；未配置时接口成功返回 `latest=null`。**升级仍为人工执行**：按 §7 发布与回滚流程拉取新镜像/代码 → 备份数据库 → 执行 `migrate up` → 切流 → 核对新版本号。
+- 迁移 0007（第三批）含 F02/F11/F15 的表结构变更，升级时必须执行 `migrate up`。
 
 ## 2. Dockerfile（多阶段）
 

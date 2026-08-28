@@ -9,7 +9,9 @@ erDiagram
     users ||--o{ orders : places
     users ||--o{ invite_codes : owns
     users ||--o{ commission_logs : earns
+    users ||--o{ commission_withdraws : withdraws
     users ||--o{ tickets : opens
+    knowledge_categories ||--o{ knowledges : classifies
     users ||--o{ traffic_logs : generates
     plans ||--o{ orders : contains
     orders ||--o| payments : pays
@@ -123,14 +125,15 @@ coupon_usages：id、coupon_id、user_id、order_no，唯一索引 `(coupon_id, 
 | id | BIGSERIAL PK | — |
 | invite_user_id | BIGINT NOT NULL INDEX | 获得佣金的邀请人 |
 | from_user_id | BIGINT NOT NULL | 下单用户 |
-| order_no | VARCHAR(32) NOT NULL UNIQUE | 一单一笔（防重） |
-| order_amount | BIGINT NOT NULL | 订单实付（分） |
+| order_no | VARCHAR(32) NOT NULL | 订单佣金一单一笔（防重）；提现流水为 `w{提现单ID}` |
+| order_amount | BIGINT NOT NULL | 订单实付（分，提现流水为 0） |
 | rate | INT NOT NULL | 佣金比例 %（下单时快照） |
 | amount | BIGINT NOT NULL | 佣金（分） |
-| status | SMALLINT NOT NULL DEFAULT 0 | 0=确认中 1=已发放 2=已撤销（退款时） |
+| biz_type | SMALLINT NOT NULL DEFAULT 0 | 0=订单佣金 1=提现流水（迁移 0007 新增，F02） |
+| status | SMALLINT NOT NULL DEFAULT 0 | 0=确认中 1=已发放 2=已撤销（退款时）；提现流水复用三态：0=处理中 1=已发放 2=已退回 |
 | confirmed_at | TIMESTAMP(3) NULL | — |
 
-确认中的佣金计入「确认中」统计；cron 在 T+N 天后转「已发放」并累加 `users.commission_balance`；「累计获得佣金」= 已发放 sum。
+确认中的佣金计入「确认中」统计；cron 在 T+N 天后转「已发放」并累加 `users.commission_balance`（**仅 `biz_type=0`**，提现流水由管理员手动确认，严禁 cron 自动入账）；「累计获得佣金」= 已发放 sum。`order_no` 的 UNIQUE 约束自迁移 0007 起改为**部分唯一索引**（`WHERE biz_type = 0`），提现流水 order_no 使用 `w<N>` 标记。
 
 ### 2.8 servers（节点）/ server_groups（节点分组）
 
@@ -138,15 +141,16 @@ server_groups：id、name、sort。
 servers：id、group_id INDEX、name、type（`shadowsocks/vmess/vless/trojan/hysteria2/tuic`）、host、port、config JSONB（协议私有参数：密码/SNI/ALPN 等）、rate DECIMAL(3,1) DEFAULT 1.0（流量倍率）、tags JSONB、status SMALLINT（1=正常 2=拥挤 3=维护）、is_show、sort、node_key CHAR(32) UNIQUE NOT NULL（节点上报密钥，迁移 0004 新增；管理端可重置）。
 说明：host/port/config 仅用于订阅生成，`GET /servers` 用户接口只输出 name/type/rate/status/tags；`config` 为协议私有参数 JSON，可含 `per_user_credentials: true` 开启每用户凭证。未开启时订阅继续使用 config 中的共享密码/uuid（存量节点兼容）；开启后改为每用户 `users.uuid`（config 中的密码/uuid 不再下发给用户）。
 
-### 2.9 notices（公告）/ knowledges（知识库）
+### 2.9 notices（公告）/ knowledges（知识库）/ knowledge_categories（分类，F15）
 
-notices：id、title、content（Markdown）、is_show、sort、created_at 即展示时间。
-knowledges：id、category（如 `防失联/安卓配置教程/...`，字符串便于扩展）、title、body（Markdown）、language（`zh-CN/en-US`）、is_show、sort、updated_at（列表展示）。
-索引：knowledges `(language, category, is_show)`；搜索用 `LIKE`（量级小）或二期换全文索引/ES。
+notices：id、title、content（Markdown）、is_show、sort、created_at 即展示时间；用户端展示顺序自迁移 0007 起为 `sort ASC, created_at DESC`（F15 排序即时生效）。
+knowledges：id、category（展示用冗余字符串，如 `防失联/安卓配置教程/...`）、**category_id BIGINT NULL REFERENCES knowledge_categories(id) ON DELETE SET NULL**（迁移 0007 新增，F15）、title、body（Markdown）、language（`zh-CN/en-US`）、is_show、sort、updated_at（列表展示）。
+knowledge_categories（迁移 0007 新增，F15）：id、language（`zh-CN/en-US`）、name（VARCHAR(64)）、sort、created_at、updated_at；唯一索引 `(language, name)`；存量数据按 `(language, category)` 去重回填。
+索引：knowledges `(language, category, is_show)`、`(category_id)`；用户端分组顺序按分类 `sort`（未建行的类目按首现顺序兜底），组内条目按知识 `sort`；搜索用 `LIKE`（量级小）。
 
 ### 2.10 tickets（工单）/ ticket_messages（消息）
 
-tickets：id、user_id INDEX、subject、level（0=低 1=中 2=高）、status（0=待回复 1=已回复 2=已关闭）、reopen_count（已重开次数，最多一次，2026-08-12 迁移 0003 新增）、last_reply_at、created_at。
+tickets：id、user_id INDEX、subject、level（0=低 1=中 2=高）、**type（0=普通 1=佣金提现，迁移 0007 新增，F02；level 为优先级语义勿混用）**、status（0=待回复 1=已回复 2=已关闭）、reopen_count（已重开次数，最多一次，2026-08-12 迁移 0003 新增）、last_reply_at、created_at。
 ticket_messages：id、ticket_id INDEX、sender_type（0=用户 1=客服）、sender_id、message TEXT、created_at。
 
 ### 2.11 traffic_logs（流量日明细）
@@ -213,13 +217,44 @@ audit_logs：id、admin_id、action（如 `adjust_balance/refund/ban_user`）、
 
 迁移 0006 同时为 F04 报表聚合补时间索引：`traffic_logs(date)`、`orders(paid_at) WHERE paid_at IS NOT NULL`（部分索引）、`users(created_at)`。
 
+### 2.15 commission_withdraws（佣金提现单，迁移 0007 新增，2026-08-28，F02）
+
+仅代理商工单提现的最小闭环（spec F02）：提交即扣减 `commission_balance`（行锁防双花），管理员手动确认发放（线下打款）或拒绝（自动退回）：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| id | BIGSERIAL PK | |
+| user_id | BIGINT NOT NULL | 发起代理商，`(user_id, created_at DESC)` 索引 |
+| ticket_id | BIGINT NOT NULL UNIQUE | 关联提现工单（type=1），一单一单 |
+| amount | BIGINT NOT NULL | 提现金额（分） |
+| method | VARCHAR(32) | 提现方式（alipay/usdt/bank…） |
+| account | VARCHAR(255) | 收款账号 |
+| status | SMALLINT DEFAULT 0 | 0=处理中 1=已发放 2=已退回 |
+| review_remark | VARCHAR(255) NULL | 管理员处理备注 |
+| reviewed_at | TIMESTAMP(3) NULL | 审核时间 |
+| created_at / updated_at | TIMESTAMP(3) | |
+
+资金链路：提交（扣 `commission_balance` + 写 `commission_logs` 提现流水 status=0）→ 确认（流水 status=1，工单关闭）/ 拒绝（退回佣金 + 流水 status=2，工单关闭）。两类审核均写 `audit_logs`（`withdraw_pay`/`withdraw_reject`）；提现单与工单同事务行锁防并发双处理。
+
+### 2.16 mail_templates（自定义邮件模板，迁移 0007 新增，2026-08-28，F11）
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| name | VARCHAR(64) PK | 模板名：`captcha` / `expire_remind` / `traffic_remind` |
+| subject | VARCHAR(255) | 邮件主题模板（Go template 语法，可用 `{{.site_name}}`） |
+| body | TEXT | 正文片段模板（发送时自动套品牌外壳，可用 `{{.code}}`/`{{.expire_date}}`/`{{.percent}}`） |
+| updated_at | TIMESTAMP(3) | |
+
+无自定义行（或自定义模板解析失败）时发送侧自动回退内置文案；管理端保存前校验模板可解析（防止语法错误导致发送失败），支持恢复默认与真实 SMTP 测试发送。
+
 ## 3. Redis Key 设计
 
 | Key 模式 | 类型/TTL | 用途 |
 |---|---|---|
 | `captcha:email:{type}:{email}` | String，10min | 邮箱验证码；type=register/forgot |
 | `captcha:rate:{email}` / `captcha:rate:ip:{ip}` | String，60s / String，24h | 发送限频与每日上限 |
-| `refresh:{user_id}:{jti}` | String，14d | refresh token 白名单（登出/改密即删） |
+| `refresh:{user_id}:{jti}` | String(JSON)，14d | refresh token 白名单（登出/改密即删）；值为会话元数据 `{ip, ua, ts}` 供 F14 会话列表展示（历史版本为字符串 "1"，降级展示） |
+| `auth:kill:{user_id}` | Hash(field=jti)，14d | F14 踢下线标记：用户端踢下线指定会话写入，Auth 中间件 HExists 命中即 401（单会话 access 立即失效，不影响其余会话） |
 | `login:fail:{email}` | String+INCR，10min | 登录失败锁定计数 |
 | `rl:{scope}:{key}` | 令牌桶 | 接口限流（scope=login/global/subscribe…） |
 | `idem:{key}` | String（响应快照），24h | 下单幂等 |

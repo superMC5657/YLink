@@ -159,3 +159,48 @@ func (h *Invite) ApplyAgent(c *gin.Context) {
 	}
 	resp.OK(c, gin.H{"apply_status": status})
 }
+
+// ---- 佣金提现（F02，仅代理商） ----
+
+// Withdraw 提交佣金提现
+// @Summary 提交佣金提现工单（仅代理商；提交即扣减佣金，管理员手动确认发放/拒绝退回）
+// @Tags 营销
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param body body model.WithdrawCreateReq true "请求"
+// @Success 200 {object} resp.Body{data=model.WithdrawItem}
+// @Failure 403 {object} resp.Body
+// @Router /invite/withdraw [post]
+func (h *Invite) Withdraw(c *gin.Context) {
+	var req model.WithdrawCreateReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+		return
+	}
+	data, err := h.svc.SubmitWithdraw(c.Request.Context(), middleware.UserID(c), &req)
+	if err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.OK(c, data)
+}
+
+// Withdraws 提现记录
+// @Summary 本人佣金提现记录（分页）
+// @Tags 营销
+// @Security BearerAuth
+// @Produce json
+// @Param page query int false "页码"
+// @Param page_size query int false "每页条数"
+// @Success 200 {object} resp.Body{data=resp.Page}
+// @Router /invite/withdraws [get]
+func (h *Invite) Withdraws(c *gin.Context) {
+	page, pageSize := pageParams(c)
+	list, total, err := h.svc.Withdraws(c.Request.Context(), middleware.UserID(c), page, pageSize)
+	if err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.PageOK(c, list, total, page, pageSize)
+}

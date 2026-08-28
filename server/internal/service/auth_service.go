@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"crypto/rand"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"time"
@@ -92,14 +93,12 @@ func (s *AuthService) SendCaptcha(ctx context.Context, email, typ string) (*mode
 }
 
 func (s *AuthService) sendCaptchaMail(email, code string) {
-	siteName := s.cfg.App.Name
-	tpl := mailer.Template(`您的验证码是 <b style="font-size:22px;color:#4f46e5">{{.code}}</b>，10 分钟内有效。若非本人操作请忽略本邮件。`)
-	body, err := mailer.Render(tpl, siteName, map[string]string{"code": code})
+	// F11：验证码邮件走模板渲染（自定义模板优先，缺失/错误回退内置文案）
+	subject, body, err := renderMailTemplate(s.db, s.cfg.App.Name, "captcha", map[string]string{"code": code})
 	if err != nil {
 		logger.L().Error("render captcha mail", zap.Error(err))
 		return
 	}
-	subject := fmt.Sprintf("[%s] 邮箱验证码", siteName)
 	for i := 0; i < 3; i++ {
 		if err := s.mailer.Send(email, subject, body); err == nil {
 			return
@@ -270,7 +269,15 @@ func (s *AuthService) Logout(ctx context.Context, userID int64, jti string) erro
 
 // ---- 会话 ----
 
-// issueSession 签发 token 对并写 refresh 白名单；access 携带当前会话版本号快照。
+// refreshMeta refresh 白名单值（F14 会话管理元数据；历史版本为字符串 "1"，解析失败按未知会话展示）。
+type refreshMeta struct {
+	IP        string    `json:"ip"`
+	UserAgent string    `json:"ua"`
+	CreatedAt time.Time `json:"ts"`
+}
+
+// issueSession 签发 token 对并写 refresh 白名单（含设备/IP/时间元数据）；
+// access 携带当前会话版本号快照。
 func (s *AuthService) issueSession(ctx context.Context, user *model.User) (*model.TokenResp, error) {
 	jti := uuid.NewString()
 	sv := sessionVersion(ctx, s.rdb, user.ID)
@@ -278,8 +285,11 @@ func (s *AuthService) issueSession(ctx context.Context, user *model.User) (*mode
 	if err != nil {
 		return nil, err
 	}
+	meta, _ := json.Marshal(refreshMeta{
+		IP: ctxIP(ctx), UserAgent: ctxUserAgent(ctx), CreatedAt: time.Now(),
+	})
 	// refresh 白名单：14d
-	s.rdb.Set(ctx, refreshKey(user.ID, jti), "1", s.cfg.JWT.RefreshTTL)
+	s.rdb.Set(ctx, refreshKey(user.ID, jti), string(meta), s.cfg.JWT.RefreshTTL)
 	return &model.TokenResp{
 		AccessToken:  access,
 		RefreshToken: refresh,
@@ -337,6 +347,14 @@ func pow10(n int) int {
 // ctxIP 从上下文取客户端 IP（handler 注入）。
 func ctxIP(ctx context.Context) string {
 	if v, ok := ctx.Value("client_ip").(string); ok {
+		return v
+	}
+	return ""
+}
+
+// ctxUserAgent 从上下文取 User-Agent（handler 注入，F14 会话元数据）。
+func ctxUserAgent(ctx context.Context) string {
+	if v, ok := ctx.Value("user_agent").(string); ok {
 		return v
 	}
 	return ""

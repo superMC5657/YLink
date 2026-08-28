@@ -97,6 +97,9 @@ var (
 	ErrCoupon                 = New(12001, "优惠券无效或已过期")
 	ErrInviteMax              = New(13001, "邀请码数量已达上限")
 	ErrCommissionInsufficient = New(13002, "可划转佣金不足")
+	// ErrWithdrawForbidden 13003 仅代理商可发起佣金提现（F02），HTTP 显式 403
+	ErrWithdrawForbidden = &Error{Code: 13003, Message: "仅代理商可发起佣金提现", HTTP: http.StatusForbidden}
+	ErrWithdrawStatus    = New(13004, "提现单状态不允许该操作")
 
 	ErrTicketClosed      = New(14001, "工单已关闭")
 	ErrTicketReopenLimit = New(14002, "工单仅可重开一次")

@@ -8,6 +8,8 @@ import type {
   PageResult,
   TransferReq,
   TransferResp,
+  WithdrawCreateReq,
+  WithdrawItem,
 } from '@/types/api'
 
 export const apiInvite = {
@@ -20,4 +22,10 @@ export const apiInvite = {
       query: { page: q.page, page_size: q.page_size },
     }),
   transfer: (body: TransferReq) => http.post<TransferResp>('/invite/transfer', { body }),
+  // 佣金提现（F02，仅代理商）
+  withdraw: (body: WithdrawCreateReq) => http.post<WithdrawItem>('/invite/withdraw', { body }),
+  withdraws: (q: PageQuery = {}) =>
+    http.get<PageResult<WithdrawItem>>('/invite/withdraws', {
+      query: { page: q.page, page_size: q.page_size },
+    }),
 }

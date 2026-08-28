@@ -20,6 +20,7 @@ type Config struct {
 	Log      LogConfig      `mapstructure:"log"`
 	Site     SiteConfig     `mapstructure:"site"`
 	Security SecurityConfig `mapstructure:"security"`
+	Update   UpdateConfig   `mapstructure:"update"`
 }
 
 type AppConfig struct {
@@ -27,6 +28,7 @@ type AppConfig struct {
 	Env     string `mapstructure:"env"`
 	Addr    string `mapstructure:"addr"`
 	BaseURL string `mapstructure:"base_url"`
+	Version string `mapstructure:"version"` // 后端版本号（F20 版本检查展示；构建/部署注入）
 }
 
 func (a AppConfig) IsProduction() bool { return a.Env == "production" }
@@ -84,6 +86,12 @@ type SecurityConfig struct {
 	SubscribePath string   `mapstructure:"subscribe_path"` // 订阅下发路径段，默认 client
 	SafeMode      bool     `mapstructure:"safe_mode"`      // 开启后非白名单域名的请求一律 403
 	SafeDomains   []string `mapstructure:"safe_domains"`   // 额外白名单域名（App.BaseURL 的 host 自动纳入）
+}
+
+// UpdateConfig 在线更新（F20 子集）：版本检查走可选的远端 manifest JSON，
+// 自动执行升级不立项（spec F20）。manifest 响应格式：{"version":"x.y.z","notes":"..."}。
+type UpdateConfig struct {
+	ManifestURL string `mapstructure:"manifest_url"` // 更新源地址（空=不做远端检查）
 }
 
 // AdminPathOrDefault 返回管理端路径段（空值兜底 admin）。

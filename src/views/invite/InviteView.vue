@@ -1,10 +1,11 @@
 <script setup lang="ts">
 /**
- * 邀请赚钱(截图4):左列表(邀请码 + 佣金记录)、右统计卡(5 张)+ 划转。
- * 数据:GET /invite/*(docs/api/README.md §11)
+ * 邀请赚钱(截图4):左列表(邀请码 + 佣金记录 + 提现记录)、右统计卡(5 张)+ 划转。
+ * 数据:GET /invite/*(docs/api/README.md §11)、POST/GET /invite/withdraw*(F02,仅代理商)
  */
 import { computed, onMounted, ref } from 'vue'
 import { useInviteStore } from '@/stores/invite'
+import { useUserStore } from '@/stores/user'
 import { useMessage, useDialog } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import { useMediaQuery } from '@vueuse/core'
@@ -15,6 +16,7 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import SharePanel from '@/components/business/SharePanel.vue'
 
 const invite = useInviteStore()
+const user = useUserStore()
 const message = useMessage()
 const dialog = useDialog()
 const { t } = useI18n()
@@ -24,6 +26,58 @@ const showTransfer = ref(false)
 const transferAmount = ref<number | null>(null)
 const transferring = ref(false)
 const showShare = ref(false)
+
+// ---------- 佣金提现（F02,仅代理商可见） ----------
+const showWithdraw = ref(false)
+const withdrawing = ref(false)
+const withdrawForm = ref({ amount: null as number | null, method: 'alipay', account: '' })
+
+const withdrawMethodOptions = [
+  { label: 'Alipay', value: 'alipay' },
+  { label: 'USDT', value: 'usdt' },
+  { label: 'Bank', value: 'bank' },
+]
+
+/** 提现单状态样式:0=处理中(警告) 1=已发放(成功) 2=已退回(中性) */
+function withdrawStatusType(status: number) {
+  const map: Record<number, 'warning' | 'success' | 'neutral'> = {
+    0: 'warning',
+    1: 'success',
+    2: 'neutral',
+  }
+  return map[status] ?? 'neutral'
+}
+
+const canWithdraw = computed(
+  () =>
+    !!withdrawForm.value.amount &&
+    withdrawForm.value.amount > 0 &&
+    withdrawForm.value.account.trim().length > 0,
+)
+
+function openWithdraw() {
+  withdrawForm.value = { amount: null, method: 'alipay', account: '' }
+  showWithdraw.value = true
+}
+
+async function onWithdraw() {
+  if (withdrawing.value || !canWithdraw.value) return
+  withdrawing.value = true
+  try {
+    await invite.withdraw({
+      amount: withdrawForm.value.amount!,
+      method: withdrawForm.value.method,
+      account: withdrawForm.value.account.trim(),
+    })
+    message.success(t('invite.withdrawSubmitted'))
+    showWithdraw.value = false
+    await invite.fetchWithdraws()
+  } catch (e) {
+    message.error((e as Error).message)
+  } finally {
+    withdrawing.value = false
+  }
+}
 
 /** 当前可分享的注册链接(首个邀请码;前缀自动区分本地 5174 / Caddy 80 / 生产 443) */
 const registerLinkText = computed(
@@ -106,6 +160,14 @@ async function copyRegisterLink() {
 
 onMounted(() => {
   void invite.refreshAll()
+  // 代理商才展示提现入口（F02）；stat 未加载时静默拉取
+  if (!user.stat) {
+    void user.fetchStat().then(() => {
+      if (user.isAgent) void invite.fetchWithdraws()
+    })
+  } else if (user.isAgent) {
+    void invite.fetchWithdraws()
+  }
 })
 </script>
 
@@ -280,6 +342,72 @@ onMounted(() => {
             />
           </div>
         </div>
+
+        <!-- 提现记录（F02,仅代理商） -->
+        <div v-if="user.isAgent" class="card-base p-5 md:p-6">
+          <h3 class="mb-4 text-16 font-600 text-[var(--c-text)]">
+            {{ t('invite.withdrawRecords') }}
+          </h3>
+          <div v-if="isDesktop" class="w-full overflow-x-auto">
+            <n-table :bordered="false" class="w-full">
+              <thead>
+                <tr>
+                  <th class="text-14">{{ t('invite.withdrawAmount') }}</th>
+                  <th class="text-14">{{ t('invite.withdrawMethod') }}</th>
+                  <th class="text-14">{{ t('invite.withdrawAccount') }}</th>
+                  <th class="text-14">{{ t('invite.withdrawStatus') }}</th>
+                  <th class="text-14">{{ t('invite.recordTime') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="w in invite.withdraws"
+                  :key="w.id"
+                  class="transition-colors hover:bg-[var(--c-bg-hover)]"
+                >
+                  <td class="num font-600 text-[var(--c-text)]">
+                    {{ formatMoney(w.amount) }}
+                  </td>
+                  <td class="text-14 text-[var(--c-text-sub)]">{{ w.method }}</td>
+                  <td class="max-w-40 truncate text-14 text-[var(--c-text-sub)]">
+                    {{ w.account }}
+                  </td>
+                  <td>
+                    <StatusBadge :type="withdrawStatusType(w.status)">
+                      {{ t(`invite.withdrawStatus_${w.status}`) }}
+                    </StatusBadge>
+                  </td>
+                  <td class="text-14 text-[var(--c-text-sub)]">
+                    {{ formatTime(w.created_at, false) }}
+                  </td>
+                </tr>
+              </tbody>
+            </n-table>
+          </div>
+          <div v-else class="space-y-2">
+            <div
+              v-for="w in invite.withdraws"
+              :key="w.id"
+              class="flex items-center justify-between rounded-xl p-3"
+              style="background-color: var(--c-bg-hover)"
+            >
+              <div class="min-w-0">
+                <div class="num text-14 font-600 text-[var(--c-text)]">
+                  {{ formatMoney(w.amount) }} · {{ w.method }}
+                </div>
+                <div class="truncate text-14 text-[var(--c-text-sub)]">{{ w.account }}</div>
+              </div>
+              <StatusBadge :type="withdrawStatusType(w.status)">
+                {{ t(`invite.withdrawStatus_${w.status}`) }}
+              </StatusBadge>
+            </div>
+          </div>
+          <EmptyState
+            v-if="invite.withdraws.length === 0"
+            :text="t('invite.emptyWithdraws')"
+            :icon="'coins'"
+          />
+        </div>
       </div>
 
       <!-- 右列:统计卡 -->
@@ -320,10 +448,14 @@ onMounted(() => {
           />
         </div>
 
-        <!-- 划转按钮 -->
+        <!-- 划转 / 提现按钮 -->
         <button class="btn-primary h-11 w-full text-14" @click="showTransfer = true">
           <AppIcon name="refresh" :size="16" />
           {{ t('invite.transfer') }}
+        </button>
+        <button v-if="user.isAgent" class="btn-olive h-11 w-full text-14" @click="openWithdraw">
+          <AppIcon name="coins" :size="16" />
+          {{ t('invite.withdraw') }}
         </button>
       </div>
     </div>
@@ -363,6 +495,63 @@ onMounted(() => {
             class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
           />
           {{ t('common.confirm') }}
+        </button>
+      </div>
+    </n-modal>
+
+    <!-- 提现弹窗（F02,仅代理商） -->
+    <n-modal
+      v-model:show="showWithdraw"
+      preset="card"
+      :title="t('invite.withdrawModalTitle')"
+      class="max-w-95"
+    >
+      <div class="space-y-4">
+        <div>
+          <div class="mb-1.5 text-14 text-[var(--c-text-sub)]">
+            {{
+              t('invite.withdrawable', {
+                amount: formatMoney(invite.summary?.commission_balance ?? 0),
+              })
+            }}
+          </div>
+          <n-input-number
+            v-model:value="withdrawForm.amount"
+            :min="0.01"
+            :max="invite.summary?.commission_balance ?? 0"
+            :step="1"
+            placeholder="0.00"
+            class="w-full"
+          />
+        </div>
+        <div>
+          <label class="mb-1 block text-14 text-[var(--c-text-sub)]">{{
+            t('invite.withdrawMethod')
+          }}</label>
+          <n-select v-model:value="withdrawForm.method" :options="withdrawMethodOptions" />
+        </div>
+        <div>
+          <label class="mb-1 block text-14 text-[var(--c-text-sub)]">{{
+            t('invite.withdrawAccount')
+          }}</label>
+          <input
+            v-model="withdrawForm.account"
+            type="text"
+            :placeholder="t('invite.withdrawAccountPlaceholder')"
+            class="h-10 w-full rounded-[var(--r-control)] border border-[var(--c-border)] bg-[var(--c-bg-card)] px-3 text-14 text-[var(--c-text)] outline-none transition-colors focus:border-[var(--c-primary)]"
+          />
+        </div>
+        <p class="text-13 text-[var(--c-text-sub)]">{{ t('invite.withdrawTip') }}</p>
+        <button
+          class="btn-primary h-10 w-full text-14"
+          :disabled="!canWithdraw || withdrawing"
+          @click="onWithdraw"
+        >
+          <span
+            v-if="withdrawing"
+            class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+          />
+          {{ t('common.submit') }}
         </button>
       </div>
     </n-modal>

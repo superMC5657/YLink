@@ -25,10 +25,6 @@ const KEY_META: Record<string, { labelKey: string; descKey: string }> = {
   invite: { labelKey: 'adminSettings.metaInvite', descKey: 'adminSettings.metaInviteDesc' },
   agent: { labelKey: 'adminSettings.metaAgent', descKey: 'adminSettings.metaAgentDesc' },
   order: { labelKey: 'adminSettings.metaOrder', descKey: 'adminSettings.metaOrderDesc' },
-  templates: {
-    labelKey: 'adminSettings.metaTemplates',
-    descKey: 'adminSettings.metaTemplatesDesc',
-  },
 }
 
 const activeItem = computed(() => items.value.find((x) => x.key === activeKey.value))

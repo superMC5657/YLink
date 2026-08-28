@@ -1,22 +1,27 @@
 <script setup lang="ts">
 /**
- * 个人信息(截图7):左侧 Banner + 通知设置 + Telegram;右侧 改密 + 重置订阅。
- * 数据:PUT /user/profile、POST /user/password/change、POST /user/subscribe/reset(契约 §5)
+ * 个人信息(截图7):左侧 Banner + 通知设置 + Telegram + 会话管理;右侧 改密 + 重置订阅。
+ * 数据:PUT /user/profile、POST /user/password/change、POST /user/subscribe/reset、
+ * GET/DELETE /user/sessions(契约 §5,F14)
  */
 import { computed, onMounted, ref } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useConfigStore } from '@/stores/config'
-import { useMessage } from 'naive-ui'
+import { useMessage, useDialog } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import { openExternal } from '@/utils/platform'
 import { copyText } from '@/utils/platform'
 import { isTauri } from '@/utils/platform'
 import { checkForUpdate, requestCheckUpdate } from '@/utils/updater'
+import { apiUser } from '@/api/user'
+import { formatTime } from '@/utils/format'
+import type { UserSessionItem } from '@/types/api'
 import BannerStatCard from '@/components/business/BannerStatCard.vue'
 
 const user = useUserStore()
 const config = useConfigStore()
 const message = useMessage()
+const dialog = useDialog()
 const { t } = useI18n()
 
 // ---------- 通知设置 ----------
@@ -129,9 +134,42 @@ async function onCheckUpdate() {
   }
 }
 
+// ---------- 会话管理（F14） ----------
+const sessions = ref<UserSessionItem[]>([])
+const sessionsLoading = ref(false)
+
+async function loadSessions() {
+  sessionsLoading.value = true
+  try {
+    const data = await apiUser.sessions()
+    sessions.value = data?.list ?? []
+  } finally {
+    sessionsLoading.value = false
+  }
+}
+
+function onRevokeSession(s: UserSessionItem) {
+  dialog.warning({
+    title: t('profile.sessionRevokeTitle'),
+    content: t('profile.sessionRevokeConfirm'),
+    positiveText: t('common.confirm'),
+    negativeText: t('common.cancel'),
+    onPositiveClick: async () => {
+      try {
+        await apiUser.revokeSession(s.jti)
+        message.success(t('profile.sessionRevoked'))
+        void loadSessions()
+      } catch (e) {
+        message.error((e as Error).message)
+      }
+    },
+  })
+}
+
 onMounted(() => {
   void user.fetchStat()
   void config.fetchConfig()
+  void loadSessions()
   void user.fetchProfile().then((profile) => {
     if (profile) {
       remindExpire.value = profile.remind_expire
@@ -185,6 +223,53 @@ onMounted(() => {
               <n-switch v-model:value="remindTraffic" @update:value="onNotifyChange" />
             </div>
           </div>
+        </div>
+
+        <!-- 会话管理（F14） -->
+        <div class="card-base p-5 md:p-6">
+          <div class="mb-4 flex items-center justify-between">
+            <h3 class="text-16 font-600 text-[var(--c-text)]">{{ t('profile.sessions') }}</h3>
+            <button class="btn-soft-neutral h-8 px-3 text-14" @click="loadSessions">
+              <AppIcon name="refresh" :size="14" /> {{ t('common.refresh') }}
+            </button>
+          </div>
+          <n-spin :show="sessionsLoading">
+            <div class="space-y-2">
+              <div
+                v-for="s in sessions"
+                :key="s.jti"
+                class="flex items-center justify-between gap-3 rounded-xl p-3"
+                style="background-color: var(--c-bg-hover)"
+              >
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="truncate text-14 font-500 text-[var(--c-text)]">
+                      {{ s.user_agent || t('profile.sessionUnknownDevice') }}
+                    </span>
+                    <StatusBadge v-if="s.current" type="success">
+                      {{ t('profile.sessionCurrent') }}
+                    </StatusBadge>
+                  </div>
+                  <div class="mt-0.5 text-14 text-[var(--c-text-sub)]">
+                    {{ s.ip || '--' }} · {{ s.created_at ? formatTime(s.created_at, false) : '--' }}
+                  </div>
+                </div>
+                <button
+                  v-if="!s.current"
+                  class="btn-soft-danger h-8 shrink-0 px-3 text-14"
+                  @click="onRevokeSession(s)"
+                >
+                  {{ t('profile.sessionRevoke') }}
+                </button>
+              </div>
+              <EmptyState
+                v-if="!sessionsLoading && sessions.length === 0"
+                :text="t('profile.sessionEmpty')"
+                icon="user"
+              />
+            </div>
+          </n-spin>
+          <p class="mt-3 text-13 text-[var(--c-text-sub)]">{{ t('profile.sessionsTip') }}</p>
         </div>
 
         <!-- Telegram -->

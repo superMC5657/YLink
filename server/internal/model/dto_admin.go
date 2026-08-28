@@ -203,12 +203,13 @@ type AdminNoticeReq struct {
 }
 
 type AdminKnowledgeReq struct {
-	Category string `json:"category" binding:"required"`
-	Title    string `json:"title" binding:"required"`
-	Body     string `json:"body" binding:"required"`
-	Language string `json:"language" binding:"omitempty,oneof=zh-CN en-US"`
-	IsShow   *bool  `json:"is_show"`
-	Sort     int    `json:"sort"`
+	Category   string `json:"category" binding:"required"`
+	CategoryID *int64 `json:"category_id"` // F15 显式归类（空则按 category 名称归并/自建）
+	Title      string `json:"title" binding:"required"`
+	Body       string `json:"body" binding:"required"`
+	Language   string `json:"language" binding:"omitempty,oneof=zh-CN en-US"`
+	IsShow     *bool  `json:"is_show"`
+	Sort       int    `json:"sort"`
 }
 
 // ---- 管理端 · 工单 ----
@@ -219,6 +220,7 @@ type AdminTicketItem struct {
 	UserEmail   string     `json:"user_email"`
 	Subject     string     `json:"subject"`
 	Level       int        `json:"level"`
+	Type        int        `json:"type"` // 0=普通 1=佣金提现(F02)
 	Status      int        `json:"status"`
 	ReopenCount int        `json:"reopen_count"`
 	LastReplyAt *time.Time `json:"last_reply_at"`
@@ -256,6 +258,7 @@ type AdminCommissionItem struct {
 	OrderAmount  float64    `json:"order_amount"`
 	Rate         int        `json:"rate"`
 	Amount       float64    `json:"amount"`
+	Type         int        `json:"type"` // 0=订单佣金 1=提现流水(F02)
 	Status       int        `json:"status"`
 	ConfirmedAt  *time.Time `json:"confirmed_at"`
 	CreatedAt    time.Time  `json:"created_at"`
@@ -441,3 +444,68 @@ type AdminSendMailResp struct {
 	Sent   int64                  `json:"sent"`
 	Failed []AdminBatchFailedItem `json:"failed"`
 }
+
+// ---- 管理端 · 内容排序与知识库分类（F15） ----
+
+// AdminSortReq 内容排序（公告/知识库共用）：items 按 sort 值更新（前端按展示顺序传 0..n）。
+type AdminSortReq struct {
+	Items []AdminSortItem `json:"items" binding:"required,min=1,max=500,dive"`
+}
+
+// AdminKnowledgeCategoryItem 知识库分类（含文档计数）。
+type AdminKnowledgeCategoryItem struct {
+	ID             int64  `json:"id"`
+	Language       string `json:"language"`
+	Name           string `json:"name"`
+	Sort           int    `json:"sort"`
+	KnowledgeCount int64  `json:"knowledge_count"`
+}
+
+// AdminKnowledgeCategoryReq 新建分类。
+type AdminKnowledgeCategoryReq struct {
+	Language string `json:"language" binding:"required,max=10"`
+	Name     string `json:"name" binding:"required,max=64"`
+	Sort     *int   `json:"sort"`
+}
+
+// AdminKnowledgeCategoryUpdateReq 更新分类（改名级联同步知识文档展示分类）。
+type AdminKnowledgeCategoryUpdateReq struct {
+	Name string `json:"name" binding:"required,max=64"`
+	Sort *int   `json:"sort"`
+}
+
+// ---- 管理端 · 邮件模板（F11） ----
+
+// AdminMailTemplateItem 邮件模板视图：custom=已自定义，否则为内置默认文案。
+type AdminMailTemplateItem struct {
+	Name         string     `json:"name"`
+	Subject      string     `json:"subject"`
+	Body         string     `json:"body"`
+	IsCustom     bool       `json:"is_custom"`
+	Placeholders []string   `json:"placeholders"`
+	Remark       string     `json:"remark"`
+	UpdatedAt    *time.Time `json:"updated_at"`
+}
+
+// AdminMailTemplateReq 保存邮件模板（Go template 语法，保存前校验可解析）。
+type AdminMailTemplateReq struct {
+	Subject string `json:"subject" binding:"required,max=255"`
+	Body    string `json:"body" binding:"required"`
+}
+
+// AdminMailTemplateTestReq 测试发送（走真实 SMTP）。
+type AdminMailTemplateTestReq struct {
+	ToEmail string `json:"to_email" binding:"required,email"`
+}
+
+// ---- 管理端 · 版本检查（F20） ----
+
+// AdminVersionResp 版本信息：latest 为空表示未配置更新源或拉取失败。
+type AdminVersionResp struct {
+	Version   string  `json:"version"`
+	Latest    *string `json:"latest"`
+	HasUpdate *bool   `json:"has_update"`
+	Notes     *string `json:"notes"`
+}
+
+// ---- 管理端 · 用户会话（F14，挂 dto_admin 便于聚合引用） ----

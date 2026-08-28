@@ -19,9 +19,10 @@ type Auth struct {
 
 func NewAuth(svc *service.AuthService) *Auth { return &Auth{svc: svc} }
 
-// ctxWithIP 将客户端 IP 注入上下文（供验证码 IP 限频）。
+// ctxWithIP 将客户端 IP 与 User-Agent 注入上下文（供验证码 IP 限频与会话元数据）。
 func ctxWithIP(c *gin.Context) context.Context {
-	return context.WithValue(c.Request.Context(), "client_ip", c.ClientIP())
+	ctx := context.WithValue(c.Request.Context(), "client_ip", c.ClientIP())
+	return context.WithValue(ctx, "user_agent", c.Request.UserAgent())
 }
 
 // CaptchaEmail 发送邮箱验证码（免登录）

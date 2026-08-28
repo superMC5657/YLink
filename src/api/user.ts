@@ -8,6 +8,7 @@ import type {
   SiteConfig,
   SubscribeInfo,
   TrafficLog,
+  UserSessionItem,
   UserStat,
 } from '@/types/api'
 
@@ -29,4 +30,7 @@ export const apiUser = {
     http.post<{ subscribe_url: string }>('/user/subscribe/reset', { body }),
   trafficLogs: (from: string, to: string) =>
     http.get<{ list: TrafficLog[] }>('/user/traffic-logs', { query: { from, to } }),
+  // 会话管理（F14）
+  sessions: () => http.get<{ list: UserSessionItem[] }>('/user/sessions'),
+  revokeSession: (jti: string) => http.delete<null>(`/user/sessions/${jti}`),
 }

@@ -76,6 +76,38 @@ async function save() {
   }
 }
 
+// ---------- F15 排序弹窗:上下移调整顺序,保存时按最终顺序写 0..n ----------
+const sortModal = ref(false)
+const sortItems = ref<{ id: number; name: string }[]>([])
+const sortSaving = ref(false)
+
+function openSortModal() {
+  sortItems.value = [...list.value]
+    .sort((a, b) => a.sort - b.sort || a.id - b.id)
+    .map((n) => ({ id: n.id, name: n.title }))
+  sortModal.value = true
+}
+
+function moveSortItem(index: number, delta: number) {
+  const target = index + delta
+  if (target < 0 || target >= sortItems.value.length) return
+  const items = [...sortItems.value]
+  ;[items[index], items[target]] = [items[target], items[index]]
+  sortItems.value = items
+}
+
+async function saveSort() {
+  sortSaving.value = true
+  try {
+    await apiAdmin.sortNotices({ items: sortItems.value.map((n, i) => ({ id: n.id, sort: i })) })
+    message.success(t('adminNotices.sortSaved'))
+    sortModal.value = false
+    await load()
+  } finally {
+    sortSaving.value = false
+  }
+}
+
 function remove(n: AdminNoticeItem) {
   dialog.warning({
     title: t('adminNotices.deleteTitle'),
@@ -98,6 +130,9 @@ onMounted(() => void load())
     <PageHeader :title="t('adminNotices.pageTitle')" :subtitle="t('adminNotices.subtitle')">
       <template #actions>
         <div class="flex items-center gap-2">
+          <button class="btn-soft-neutral h-9 px-3 text-14" @click="openSortModal">
+            <AppIcon name="sliders" :size="15" /> {{ t('adminNotices.sort') }}
+          </button>
           <button class="btn-soft-neutral h-9 px-3 text-14" @click="load">
             <AppIcon name="refresh" :size="15" /> {{ t('common.refresh') }}
           </button>
@@ -190,6 +225,52 @@ onMounted(() => void load())
           </button>
           <button class="btn-primary h-9 px-4 text-14" :disabled="saving" @click="save">
             {{ t('common.save') }}
+          </button>
+        </div>
+      </template>
+    </n-modal>
+
+    <!-- F15 排序弹窗 -->
+    <n-modal
+      v-model:show="sortModal"
+      preset="card"
+      :title="t('adminNotices.sortTitle')"
+      style="width: 420px"
+    >
+      <p class="mb-3 text-14 text-[var(--c-text-sub)]">{{ t('adminNotices.sortHint') }}</p>
+      <div class="flex flex-col gap-2">
+        <div
+          v-for="(item, i) in sortItems"
+          :key="item.id"
+          class="flex items-center justify-between rounded-lg border border-[var(--c-border)] px-3 py-2"
+        >
+          <span class="num-font mr-2 text-14 text-[var(--c-text-sub)]">{{ i + 1 }}</span>
+          <span class="flex-1 truncate text-14 font-500 text-[var(--c-text)]">{{ item.name }}</span>
+          <div class="flex gap-1">
+            <button
+              class="btn-soft-neutral h-7 px-2 text-14"
+              :disabled="i === 0"
+              @click="moveSortItem(i, -1)"
+            >
+              ↑
+            </button>
+            <button
+              class="btn-soft-neutral h-7 px-2 text-14"
+              :disabled="i === sortItems.length - 1"
+              @click="moveSortItem(i, 1)"
+            >
+              ↓
+            </button>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <button class="btn-soft-neutral h-9 px-4 text-14" @click="sortModal = false">
+            {{ t('common.cancel') }}
+          </button>
+          <button class="btn-primary h-9 px-4 text-14" :disabled="sortSaving" @click="saveSort">
+            {{ t('adminNotices.sortSave') }}
           </button>
         </div>
       </template>

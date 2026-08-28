@@ -92,3 +92,14 @@ type UserStatResp struct {
 
 // Time 契约时间格式（RFC3339 带时区）。
 type Time = time.Time
+
+// ---- 会话管理（F14） ----
+
+// UserSessionItem GET /user/sessions 活跃会话（refresh 白名单维度，Redis 元数据）。
+type UserSessionItem struct {
+	JTI       string    `json:"jti"` // 会话标识（refresh 白名单索引，踢下线目标）
+	Current   bool      `json:"current"`
+	IP        string    `json:"ip"`
+	UserAgent string    `json:"user_agent"`
+	CreatedAt time.Time `json:"created_at"`
+}

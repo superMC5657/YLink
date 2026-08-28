@@ -4,6 +4,7 @@ app:
   env: development            # development / production
   addr: ":8081"
   base_url: "http://localhost:8081"   # 用于拼接订阅链接/支付回调地址
+  version: "dev"              # 后端版本号（F20 管理端版本检查展示；部署时注入）
 
 database:
   dsn: "host=127.0.0.1 port=5433 user=ylink password=ylink_root dbname=ylink-backend sslmode=disable TimeZone=Asia/Shanghai"
@@ -58,3 +59,7 @@ security:
   subscribe_path: "client"  # 订阅下发路径段（/api/v1/{subscribe_path}/subscribe/{token}），订阅 URL 由服务端拼接下发
   safe_mode: false          # 开启后仅白名单域名可访问 API（App.base_url 的 host 自动纳入）
   safe_domains: []          # 追加白名单域名，如 ["panel.example.com", "sub.example.com"]
+
+# 在线更新（F20 子集）：仅版本检查 + 变更日志展示，自动执行升级不立项
+update:
+  manifest_url: ""          # 更新源 URL，返回 {"version":"x.y.z","notes":"变更日志"}；空=不做远端检查

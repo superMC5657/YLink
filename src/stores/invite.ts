@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { apiInvite } from '@/api/invite'
 import { isTauri } from '@/utils/platform'
-import type { CommissionRecord, InviteCode, InviteSummary } from '@/types/api'
+import type { CommissionRecord, InviteCode, InviteSummary, WithdrawItem } from '@/types/api'
 
 /** 注册链接路径后缀(前端为 hash 路由;后端 register_url_prefix 契约占位返回同值) */
 const REGISTER_URL_SUFFIX = '/#/register?code='
@@ -13,6 +13,8 @@ interface InviteState {
   registerUrlPrefix: string
   records: CommissionRecord[]
   recordsTotal: number
+  withdraws: WithdrawItem[]
+  withdrawsTotal: number
 }
 
 export const useInviteStore = defineStore('invite', {
@@ -23,6 +25,8 @@ export const useInviteStore = defineStore('invite', {
     registerUrlPrefix: '',
     records: [],
     recordsTotal: 0,
+    withdraws: [],
+    withdrawsTotal: 0,
   }),
   getters: {
     /**
@@ -73,6 +77,19 @@ export const useInviteStore = defineStore('invite', {
         this.summary.commission_balance = data.commission_balance
       }
       return data
+    },
+    // 佣金提现（F02，仅代理商）
+    async fetchWithdraws(page = 1, pageSize = 10) {
+      const data = await apiInvite.withdraws({ page, page_size: pageSize })
+      this.withdraws = data?.list ?? []
+      this.withdrawsTotal = data.total
+    },
+    async withdraw(body: { amount: number; method: string; account: string }) {
+      const item = await apiInvite.withdraw(body)
+      this.withdraws.unshift(item)
+      // 提交即扣减佣金余额，同步刷新总览
+      await this.fetchSummary()
+      return item
     },
     async refreshAll() {
       await Promise.allSettled([this.fetchSummary(), this.fetchCodes(), this.fetchRecords()])

@@ -877,7 +877,7 @@ export default {
     name: '模板标识',
     subject: '邮件主题',
     body: '邮件正文',
-    bodyPlaceholder: '支持 {{.site_name}} / {{.code}} 等占位符…',
+    bodyPlaceholder: "支持 {'{{.site_name}}'} / {'{{.code}}'} 等占位符…",
     remark: '用途',
     placeholders: '可用占位符',
     state: '状态',
@@ -887,7 +887,7 @@ export default {
     edit: '编辑',
     editTitle: '编辑模板：{name}',
     syntaxTip:
-      '模板使用 Go template 语法（{{.site_name}}、{{.code}}…），保存前会校验可解析；发送时自动套用品牌邮件外壳。',
+      "模板使用 Go template 语法（{'{{.site_name}}'}、{'{{.code}}'}…），保存前会校验可解析；发送时自动套用品牌邮件外壳。",
     saved: '模板已保存',
     reset: '恢复默认',
     resetTitle: '恢复默认模板',

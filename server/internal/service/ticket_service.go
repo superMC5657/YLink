@@ -132,10 +132,15 @@ func (s *TicketService) Reply(ctx context.Context, userID int64, id int64, messa
 }
 
 // Close POST /tickets/{id}/close。
+// 提现工单（type=1）不可由用户关闭：其生命周期由管理员 pay/reject 审核闭环
+// （提交即扣减佣金），用户关闭后管理端审核入口被禁用，佣金将长期停留在已扣减状态。
 func (s *TicketService) Close(ctx context.Context, userID int64, id int64) (*model.TicketListItem, error) {
 	t, err := s.repos.Ticket.GetByIDAndUser(s.db, id, userID)
 	if err != nil {
 		return nil, errs.ErrNotFound
+	}
+	if t.Type == model.TicketTypeWithdraw {
+		return nil, errs.ErrTicketWithdrawClose
 	}
 	if t.Status == 2 {
 		return nil, errs.ErrTicketClosed
@@ -152,10 +157,14 @@ func (s *TicketService) Close(ctx context.Context, userID int64, id int64) (*mod
 
 // Reopen POST /tickets/{id}/reopen:已关闭的工单可重开一次(core-flows §7)。
 // 重开后状态回「待回复」,reopen_count+1;已重开过或未关闭则拒绝。
+// 提现工单（type=1）同样不可重开:审核完成（pay/reject）后资金闭环,重开只会误导管理端。
 func (s *TicketService) Reopen(ctx context.Context, userID int64, id int64) (*model.TicketListItem, error) {
 	t, err := s.repos.Ticket.GetByIDAndUser(s.db, id, userID)
 	if err != nil {
 		return nil, errs.ErrNotFound
+	}
+	if t.Type == model.TicketTypeWithdraw {
+		return nil, errs.ErrTicketWithdrawClose
 	}
 	if t.Status != 2 {
 		return nil, errs.ErrConflict

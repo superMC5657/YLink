@@ -37,6 +37,11 @@ func NewAdminService(db *gorm.DB, rdb *redis.Client, repos *repo.Repos, cfg *con
 
 // ---- 审计 ----
 
+// batchAuditTarget 批量动作的审计 target 摘要：audit_logs.target 为 VARCHAR(128)，
+// 完整 ID 列表可能超长导致审计写入失败、静默丢失——target 只存 batch:<count>，
+// 完整 ID 列表放 detail JSON 留痕（ids / user_ids）。
+func batchAuditTarget(n int) string { return fmt.Sprintf("batch:%d", n) }
+
 // audit 写审计日志。
 func (s *AdminService) audit(tx *gorm.DB, adminID int64, action, target, ip string, detail any) error {
 	var detailStr *string
@@ -292,8 +297,8 @@ func (s *AdminService) SendMail(ctx context.Context, adminID int64, req *model.A
 		for _, id := range req.IDs {
 			resp.Failed = append(resp.Failed, model.AdminBatchFailedItem{ID: id, Reason: "邮件服务未配置"})
 		}
-		_ = s.audit(s.db, adminID, "send_mail", fmt.Sprint(req.IDs), ip, map[string]any{
-			"subject": subject, "sent": 0, "failed": len(resp.Failed), "error": "mailer not configured",
+		_ = s.audit(s.db, adminID, "send_mail", batchAuditTarget(len(req.IDs)), ip, map[string]any{
+			"subject": subject, "sent": 0, "failed": len(resp.Failed), "error": "mailer not configured", "ids": req.IDs,
 		})
 		return resp, nil
 	}
@@ -323,8 +328,8 @@ func (s *AdminService) SendMail(ctx context.Context, adminID int64, req *model.A
 			return nil, err
 		}
 	}
-	_ = s.audit(s.db, adminID, "send_mail", fmt.Sprint(req.IDs), ip, map[string]any{
-		"subject": subject, "sent": resp.Sent, "failed": len(resp.Failed),
+	_ = s.audit(s.db, adminID, "send_mail", batchAuditTarget(len(req.IDs)), ip, map[string]any{
+		"subject": subject, "sent": resp.Sent, "failed": len(resp.Failed), "ids": req.IDs,
 	})
 	return resp, nil
 }
@@ -402,7 +407,7 @@ func auditTargetKind(action string) string {
 	case "ban_user", "update_role", "adjust_balance", "reset_sub_token",
 		"agent_approve", "agent_reject", "withdraw_pay", "withdraw_reject":
 		return "user"
-	case "send_mail", "traffic_reset": // target 为 ID 列表 "[7 8 9]"
+	case "send_mail", "traffic_reset": // 新格式 target 为摘要 "batch:<count>"（完整 ID 列表在 detail），历史格式为 ID 列表 "[7 8 9]"
 		return "users"
 	case "reset_node_key", "copy_server":
 		return "server"
@@ -458,6 +463,12 @@ func (s *AdminService) enrichAuditTargets(list []model.AdminAuditLogItem) {
 		list[i].TargetKind = &kind
 		switch kind {
 		case "user", "users":
+			if strings.HasPrefix(*list[i].Target, "batch:") {
+				// 批量动作摘要（batch:<count>）：完整 ID 列表在 detail JSON，不反查实体，直接透出摘要
+				t := *list[i].Target
+				list[i].TargetDisplay = &t
+				continue
+			}
 			idsByKind["user"] = append(idsByKind["user"], auditTargetIDs(*list[i].Target)...)
 		case "server":
 			idsByKind["server"] = append(idsByKind["server"], auditTargetIDs(*list[i].Target)...)

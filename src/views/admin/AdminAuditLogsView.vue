@@ -10,7 +10,7 @@ import { useI18n } from 'vue-i18n'
 import { apiAdmin } from '@/api/admin'
 import type { AdminAuditLogItem } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
-import { formatTime } from '@/utils/format'
+import { formatTime, localDateKey } from '@/utils/format'
 
 const { t, te } = useI18n()
 const loading = ref(false)
@@ -78,8 +78,8 @@ async function load() {
       admin_id: adminIdFilter.value ?? '',
       action: actionFilter.value ?? '',
       target: targetFilter.value || '',
-      from: rangeFilter.value ? new Date(rangeFilter.value[0]).toISOString().slice(0, 10) : '',
-      to: rangeFilter.value ? new Date(rangeFilter.value[1]).toISOString().slice(0, 10) : '',
+      from: rangeFilter.value ? localDateKey(rangeFilter.value[0]) : '',
+      to: rangeFilter.value ? localDateKey(rangeFilter.value[1]) : '',
     })
     list.value = res.list
     total.value = res.total

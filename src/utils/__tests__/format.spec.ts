@@ -8,6 +8,7 @@ import {
   formatSpeed,
   formatTime,
   fromNow,
+  localDateKey,
   orderStatusLabel,
   periodLabel,
   serverStatusMeta,
@@ -72,6 +73,19 @@ describe('formatTime / formatDate / fromNow', () => {
   it('fromNow 中文相对时间', () => {
     const past = dayjs().subtract(3, 'day').toISOString()
     expect(fromNow(past)).toContain('3 天前')
+  })
+})
+
+describe('localDateKey', () => {
+  it('按用户本地时区取日期(而非 UTC)', () => {
+    // 本地构造 2026-08-28 00:30:00,任何时区下本地日期键都必须是 2026-08-28
+    // (toISOString().slice(0,10) 在东八区会错误地得到 2026-08-27)
+    const local = new Date(2026, 7, 28, 0, 30, 0)
+    expect(localDateKey(local)).toBe('2026-08-28')
+    expect(localDateKey(local.getTime())).toBe('2026-08-28')
+  })
+  it('字符串输入取其本地日期', () => {
+    expect(localDateKey('2026-08-28T10:00:00')).toBe('2026-08-28')
   })
 })
 

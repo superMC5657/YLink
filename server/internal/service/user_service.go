@@ -123,8 +123,10 @@ func (s *UserService) ListSessions(ctx context.Context, userID int64, currentJTI
 			if json.Unmarshal([]byte(raw), &meta) == nil {
 				item.IP = meta.IP
 				item.UserAgent = meta.UserAgent
+				// 无元数据（解析失败/无时间戳）保持 nil → JSON null，前端显示「--」，
+				// 不透出 Go 零值时间（会被渲染成 0001/1/1）
 				if !meta.CreatedAt.IsZero() {
-					item.CreatedAt = meta.CreatedAt
+					item.CreatedAt = &meta.CreatedAt
 				}
 			}
 		}

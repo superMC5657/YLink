@@ -164,6 +164,35 @@ func TestResetTrafficClearUsageKeepsSnapshot(t *testing.T) {
 	// 故整个用例的期望序列中不存在对 node_user_stats 的 DELETE。
 }
 
+// TestTrafficResetAuditTargetSummary 流量重置审计 target 必须是 batch:<count> 摘要，
+// 完整用户 ID 列表留痕在 detail JSON 的 user_ids 字段。
+func TestTrafficResetAuditTargetSummary(t *testing.T) {
+	e, svc := newAdminSvc(t)
+
+	u := &model.User{ID: 7, Email: "u7@y.link", U: 1, D: 2, TransferEnable: 100, SubToken: "t7", UUID: "uuid-7"}
+	e.mock.ExpectBegin()
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
+		WillReturnRows(userRow(u))
+	e.mock.ExpectExec(regexp.QuoteMeta(`UPDATE "users" SET`)).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "traffic_reset_logs"`)).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	e.mock.ExpectCommit()
+	// 汇总审计：target 为摘要，完整 ID 列表在 detail
+	e.mock.ExpectBegin()
+	e.mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "audit_logs"`)).
+		WithArgs(int64(1), "traffic_reset", argEq("batch:1"), argContains(`"user_ids":[7]`),
+			argEq("127.0.0.1"), sqlmock.AnyArg()).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	e.mock.ExpectCommit()
+
+	resp, err := svc.ResetTraffic(context.Background(), 1, &model.AdminTrafficResetReq{
+		UserIDs: []int64{7}, Mode: "clear_usage",
+	}, "127.0.0.1")
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, resp.Success)
+}
+
 func TestResetTrafficResetQuotaWithoutPlanFails(t *testing.T) {
 	e, svc := newAdminSvc(t)
 

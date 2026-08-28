@@ -96,10 +96,12 @@ type Time = time.Time
 // ---- 会话管理（F14） ----
 
 // UserSessionItem GET /user/sessions 活跃会话（refresh 白名单维度，Redis 元数据）。
+// CreatedAt 为 nil 表示历史会话无元数据（如升级前白名单值为字符串 "1"），
+// 前端显示「--」；零值时间会显示成 0001/1/1，不得用零值透出。
 type UserSessionItem struct {
-	JTI       string    `json:"jti"` // 会话标识（refresh 白名单索引，踢下线目标）
-	Current   bool      `json:"current"`
-	IP        string    `json:"ip"`
-	UserAgent string    `json:"user_agent"`
-	CreatedAt time.Time `json:"created_at"`
+	JTI       string     `json:"jti"` // 会话标识（refresh 白名单索引，踢下线目标）
+	Current   bool       `json:"current"`
+	IP        string     `json:"ip"`
+	UserAgent string     `json:"user_agent"`
+	CreatedAt *time.Time `json:"created_at"`
 }

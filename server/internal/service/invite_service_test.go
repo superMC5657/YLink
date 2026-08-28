@@ -50,6 +50,40 @@ func TestTransferInsufficient(t *testing.T) {
 	assert.Equal(t, 13002, codeOf(err))
 }
 
+// TestTransferAmountOverflow 超大金额元→分转换回绕为负数（或超安全域）必须整体拒绝（13005），
+// 不得进入事务——负 fen 会绕过「佣金余额 < 金额」校验并反向增加余额。
+func TestTransferAmountOverflow(t *testing.T) {
+	_, svc := newInviteEnv(t)
+
+	_, err := svc.Transfer(context.Background(), 1, model.YuanToFen(1e19))
+	assert.Equal(t, 13005, codeOf(err))
+
+	_, err = svc.Transfer(context.Background(), 1, -100)
+	assert.Equal(t, 13005, codeOf(err))
+
+	_, err = svc.Transfer(context.Background(), 1, 0)
+	assert.Equal(t, 13005, codeOf(err))
+
+	_, err = svc.Transfer(context.Background(), 1, maxMoneyFen+1)
+	assert.Equal(t, 13005, codeOf(err))
+}
+
+// TestSubmitWithdrawAmountOverflow 提现金额超过安全域必须拒绝（13005）：
+// 溢出为负 fen 时「佣金余额 < 负金额」恒不成立，提交即扣减反而会大幅增加佣金余额。
+func TestSubmitWithdrawAmountOverflow(t *testing.T) {
+	_, svc := newInviteEnv(t)
+
+	_, err := svc.SubmitWithdraw(context.Background(), 1, &model.WithdrawCreateReq{
+		Amount: 1e19, Method: "alipay", Account: "a@b.com",
+	})
+	assert.Equal(t, 13005, codeOf(err))
+
+	_, err = svc.SubmitWithdraw(context.Background(), 1, &model.WithdrawCreateReq{
+		Amount: 1e14, Method: "alipay", Account: "a@b.com", // 1e16 分：未回绕但超出 maxMoneyFen 安全域
+	})
+	assert.Equal(t, 13005, codeOf(err))
+}
+
 func TestCreateCodeLimit(t *testing.T) {
 	e, svc := newInviteEnv(t)
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT count(*) FROM \"invite_codes\"")).

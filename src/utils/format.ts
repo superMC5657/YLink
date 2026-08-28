@@ -67,6 +67,14 @@ export function formatDate(iso: string | null | undefined): string {
   return d.isValid() ? d.format('YYYY-MM-DD') : '-'
 }
 
+/**
+ * 本地日期键 YYYY-MM-DD:按用户时区取日期(日期选择器值 → 后端 YYYY-MM-DD 筛选参数)。
+ * 勿用 toISOString().slice(0, 10)——那是 UTC 日期,东八区 0:00–7:59 会前移一天。
+ */
+export function localDateKey(value: Date | number | string): string {
+  return dayjs(value).format('YYYY-MM-DD')
+}
+
 /** 相对时间:中文友好(N 天前 / 刚刚 / N 小时前) */
 export function fromNow(iso: string | null | undefined): string {
   if (!iso) return '-'

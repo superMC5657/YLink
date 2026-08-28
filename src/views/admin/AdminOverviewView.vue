@@ -13,35 +13,75 @@ const { t } = useI18n()
 const loading = ref(false)
 const data = ref<AdminOverviewResp | null>(null)
 
-// 快捷操作入口:与仪表盘 QuickActionGrid 同风格——每个入口不同彩色浅底 + 彩色图标
-const quickEntries = [
+// 快捷操作入口:按运营频率分两组(结构即信息——高频每天用,周期/触达偶尔用),
+// 与仪表盘 QuickActionGrid 同风格——每个入口不同彩色浅底 + 彩色图标;
+// 图标色 8 个互不重复,底色组内互不重复,全部走设计令牌(亮/暗主题自动适配)
+const quickGroups = [
   {
-    to: '/admin/users',
-    icon: 'users',
-    labelKey: 'nav.adminUsers',
-    color: 'var(--c-primary)',
-    bg: 'var(--c-primary-soft)',
+    titleKey: 'adminOverview.quickDailyOps',
+    entries: [
+      {
+        to: '/admin/users',
+        icon: 'users',
+        labelKey: 'nav.adminUsers',
+        color: 'var(--c-primary)',
+        bg: 'var(--c-primary-soft)',
+      },
+      {
+        to: '/admin/orders',
+        icon: 'order',
+        labelKey: 'nav.adminOrders',
+        color: 'var(--c-warning)',
+        bg: 'var(--c-warning-bg)',
+      },
+      {
+        to: '/admin/tickets',
+        icon: 'ticket',
+        labelKey: 'nav.adminTickets',
+        color: 'var(--c-olive)',
+        bg: 'var(--c-olive-bg)',
+      },
+      {
+        to: '/admin/agent-applies',
+        icon: 'agent',
+        labelKey: 'nav.adminAgentApplies',
+        color: 'var(--c-pink)',
+        bg: 'var(--c-pink-bg)',
+      },
+    ],
   },
   {
-    to: '/admin/plans',
-    icon: 'zap',
-    labelKey: 'nav.adminPlans',
-    color: 'var(--c-warning)',
-    bg: 'var(--c-warning-bg)',
-  },
-  {
-    to: '/admin/nodes',
-    icon: 'server',
-    labelKey: 'nav.adminNodes',
-    color: 'var(--c-blue)',
-    bg: 'var(--c-blue-bg)',
-  },
-  {
-    to: '/admin/orders',
-    icon: 'order',
-    labelKey: 'nav.adminOrders',
-    color: 'var(--c-olive)',
-    bg: 'var(--c-olive-bg)',
+    titleKey: 'adminOverview.quickPeriodicOps',
+    entries: [
+      {
+        to: '/admin/notices',
+        icon: 'bell',
+        labelKey: 'nav.adminNotices',
+        color: 'var(--c-blue)',
+        bg: 'var(--c-blue-bg)',
+      },
+      {
+        to: '/admin/coupons',
+        icon: 'gift',
+        labelKey: 'nav.adminCoupons',
+        color: 'var(--c-success)',
+        bg: 'var(--c-success-bg)',
+      },
+      {
+        to: '/admin/traffic-import',
+        icon: 'traffic',
+        labelKey: 'nav.adminTrafficImport',
+        color: 'var(--c-marketing)',
+        bg: 'var(--c-danger-bg)',
+      },
+      {
+        to: '/admin/nodes',
+        icon: 'server',
+        labelKey: 'nav.adminNodes',
+        color: 'var(--c-amber-icon)',
+        bg: 'var(--c-warning-bg)',
+      },
+    ],
   },
 ]
 
@@ -106,22 +146,27 @@ onMounted(() => void load())
         />
       </div>
 
-      <!-- 快速入口 -->
+      <!-- 快速入口:按运营频率分组 -->
       <div class="card-base mt-5 p-5">
         <h2 class="mb-4 text-16 font-600 text-[var(--c-text)]">
           {{ t('adminOverview.quickActions') }}
         </h2>
-        <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <RouterLink
-            v-for="e in quickEntries"
-            :key="e.to"
-            :to="e.to"
-            class="flex cursor-pointer items-center justify-center gap-2 rounded-xl py-4 text-14 no-underline transition-all duration-[var(--t-fast)] hover:-translate-y-0.5 hover:shadow-[var(--s-card)] active:scale-95"
-            :style="{ backgroundColor: e.bg }"
-          >
-            <AppIcon :name="e.icon" :size="18" :style="{ color: e.color }" />
-            <span class="font-500 text-[var(--c-text)]">{{ t(e.labelKey) }}</span>
-          </RouterLink>
+        <div v-for="(g, gi) in quickGroups" :key="g.titleKey" :class="gi > 0 ? 'mt-4' : ''">
+          <p class="mb-2 text-12 font-600 tracking-wide text-[var(--c-text-sub)]">
+            {{ t(g.titleKey) }}
+          </p>
+          <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <RouterLink
+              v-for="e in g.entries"
+              :key="e.to"
+              :to="e.to"
+              class="flex cursor-pointer items-center justify-center gap-2 rounded-xl py-4 text-14 no-underline transition-all duration-[var(--t-fast)] hover:-translate-y-0.5 hover:shadow-[var(--s-card)] active:scale-95"
+              :style="{ backgroundColor: e.bg }"
+            >
+              <AppIcon :name="e.icon" :size="18" :style="{ color: e.color }" />
+              <span class="font-500 text-[var(--c-text)]">{{ t(e.labelKey) }}</span>
+            </RouterLink>
+          </div>
         </div>
       </div>
     </n-spin>

@@ -442,6 +442,8 @@ export default {
     todayRevenue: 'Today Revenue',
     onSalePlans: 'Plans On Sale',
     quickActions: 'Quick Actions',
+    quickDailyOps: 'Daily Operations',
+    quickPeriodicOps: 'Operations & Setup',
     unitYuan: 'CNY',
   },
   adminUsers: {

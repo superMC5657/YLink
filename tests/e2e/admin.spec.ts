@@ -181,3 +181,37 @@ test.describe('邮件模板管理(F11 回归:locale 字面量花括号)', () => 
     expect(errors).toEqual([])
   })
 })
+
+test.describe('总览快捷操作(按运营频率分组)', () => {
+  test('总览快捷操作含两组共 8 个入口,分组标签与跳转正确', async ({ page }) => {
+    await loginAs(page, 'admin@example.com', 'Admin@123456')
+    await enterPortal(page, '管理后台', /#\/admin\/overview/)
+
+    const quick = page.locator('.card-base', { hasText: '快捷操作' })
+    await expect(quick.getByText('日常运营')).toBeVisible()
+    await expect(quick.getByText('运营与配置')).toBeVisible()
+
+    // 8 个入口齐全(链接元素)
+    for (const label of [
+      '用户管理',
+      '订单管理',
+      '工单管理',
+      '代理审批',
+      '公告管理',
+      '优惠券管理',
+      '流量管理',
+      '节点管理',
+    ]) {
+      await expect(quick.locator('a', { hasText: label })).toBeVisible()
+    }
+    // 跳转抽查:高频组 → 用户管理,周期组 → 流量管理
+    await expect(quick.locator('a', { hasText: '工单管理' })).toHaveAttribute(
+      'href',
+      /#\/admin\/tickets/,
+    )
+    await expect(quick.locator('a', { hasText: '流量管理' })).toHaveAttribute(
+      'href',
+      /#\/admin\/traffic-import/,
+    )
+  })
+})

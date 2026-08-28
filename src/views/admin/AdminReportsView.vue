@@ -83,7 +83,12 @@ function renderRevenue() {
     backgroundColor: 'transparent',
     ...baseTooltip(),
     legend: {
-      data: [t('adminReports.revenue'), t('adminReports.refunded')],
+      data: [
+        t('adminReports.revenue'),
+        t('adminReports.refunded'),
+        t('adminReports.balanceUsed'),
+        t('adminReports.balanceRefunded'),
+      ],
       textStyle: { color: axisColor, fontSize: 12 },
       top: 0,
     },
@@ -116,6 +121,22 @@ function renderRevenue() {
         data: orders.value.items.map((x) => x.refunded),
         itemStyle: { color: cssVar('--c-danger', '#E5484D') },
         lineStyle: { width: 2 },
+      },
+      {
+        name: t('adminReports.balanceUsed'),
+        type: 'line',
+        smooth: true,
+        data: orders.value.items.map((x) => x.balance_used),
+        itemStyle: { color: cssVar('--c-primary', '#6558F5') },
+        lineStyle: { width: 2, type: 'dashed' },
+      },
+      {
+        name: t('adminReports.balanceRefunded'),
+        type: 'line',
+        smooth: true,
+        data: orders.value.items.map((x) => x.balance_refunded),
+        itemStyle: { color: cssVar('--c-pink', '#C2487B') },
+        lineStyle: { width: 2, type: 'dashed' },
       },
     ],
   })

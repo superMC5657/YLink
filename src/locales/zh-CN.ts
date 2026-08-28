@@ -1006,9 +1006,12 @@ export default {
     subtitle: '订单/营收/注册/套餐/流量多维运营报表',
     lastNDays: '近 {n} 天',
     revenueTitle: '营收与退款趋势',
-    revenueHint: '实收按订单支付时间统计;退款按退款时间近似统计;单位为元。',
+    revenueHint:
+      '实线为现金部分、虚线为余额部分;实收/余额使用按支付时间、退款/余额退款按退款时间近似统计;单位为元。',
     revenue: '实收(元)',
     refunded: '退款(元)',
+    balanceUsed: '余额使用(元)',
+    balanceRefunded: '余额退款(元)',
     registerTitle: '注册趋势',
     registers: '注册数',
     planTitle: '套餐分布',

@@ -202,6 +202,12 @@ func TestStatOrdersFillsZeroDays(t *testing.T) {
 	// 每日退款（500 分）
 	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT to_char(updated_at::date`)).
 		WillReturnRows(sqlmock.NewRows([]string{"d", "c", "a"}).AddRow(today, 0, 500))
+	// 每日余额支付（300 分）
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT to_char(paid_at::date, 'YYYY-MM-DD') AS d, 0 AS c, COALESCE(SUM(balance_used),0) AS a`)).
+		WillReturnRows(sqlmock.NewRows([]string{"d", "c", "a"}).AddRow(today, 0, 300))
+	// 每日退款余额部分（200 分）
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT to_char(updated_at::date, 'YYYY-MM-DD') AS d, 0 AS c, COALESCE(SUM(balance_used),0) AS a`)).
+		WillReturnRows(sqlmock.NewRows([]string{"d", "c", "a"}).AddRow(today, 0, 200))
 
 	resp, err := svc.StatOrders(context.Background(), 3)
 	require.NoError(t, err)
@@ -213,6 +219,8 @@ func TestStatOrdersFillsZeroDays(t *testing.T) {
 	assert.EqualValues(t, 1, last.CompletedCount)
 	assert.InDelta(t, 10.0, last.Revenue, 1e-9, "分→元")
 	assert.InDelta(t, 5.0, last.Refunded, 1e-9)
+	assert.InDelta(t, 3.0, last.BalanceUsed, 1e-9, "余额支付部分分→元")
+	assert.InDelta(t, 2.0, last.BalanceRefunded, 1e-9, "退款余额部分分→元")
 	assert.EqualValues(t, 0, resp.Items[0].OrderCount)
 }
 

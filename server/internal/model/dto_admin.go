@@ -362,11 +362,13 @@ type AdminTrafficResetLogItem struct {
 
 // AdminStatOrderPoint 订单日趋势点（date=YYYY-MM-DD）。
 type AdminStatOrderPoint struct {
-	Date           string  `json:"date"`
-	OrderCount     int64   `json:"order_count"`     // 当日创建订单数
-	CompletedCount int64   `json:"completed_count"` // 当日完成订单数
-	Revenue        float64 `json:"revenue"`         // 当日实收（元，按 paid_at）
-	Refunded       float64 `json:"refunded"`        // 当日退款额（元，按 updated_at 近似）
+	Date             string  `json:"date"`
+	OrderCount       int64   `json:"order_count"`       // 当日创建订单数
+	CompletedCount   int64   `json:"completed_count"`   // 当日完成订单数
+	Revenue          float64 `json:"revenue"`           // 当日实收现金部分（元，按 paid_at）
+	Refunded         float64 `json:"refunded"`          // 当日退款现金部分（元，按 updated_at 近似）
+	BalanceUsed      float64 `json:"balance_used"`      // 当日完成订单余额支付部分（元，按 paid_at）
+	BalanceRefunded  float64 `json:"balance_refunded"`  // 当日退款订单余额部分（元，按 updated_at 近似）
 }
 
 type AdminStatOrdersResp struct {

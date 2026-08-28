@@ -865,6 +865,10 @@ export interface AdminStatOrderPoint {
   completed_count: number
   revenue: number
   refunded: number
+  /** 当日完成订单的余额支付部分（元，与 revenue 按 paid_at 同口径） */
+  balance_used: number
+  /** 当日退款订单的余额部分（元，与 refunded 按 updated_at 同口径） */
+  balance_refunded: number
 }
 
 export interface AdminStatOrdersResp {

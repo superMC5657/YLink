@@ -24,6 +24,16 @@ async function enterPortal(page: Page, entryText: string, urlPattern: RegExp) {
   await expect(page).toHaveURL(urlPattern)
 }
 
+/**
+ * 进入管理端页面:desktop 侧边栏常驻直接点菜单;mobile(视口 < 768)菜单在抽屉里,先开抽屉。
+ */
+async function openAdminMenu(page: Page, menuText: string) {
+  if ((page.viewportSize()?.width ?? 1440) < 768) {
+    await page.locator('header button').first().click()
+  }
+  await page.getByText(menuText).first().click()
+}
+
 test.describe('角色区分(管理员)', () => {
   test.use({ viewport: { width: 1440, height: 900 } })
 
@@ -161,7 +171,7 @@ test.describe('邮件模板管理(F11 回归:locale 字面量花括号)', () => 
 
     await loginAs(page, 'admin@example.com', 'Admin@123456')
     await enterPortal(page, '管理后台', /#\/admin\/overview/)
-    await page.getByText('邮件模板').first().click()
+    await openAdminMenu(page, '邮件模板')
     await expect(page).toHaveURL(/#\/admin\/mail-templates/)
     await expect(page.locator('table tbody tr').first()).toBeVisible()
 
@@ -213,5 +223,29 @@ test.describe('总览快捷操作(按运营频率分组)', () => {
       'href',
       /#\/admin\/traffic-import/,
     )
+  })
+})
+
+test.describe('统计报表(F04)', () => {
+  test('报表页渲染含营收退款趋势四系列,全程无渲染错误', async ({ page }) => {
+    const errors: string[] = []
+    page.on('pageerror', (e) => errors.push('pageerror: ' + e.message))
+    page.on('console', (m) => {
+      if (m.type() === 'error') errors.push('console.error: ' + m.text())
+    })
+
+    await loginAs(page, 'admin@example.com', 'Admin@123456')
+    await enterPortal(page, '管理后台', /#\/admin\/overview/)
+    await openAdminMenu(page, '统计报表')
+    await expect(page).toHaveURL(/#\/admin\/reports/)
+
+    // 营收退款趋势卡:标题 + 口径说明(余额部分新增于 2026-08-28)
+    await expect(page.getByText('营收与退款趋势')).toBeVisible()
+    await expect(page.getByText(/实线为现金部分、虚线为余额部分/)).toBeVisible()
+
+    // 5 张图表容器均有内容渲染
+    await expect(page.locator('canvas')).toHaveCount(5)
+
+    expect(errors).toEqual([])
   })
 })

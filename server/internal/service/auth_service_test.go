@@ -194,7 +194,7 @@ func TestRefreshRotation(t *testing.T) {
 	require.NoError(t, err)
 	oldKey := "refresh:7:" + oldJTI.JTI
 	v, _ := e.mr.Get(oldKey)
-	assert.Equal(t, "1", v)
+	assert.NotEmpty(t, v) // F14:白名单值为会话元数据 JSON
 
 	// 刷新（需查用户）
 	e.expectUserByID(u)
@@ -207,7 +207,7 @@ func TestRefreshRotation(t *testing.T) {
 	// 新白名单存在
 	newJTI, _ := e.svc.jwt.Parse(newResp.RefreshToken)
 	newV, _ := e.mr.Get("refresh:7:" + newJTI.JTI)
-	assert.Equal(t, "1", newV)
+	assert.NotEmpty(t, newV)
 }
 
 func TestRefreshUnknownToken(t *testing.T) {

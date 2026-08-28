@@ -8,6 +8,8 @@ type SiteConfigResp struct {
 	SiteName           string            `json:"site_name"`
 	SiteLogo           string            `json:"site_logo"`
 	SiteDescription    string            `json:"site_description"`
+	PrimaryColor       string            `json:"primary_color"`  // 品牌主色(Hex,空=默认,F19)
+	BackgroundUrl      string            `json:"background_url"` // 品牌背景图 URL(空=默认,F19)
 	RegisterEnabled    bool              `json:"register_enabled"`
 	InviteCodeRequired bool              `json:"invite_code_required"`
 	AppDownloads       map[string]string `json:"app_downloads"`

@@ -32,6 +32,25 @@ const (
 	CommissionRevoked = 2 // 已撤销
 )
 
+// 佣金账本分类（commission_logs.biz_type，F02）
+const (
+	CommissionBizOrder    = 0 // 订单佣金
+	CommissionBizWithdraw = 1 // 提现流水
+)
+
+// 提现单状态（commission_withdraws.status，F02；与佣金状态数值复用，语义为提交/已发放/已退回）
+const (
+	WithdrawPending  = 0 // 处理中
+	WithdrawPaid     = 1 // 已发放
+	WithdrawRefunded = 2 // 已退回
+)
+
+// 工单类型（tickets.type，F02；level 为优先级语义，勿混用）
+const (
+	TicketTypeNormal   = 0
+	TicketTypeWithdraw = 1
+)
+
 // 订阅周期
 var Periods = []string{"month", "quarter", "half_year", "year", "onetime"}
 
@@ -186,20 +205,39 @@ type InviteCode struct {
 func (InviteCode) TableName() string { return "invite_codes" }
 
 // CommissionLog 对应 commission_logs 表。
+// biz_type=0 为订单佣金（order_no 全表唯一约束）；biz_type=1 为提现流水（order_no='w<提现单ID>'）。
 type CommissionLog struct {
 	ID           int64      `gorm:"primaryKey" json:"-"`
 	InviteUserID int64      `gorm:"index" json:"-"`
 	FromUserID   int64      `json:"-"`
-	OrderNo      string     `gorm:"size:32;uniqueIndex" json:"order_no"`
+	OrderNo      string     `gorm:"size:32;index" json:"order_no"`
 	OrderAmount  int64      `json:"-"`
 	Rate         int        `json:"rate"`
 	Amount       int64      `json:"-"`
+	BizType      int        `gorm:"default:0" json:"-"`
 	Status       int        `gorm:"default:0" json:"status"`
 	ConfirmedAt  *time.Time `json:"confirmed_at"`
 	CreatedAt    time.Time  `json:"created_at"`
 }
 
 func (CommissionLog) TableName() string { return "commission_logs" }
+
+// CommissionWithdraw 对应 commission_withdraws 表：佣金提现单（F02，仅代理商）。
+type CommissionWithdraw struct {
+	ID           int64      `gorm:"primaryKey" json:"-"`
+	UserID       int64      `gorm:"index:idx_withdraw_user,priority:1" json:"-"`
+	TicketID     int64      `gorm:"uniqueIndex:uk_withdraw_ticket" json:"ticket_id"`
+	Amount       int64      `json:"-"`
+	Method       string     `gorm:"size:32" json:"method"`
+	Account      string     `gorm:"size:255" json:"account"`
+	Status       int        `gorm:"default:0" json:"status"` // 0=处理中 1=已发放 2=已退回
+	ReviewRemark *string    `gorm:"size:255" json:"-"`
+	ReviewedAt   *time.Time `json:"reviewed_at"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"-"`
+}
+
+func (CommissionWithdraw) TableName() string { return "commission_withdraws" }
 
 // ServerGroup 对应 server_groups 表。
 type ServerGroup struct {
@@ -241,16 +279,30 @@ type Notice struct {
 
 func (Notice) TableName() string { return "notices" }
 
-// Knowledge 对应 knowledges 表。
-type Knowledge struct {
+// KnowledgeCategory 对应 knowledge_categories 表：知识库分类（F15，按语言隔离）。
+type KnowledgeCategory struct {
 	ID        int64     `gorm:"primaryKey" json:"id"`
-	Category  string    `gorm:"size:64" json:"category"`
-	Title     string    `gorm:"size:128" json:"title"`
-	Body      string    `gorm:"type:text" json:"body,omitempty"`
-	Language  string    `gorm:"size:10;default:zh-CN" json:"language,omitempty"`
-	IsShow    bool      `gorm:"default:true" json:"-"`
-	Sort      int       `gorm:"default:0" json:"-"`
-	UpdatedAt time.Time `json:"updated_at"`
+	Language  string    `gorm:"size:10;default:zh-CN" json:"language"`
+	Name      string    `gorm:"size:64;uniqueIndex:uk_knowledge_categories" json:"name"`
+	Sort      int       `gorm:"default:0" json:"sort"`
+	CreatedAt time.Time `json:"-"`
+	UpdatedAt time.Time `json:"-"`
+}
+
+func (KnowledgeCategory) TableName() string { return "knowledge_categories" }
+
+// Knowledge 对应 knowledges 表。
+// Category 为展示用冗余字符串；CategoryID 为 knowledge_categories 归属（F15）。
+type Knowledge struct {
+	ID         int64     `gorm:"primaryKey" json:"id"`
+	Category   string    `gorm:"size:64" json:"category"`
+	CategoryID *int64    `gorm:"index" json:"-"`
+	Title      string    `gorm:"size:128" json:"title"`
+	Body       string    `gorm:"type:text" json:"body,omitempty"`
+	Language   string    `gorm:"size:10;default:zh-CN" json:"language,omitempty"`
+	IsShow     bool      `gorm:"default:true" json:"-"`
+	Sort       int       `gorm:"default:0" json:"-"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 func (Knowledge) TableName() string { return "knowledges" }
@@ -261,6 +313,7 @@ type Ticket struct {
 	UserID      int64      `gorm:"index" json:"-"`
 	Subject     string     `gorm:"size:128" json:"subject"`
 	Level       int        `json:"level"`
+	Type        int        `gorm:"default:0" json:"type"` // 0=普通 1=佣金提现(F02)
 	Status      int        `gorm:"default:0" json:"status"`
 	ReopenCount int        `gorm:"default:0" json:"reopen_count"` // 已重开次数(最多一次)
 	LastReplyAt *time.Time `json:"last_reply_at"`
@@ -365,3 +418,13 @@ type MailLog struct {
 }
 
 func (MailLog) TableName() string { return "mail_logs" }
+
+// MailTemplate 对应 mail_templates 表：自定义邮件模板（F11），缺失时回退内置文案。
+type MailTemplate struct {
+	Name      string    `gorm:"primaryKey;size:64" json:"name"`
+	Subject   string    `gorm:"size:255" json:"subject"`
+	Body      string    `gorm:"type:text" json:"body"`
+	UpdatedAt time.Time `json:"-"`
+}
+
+func (MailTemplate) TableName() string { return "mail_templates" }

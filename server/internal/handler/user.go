@@ -94,3 +94,38 @@ func (h *User) ChangePassword(c *gin.Context) {
 	}
 	resp.OK(c, nil)
 }
+
+// ---- 会话管理（F14） ----
+
+// Sessions 活跃会话列表
+// @Summary 活跃会话列表（refresh 白名单维度，含设备/IP/时间，current 标记当前会话）
+// @Tags 用户
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} resp.Body{data=object{list=[]model.UserSessionItem}}
+// @Router /user/sessions [get]
+func (h *User) Sessions(c *gin.Context) {
+	data, err := h.svc.ListSessions(c.Request.Context(), middleware.UserID(c), c.GetString("jti"))
+	if err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.OK(c, gin.H{"list": data})
+}
+
+// RevokeSession 踢下线指定会话
+// @Summary 踢下线指定会话（该会话 access 立即失效，当前会话不可踢除）
+// @Tags 用户
+// @Security BearerAuth
+// @Produce json
+// @Param jti path string true "会话标识（GET /user/sessions 返回的 jti）"
+// @Success 200 {object} resp.Body
+// @Failure 404 {object} resp.Body
+// @Router /user/sessions/{jti} [delete]
+func (h *User) RevokeSession(c *gin.Context) {
+	if err := h.svc.RevokeSession(c.Request.Context(), middleware.UserID(c), c.Param("jti"), c.GetString("jti")); err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.OK(c, nil)
+}

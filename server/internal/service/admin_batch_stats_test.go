@@ -235,4 +235,3 @@ func TestStatTrafficTopN(t *testing.T) {
 	assert.Equal(t, "香港 01", resp.NodeTop[0].Name)
 	assert.EqualValues(t, 2147483648, resp.NodeTop[0].Bytes)
 }
-

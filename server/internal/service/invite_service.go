@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
@@ -13,6 +14,7 @@ import (
 	"ylink-backend/internal/config"
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/errs"
+	"ylink-backend/internal/pkg/sanitize"
 	"ylink-backend/internal/repo"
 )
 
@@ -191,6 +193,99 @@ func (s *InviteService) Transfer(ctx context.Context, userID int64, amountFen in
 		return nil, err
 	}
 	return resp, nil
+}
+
+// ---- 佣金提现（F02，仅代理商） ----
+
+// SubmitWithdraw POST /invite/withdraw 提交佣金提现工单。
+// 最小闭环口径（spec F02）：仅代理商可发起；提交即扣减 commission_balance（同事务行锁防双花），
+// 写 commission_logs 提现流水（biz_type=1, status=0）与 commission_withdraws 提现单；
+// 工单首条消息为结构化提现信息，管理员手动确认打款或拒绝退回。
+func (s *InviteService) SubmitWithdraw(ctx context.Context, userID int64, req *model.WithdrawCreateReq) (*model.WithdrawItem, error) {
+	amountFen := model.YuanToFen(req.Amount)
+	var out *model.WithdrawItem
+	err := repo.WithTx(s.db, func(tx *gorm.DB) error {
+		user, err := s.repos.User.GetByIDForUpdate(tx, userID)
+		if err != nil {
+			return errs.ErrNotFound
+		}
+		if user.Role != model.RoleAgent {
+			return errs.ErrWithdrawForbidden
+		}
+		if user.CommissionBalance < amountFen {
+			return errs.ErrCommissionInsufficient
+		}
+		// 提交即扣减：重复提交相同金额受余额拦截（防双花）
+		user.CommissionBalance -= amountFen
+		if err := s.repos.User.Save(tx, user); err != nil {
+			return err
+		}
+		now := time.Now()
+		ticket := &model.Ticket{
+			UserID: userID, Subject: "佣金提现申请", Level: 0, Type: model.TicketTypeWithdraw,
+			Status: 0, LastReplyAt: &now,
+		}
+		if err := s.repos.Ticket.Create(tx, ticket); err != nil {
+			return err
+		}
+		method := sanitize.Text(req.Method)
+		account := sanitize.Text(req.Account)
+		msg := fmt.Sprintf("【佣金提现申请】\n提现方式：%s\n收款账号：%s\n金额：%.2f 元",
+			method, account, model.FenToYuan(amountFen))
+		if err := s.repos.Ticket.CreateMessage(tx, &model.TicketMessage{
+			TicketID: ticket.ID, SenderType: 0, SenderID: userID, Message: msg,
+		}); err != nil {
+			return err
+		}
+		w := &model.CommissionWithdraw{
+			UserID: userID, TicketID: ticket.ID, Amount: amountFen,
+			Method: method, Account: account, Status: model.WithdrawPending,
+		}
+		if err := s.repos.Withdraw.Create(tx, w); err != nil {
+			return err
+		}
+		// 提现流水入账（order_no='w<提现单ID>'；仅 biz_type=0 受订单号唯一约束）
+		if err := s.repos.Commission.Create(tx, &model.CommissionLog{
+			InviteUserID: userID, FromUserID: userID,
+			OrderNo: fmt.Sprintf("w%d", w.ID), Amount: amountFen,
+			BizType: model.CommissionBizWithdraw, Status: model.WithdrawPending,
+		}); err != nil {
+			return err
+		}
+		out = toWithdrawItem(w)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// Withdraws GET /invite/withdraws 本人提现记录分页。
+func (s *InviteService) Withdraws(ctx context.Context, userID int64, page, pageSize int) ([]model.WithdrawItem, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 50 {
+		pageSize = 10
+	}
+	list, total, err := s.repos.Withdraw.ListByUser(s.db, userID, page, pageSize)
+	if err != nil {
+		return nil, 0, err
+	}
+	out := make([]model.WithdrawItem, 0, len(list))
+	for i := range list {
+		out = append(out, *toWithdrawItem(&list[i]))
+	}
+	return out, total, nil
+}
+
+func toWithdrawItem(w *model.CommissionWithdraw) *model.WithdrawItem {
+	return &model.WithdrawItem{
+		ID: w.ID, Amount: model.FenToYuan(w.Amount), Method: w.Method, Account: w.Account,
+		Status: w.Status, ReviewRemark: w.ReviewRemark, TicketID: w.TicketID,
+		ReviewedAt: w.ReviewedAt, CreatedAt: w.CreatedAt,
+	}
 }
 
 // ---- 代理商 ----

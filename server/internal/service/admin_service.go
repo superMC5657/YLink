@@ -674,7 +674,7 @@ func (s *AdminService) ListCommissions(ctx context.Context, status *int, page, p
 			ID: cl.ID, InviteUserID: cl.InviteUserID, InviteEmail: emails[cl.InviteUserID],
 			FromUserID: cl.FromUserID, FromEmail: emails[cl.FromUserID], OrderNo: cl.OrderNo,
 			OrderAmount: model.FenToYuan(cl.OrderAmount), Rate: cl.Rate, Amount: model.FenToYuan(cl.Amount),
-			Status: cl.Status, ConfirmedAt: cl.ConfirmedAt, CreatedAt: cl.CreatedAt,
+			Type: cl.BizType, Status: cl.Status, ConfirmedAt: cl.ConfirmedAt, CreatedAt: cl.CreatedAt,
 		})
 	}
 	return out, total, nil
@@ -741,7 +741,7 @@ func (s *AdminService) ListTickets(ctx context.Context, page, pageSize int) ([]m
 	for _, t := range list {
 		out = append(out, model.AdminTicketItem{
 			ID: t.ID, UserID: t.UserID, UserEmail: emails[t.UserID], Subject: t.Subject,
-			Level: t.Level, Status: t.Status, ReopenCount: t.ReopenCount, LastReplyAt: t.LastReplyAt, CreatedAt: t.CreatedAt,
+			Level: t.Level, Type: t.Type, Status: t.Status, ReopenCount: t.ReopenCount, LastReplyAt: t.LastReplyAt, CreatedAt: t.CreatedAt,
 		})
 	}
 	return out, total, nil
@@ -761,7 +761,9 @@ func (s *AdminService) GetTicketDetail(ctx context.Context, id int64) (*model.Ti
 	for _, m := range messages {
 		msgs = append(msgs, model.TicketMsgResp{ID: m.ID, SenderType: m.SenderType, Message: m.Message, CreatedAt: m.CreatedAt})
 	}
-	return &model.TicketDetailResp{ID: t.ID, Subject: t.Subject, Level: t.Level, Status: t.Status, CreatedAt: t.CreatedAt, Messages: msgs}, nil
+	return &model.TicketDetailResp{ID: t.ID, Subject: t.Subject, Level: t.Level, Type: t.Type,
+		Status: t.Status, CreatedAt: t.CreatedAt, Messages: msgs, Withdraw: ticketWithdrawInfo(s.db, t),
+	}, nil
 }
 
 // ReplyTicket POST /admin/tickets/{id}/reply（客服回复 → 状态已回复）。

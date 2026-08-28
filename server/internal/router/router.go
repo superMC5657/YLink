@@ -154,6 +154,8 @@ func registerUser(g *gin.RouterGroup, d Deps, a *app) {
 	authed.GET("/user/profile", a.userH.Profile)
 	authed.PUT("/user/profile", a.userH.UpdateProfile)
 	authed.POST("/user/password/change", a.userH.ChangePassword)
+	authed.GET("/user/sessions", a.userH.Sessions)              // F14 会话列表
+	authed.DELETE("/user/sessions/:jti", a.userH.RevokeSession) // F14 踢下线
 	authed.GET("/servers", a.serverH.List)
 	// 交易
 	authed.GET("/plans", a.orderH.Plans)
@@ -175,6 +177,8 @@ func registerUser(g *gin.RouterGroup, d Deps, a *app) {
 	authed.DELETE("/invite/codes/:code", a.inviteH.DeleteCode)
 	authed.GET("/invite/records", a.inviteH.Records)
 	authed.POST("/invite/transfer", a.inviteH.Transfer)
+	authed.POST("/invite/withdraw", a.inviteH.Withdraw)  // F02 佣金提现（仅代理商）
+	authed.GET("/invite/withdraws", a.inviteH.Withdraws) // F02 提现记录
 	authed.GET("/agent/status", a.inviteH.AgentStatus)
 	authed.POST("/agent/apply", a.inviteH.ApplyAgent)
 	// 工单
@@ -237,17 +241,25 @@ func registerAdmin(g *gin.RouterGroup, d Deps, a *app) {
 	// 内容
 	admin.GET("/notices", a.adminH.ListNotices)
 	admin.POST("/notices", a.adminH.CreateNotice)
+	admin.POST("/notices/sort", a.adminH.SortNotices) // F15 公告排序（置于 :id 之前避免歧义）
 	admin.PUT("/notices/:id", a.adminH.UpdateNotice)
 	admin.DELETE("/notices/:id", a.adminH.DeleteNotice)
 	admin.GET("/knowledges", a.adminH.ListKnowledges)
 	admin.POST("/knowledges", a.adminH.CreateKnowledge)
+	admin.POST("/knowledges/sort", a.adminH.SortKnowledges) // F15 知识库排序
 	admin.PUT("/knowledges/:id", a.adminH.UpdateKnowledge)
 	admin.DELETE("/knowledges/:id", a.adminH.DeleteKnowledge)
+	admin.GET("/knowledge-categories", a.adminH.ListKnowledgeCategories) // F15 分类管理
+	admin.POST("/knowledge-categories", a.adminH.CreateKnowledgeCategory)
+	admin.PUT("/knowledge-categories/:id", a.adminH.UpdateKnowledgeCategory)
+	admin.DELETE("/knowledge-categories/:id", a.adminH.DeleteKnowledgeCategory)
 	// 工单
 	admin.GET("/tickets", a.adminH.ListTickets)
 	admin.GET("/tickets/:id", a.adminH.TicketDetail)
 	admin.POST("/tickets/:id/reply", a.adminH.ReplyTicket)
 	admin.POST("/tickets/:id/close", a.adminH.CloseTicket)
+	admin.POST("/tickets/:id/withdraw/pay", a.adminH.WithdrawPay)       // F02 确认打款
+	admin.POST("/tickets/:id/withdraw/reject", a.adminH.WithdrawReject) // F02 拒绝退回
 	// 代理
 	admin.GET("/agent/applies", a.adminH.ListAgentApplies)
 	admin.POST("/agent/applies/:id/approve", a.adminH.ApproveAgent)
@@ -255,13 +267,19 @@ func registerAdmin(g *gin.RouterGroup, d Deps, a *app) {
 	// 佣金
 	admin.GET("/commission-logs", a.adminH.ListCommissions)
 	// 流量
-	// 流量
 	admin.POST("/traffic/import", a.adminH.ImportTraffic)
 	admin.POST("/traffic/reset", a.adminH.ResetTraffic)      // F16 流量重置
 	admin.GET("/traffic/resets", a.adminH.ListTrafficResets) // F16 重置记录
 	// 设置
 	admin.GET("/settings", a.adminH.ListSettings)
 	admin.PUT("/settings", a.adminH.SaveSetting)
+	// 邮件模板（F11）
+	admin.GET("/mail-templates", a.adminH.ListMailTemplates)
+	admin.PUT("/mail-templates/:name", a.adminH.SaveMailTemplate)
+	admin.DELETE("/mail-templates/:name", a.adminH.ResetMailTemplate)
+	admin.POST("/mail-templates/:name/test", a.adminH.TestMailTemplate)
+	// 版本检查（F20）
+	admin.GET("/version", a.adminH.Version)
 }
 
 // registerClient 订阅下发端点：代理客户端直连，免登录、任意来源。

@@ -214,6 +214,18 @@ const routes: RouteRecordRaw[] = [
         meta: { title: 'admin.trafficImport' },
       },
       {
+        path: 'mail-templates',
+        name: 'admin-mail-templates',
+        component: () => import('@/views/admin/AdminMailTemplatesView.vue'),
+        meta: { title: 'admin.mailTemplates' },
+      },
+      {
+        path: 'version',
+        name: 'admin-version',
+        component: () => import('@/views/admin/AdminVersionView.vue'),
+        meta: { title: 'admin.version' },
+      },
+      {
         path: 'settings',
         name: 'admin-settings',
         component: () => import('@/views/admin/AdminSettingsView.vue'),

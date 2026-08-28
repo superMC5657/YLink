@@ -97,6 +97,9 @@ onMounted(() => void ticket.fetch())
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-2">
                 <span class="truncate text-14 font-500 text-[var(--c-text)]">{{ tk.subject }}</span>
+                <StatusBadge v-if="tk.type === 1" type="primary">
+                  {{ t('ticket.withdrawType') }}
+                </StatusBadge>
                 <span class="shrink-0 text-14 text-[var(--c-text-sub)]"
                   >{{ t('ticket.level') }}:{{ ticketLevelLabel(tk.level) }}</span
                 >

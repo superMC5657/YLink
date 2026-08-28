@@ -12,6 +12,9 @@ import type {
   AdminSendMailResp,
   AdminCommissionItem,
   AdminCouponItem,
+  AdminKnowledgeCategoryItem,
+  AdminKnowledgeCategoryReq,
+  AdminKnowledgeCategoryUpdateReq,
   AdminCouponReq,
   AdminKnowledgeItem,
   AdminKnowledgeReq,
@@ -25,9 +28,13 @@ import type {
   AdminServerGroupItem,
   AdminServerGroupReq,
   AdminServerItem,
+  AdminMailTemplateItem,
+  AdminMailTemplateReq,
+  AdminMailTemplateTestReq,
   AdminServerReq,
   AdminSettingsItem,
   AdminSettingsReq,
+  AdminSortReq,
   AdminSortServerReq,
   AdminStatOrdersResp,
   AdminStatTrafficResp,
@@ -39,6 +46,7 @@ import type {
   AdminTrafficResetResp,
   AdminUpdateUserReq,
   AdminUserItem,
+  AdminVersionResp,
   PageResult,
   RefundReq,
   TrafficImportReq,
@@ -113,6 +121,11 @@ export const apiAdmin = {
   replyTicket: (id: number, body: AdminReplyReq) =>
     http.post<null>(ap(`tickets/${id}/reply`), { body }),
   closeTicket: (id: number) => http.post<null>(ap(`tickets/${id}/close`)),
+  // 佣金提现审核（F02）
+  withdrawPay: (id: number, body: AdminApproveReq) =>
+    http.post<null>(ap(`tickets/${id}/withdraw/pay`), { body }),
+  withdrawReject: (id: number, body: AdminApproveReq) =>
+    http.post<null>(ap(`tickets/${id}/withdraw/reject`), { body }),
 
   // 优惠券
   coupons: () => http.get<{ list: AdminCouponItem[] }>(ap('coupons')),
@@ -123,6 +136,7 @@ export const apiAdmin = {
   // 公告
   notices: () => http.get<{ list: AdminNoticeItem[] }>(ap('notices')),
   createNotice: (body: AdminNoticeReq) => http.post<AdminNoticeItem>(ap('notices'), { body }),
+  sortNotices: (body: AdminSortReq) => http.post<null>(ap('notices/sort'), { body }),
   updateNotice: (id: number, body: AdminNoticeReq) => http.put<null>(ap(`notices/${id}`), { body }),
   deleteNotice: (id: number) => http.delete<null>(ap(`notices/${id}`)),
 
@@ -130,9 +144,19 @@ export const apiAdmin = {
   knowledges: () => http.get<{ list: AdminKnowledgeItem[] }>(ap('knowledges')),
   createKnowledge: (body: AdminKnowledgeReq) =>
     http.post<AdminKnowledgeItem>(ap('knowledges'), { body }),
+  sortKnowledges: (body: AdminSortReq) => http.post<null>(ap('knowledges/sort'), { body }),
   updateKnowledge: (id: number, body: AdminKnowledgeReq) =>
     http.put<null>(ap(`knowledges/${id}`), { body }),
   deleteKnowledge: (id: number) => http.delete<null>(ap(`knowledges/${id}`)),
+
+  // 知识库分类（F15）
+  knowledgeCategories: (query: { language?: string }) =>
+    http.get<{ list: AdminKnowledgeCategoryItem[] }>(ap('knowledge-categories'), { query }),
+  createKnowledgeCategory: (body: AdminKnowledgeCategoryReq) =>
+    http.post<AdminKnowledgeCategoryItem>(ap('knowledge-categories'), { body }),
+  updateKnowledgeCategory: (id: number, body: AdminKnowledgeCategoryUpdateReq) =>
+    http.put<null>(ap(`knowledge-categories/${id}`), { body }),
+  deleteKnowledgeCategory: (id: number) => http.delete<null>(ap(`knowledge-categories/${id}`)),
 
   // 代理审批
   agentApplies: (query: { page?: number; page_size?: number; status?: number | '' }) =>
@@ -173,6 +197,17 @@ export const apiAdmin = {
     http.get<AdminStatUsersResp>(ap('stat/users'), { query }),
   statTraffic: (query: { days?: number }) =>
     http.get<AdminStatTrafficResp>(ap('stat/traffic'), { query }),
+
+  // 邮件模板（F11）
+  mailTemplates: () => http.get<{ list: AdminMailTemplateItem[] }>(ap('mail-templates')),
+  saveMailTemplate: (name: string, body: AdminMailTemplateReq) =>
+    http.put<null>(ap(`mail-templates/${name}`), { body }),
+  resetMailTemplate: (name: string) => http.delete<null>(ap(`mail-templates/${name}`)),
+  testMailTemplate: (name: string, body: AdminMailTemplateTestReq) =>
+    http.post<null>(ap(`mail-templates/${name}/test`), { body }),
+
+  // 版本检查（F20）
+  version: () => http.get<AdminVersionResp>(ap('version')),
 
   // 站点设置
   settings: () => http.get<{ list: AdminSettingsItem[] }>(ap('settings')),

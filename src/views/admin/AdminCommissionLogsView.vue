@@ -103,7 +103,12 @@ onMounted(() => void load())
               <td class="num-font">{{ c.id }}</td>
               <td class="text-14">{{ c.invite_email }}</td>
               <td class="text-14 text-[var(--c-text-sub)]">{{ c.from_email }}</td>
-              <td class="num-font text-14">{{ c.order_no }}</td>
+              <td class="num-font text-14">
+                {{ c.order_no }}
+                <StatusBadge v-if="c.type === 1" type="primary" class="ml-1">
+                  {{ t('adminCommissionLogs.withdrawType') }}
+                </StatusBadge>
+              </td>
               <td class="num-font">{{ c.order_amount.toFixed(2) }}</td>
               <td class="num-font">{{ c.rate }}%</td>
               <td class="num-font font-600 text-[var(--c-pink)]">

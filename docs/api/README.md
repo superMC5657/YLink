@@ -78,6 +78,8 @@
 | 12001 | 400 | 优惠券无效/已过期/不满足条件 |
 | 13001 | 400 | 邀请码数量已达上限 |
 | 13002 | 400 | 可划转佣金不足 |
+| 13003 | 403 | 仅代理商可发起佣金提现（F02） |
+| 13004 | 409 | 提现单状态不允许该操作（重复确认/已处理，F02） |
 | 14001 | 409 | 工单已关闭 |
 | 14002 | 409 | 工单仅可重开一次 |
 | 15001 | 400 | 不满足代理申请条件 |
@@ -98,6 +100,8 @@
     "site_name": "YLink",
     "site_logo": "https://.../logo.png",
     "site_description": "高速稳定的网络加速服务",
+    "primary_color": "",
+    "background_url": "",
     "register_enabled": true,
     "invite_code_required": false,
     "app_downloads": { "windows": "https://...", "macos": "https://...", "android": "https://..." },
@@ -244,6 +248,21 @@
 ```
 
 范围最大 90 天，按日期升序；无数据返回空 list。
+
+### 5.7 会话管理（F14）
+
+`GET /user/sessions`
+
+```json
+{ "code": 0, "message": "ok",
+  "data": { "list": [ { "jti": "5f2b7c9e-…", "current": true,
+                         "ip": "1.2.3.4", "user_agent": "Mozilla/5.0 …",
+                         "created_at": "2026-08-28T10:00:00+08:00" } ] } }
+```
+
+活跃会话列表（refresh 白名单维度，Redis 元数据）。`jti` 为会话标识；`current` 标记当前会话；升级前登录的历史会话 `ip`/`user_agent`/`created_at` 可能为空（降级展示）。
+
+`DELETE /user/sessions/{jti}` — 踢下线指定会话：删除 refresh 白名单并写入踢下线标记，该会话 access **立即失效**，其余会话不受影响；当前会话不可自行踢除（40000），会话不存在返回 40400。
 
 ---
 
@@ -471,6 +490,18 @@ status：0=确认中 1=已发放 2=已撤销；列表页只展示已发放（sta
 
 请求：`{ "amount": 20.00 }`；响应：`{ "balance": 20.00, "commission_balance": 0.00 }`；错误 13002 余额不足。
 
+### 11.5 佣金提现（F02，仅代理商）
+
+最小闭环口径（spec F02）：仅代理商（`role=RoleAgent`）可发起；通过**工单**提交，管理员在管理端工单详情**手动确认打款**（线下打款，系统记账与审计）或**拒绝**（自动退回佣金）。提交即扣减 `commission_balance`（同事务行锁防双花），佣金账本 `commission_logs` 以 `biz_type=1` 提现流水记录提交/完成/退回三态。
+
+`POST /invite/withdraw`
+
+请求：`{ "amount": 100.00, "method": "alipay", "account": "agent@example.com" }`
+响应 data：提现单对象 `{ "id", "amount"(元), "method", "account", "status"(0=处理中/1=已发放/2=已退回), "review_remark", "ticket_id", "reviewed_at", "created_at" }`。
+错误：13003 非代理商（HTTP 403）/ 13002 佣金不足。提交成功后自动创建 `type=1` 提现工单（首条消息为结构化提现信息）。
+
+`GET /invite/withdraws?page=&page_size=` — 本人提现记录分页（字段同上）。
+
 ---
 
 ## 12. 代理商
@@ -509,7 +540,7 @@ status：0=确认中 1=已发放 2=已撤销；列表页只展示已发放（sta
                 "last_reply_at": "2026-07-01T12:00:00+08:00", "created_at": "2026-06-30T09:00:00+08:00" } ] } }
 ```
 
-status：0=待回复 1=已回复 2=已关闭；level：0=低 1=中 2=高；reopen_count：已重开次数（0/1，最多一次）。
+status：0=待回复 1=已回复 2=已关闭；level：0=低 1=中 2=高；type：0=普通 1=佣金提现（F02，提现工单由 `POST /invite/withdraw` 创建，用户不可手动创建）；reopen_count：已重开次数（0/1，最多一次）。
 
 `POST /tickets`
 
@@ -533,6 +564,8 @@ status：0=待回复 1=已回复 2=已关闭；level：0=低 1=中 2=高；reope
 `POST /tickets/{id}/reply`：`{ "message": "…" }`；已关闭返回 14001。回复后状态：用户回复→0，客服回复→1。
 `POST /tickets/{id}/close`：返回更新后工单。
 `POST /tickets/{id}/reopen`：重新打开工单（状态回 0，reopen_count+1）。仅已关闭且未重开过（reopen_count=0）可重开，未关闭返回 40900，已重开过返回 14002；返回更新后工单。
+
+> F02：提现工单（type=1）的详情响应附带 `withdraw` 对象（提现单金额/方式/账号/状态，见 §11.5）；管理端通过 §16 的 `POST /admin/tickets/{id}/withdraw/pay|reject` 审核后工单自动关闭。
 
 ---
 
@@ -587,10 +620,12 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 | 节点 | `GET/POST/PUT/DELETE /admin/servers`、`POST /admin/servers/batch`（F09 批量删除/更新公共字段）、`POST /admin/servers/{id}/copy`（F09 复制节点）、`POST /admin/servers/sort`（F09 批量排序）、`/admin/server-groups`、`POST /admin/servers/{id}/node-key/reset`（重置节点密钥，审计；旧密钥立即失效） |
 | 订单 | `GET /admin/orders`、`POST /admin/orders/{no}/refund`（审计 + 佣金回滚）、`POST /admin/orders/{no}/close`（关闭待支付订单，审计） |
 | 优惠券 | `GET/POST/PUT/DELETE /admin/coupons` |
-| 内容 | `GET/POST/PUT/DELETE /admin/notices`、`/admin/knowledges` |
-| 工单 | `GET /admin/tickets`、`GET /admin/tickets/{id}`、`POST /admin/tickets/{id}/reply`、`/close` |
+| 内容 | `GET/POST/PUT/DELETE /admin/notices`、`/admin/knowledges`、`POST /admin/notices/sort`（F15 排序）、`POST /admin/knowledges/sort`（F15 排序）、`GET/POST/PUT/DELETE /admin/knowledge-categories`（F15 分类管理） |
+| 工单 | `GET /admin/tickets`、`GET /admin/tickets/{id}`、`POST /admin/tickets/{id}/reply`、`/close`、`POST /admin/tickets/{id}/withdraw/pay`（F02 确认打款）、`POST /admin/tickets/{id}/withdraw/reject`（F02 拒绝退回） |
 | 代理 | `GET /admin/agent/applies`、`POST /admin/agent/applies/{id}/approve|reject` |
-| 佣金 | `GET /admin/commission-logs` |
+| 佣金 | `GET /admin/commission-logs`（含订单佣金与提现流水，`type` 区分） |
+| 邮件模板 | `GET /admin/mail-templates`、`PUT/DELETE /admin/mail-templates/{name}`、`POST /admin/mail-templates/{name}/test`（F11） |
+| 版本 | `GET /admin/version`（F20 版本检查 + 变更日志） |
 | 流量 | `POST /admin/traffic/import`（一期模式 B 手工导入）、`POST /admin/traffic/reset`（F16 按用户重置流量）、`GET /admin/traffic/resets`（F16 重置记录分页） |
 | 配置 | `GET/PUT /admin/settings` |
 
@@ -619,7 +654,16 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 - `GET /admin/stat/orders?days=`（2026-08-28 F04）：订单日趋势，`days ∈ 1..365`（默认 30）。返回 `{days, items: [{date, order_count, completed_count, revenue, refunded}]}`；`order_count` 按创建日、`completed_count`/`revenue` 按 `paid_at`（已完成订单）、`refunded` 按 `updated_at` 近似（已退款订单）；金额单位元；逐日补零便于绘图。
 - `GET /admin/stat/users?days=`（2026-08-28 F04）：返回 `{days, register_trend: [{date, count}], plan_distribution: [{plan_id, plan_name, users}]}`；注册按 `created_at` 逐日补零，套餐分布为当前生效订阅（`plan_id` 非空）按套餐聚合、按人数降序。
 - `GET /admin/stat/traffic?days=`（2026-08-28 F04）：返回 `{days, user_top: [{user_id, email, total_bytes}], node_top: [{server_id, name, bytes}]}` 各 Top10；`user_top` 按 `traffic_logs` 日明细 `u+d` 合计（受 `days` 限定），`node_top` 按 `node_user_stats` 上报累计值合计（未乘倍率，节点全周期，无时间维度）。
-- `GET /admin/settings` 返回 `{list: [{key, value}]}`，`value` 为配置项 JSON 字符串（`site`/`payment`/`invite`/`agent`/`order`/`templates`）；`PUT /admin/settings` 请求体 `{key, value}`（单 key 保存，写后失效配置缓存）。
+- `GET /admin/settings` 返回 `{list: [{key, value}]}`，`value` 为配置项 JSON 字符串（`site`/`payment`/`invite`/`agent`/`order`）；`PUT /admin/settings` 请求体 `{key, value}`（单 key 保存，写后失效配置缓存）。`site` 支持品牌键：`primary_color`（Hex 主色，空=默认）与 `background_url`（背景图 URL，空=默认），经 `GET /config` 下发（F19）。
+- `POST /admin/tickets/{id}/withdraw/pay` / `withdraw/reject`（2026-08-28 F02）：提现工单（type=1）审核。pay=确认打款（线下打款由管理员线下执行，系统内将提现流水记为完成并关闭工单）；reject=拒绝并**自动退回**佣金（写 `withdraw_refund` 三态流水）后关闭工单。请求体 `{remark?}` 可选备注（回写工单系统消息与提现单 `review_remark`）。仅处理中的提现单可审（否则 13004），两类操作均写审计（`withdraw_pay`/`withdraw_reject`）。
+- `GET /admin/tickets` 与 `GET /admin/tickets/{id}`（2026-08-28 F02）：列表项与详情含 `type ∈ {0=普通,1=佣金提现}`；详情对提现工单附 `withdraw` 提现单信息（`id/user_id/amount(元)/method/account/status/review_remark/reviewed_at/created_at`）。
+- `POST /admin/notices/sort`、`POST /admin/knowledges/sort`（2026-08-28 F15）：请求体 `{items: [{id, sort}]}`（1..500 项），单事务按传入 sort 值更新，写审计（`sort_notice`/`sort_knowledge`）；用户端公告按 `sort ASC` 展示、知识库分组顺序按分类 `sort`。
+- `GET /admin/knowledge-categories?language=`（2026-08-28 F15）：分类列表（language 空=全部），条目 `{id, language, name, sort, knowledge_count}`。`POST /admin/knowledge-categories` 请求体 `{language, name, sort?}`；`PUT /admin/knowledge-categories/{id}` 请求体 `{name, sort?}`（改名级联同步知识文档展示分类）；`DELETE /admin/knowledge-categories/{id}`（分类下仍有文档拒绝 40000）。知识保存（`AdminKnowledgeReq`）支持 `category_id?` 显式归类，仅传 `category` 时按（language, name）自动归并/建行。
+- `GET /admin/mail-templates`（2026-08-28 F11）：邮件模板列表（内置默认 + 自定义覆盖合并），条目 `{name, subject, body, is_custom, placeholders, remark, updated_at}`；内置模板名：`captcha`（占位符 `{{.site_name}}`/`{{.code}}`）、`expire_remind`（`{{.expire_date}}`）、`traffic_remind`（`{{.percent}}`）。
+- `PUT /admin/mail-templates/{name}`（2026-08-28 F11）：请求体 `{subject, body}`（Go template 语法，保存前校验可解析，非法模板名 40400/语法错误 40000），写审计（`edit_mail_template`）。
+- `DELETE /admin/mail-templates/{name}`（2026-08-28 F11）：删除自定义行恢复内置默认文案，写审计（`reset_mail_template`）。
+- `POST /admin/mail-templates/{name}/test`（2026-08-28 F11）：请求体 `{to_email}`，以示例占位符渲染并走真实 SMTP 发送；发送失败原样返回错误信息，写审计（`test_mail_template`）。自定义模板缺失/渲染失败时发送侧自动回退内置文案。
+- `GET /admin/version`（2026-08-28 F20）：返回 `{version, latest, has_update, notes}`。`version` 为当前后端版本（`app.version`，部署注入，缺省 `dev`）；配置 `update.manifest_url`（config.yaml / `APP_UPDATE_MANIFEST_URL`）时远端拉取 `{version, notes}` JSON（3s 超时、服务端缓存 10min），`has_update` 按语义化版本比较；未配置或拉取失败 `latest`/`has_update` 为 `null`。自动执行升级不立项。
 
 ---
 

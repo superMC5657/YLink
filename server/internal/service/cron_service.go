@@ -235,14 +235,14 @@ func (s *CronService) sendExpireMail(u model.User) {
 	if u.ExpiredAt == nil {
 		return
 	}
-	date := u.ExpiredAt.Format("2006-01-02")
-	body := mailer.Template(fmt.Sprintf("您的订阅将于 <b>%s</b> 到期，请及时续费以免影响使用。", date))
-	rendered, err := mailer.Render(body, s.cfg.App.Name, nil)
+	// F11：到期提醒走模板渲染（自定义模板优先，缺失/错误回退内置文案）
+	vars := map[string]string{"expire_date": u.ExpiredAt.Format("2006-01-02")}
+	subject, body, err := renderMailTemplate(s.db, s.cfg.App.Name, "expire_remind", vars)
 	if err != nil {
+		logger.L().Error("render expire mail", zapE(err))
 		return
 	}
-	subject := fmt.Sprintf("[%s] 订阅到期提醒", s.cfg.App.Name)
-	if err := s.mailer.Send(u.Email, subject, rendered); err != nil {
+	if err := s.mailer.Send(u.Email, subject, body); err != nil {
 		logger.L().Error("send expire mail failed", zapS("email", u.Email), zapE(err))
 	}
 }
@@ -264,10 +264,13 @@ func (s *CronService) TrafficRemind(ctx context.Context) {
 			continue
 		}
 		percent := (u.U + u.D) * 100 / u.TransferEnable
-		body := mailer.Template(fmt.Sprintf("您的流量已使用 <b>%d%%</b>，请注意剩余流量。", percent))
-		rendered, _ := mailer.Render(body, s.cfg.App.Name, nil)
-		subject := fmt.Sprintf("[%s] 流量使用提醒", s.cfg.App.Name)
-		if err := s.mailer.Send(u.Email, subject, rendered); err != nil {
+		vars := map[string]string{"percent": fmt.Sprint(percent)}
+		subject, body, err := renderMailTemplate(s.db, s.cfg.App.Name, "traffic_remind", vars)
+		if err != nil {
+			logger.L().Error("render traffic mail", zapE(err))
+			continue
+		}
+		if err := s.mailer.Send(u.Email, subject, body); err != nil {
 			logger.L().Error("send traffic mail failed", zapS("email", u.Email), zapE(err))
 		}
 	}

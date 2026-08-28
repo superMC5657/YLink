@@ -44,6 +44,28 @@ type TransferResp struct {
 	CommissionBalance float64 `json:"commission_balance"`
 }
 
+// ---- 佣金提现（F02，仅代理商） ----
+
+// WithdrawCreateReq POST /invite/withdraw：提交佣金提现工单（提现方式 + 收款账号 + 金额）。
+type WithdrawCreateReq struct {
+	Amount  float64 `json:"amount" binding:"required,gt=0"`
+	Method  string  `json:"method" binding:"required,max=32"`
+	Account string  `json:"account" binding:"required,max=255"`
+}
+
+// WithdrawItem GET /invite/withdraws 提现记录（仅本人）。
+type WithdrawItem struct {
+	ID           int64      `json:"id"`
+	Amount       float64    `json:"amount"`
+	Method       string     `json:"method"`
+	Account      string     `json:"account"`
+	Status       int        `json:"status"` // 0=处理中 1=已发放 2=已退回
+	ReviewRemark *string    `json:"review_remark"`
+	TicketID     int64      `json:"ticket_id"`
+	ReviewedAt   *time.Time `json:"reviewed_at"`
+	CreatedAt    time.Time  `json:"created_at"`
+}
+
 // ---- 代理商 ----
 
 type AgentCondition struct {

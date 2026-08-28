@@ -1164,4 +1164,170 @@ export default [
       return ok(null)
     },
   },
+
+  // ---------- 佣金提现审核（F02） ----------
+  {
+    url: '/api/v1/admin/tickets/:id/withdraw/pay',
+    method: 'post',
+    response: ({ headers }: { headers: Record<string, string> }) => {
+      if (!verifyAdmin(headers)) return unauthorized()
+      return ok(null)
+    },
+  },
+  {
+    url: '/api/v1/admin/tickets/:id/withdraw/reject',
+    method: 'post',
+    response: ({ headers }: { headers: Record<string, string> }) => {
+      if (!verifyAdmin(headers)) return unauthorized()
+      return ok(null)
+    },
+  },
+
+  // ---------- 内容排序（F15） ----------
+  {
+    url: '/api/v1/admin/notices/sort',
+    method: 'post',
+    response: ({ headers }: { headers: Record<string, string> }) => {
+      if (!verifyAdmin(headers)) return unauthorized()
+      return ok(null)
+    },
+  },
+  {
+    url: '/api/v1/admin/knowledges/sort',
+    method: 'post',
+    response: ({ headers }: { headers: Record<string, string> }) => {
+      if (!verifyAdmin(headers)) return unauthorized()
+      return ok(null)
+    },
+  },
+
+  // ---------- 知识库分类（F15） ----------
+  {
+    url: '/api/v1/admin/knowledge-categories',
+    method: 'get',
+    response: ({ headers }: { headers: Record<string, string> }) => {
+      if (!verifyAdmin(headers)) return unauthorized()
+      return ok({
+        list: [
+          { id: 1, language: 'zh-CN', name: '入门指南', sort: 0, knowledge_count: 2 },
+          { id: 2, language: 'zh-CN', name: '客户端配置', sort: 1, knowledge_count: 3 },
+          { id: 3, language: 'en-US', name: 'Getting Started', sort: 0, knowledge_count: 1 },
+        ],
+      })
+    },
+  },
+  {
+    url: '/api/v1/admin/knowledge-categories',
+    method: 'post',
+    response: ({
+      headers,
+      body,
+    }: {
+      headers: Record<string, string>
+      body: { language?: string; name?: string }
+    }) => {
+      if (!verifyAdmin(headers)) return unauthorized()
+      return ok({
+        id: Date.now(),
+        language: body.language ?? 'zh-CN',
+        name: body.name ?? '',
+        sort: 0,
+      })
+    },
+  },
+  {
+    url: '/api/v1/admin/knowledge-categories/:id',
+    method: 'put',
+    response: ({ headers }: { headers: Record<string, string> }) => {
+      if (!verifyAdmin(headers)) return unauthorized()
+      return ok(null)
+    },
+  },
+  {
+    url: '/api/v1/admin/knowledge-categories/:id',
+    method: 'delete',
+    response: ({ headers }: { headers: Record<string, string> }) => {
+      if (!verifyAdmin(headers)) return unauthorized()
+      return ok(null)
+    },
+  },
+
+  // ---------- 邮件模板（F11） ----------
+  {
+    url: '/api/v1/admin/mail-templates',
+    method: 'get',
+    response: ({ headers }: { headers: Record<string, string> }) => {
+      if (!verifyAdmin(headers)) return unauthorized()
+      return ok({
+        list: [
+          {
+            name: 'captcha',
+            subject: '[{{.site_name}}] 邮箱验证码',
+            body: '您的验证码是 <b>{{.code}}</b>，10 分钟内有效。',
+            is_custom: false,
+            placeholders: ['{{.site_name}}', '{{.code}}'],
+            remark: '注册/找回密码验证码邮件',
+            updated_at: null,
+          },
+          {
+            name: 'expire_remind',
+            subject: '[{{.site_name}}] 订阅到期提醒',
+            body: '您的订阅将于 <b>{{.expire_date}}</b> 到期，请及时续费。',
+            is_custom: true,
+            placeholders: ['{{.site_name}}', '{{.expire_date}}'],
+            remark: '到期前 3 天与 1 天各发送一次（每日 10:00）',
+            updated_at: '2026-08-28T09:00:00+08:00',
+          },
+          {
+            name: 'traffic_remind',
+            subject: '[{{.site_name}}] 流量使用提醒',
+            body: '您的流量已使用 <b>{{.percent}}%</b>，请注意剩余流量。',
+            is_custom: false,
+            placeholders: ['{{.site_name}}', '{{.percent}}'],
+            remark: '用量 ≥80% 时发送（每日 10:00）',
+            updated_at: null,
+          },
+        ],
+      })
+    },
+  },
+  {
+    url: '/api/v1/admin/mail-templates/:name',
+    method: 'put',
+    response: ({ headers }: { headers: Record<string, string> }) => {
+      if (!verifyAdmin(headers)) return unauthorized()
+      return ok(null)
+    },
+  },
+  {
+    url: '/api/v1/admin/mail-templates/:name',
+    method: 'delete',
+    response: ({ headers }: { headers: Record<string, string> }) => {
+      if (!verifyAdmin(headers)) return unauthorized()
+      return ok(null)
+    },
+  },
+  {
+    url: '/api/v1/admin/mail-templates/:name/test',
+    method: 'post',
+    response: ({ headers }: { headers: Record<string, string> }) => {
+      if (!verifyAdmin(headers)) return unauthorized()
+      return ok(null)
+    },
+  },
+
+  // ---------- 版本检查（F20） ----------
+  {
+    url: '/api/v1/admin/version',
+    method: 'get',
+    response: ({ headers }: { headers: Record<string, string> }) => {
+      if (!verifyAdmin(headers)) return unauthorized()
+      return ok({
+        version: '0.4.1',
+        latest: null,
+        has_update: null,
+        notes: null,
+      })
+    },
+  },
 ] as MockMethod[]

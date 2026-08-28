@@ -242,6 +242,63 @@ export default [
       return ok({ balance: 168.5 + amount, commission_balance: 88.6 - amount })
     },
   },
+  // ---------- 佣金提现（F02,仅代理商;演示账号视为代理商可提交） ----------
+  {
+    url: '/api/v1/invite/withdraws',
+    method: 'get',
+    response: ({ headers }: { headers: Record<string, string> }) => {
+      if (!verifyAccess(headers)) return unauthorized()
+      return ok({
+        total: 1,
+        page: 1,
+        page_size: 10,
+        list: [
+          {
+            id: 1,
+            amount: 50,
+            method: 'alipay',
+            account: 'demo@example.com',
+            status: 0,
+            review_remark: null,
+            ticket_id: 42,
+            reviewed_at: null,
+            created_at: '2026-08-27T16:00:00+08:00',
+          },
+        ],
+      })
+    },
+  },
+  {
+    url: '/api/v1/invite/withdraw',
+    method: 'post',
+    response: ({
+      headers,
+      body,
+    }: {
+      headers: Record<string, string>
+      body: { amount?: number; method?: string; account?: string }
+    }) => {
+      if (!verifyAccess(headers)) return unauthorized()
+      const amount = Number(body?.amount ?? 0)
+      if (amount > 88.6 || amount <= 0) {
+        return { code: 13002, message: '可划转佣金不足', data: null }
+      }
+      if (!body?.method || !body?.account) {
+        return { code: 40000, message: '参数校验失败: method/account 必填', data: null }
+      }
+      return ok({
+        id: 2,
+        amount,
+        method: body.method,
+        account: body.account,
+        status: 0,
+        review_remark: null,
+        ticket_id: 43,
+        reviewed_at: null,
+        created_at: '2026-08-28T12:00:00+08:00',
+      })
+    },
+  },
   // ---------- 代理商 ----------
   {
     url: '/api/v1/agent/status',

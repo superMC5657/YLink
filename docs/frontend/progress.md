@@ -2,11 +2,27 @@
 
 > 本文档记录 `src/` 目录 Vue 3 用户端应用的开发状态,是 docs/frontend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-28(**第二批 Xboard 缺口补齐·前端部分**:F09 节点页批量操作/复制/排序弹窗、F16 流量页三标签(导入/重置/重置记录)、F04 统计报表页 `AdminReportsView.vue`(ECharts 五图),`api/admin.ts` 与类型同步扩展;第一批(F08/F22/F05)见下;此前 2026-08-25 为 i18n 全量接入,见下)
+> 最后更新:2026-08-28(**第三批 Xboard 缺口补齐·前端部分**:F02 提现入口与记录页、F14 个人页会话管理卡片、F15 公告/知识库排序与分类管理、F11 邮件模板管理页、F19 品牌配置运行时应用、F20 系统更新页;第二批 F09/F16/F04 与第一批 F08/F22/F05 见下)
 
 ---
 
 ## 1. 已完成项
+
+### Xboard 缺口补齐 · 第三批前端(✅ 完成,2026-08-28,对齐 .scratch/xboard-gap-fill/spec.md)
+
+| 项 | 说明 | 位置 |
+|---|---|---|
+| F02 佣金提现 | 邀请页新增(仅代理商 `user.isAgent` 可见):「申请提现」按钮 + 弹窗(金额/提现方式 Alipay|USDT|Bank/收款账号,可提现额度提示与冻结-退回规则说明),提交后调 `/invite/withdraw` 刷新 summary;「提现记录」卡片(桌面表格/移动卡片,状态徽章 处理中/已发放/已退回);工单列表对 `type=1` 提现工单显示「佣金提现」徽章 | `views/invite/InviteView.vue`、`views/ticket/TicketsView.vue`、`stores/invite.ts`、`api/invite.ts` |
+| F02 管理端审核 | 工单管理页:列表行「提现」徽章;详情弹窗顶部提现信息卡(金额/方式/账号/状态/处理备注);处理中的提现工单显示「确认打款」「拒绝退回」按钮 + 二次确认弹窗(可填备注),成功后刷新详情与列表 | `views/admin/AdminTicketsView.vue`、`api/admin.ts`(withdrawPay/withdrawReject) |
+| F02 佣金日志 | 佣金日志页对 `type=1` 提现流水显示「提现」徽章 | `views/admin/AdminCommissionLogsView.vue` |
+| F14 会话管理 | 个人信息页新增「登录设备与会话」卡片:活跃会话列表(设备 UA/IP/登录时间,当前设备徽章)+ 行内「踢下线」(确认弹窗);数据 `GET/DELETE /user/sessions` | `views/profile/ProfileView.vue`、`api/user.ts` |
+| F15 内容排序 | 公告/知识库管理页均新增「排序」弹窗(↑/↓ 调序,保存按 0..n 写 `/admin/notices/sort`、`/admin/knowledges/sort`,复用 F09 节点排序交互) | `views/admin/AdminNoticesView.vue`、`views/admin/AdminKnowledgesView.vue`、`api/admin.ts`(sortNotices/sortKnowledges) |
+| F15 分类管理 | 知识库页「分类管理」弹窗:按语言的新增分类、行内改名(保存级联)、↑/↓ 排序(同语言相邻交换)、有文档时禁删;知识表单的分类输入升级为可搜索下拉(选已有分类带 `category_id` / 直接输入新名称自动建行),切换语言联动刷新选项 | 同上、`api/admin.ts`(knowledgeCategories CRUD) |
+| F11 邮件模板 | 新增 `/admin/mail-templates` 页:模板列表(名称/主题/用途/占位符标签/默认或已自定义状态)+ 编辑弹窗(subject+body,语法提示)+ 测试发送弹窗(真实 SMTP,失败原因 toast)+ 恢复默认;设置页移除遗留「邮件模板」占位入口 | `views/admin/AdminMailTemplatesView.vue`(新)、`views/admin/AdminSettingsView.vue`、`router/index.ts`、`router/nav.ts` |
+| F19 品牌配置 | 新增 `utils/brand.ts`:`App.vue` 挂载后监听 `/config` 的 `primary_color`/`background_url`——主色联动覆盖 CSS 设计令牌(--c-primary 系五变量,JS 混色派生 soft/hover/text/grad,暗色适配)与 Naive 主题 overrides(亮/暗各自派生);背景图应用 body 层(cover+fixed);非法色值/空值回退默认主题 | `utils/brand.ts`(新)、`App.vue`、`stores/config.ts` |
+| F20 系统更新 | 新增 `/admin/version` 页:当前版本/最新版本/更新状态徽章 + 「检查更新」按钮(有新版 warning 提示人工升级)+ 变更日志展示(未配置更新源时明确提示) | `views/admin/AdminVersionView.vue`(新)、`router/index.ts`、`router/nav.ts` |
+| api/类型/mock | `api/admin.ts` 新增 withdraw 审核/内容排序/分类 CRUD/邮件模板/版本共 13 个端点,`api/invite.ts`/`api/user.ts` 新增提现与会话端点;`types/api.d.ts` 同步全部类型(SiteConfig 品牌字段/Ticket type/WithdrawItem/UserSessionItem/AdminKnowledgeCategoryItem/AdminMailTemplateItem/AdminVersionResp 等);`mock/` 补齐 F02/F14/F15/F11/F20 演示端点 | `src/api/*`、`src/types/api.d.ts`、`mock/admin.ts`、`mock/business.ts`、`mock/user.ts` |
+| i18n | `adminMailTemplates`/`adminVersion` 新命名空间,`invite`/`profile`/`adminTickets`/`adminNotices`/`adminKnowledges`/`adminCommissionLogs`/`adminSettings` 扩展 key,`nav`/`admin` 路由标题(zh/en 对齐) | `locales/zh-CN.ts`、`locales/en-US.ts` |
 
 ### Xboard 缺口补齐 · 第二批前端(✅ 完成,2026-08-28,对齐 .scratch/xboard-gap-fill/spec.md)
 

@@ -5,7 +5,10 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+
+	"gorm.io/gorm"
 
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/errs"
@@ -391,14 +394,44 @@ func (s *AdminService) DeleteNotice(ctx context.Context, id int64) error {
 	return s.repos.Notice.Delete(s.db, id)
 }
 
+// resolveKnowledgeCategory F15：按 (language, name) 找到或创建分类，返回分类 ID 与展示名。
+// 显式 categoryID 优先；无匹配 ID 时按名称归并（首次出现的新分类自动建行，存量数据兜底）。
+func (s *AdminService) resolveKnowledgeCategory(db *gorm.DB, language, name string, categoryID *int64) (catID *int64, displayName string, err error) {
+	displayName = name
+	if categoryID != nil && *categoryID > 0 {
+		if kc, e := s.repos.KnowledgeCat.GetByID(db, *categoryID); e == nil {
+			return &kc.ID, kc.Name, nil
+		}
+	}
+	if name == "" {
+		return nil, "", nil
+	}
+	if kc, e := s.repos.KnowledgeCat.GetByLanguageAndName(db, language, name); e == nil {
+		return &kc.ID, kc.Name, nil
+	} else if !errors.Is(e, gorm.ErrRecordNotFound) {
+		return nil, "", e
+	}
+	kc := &model.KnowledgeCategory{Language: language, Name: name}
+	if err := s.repos.KnowledgeCat.Create(db, kc); err != nil {
+		return nil, "", err
+	}
+	return &kc.ID, kc.Name, nil
+}
+
 func (s *AdminService) CreateKnowledge(ctx context.Context, req *model.AdminKnowledgeReq) (*model.Knowledge, error) {
 	lang := req.Language
 	if lang == "" {
 		lang = "zh-CN"
 	}
+	catName := sanitize.Text(req.Category)
+	catID, displayName, err := s.resolveKnowledgeCategory(s.db, lang, catName, req.CategoryID)
+	if err != nil {
+		return nil, err
+	}
 	k := &model.Knowledge{
-		Category: sanitize.Text(req.Category), Title: sanitize.Text(req.Title),
-		Body: sanitize.Markdown(req.Body), Language: lang, IsShow: true, Sort: req.Sort,
+		Category: displayName, CategoryID: catID,
+		Title: sanitize.Text(req.Title),
+		Body:  sanitize.Markdown(req.Body), Language: lang, IsShow: true, Sort: req.Sort,
 	}
 	if req.IsShow != nil {
 		k.IsShow = *req.IsShow
@@ -418,12 +451,25 @@ func (s *AdminService) UpdateKnowledge(ctx context.Context, id int64, req *model
 	if lang == "" {
 		lang = k.Language
 	}
+	catName := sanitize.Text(req.Category)
+	// 未显式传 category_id 时沿用原归属（仅当分类名未变），避免改标题等字段丢失归类
+	var catIDArg *int64
+	if req.CategoryID != nil {
+		catIDArg = req.CategoryID
+	} else if catName == k.Category && k.CategoryID != nil {
+		catIDArg = k.CategoryID
+	}
+	catID, displayName, err := s.resolveKnowledgeCategory(s.db, lang, catName, catIDArg)
+	if err != nil {
+		return err
+	}
 	updates := map[string]any{
-		"category": sanitize.Text(req.Category),
-		"title":    sanitize.Text(req.Title),
-		"body":     sanitize.Markdown(req.Body),
-		"language": lang,
-		"sort":     req.Sort,
+		"category":    displayName,
+		"category_id": catID,
+		"title":       sanitize.Text(req.Title),
+		"body":        sanitize.Markdown(req.Body),
+		"language":    lang,
+		"sort":        req.Sort,
 	}
 	if req.IsShow != nil {
 		updates["is_show"] = *req.IsShow

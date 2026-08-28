@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"sort"
 
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
@@ -18,6 +19,8 @@ type siteSettings struct {
 	SiteName           string             `json:"site_name"`
 	SiteLogo           string             `json:"site_logo"`
 	SiteDescription    string             `json:"site_description"`
+	PrimaryColor       string             `json:"primary_color"`  // F19 品牌主色（Hex，空=默认）
+	BackgroundUrl      string             `json:"background_url"` // F19 登录/页面背景图（空=默认）
 	RegisterEnabled    *bool              `json:"register_enabled"`
 	InviteCodeRequired *bool              `json:"invite_code_required"`
 	AppDownloads       map[string]string  `json:"app_downloads"`
@@ -93,6 +96,8 @@ func (s *ContentService) SiteConfig(ctx context.Context) (*model.SiteConfigResp,
 		SiteName:           site.SiteName,
 		SiteLogo:           site.SiteLogo,
 		SiteDescription:    site.SiteDescription,
+		PrimaryColor:       site.PrimaryColor,
+		BackgroundUrl:      site.BackgroundUrl,
 		RegisterEnabled:    reg,
 		InviteCodeRequired: inviteReq,
 		AppDownloads:       site.AppDownloads,
@@ -122,6 +127,8 @@ func (s *ContentService) Notices(ctx context.Context, page, pageSize int) ([]mod
 }
 
 // Knowledges GET /knowledges 按分类分组。
+// F15：分组顺序按 knowledge_categories.sort（未建行的类目按首现顺序排在其后），
+// 组内条目按知识 sort 升序——管理端排序即时生效于用户端展示。
 func (s *ContentService) Knowledges(ctx context.Context, language, keyword string) ([]model.KnowledgeGroup, error) {
 	if language == "" {
 		language = "zh-CN"
@@ -142,6 +149,24 @@ func (s *ContentService) Knowledges(ctx context.Context, language, keyword strin
 		}
 		groups[idx].Items = append(groups[idx].Items, model.KnowledgeItem{
 			ID: k.ID, Title: k.Title, UpdatedAt: k.UpdatedAt,
+		})
+	}
+	// 分类排序（分类行缺失时按首现顺序兜底，查询失败退化为原分组顺序）
+	if cats, err := s.repos.KnowledgeCat.ListByLanguage(s.db, language); err == nil && len(cats) > 0 {
+		catOrder := make(map[string]int, len(cats))
+		for i, c := range cats {
+			catOrder[c.Name] = i
+		}
+		sort.SliceStable(groups, func(i, j int) bool {
+			oi, oki := catOrder[groups[i].Category]
+			oj, okj := catOrder[groups[j].Category]
+			if !oki {
+				oi = len(cats)
+			}
+			if !okj {
+				oj = len(cats)
+			}
+			return oi < oj
 		})
 	}
 	return groups, nil

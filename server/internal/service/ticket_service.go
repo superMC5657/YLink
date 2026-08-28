@@ -39,11 +39,27 @@ func (s *TicketService) List(ctx context.Context, userID int64, page, pageSize i
 	out := make([]model.TicketListItem, 0, len(list))
 	for _, t := range list {
 		out = append(out, model.TicketListItem{
-			ID: t.ID, Subject: t.Subject, Level: t.Level, Status: t.Status, ReopenCount: t.ReopenCount,
+			ID: t.ID, Subject: t.Subject, Level: t.Level, Type: t.Type, Status: t.Status, ReopenCount: t.ReopenCount,
 			LastReplyAt: t.LastReplyAt, CreatedAt: t.CreatedAt,
 		})
 	}
 	return out, total, nil
+}
+
+// ticketWithdrawInfo 提现工单附带的结构化提现信息（非提现工单返回 nil，查询失败降级为 nil 不阻断详情）。
+func ticketWithdrawInfo(db *gorm.DB, t *model.Ticket) *model.TicketWithdrawInfo {
+	if t.Type != model.TicketTypeWithdraw {
+		return nil
+	}
+	w, err := (repo.WithdrawRepo{}).GetByTicketID(db, t.ID)
+	if err != nil {
+		return nil
+	}
+	return &model.TicketWithdrawInfo{
+		ID: w.ID, UserID: w.UserID, Amount: model.FenToYuan(w.Amount),
+		Method: w.Method, Account: w.Account, Status: w.Status,
+		ReviewRemark: w.ReviewRemark, ReviewedAt: w.ReviewedAt, CreatedAt: w.CreatedAt,
+	}
 }
 
 // Create POST /tickets（首条消息为用户发送）。
@@ -66,7 +82,8 @@ func (s *TicketService) Create(ctx context.Context, userID int64, req *model.Cre
 		return nil, err
 	}
 	return &model.TicketListItem{
-		ID: ticket.ID, Subject: ticket.Subject, Level: ticket.Level, Status: ticket.Status, ReopenCount: ticket.ReopenCount,
+		ID: ticket.ID, Subject: ticket.Subject, Level: ticket.Level, Type: ticket.Type,
+		Status: ticket.Status, ReopenCount: ticket.ReopenCount,
 		LastReplyAt: ticket.LastReplyAt, CreatedAt: ticket.CreatedAt,
 	}, nil
 }
@@ -86,8 +103,8 @@ func (s *TicketService) Detail(ctx context.Context, userID int64, id int64) (*mo
 		msgs = append(msgs, model.TicketMsgResp{ID: m.ID, SenderType: m.SenderType, Message: m.Message, CreatedAt: m.CreatedAt})
 	}
 	return &model.TicketDetailResp{
-		ID: t.ID, Subject: t.Subject, Level: t.Level, Status: t.Status, ReopenCount: t.ReopenCount,
-		CreatedAt: t.CreatedAt, Messages: msgs,
+		ID: t.ID, Subject: t.Subject, Level: t.Level, Type: t.Type, Status: t.Status, ReopenCount: t.ReopenCount,
+		CreatedAt: t.CreatedAt, Messages: msgs, Withdraw: ticketWithdrawInfo(s.db, t),
 	}, nil
 }
 
@@ -128,7 +145,7 @@ func (s *TicketService) Close(ctx context.Context, userID int64, id int64) (*mod
 	}
 	t.Status = 2
 	return &model.TicketListItem{
-		ID: t.ID, Subject: t.Subject, Level: t.Level, Status: t.Status, ReopenCount: t.ReopenCount,
+		ID: t.ID, Subject: t.Subject, Level: t.Level, Type: t.Type, Status: t.Status, ReopenCount: t.ReopenCount,
 		LastReplyAt: t.LastReplyAt, CreatedAt: t.CreatedAt,
 	}, nil
 }
@@ -159,7 +176,7 @@ func (s *TicketService) Reopen(ctx context.Context, userID int64, id int64) (*mo
 	t.ReopenCount = 1
 	t.LastReplyAt = &now
 	return &model.TicketListItem{
-		ID: t.ID, Subject: t.Subject, Level: t.Level, Status: t.Status, ReopenCount: t.ReopenCount,
+		ID: t.ID, Subject: t.Subject, Level: t.Level, Type: t.Type, Status: t.Status, ReopenCount: t.ReopenCount,
 		LastReplyAt: t.LastReplyAt, CreatedAt: t.CreatedAt,
 	}, nil
 }

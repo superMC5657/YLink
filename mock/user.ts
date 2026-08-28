@@ -244,6 +244,40 @@ export default [
       return ok({ list: trafficLogs })
     },
   },
+  // ---------- 会话管理（F14） ----------
+  {
+    url: '/api/v1/user/sessions',
+    method: 'get',
+    response: ({ headers }: { headers: Record<string, string> }) => {
+      if (!verifyAccess(headers)) return unauthorized()
+      return ok({
+        list: [
+          {
+            jti: 'mock-jti-current',
+            current: true,
+            ip: '192.168.1.10',
+            user_agent: 'Mozilla/5.0 (Windows 11) Chrome',
+            created_at: '2026-08-28T08:30:00+08:00',
+          },
+          {
+            jti: 'mock-jti-other',
+            current: false,
+            ip: '10.0.0.8',
+            user_agent: 'YLink Desktop (Tauri)',
+            created_at: '2026-08-27T21:10:00+08:00',
+          },
+        ],
+      })
+    },
+  },
+  {
+    url: '/api/v1/user/sessions/:jti',
+    method: 'delete',
+    response: ({ headers }: { headers: Record<string, string> }) => {
+      if (!verifyAccess(headers)) return unauthorized()
+      return ok(null)
+    },
+  },
   {
     url: '/api/v1/knowledges',
     method: 'get',

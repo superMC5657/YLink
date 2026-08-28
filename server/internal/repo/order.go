@@ -220,9 +220,10 @@ func (CommissionRepo) UpdateStatusIfPending(db *gorm.DB, id int64) (int64, error
 	return res.RowsAffected, res.Error
 }
 
+// GetByOrderNo 按订单号查佣金记录（仅订单佣金 biz_type=0；提现流水 order_no='w<N>' 不会匹配纯数字订单号）。
 func (CommissionRepo) GetByOrderNo(db *gorm.DB, orderNo string) (*model.CommissionLog, error) {
 	var cl model.CommissionLog
-	if err := db.Where("order_no = ?", orderNo).First(&cl).Error; err != nil {
+	if err := db.Where("order_no = ? AND biz_type = ?", orderNo, model.CommissionBizOrder).First(&cl).Error; err != nil {
 		return nil, err
 	}
 	return &cl, nil
@@ -234,7 +235,7 @@ func (CommissionRepo) ListByOrderNos(db *gorm.DB, orderNos []string) ([]model.Co
 		return nil, nil
 	}
 	var list []model.CommissionLog
-	err := db.Where("order_no IN ?", orderNos).Find(&list).Error
+	err := db.Where("order_no IN ? AND biz_type = ?", orderNos, model.CommissionBizOrder).Find(&list).Error
 	return list, err
 }
 
@@ -249,11 +250,12 @@ func (CommissionRepo) ListByInvite(db *gorm.DB, inviteUserID int64, page, pageSi
 	return list, total, err
 }
 
-// ListByInvite 佣金记录分页（按状态过滤）。
+// ListByInviteStatus 佣金记录分页（按状态过滤，仅订单佣金；提现流水走 commission_withdraws 展示）。
 func (CommissionRepo) ListByInviteStatus(db *gorm.DB, inviteUserID int64, status int, page, pageSize int) ([]model.CommissionLog, int64, error) {
 	var list []model.CommissionLog
 	var total int64
-	q := db.Model(&model.CommissionLog{}).Where("invite_user_id = ? AND status = ?", inviteUserID, status)
+	q := db.Model(&model.CommissionLog{}).
+		Where("invite_user_id = ? AND status = ? AND biz_type = ?", inviteUserID, status, model.CommissionBizOrder)
 	if err := q.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
@@ -261,18 +263,60 @@ func (CommissionRepo) ListByInviteStatus(db *gorm.DB, inviteUserID int64, status
 	return list, total, err
 }
 
-// SumAmount 佣金金额汇总（按状态）。
+// SumAmount 佣金金额汇总（按状态，仅订单佣金；提现流水计入会虚增累计佣金）。
 func (CommissionRepo) SumAmount(db *gorm.DB, inviteUserID int64, status int) (int64, error) {
 	var sum int64
 	err := db.Model(&model.CommissionLog{}).
-		Where("invite_user_id = ? AND status = ?", inviteUserID, status).
+		Where("invite_user_id = ? AND status = ? AND biz_type = ?", inviteUserID, status, model.CommissionBizOrder).
 		Select("COALESCE(SUM(amount),0)").Scan(&sum).Error
 	return sum, err
 }
 
 // ListPendingConfirmBefore 确认中且超过确认期的佣金（cron 转已发放）。
+// 仅订单佣金：提现流水（biz_type=1）由管理员手动确认发放，绝不能被定时任务自动确认入账。
 func (CommissionRepo) ListPendingConfirmBefore(db *gorm.DB, paidBefore interface{}) ([]model.CommissionLog, error) {
 	var list []model.CommissionLog
-	err := db.Where("status = ? AND created_at < ?", model.CommissionPending, paidBefore).Find(&list).Error
+	err := db.Where("status = ? AND biz_type = ? AND created_at < ?",
+		model.CommissionPending, model.CommissionBizOrder, paidBefore).Find(&list).Error
 	return list, err
+}
+
+// WithdrawRepo 佣金提现单数据访问（F02）。
+type WithdrawRepo struct{}
+
+func (WithdrawRepo) Create(db *gorm.DB, w *model.CommissionWithdraw) error {
+	return db.Create(w).Error
+}
+
+func (WithdrawRepo) Save(db *gorm.DB, w *model.CommissionWithdraw) error { return db.Save(w).Error }
+
+// GetByTicketID 按工单 ID 取提现单（不加锁，详情展示用）。
+func (WithdrawRepo) GetByTicketID(db *gorm.DB, ticketID int64) (*model.CommissionWithdraw, error) {
+	var w model.CommissionWithdraw
+	if err := db.Where("ticket_id = ?", ticketID).First(&w).Error; err != nil {
+		return nil, err
+	}
+	return &w, nil
+}
+
+// GetByTicketIDForUpdate 按工单 ID 取提现单并加行锁（确认/拒绝防并发双处理）。
+func (WithdrawRepo) GetByTicketIDForUpdate(db *gorm.DB, ticketID int64) (*model.CommissionWithdraw, error) {
+	var w model.CommissionWithdraw
+	if err := db.Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("ticket_id = ?", ticketID).First(&w).Error; err != nil {
+		return nil, err
+	}
+	return &w, nil
+}
+
+// ListByUser 用户本人提现记录分页。
+func (WithdrawRepo) ListByUser(db *gorm.DB, userID int64, page, pageSize int) ([]model.CommissionWithdraw, int64, error) {
+	var list []model.CommissionWithdraw
+	var total int64
+	q := db.Model(&model.CommissionWithdraw{}).Where("user_id = ?", userID)
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	err := q.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
+	return list, total, err
 }

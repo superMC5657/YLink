@@ -393,12 +393,14 @@ type Repos struct {
 	Setting      SettingRepo
 	Notice       NoticeRepo
 	Knowledge    KnowledgeRepo
+	KnowledgeCat KnowledgeCategoryRepo
 	Plan         PlanRepo
 	Server       ServerRepo
 	Order        OrderRepo
 	Payment      PaymentRepo
 	Coupon       CouponRepo
 	Commission   CommissionRepo
+	Withdraw     WithdrawRepo
 	Traffic      TrafficLogRepo
 	TrafficReset TrafficResetRepo
 	NodeStat     NodeUserStatRepo
@@ -407,6 +409,7 @@ type Repos struct {
 	Ticket       TicketRepo
 	Audit        AuditLogRepo
 	MailLog      MailLogRepo
+	MailTemplate MailTemplateRepo
 }
 
 // EnsureAdmin 幂等初始化首个管理员：users 表无管理员且环境变量齐全时创建。

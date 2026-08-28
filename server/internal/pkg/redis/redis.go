@@ -43,3 +43,10 @@ func Key(parts ...string) string {
 func SessionVersionKey(userID int64) string {
 	return Key("auth", "ver", strconv.FormatInt(userID, 10))
 }
+
+// SessionKillKey 会话踢下线标记 Key（F14）：`auth:kill:{userID}` Hash，field=jti。
+// 用户端踢下线指定会话时写入 field；Auth 中间件 HExists 命中即 401——
+// 单会话 access 立即失效且不影响其余会话（区别于 bump 全局会话版本号）。
+func SessionKillKey(userID int64) string {
+	return Key("auth", "kill", strconv.FormatInt(userID, 10))
+}

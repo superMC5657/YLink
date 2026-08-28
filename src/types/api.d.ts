@@ -63,6 +63,10 @@ export interface SiteConfig {
   site_name: string
   site_logo: string
   site_description: string
+  /** F19 品牌主色(Hex,空=默认) */
+  primary_color: string
+  /** F19 背景图 URL(空=默认) */
+  background_url: string
   register_enabled: boolean
   invite_code_required: boolean
   app_downloads: AppDownloadLinks
@@ -368,6 +372,8 @@ export interface Ticket {
   id: number
   subject: string
   level: TicketLevel
+  /** 0=普通 1=佣金提现(F02) */
+  type: number
   status: TicketStatus
   reopen_count: number
   last_reply_at: string | null
@@ -387,14 +393,61 @@ export interface TicketMessage {
   created_at: string
 }
 
+export interface TicketWithdrawInfo {
+  id: number
+  user_id: number
+  amount: number
+  method: string
+  account: string
+  /** 0=处理中 1=已发放 2=已退回 */
+  status: number
+  review_remark: string | null
+  reviewed_at: string | null
+  created_at: string
+}
+
 export interface TicketDetail {
   id: number
   subject: string
   level: TicketLevel
+  /** 0=普通 1=佣金提现(F02) */
+  type: number
   status: TicketStatus
   reopen_count: number
   created_at: string
   messages: TicketMessage[]
+  withdraw?: TicketWithdrawInfo | null
+}
+
+// ---------- 佣金提现（F02，仅代理商） ----------
+
+export interface WithdrawCreateReq {
+  amount: number
+  method: string
+  account: string
+}
+
+export interface WithdrawItem {
+  id: number
+  amount: number
+  method: string
+  account: string
+  /** 0=处理中 1=已发放 2=已退回 */
+  status: number
+  review_remark: string | null
+  ticket_id: number
+  reviewed_at: string | null
+  created_at: string
+}
+
+// ---------- 会话管理（F14） ----------
+
+export interface UserSessionItem {
+  jti: string
+  current: boolean
+  ip: string
+  user_agent: string
+  created_at: string
 }
 
 export interface TicketReplyReq {
@@ -565,6 +618,8 @@ export interface AdminTicketItem {
   user_email: string
   subject: string
   level: TicketLevel
+  /** 0=普通 1=佣金提现(F02) */
+  type: number
   status: TicketStatus
   reopen_count: number
   last_reply_at: string | null
@@ -575,9 +630,12 @@ export interface AdminTicketDetail {
   id: number
   subject: string
   level: TicketLevel
+  /** 0=普通 1=佣金提现(F02) */
+  type: number
   status: TicketStatus
   created_at: string
   messages: TicketMessage[]
+  withdraw?: TicketWithdrawInfo | null
 }
 
 export interface AdminReplyReq {
@@ -637,6 +695,8 @@ export interface AdminNoticeReq {
 export interface AdminKnowledgeItem {
   id: number
   category: string
+  /** F15 归属分类 ID(未归类为空) */
+  category_id?: number | null
   title: string
   body: string
   language: string
@@ -647,6 +707,8 @@ export interface AdminKnowledgeItem {
 
 export interface AdminKnowledgeReq {
   category: string
+  /** F15 显式归类(空则按 category 名称归并/自建) */
+  category_id?: number | null
   title: string
   body: string
   language?: string
@@ -681,6 +743,8 @@ export interface AdminCommissionItem {
   order_amount: number
   rate: number
   amount: number
+  /** 0=订单佣金 1=提现流水(F02) */
+  type: number
   status: CommissionStatus
   confirmed_at: string | null
   created_at: string
@@ -862,4 +926,60 @@ export interface AdminSettingsItem {
 export interface AdminSettingsReq {
   key: string
   value: string
+}
+
+// ---------- 管理端 · 内容排序与知识库分类（F15） ----------
+
+/** 公告/知识库排序（items 按 sort 值更新） */
+export interface AdminSortReq {
+  items: AdminSortItem[]
+}
+
+export interface AdminKnowledgeCategoryItem {
+  id: number
+  language: string
+  name: string
+  sort: number
+  knowledge_count: number
+}
+
+export interface AdminKnowledgeCategoryReq {
+  language: string
+  name: string
+  sort?: number
+}
+
+export interface AdminKnowledgeCategoryUpdateReq {
+  name: string
+  sort?: number
+}
+
+// ---------- 管理端 · 邮件模板（F11） ----------
+
+export interface AdminMailTemplateItem {
+  name: string
+  subject: string
+  body: string
+  is_custom: boolean
+  placeholders: string[]
+  remark: string
+  updated_at: string | null
+}
+
+export interface AdminMailTemplateReq {
+  subject: string
+  body: string
+}
+
+export interface AdminMailTemplateTestReq {
+  to_email: string
+}
+
+// ---------- 管理端 · 版本检查（F20） ----------
+
+export interface AdminVersionResp {
+  version: string
+  latest: string | null
+  has_update: boolean | null
+  notes: string | null
 }

@@ -2,7 +2,7 @@
 
 > 本文档记录 `server/` 目录 Go/Gin 后端的开发状态,是 docs/backend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-28(**Spec 二次调整**:F02 佣金提现重新入选(仅代理商/工单提现/管理员手动确认发放,已确认并入第三批,第三批全部待做)、F13 快速登录不做移出第三批;此前为**第二批 Xboard 缺口补齐**:F09/F16/F04,见下;第一批(F08/F22/F05)更早,见下)
+> 最后更新:2026-08-28(**第三批 Xboard 缺口补齐**:F02 佣金提现、F15 公告/知识库排序与分类、F14 会话管理、F11 邮件模板、F19 品牌配置子集、F20 版本检查子集,全部完成,见下;此前为第二批 F09/F16/F04、第一批 F08/F22/F05,更早见下)
 
 ---
 
@@ -216,6 +216,21 @@
 | 支付回执邮件 | 在线回调与余额支付成功后异步发送(`[站点] 支付成功`),未配置 SMTP 静默跳过 |
 | agent-audit cron | 每月 1 日 03:00 复核代理有效邀请数,不达标降级 role=0 |
 
+### Xboard 缺口补齐 · 第三批(✅ 完成,2026-08-28,对齐 .scratch/xboard-gap-fill/spec.md)
+
+| 项 | 说明 | 位置 |
+|---|---|---|
+| F02 提现提交 | `POST /invite/withdraw`(仅代理商,`role=RoleAgent` 校验,非代理商 13003/HTTP 403):同事务行锁读用户 → 校验并**扣减 commission_balance**(提交即扣减防双花,重复提交受余额拦截) → 创建 `type=1` 提现工单(首条消息为结构化提现信息) → 写 `commission_withdraws` 提现单 → 写 `commission_logs` 提现流水(`biz_type=1`,`order_no='w<提现单ID>'`,status=0);`GET /invite/withdraws` 本人提现记录分页 | `internal/service/invite_service.go`、`internal/repo/order.go`(WithdrawRepo)、`internal/handler/invite.go`、`internal/router/router.go` |
+| F02 提现审核 | `POST /admin/tickets/{id}/withdraw/pay`(确认打款:流水 status→1、关闭工单、系统消息留痕)与 `POST /admin/tickets/{id}/withdraw/reject`(拒绝:**自动退回佣金**至 commission_balance、流水 status→2、关闭工单);提现单按 ticket_id 行锁读取,仅处理中可审(否则 13004);两类操作均写审计 `withdraw_pay`/`withdraw_reject`;工单列表/详情带 `type` 字段与 `withdraw` 提现单信息;佣金账本 `commission_logs` 增加 `biz_type`(0=订单佣金/1=提现流水),summary/记录页/cron 确认任务全部排除提现流水(**提现绝不能被 cron 自动确认入账**),`order_no` 唯一约束改部分索引(`WHERE biz_type=0`) | `internal/service/admin_withdraw.go`、`internal/repo/order.go`、`internal/handler/admin_batch3.go`、`migrations/0007_batch3_withdraw_mailtpl_category.{up,down}.sql` |
+| F14 会话管理 | `GET /user/sessions`(SCAN refresh 白名单,Redis 元数据 `{ip,ua,ts}`,当前会话标记,历史 "1" 值降级展示)、`DELETE /user/sessions/{jti}`(删白名单 + 写踢下线标记 `auth:kill:{uid}` Hash field=jti,Auth 中间件 Pipeline 校验 SV 与踢下线标记——**单会话 access 立即失效,其余会话不受影响**;当前会话不可自踢 40000,不存在 40400) | `internal/service/user_service.go`、`internal/service/auth_service.go`(issueSession 元数据)、`internal/middleware/auth.go`、`internal/pkg/redis/redis.go`、`internal/handler/user.go` |
+| F15 内容排序 | `POST /admin/notices/sort`、`POST /admin/knowledges/sort`(`{items:[{id,sort}]}`≤500,单事务,审计 `sort_notice`/`sort_knowledge`);公告用户端展示顺序改为 `sort ASC, created_at DESC`;知识库用户端分组顺序按分类 `sort` | `internal/service/admin_content_manage.go`、`internal/repo/content.go`、`internal/handler/admin_batch3.go` |
+| F15 知识库分类 | `knowledge_categories` 表(迁移 0007,唯一 `(language, name)`,**存量数据按 (language, category) 去重回填**) + `knowledges.category_id` 归属;`GET/POST/PUT/DELETE /admin/knowledge-categories`(列表含文档计数/改名**级联同步**知识文档展示分类/有文档拒绝删除);知识保存支持 `category_id` 显式归类或按名称自动归并建行 | 同上 |
+| F11 邮件模板 | `mail_templates` 表(迁移 0007,name PK)+ 内置模板注册表(`captcha`/`expire_remind`/`traffic_remind`,Go template 占位符);`GET/PUT/DELETE /admin/mail-templates`(自定义覆盖合并/保存前校验可解析/删除恢复默认,审计)、`POST .../{name}/test`(示例占位符渲染走真实 SMTP,失败原因原样返回);`renderMailTemplate` 统一渲染:**自定义缺失/渲染失败自动回退内置文案**;验证码/到期提醒/流量提醒三处发送接入 | `internal/service/mail_template.go`、`internal/repo/mail.go`、`internal/handler/admin_batch3.go`、`internal/service/auth_service.go`、`internal/service/cron_service.go` |
+| F19 品牌配置子集 | `site` 配置新增 `primary_color`(Hex 主色)/`background_url`(背景图),`GET /config` 下发;管理端设置页 JSON 编辑即生效 | `internal/service/content_service.go`、`configs/config.yaml` |
+| F20 版本检查子集 | `app.version`(部署注入,缺省 dev)+ `update.manifest_url`(可选更新源,JSON `{version, notes}`,3s 超时 + 10min Redis 缓存);`GET /admin/version` 返回 `{version, latest, has_update, notes}`,语义化版本比较,未配置/拉取失败 latest=null 不报错;**自动执行升级不立项** | `internal/service/admin_version.go`、`internal/config/config.go`、`internal/handler/admin_batch3.go`、`configs/config.yaml` |
+
+新增测试 7 例(`batch3_test.go`):提现提交(代理商扣减/非代理商 13003/余额不足 13002)、提现拒绝退回(退佣金+流水+关单+审计)、确认打款、非提现工单审核 40900、会话列表与踢下线(miniredis,含 kill 标记/当前会话拒绝/不存在 40400)、邮件模板回退与自定义/坏模板回退、公告排序;另修正 `TestRefreshRotation`(白名单值由 "1" 变更元数据 JSON)。
+
 ### Xboard 缺口补齐 · 第一批(✅ 完成,2026-08-28,对齐 .scratch/xboard-gap-fill/spec.md)
 
 | 项 | 说明 | 位置 |
@@ -254,7 +269,7 @@
 ### 测试状态(✅ 已更新,2026-08-28 实测)
 
 - `go build ./...` / `go vet ./...` / `gofmt -l`(0 输出)全部通过
-- `go test ./... -count=1` 全绿;**107 个测试函数**(2026-08-28 第二批新增 9 例——批量节点删除汇总/update 参数校验/批量更新/复制节点新 node_key/排序单事务/流量重置保留快照/reset_quota 无套餐失败/报表补零/流量 TopN;2026-08-25:0.9.0 新增 3 例——重复 UUID 整体拒绝、节点分组不匹配 `not_subscribed`、存量共享凭证回退;此前 2026-08-22 模式 A 新增 11 例——NodeUsers 同步/onetime 无到期、首次上报全量、同值重报幂等(不写 users/traffic)、计数器回退重启判定、0.5 倍率乘算、unknown_user+not_subscribed 跳过、servers 错误上抛、cumDelta/scaleRate 边界、NodeAuth(无头 401/未知 401/有效注入+缓存命中不再查库)、每用户凭证下发(opt-in 时 config 共享密码不下发断言)、admin 重置密钥(含 404)),此前覆盖:错误码映射、JWT(含 SV 会话版本号)、密码、验证码限频/已注册、注册/登录锁定/刷新旋转、优惠券试算(固定/百分比/封顶)/超限 12001/原子占用/每人限用、下单幂等、续期状态机、回调幂等、epay 验签与篡改拒绝、订阅生成(3 格式)、佣金划转、代理申请、工单流转、工单重开、佣金确认竞态、超时关单(含优惠券回退)、取消并发已支付回滚、退款(余额/券/佣金/订阅收回/onetime/异套餐)、代理审批、bluemonday 清洗、Auth 中间件、余额调整负值拒绝、管理端订单佣金查询、CORS
+- `go test ./... -count=1` 全绿;**119 个测试函数**(2026-08-28 第三批新增 7 例——提现提交/拒绝退回/确认打款/非提现工单拒绝/会话列表与踢下线/邮件模板回退/公告排序,并修正 TestRefreshRotation 断言;2026-08-28 第二批新增 9 例——批量节点删除汇总/update 参数校验/批量更新/复制节点新 node_key/排序单事务/流量重置保留快照/reset_quota 无套餐失败/报表补零/流量 TopN;2026-08-25:0.9.0 新增 3 例——重复 UUID 整体拒绝、节点分组不匹配 `not_subscribed`、存量共享凭证回退;此前 2026-08-22 模式 A 新增 11 例——NodeUsers 同步/onetime 无到期、首次上报全量、同值重报幂等(不写 users/traffic)、计数器回退重启判定、0.5 倍率乘算、unknown_user+not_subscribed 跳过、servers 错误上抛、cumDelta/scaleRate 边界、NodeAuth(无头 401/未知 401/有效注入+缓存命中不再查库)、每用户凭证下发(opt-in 时 config 共享密码不下发断言)、admin 重置密钥(含 404)),此前覆盖:错误码映射、JWT(含 SV 会话版本号)、密码、验证码限频/已注册、注册/登录锁定/刷新旋转、优惠券试算(固定/百分比/封顶)/超限 12001/原子占用/每人限用、下单幂等、续期状态机、回调幂等、epay 验签与篡改拒绝、订阅生成(3 格式)、佣金划转、代理申请、工单流转、工单重开、佣金确认竞态、超时关单(含优惠券回退)、取消并发已支付回滚、退款(余额/券/佣金/订阅收回/onetime/异套餐)、代理审批、bluemonday 清洗、Auth 中间件、余额调整负值拒绝、管理端订单佣金查询、CORS
 
 ---
 

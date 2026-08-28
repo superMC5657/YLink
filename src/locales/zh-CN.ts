@@ -440,6 +440,8 @@ export default {
     todayRevenue: '今日收入',
     onSalePlans: '在售套餐',
     quickActions: '快捷操作',
+    quickDailyOps: '日常运营',
+    quickPeriodicOps: '运营与配置',
     unitYuan: '元',
   },
   adminUsers: {

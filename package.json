@@ -1,6 +1,6 @@
 {
   "name": "YLink",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "private": true,
   "type": "module",
   "description": "代理订阅售卖系统 · 用户端(响应式 Web + Tauri 2)",

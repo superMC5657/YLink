@@ -2,11 +2,20 @@
 
 > 本文档记录 `server/` 目录 Go/Gin 后端的开发状态,是 docs/backend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-28(**缺陷修复:分页接口空列表返回 `null`**——`resp.PageOK` 对 nil slice 兜底为 `[]`,根治管理后台「流量管理」页转圈卡死;此前为第三批 Xboard 缺口补齐,更早见下)
+> 最后更新:2026-08-28(**F04 报表增强:`GET /admin/stat/orders` 新增 `balance_used`/`balance_refunded` 余额两字段**——营收退款趋势图四系列;此前:分页空列表 null 修复、第三批 Xboard 缺口补齐,更早见下)
 
 ---
 
 ## 1. 已完成项
+
+### F04 报表增强 · 订单趋势余额两字段(✅ 完成,2026-08-28)
+
+| 项 | 说明 |
+|---|---|
+| 接口 | `GET /admin/stat/orders` 的 `items[]` 新增 `balance_used`(当日完成订单余额支付部分,按 `paid_at`)与 `balance_refunded`(当日退款订单余额部分,按 `updated_at` 近似),单位元、逐日补零 |
+| 口径 | `revenue`/`refunded` 为现金部分(`pay_amount`),`balance_used`/`balance_refunded` 为余额部分(`orders.balance_used`),二者相加为订单实付总额;退款时余额支付部分原路退回用户余额(`admin_service.Refund`),与字段语义一致 |
+| 实现 | `repo/stat.go` 新增 `BalanceRevenueByDay`/`BalanceRefundByDay`(与既有 RevenueByDay/RefundByDay 同结构同过滤条件,仅 SUM 列换 `balance_used`);`admin_stats.go` StatOrders 填充;`dto_admin.go` AdminStatOrderPoint 加两字段 |
+| 测试 | `TestStatOrdersFillsZeroDays` 补两条 sqlmock 期望与新字段断言(3.0/2.0 元),通过 |
 
 ### 缺陷修复 · 分页空列表序列化为 null 致前端页面卡死(✅ 已修复,2026-08-28)
 

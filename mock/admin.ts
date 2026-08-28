@@ -235,6 +235,8 @@ const statOrders = {
     completed_count: 2 + ((i * 5) % 9),
     revenue: Math.round((80 + ((i * 137) % 260)) * 100) / 100,
     refunded: i % 9 === 0 ? 12 : 0,
+    balance_used: Math.round((20 + ((i * 53) % 90)) * 100) / 100,
+    balance_refunded: i % 9 === 0 ? 8 : 0,
   })),
 }
 

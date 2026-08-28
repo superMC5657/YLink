@@ -48,6 +48,14 @@ func (s *AdminService) StatOrders(ctx context.Context, days int) (*model.AdminSt
 	if err != nil {
 		return nil, err
 	}
+	balanceRevenues, err := s.repos.Stat.BalanceRevenueByDay(s.db, since)
+	if err != nil {
+		return nil, err
+	}
+	balanceRefunds, err := s.repos.Stat.BalanceRefundByDay(s.db, since)
+	if err != nil {
+		return nil, err
+	}
 	items := make([]model.AdminStatOrderPoint, 0, len(dates))
 	for _, d := range dates {
 		p := model.AdminStatOrderPoint{Date: d, OrderCount: counts[d]}
@@ -55,7 +63,11 @@ func (s *AdminService) StatOrders(ctx context.Context, days int) (*model.AdminSt
 			p.CompletedCount = r.Count
 			p.Revenue = model.FenToYuan(r.Amount)
 		}
+		if r, ok := balanceRevenues[d]; ok {
+			p.BalanceUsed = model.FenToYuan(r)
+		}
 		p.Refunded = model.FenToYuan(refunds[d])
+		p.BalanceRefunded = model.FenToYuan(balanceRefunds[d])
 		items = append(items, p)
 	}
 	return &model.AdminStatOrdersResp{Days: days, Items: items}, nil

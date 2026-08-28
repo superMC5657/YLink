@@ -1017,9 +1017,12 @@ export default {
     subtitle: 'Operations reports: orders / revenue / registrations / plans / traffic',
     lastNDays: 'Last {n} days',
     revenueTitle: 'Revenue & Refunds',
-    revenueHint: 'Revenue by order paid time; refunds approximated by refund time; in CNY.',
+    revenueHint:
+      'Solid lines: cash portion; dashed lines: balance portion. Revenue/balance by paid time, refunds approximated by refund time; in CNY.',
     revenue: 'Revenue (CNY)',
     refunded: 'Refunds (CNY)',
+    balanceUsed: 'Balance Used (CNY)',
+    balanceRefunded: 'Balance Refunded (CNY)',
     registerTitle: 'Registrations',
     registers: 'Registrations',
     planTitle: 'Plan Distribution',

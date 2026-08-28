@@ -98,6 +98,42 @@ func (StatRepo) RefundByDay(db *gorm.DB, since time.Time) (map[string]int64, err
 	return out, nil
 }
 
+// BalanceRevenueByDay 时间范围内每日完成订单的余额支付部分（按 paid_at，分）。
+// 与 RevenueByDay（现金部分 pay_amount）互补，二者相加为订单实付总额。
+func (StatRepo) BalanceRevenueByDay(db *gorm.DB, since time.Time) (map[string]int64, error) {
+	var rows []statDateAmountRow
+	err := db.Model(&model.Order{}).
+		Select("to_char(paid_at::date, 'YYYY-MM-DD') AS d, 0 AS c, COALESCE(SUM(balance_used),0) AS a").
+		Where("status = ? AND paid_at >= ?", model.OrderCompleted, since).
+		Group("paid_at::date").Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]int64, len(rows))
+	for _, r := range rows {
+		out[r.Date] = r.Amount
+	}
+	return out, nil
+}
+
+// BalanceRefundByDay 时间范围内每日退款订单的余额部分（按 updated_at 近似，分）。
+// 与 RefundByDay（现金部分）互补；退款时余额支付部分原路退回用户余额（admin_service.Refund）。
+func (StatRepo) BalanceRefundByDay(db *gorm.DB, since time.Time) (map[string]int64, error) {
+	var rows []statDateAmountRow
+	err := db.Model(&model.Order{}).
+		Select("to_char(updated_at::date, 'YYYY-MM-DD') AS d, 0 AS c, COALESCE(SUM(balance_used),0) AS a").
+		Where("status = ? AND updated_at >= ?", model.OrderRefunded, since).
+		Group("updated_at::date").Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]int64, len(rows))
+	for _, r := range rows {
+		out[r.Date] = r.Amount
+	}
+	return out, nil
+}
+
 // RegisterByDay 时间范围内每日注册数。
 func (StatRepo) RegisterByDay(db *gorm.DB, since time.Time) (map[string]int64, error) {
 	var rows []statDateRow

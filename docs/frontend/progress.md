@@ -97,7 +97,7 @@
 
 | 项 | 说明 | 位置 |
 |---|---|---|
-| F08 审计日志页 | `/admin/audit-logs`:操作人 ID/动作(下拉取自后端 actions)/目标/日期范围筛选 + 分页(20/50/100) + 明细弹窗(JSON 美化);侧边栏「审计日志」入口 | `views/admin/AdminAuditLogsView.vue`、`router/index.ts`、`router/nav.ts` |
+| F08 审计日志页 | `/admin/audit-logs`:操作人 ID/动作(下拉取自后端 actions)/目标/日期范围筛选 + 分页(20/50/100) + 明细弹窗(JSON 美化);侧边栏「审计日志」入口。**2026-08-28 可读化**:动作代码经 i18n 映射为文案(`adminAuditLogs.actions.*`,未收录回退原始代码并 title 提示),目标显示「类型 + 名称」(`target_kind`/`target_display`,回退原始 target);筛选下拉/表格/详情弹窗同规则 | `views/admin/AdminAuditLogsView.vue`、`router/index.ts`、`router/nav.ts` |
 | F05 用户管理增强 | 用户页多选(n-checkbox 全选/行选) + 批量工具栏(封禁/解封/调余额/发邮件,结果汇总 toast 列出失败原因) + CSV 导出(blob→浏览器下载) + 行内「重置订阅」(确认后弹窗展示新链接) | `views/admin/AdminUsersView.vue` |
 | F22 admin_path 适配 | `api/admin.ts` 全部路径经 `ap()` helper 拼接,路径段取 `VITE_ADMIN_PATH`(默认 admin),与后端 `security.admin_path` 同值部署 | `src/api/admin.ts` |
 | http 下载能力 | `download(url, query)`:GET + Bearer + 401 静默刷新重试一次,返回 blob(CSV 不走 envelope) | `utils/http.ts` |
@@ -225,7 +225,7 @@
 | 用户管理 | 搜索/分页/封禁/角色调整/调余额(均写审计) | `views/admin/AdminUsersView.vue` |
 | 套餐管理 | CRUD:周期定价(元)/流量/设备/限速/节点分组/上架/排序 | `views/admin/AdminPlansView.vue` |
 | 节点管理 | 分组 CRUD + 节点 CRUD(6 协议/地址/配置 JSON/倍率/状态/标签);**2026-08-22 模式 A 配套:新增「上报密钥」列(CopyText 复制 node_key)+「重置密钥」按钮(确认弹窗提示旧密钥立即失效,`POST /admin/servers/{id}/node-key/reset`,mock 同步)** | `views/admin/AdminNodesView.vue` |
-| 订单管理 | 状态筛选/分页/退款(余额退回+佣金回滚) | `views/admin/AdminOrdersView.vue` |
+| 订单管理 | 状态筛选/分页/退款(余额退回+佣金回滚);**2026-08-28 本地化**:周期/支付方式由原始枚举(`month/epay_alipay` 等)映射为文案(复用 `periodLabel`,新增 `payMethodLabel` 于 `utils/format.ts`,未知值回退原始值) | `views/admin/AdminOrdersView.vue` |
 | 工单管理 | 列表/详情/客服回复/关闭 | `views/admin/AdminTicketsView.vue` |
 | Mock + E2E | `mock/admin.ts` 管理端 Mock;`tests/e2e/admin.spec.ts` 角色区分 6 用例 × 双 project(管理员可见入口/普通用户不可见且访问被重定向) | `mock/*`、`tests/e2e/*` |
 

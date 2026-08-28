@@ -98,6 +98,17 @@ export function periodLabel(period: string): string {
   return map[period] ? tt(map[period]) : period
 }
 
+/** 支付方式 key → 本地化标签(余额 / 支付宝 / 微信;未知渠道回退原始值) */
+export function payMethodLabel(method: string | null | undefined): string {
+  if (!method) return '-'
+  const map: Record<string, string> = {
+    balance: 'order.payMethodBalance',
+    epay_alipay: 'order.payMethodAlipay',
+    epay_wxpay: 'order.payMethodWxpay',
+  }
+  return map[method] ? tt(map[method]) : method
+}
+
 /** 套餐周期折扣:相对月付省 N%(无折扣返回 null) */
 export function planSavePercent(
   plan: { prices: Partial<Record<PlanPeriod, number>> },

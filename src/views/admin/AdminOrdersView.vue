@@ -8,6 +8,7 @@ import { useI18n } from 'vue-i18n'
 import { apiAdmin } from '@/api/admin'
 import type { AdminOrderItem, OrderStatus } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import { payMethodLabel, periodLabel } from '@/utils/format'
 import { useMessage, useDialog } from 'naive-ui'
 
 const { t } = useI18n()
@@ -157,7 +158,7 @@ onMounted(() => void load())
               <td class="num-font text-14">{{ o.order_no }}</td>
               <td class="text-14 text-[var(--c-text-sub)]">{{ o.user_email }}</td>
               <td class="font-500 text-[var(--c-text)]">{{ o.plan_name }}</td>
-              <td class="text-14">{{ o.period }}</td>
+              <td class="text-14">{{ periodLabel(o.period) }}</td>
               <td class="num-font">{{ o.amount.toFixed(2) }}</td>
               <td class="num-font font-600 text-[var(--c-olive)]">{{ o.pay_amount.toFixed(2) }}</td>
               <td
@@ -173,7 +174,7 @@ onMounted(() => void load())
                   {{ statusText(o.status) }}
                 </StatusBadge>
               </td>
-              <td class="text-14 text-[var(--c-text-sub)]">{{ o.pay_method ?? '-' }}</td>
+              <td class="text-14 text-[var(--c-text-sub)]">{{ payMethodLabel(o.pay_method) }}</td>
               <td class="text-14 text-[var(--c-text-sub)]">
                 {{ o.created_at.slice(0, 19).replace('T', ' ') }}
               </td>

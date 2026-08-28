@@ -253,7 +253,7 @@
 
 | 项 | 说明 | 位置 |
 |---|---|---|
-| F08 审计日志查询 | `GET /admin/audit-logs` 只读:操作人/动作/目标/时间范围筛选 + 分页 + 去重动作列表,JOIN users 取操作人邮箱;测试 `TestListAuditLogs`(含非法日期 40000) | `internal/handler/admin.go`、`internal/service/admin_service.go`、`internal/repo/admin.go` |
+| F08 审计日志查询 | `GET /admin/audit-logs` 只读:操作人/动作/目标/时间范围筛选 + 分页 + 去重动作列表,JOIN users 取操作人邮箱;测试 `TestListAuditLogs`(含非法日期 40000)。**2026-08-28 目标可读化**:按 action 分派 `target_kind`(user/users/server/knowledge_category/order/mail_template)并批量反查 `target_display`(**用户类一律用邮箱**;节点名/分类名,订单号与模板名原样;用户已删除时 detail 留痕 email 兜底;均失败为 null 不影响主查询);测试新增 `TestAuditTargetDisplay`(含已删除用户兜底用例) | `internal/handler/admin.go`、`internal/service/admin_service.go`、`internal/repo/admin.go` |
 | F22 安全部署项 | `security.admin_path`(管理端 API 路径段,默认 admin)、`security.subscribe_path`(订阅路径段,默认 client,`subscribeURL` 同步拼接)、`safe_mode`+`safe_domains`(域名白名单,非白名单 403/40300,healthz/metrics 不受影响);启动注入不落库;测试 SafeMode 放行/拦截/带端口/大小写、normalizeHost、路由注册无冲突 | `internal/config/config.go`、`internal/middleware/safe_mode.go`、`internal/router/router.go`、`internal/service/subscribe_service.go`、`configs/config.yaml` |
 | F05 CSV 导出 | `GET /admin/users/export`:与列表同 keyword 筛选,每批 500 流式写 + UTF-8 BOM;列含套餐名(批内联 plans)与邀请人邮箱(批内联 users);测试 `TestExportUsersStreamsBatches` | `internal/handler/admin.go`、`internal/service/admin_service.go`、`internal/repo/admin.go`(StreamForExport) |
 | F05 批量操作 | `POST /admin/users/batch`:`ban/unban/adjust_balance`,ids≤500,逐个执行复用单用户状态机(负值保护/操作自己拒绝/SV bump/审计),返回 `{success, failed:[{id,reason}]}`;测试 3 例(封禁+不存在/负值拦截/缺 amount 40000) | `internal/handler/admin.go`、`internal/service/admin_service.go` |

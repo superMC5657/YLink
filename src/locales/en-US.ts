@@ -452,6 +452,7 @@ export default {
     completedOrders: 'Completed Orders',
     totalRevenue: 'Total Revenue',
     todayRevenue: 'Today Revenue',
+    totalBalance: 'Total User Balance',
     onSalePlans: 'Plans On Sale',
     quickActions: 'Quick Actions',
     quickDailyOps: 'Daily Operations',

@@ -140,6 +140,13 @@ onMounted(() => void load())
           icon-color="var(--c-marketing)"
         />
         <StatNumber
+          :label="t('adminOverview.totalBalance')"
+          :value="data?.total_balance ?? 0"
+          :unit="t('adminOverview.unitYuan')"
+          icon="wallet"
+          icon-color="var(--c-blue)"
+        />
+        <StatNumber
           :label="t('adminOverview.onSalePlans')"
           :value="data?.plan_count ?? 0"
           icon="zap"

@@ -2,11 +2,19 @@
 
 > 本文档记录 `server/` 目录 Go/Gin 后端的开发状态,是 docs/backend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-30(**第四批 review 修复**:Telegram 绑定 stale 写竞态、webhook 总开关、webhook 注册失败报错、Clash 尾随换行、gofmt;2026-08-29:**第四批 Xboard 缺口补齐:F10 订阅模板管理 + F12 Telegram 机器人**——订阅模板全文档 text/template 化(回退内置生成器)、Telegram 绑定/webhook/提醒推送;此前:F04 报表余额两字段、第三批,更早见下)
+> 最后更新:2026-08-30(**管理端 handler 重构**:admin.go/admin_batch3.go/admin_batch4.go 按业务域拆分为 `internal/handler/admin/` 子包,路由与方法签名零改动;第四批 review 修复:Telegram 绑定 stale 写竞态、webhook 总开关、webhook 注册失败报错、Clash 尾随换行、gofmt;2026-08-29:**第四批 Xboard 缺口补齐:F10 订阅模板管理 + F12 Telegram 机器人**——订阅模板全文档 text/template 化(回退内置生成器)、Telegram 绑定/webhook/提醒推送;此前:F04 报表余额两字段、第三批,更早见下)
 
 ---
 
 ## 1. 已完成项
+
+### 重构 · 管理端 handler 子包拆分(✅ 完成,2026-08-30)
+
+| 项 | 说明 | 位置 |
+|---|---|---|
+| 按业务域拆分 | 原 `handler/admin.go`(1033 行)+ `admin_batch3.go` + `admin_batch4.go`(按提交批次命名,易误解)删除,新建 `package admin` 子包,10 个文件按业务域组织:`admin.go`(Admin 结构体+helper)、`dashboard.go`(仪表盘+统计 F04)、`user.go`(用户管理 F05+审计日志 F08)、`plan.go`(套餐+优惠券)、`server.go`(节点+分组+流量 F16)、`order.go`(订单+退款+提现审核 F02)、`content.go`(公告/知识库/分类 F15+邮件模板 F11+订阅模板 F10)、`ticket.go`(工单)、`agent.go`(代理+佣金)、`system.go`(设置+版本 F20+Telegram webhook 注册 F12) | `internal/handler/admin/` |
+| 兼容性保证 | `Admin` 结构体、全部方法签名、路由注册体不变——router 仅改 3 行(import、字段类型 `*admin.Admin`、构造 `admin.NewAdmin`);`pageParams` 因被 `invite.go` 使用,在 handler 包保留(`helper.go`),admin 子包内自带一份;无循环依赖(admin 子包不引父包) | `internal/router/router.go`、`internal/handler/helper.go` |
+| 验证 | `go build ./...`、`go vet ./...`、`go test ./...` 全绿(含 router 路由碰撞测试) | — |
 
 ### Xboard 缺口补齐 · 第四批(✅ 完成,2026-08-29,对齐 .scratch/xboard-gap-fill/spec.md)
 

@@ -1,6 +1,6 @@
 # YLink 功能补齐 · 对齐 Xboard 缺口（Spec）
 
-> Status: ready-for-agent（第四批已于 2026-08-29 完成，F10/F12 见各条目 ✅ 与批次说明；至此本 spec 全部入选需求均已完成或明确关闭）
+> Status: ready-for-agent（第四批已于 2026-08-29 完成，F10/F12 见各条目 ✅ 与批次说明；至此本 spec 全部入选需求均已完成或明确关闭。2026-08-30 重构：第三/四批代码所在的 `handler/admin_batch3.go`、`admin_batch4.go` 已按业务域并入 `internal/handler/admin/` 子包，端点与行为不变）
 > 日期: 2026-08-27（2026-08-28 筛选：按用户决策排除支付/优惠券等资金方向条目，见 §3 状态列与 §6 结论；2026-08-28 二次调整：F02 佣金提现重新入选（仅代理商、工单提现、管理员手动确认发放）并确认并入第三批，F13 快速登录不做并移出第三批；2026-08-28 第三批全部完成）
 > 来源: YLink vs [cedar2025/Xboard](https://github.com/cedar2025/Xboard)（V2Board 系）功能对比盘点
 > 范围: Xboard 有而 YLink 缺失或深度不足的功能，按优先级立项；YLink 独有能力（Tauri 桌面端/Go 栈/可观测性/代理审批）不在本文档范围

@@ -450,6 +450,7 @@ export default {
     completedOrders: '已完成订单',
     totalRevenue: '累计收入',
     todayRevenue: '今日收入',
+    totalBalance: '用户余额总额',
     onSalePlans: '在售套餐',
     quickActions: '快捷操作',
     quickDailyOps: '日常运营',

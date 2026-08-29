@@ -620,7 +620,7 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 
 | 模块 | 端点 |
 |---|---|
-| 仪表盘 | `GET /admin/stat/overview`（用户/订单/收入/在售套餐统计） |
+| 仪表盘 | `GET /admin/stat/overview`（用户/订单/收入/在售套餐统计；含 `total_balance` 全体用户余额合计，元） |
 | 统计报表 | `GET /admin/stat/orders`、`GET /admin/stat/users`、`GET /admin/stat/traffic`（F04 只读，时间范围参数化） |
 | 用户 | `GET /admin/users`、`PUT /admin/users/{id}`（封禁/角色）、`POST /admin/users/{id}/balance`（调余额，审计）、`GET /admin/users/export`（CSV 流式导出）、`POST /admin/users/batch`（批量封禁/解封/调余额）、`POST /admin/users/mail`（发送邮件）、`POST /admin/users/{id}/sub-token/reset`（重置订阅密钥，审计） |
 | 审计日志 | `GET /admin/audit-logs`（F08 只读：筛选/分页/明细） |

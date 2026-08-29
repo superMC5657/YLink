@@ -11,6 +11,7 @@ type AdminOverviewResp struct {
 	CompletedOrders int64   `json:"completed_orders"`
 	TotalRevenue    float64 `json:"total_revenue"` // 已完成订单实收合计（元）
 	TodayRevenue    float64 `json:"today_revenue"` // 今日实收（元）
+	TotalBalance    float64 `json:"total_balance"` // 全体用户余额合计（元）
 	PlanCount       int64   `json:"plan_count"`
 }
 

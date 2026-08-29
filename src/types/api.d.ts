@@ -497,6 +497,7 @@ export interface AdminOverviewResp {
   completed_orders: number
   total_revenue: number
   today_revenue: number
+  total_balance: number
   plan_count: number
 }
 

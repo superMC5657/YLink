@@ -1,4 +1,4 @@
-package handler
+package admin
 
 import (
 	"github.com/gin-gonic/gin"
@@ -8,63 +8,68 @@ import (
 	"ylink-backend/internal/pkg/validate"
 )
 
-// ---- 管理端 · 第三批（xboard-gap-fill）端点：F02 提现审核 / F15 内容排序与分类 / F11 邮件模板 / F20 版本 ----
+// ---- 公告 ----
 
-// ---- 佣金提现审核（F02） ----
-
-// WithdrawPay 确认提现打款
-// @Summary 确认提现打款（线下打款由管理员线下执行，系统内记账并关闭工单）
+// ListNotices 公告列表（含隐藏）
+// @Summary 公告列表
 // @Tags 管理端
 // @Security BearerAuth
-// @Accept json
 // @Produce json
-// @Param id path int true "提现工单 ID"
-// @Param body body model.AdminApproveReq false "备注"
-// @Success 200 {object} resp.Body
-// @Failure 409 {object} resp.Body
-// @Router /admin/tickets/{id}/withdraw/pay [post]
-func (h *Admin) WithdrawPay(c *gin.Context) {
+// @Success 200 {object} resp.Body{data=[]model.AdminNoticeItem}
+// @Router /admin/notices [get]
+func (h *Admin) ListNotices(c *gin.Context) {
+	data, err := h.svc.ListAllNotices(c.Request.Context())
+	if err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.OK(c, gin.H{"list": data})
+}
+
+func (h *Admin) CreateNotice(c *gin.Context) {
+	var req model.AdminNoticeReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+		return
+	}
+	data, err := h.svc.CreateNotice(c.Request.Context(), &req)
+	if err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.OK(c, data)
+}
+
+func (h *Admin) UpdateNotice(c *gin.Context) {
 	id, ok := idParam(c)
 	if !ok {
 		return
 	}
-	var req model.AdminApproveReq
-	_ = c.ShouldBindJSON(&req) // body 可选
-	if err := h.svc.ReviewWithdraw(c.Request.Context(), h.adminID(c), id, true, req.Remark, c.ClientIP()); err != nil {
+	var req model.AdminNoticeReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+		return
+	}
+	if err := h.svc.UpdateNotice(c.Request.Context(), id, &req); err != nil {
 		resp.Fail(c, err)
 		return
 	}
 	resp.OK(c, nil)
 }
 
-// WithdrawReject 拒绝提现
-// @Summary 拒绝提现（自动退回佣金并关闭工单，写流水与审计）
-// @Tags 管理端
-// @Security BearerAuth
-// @Accept json
-// @Produce json
-// @Param id path int true "提现工单 ID"
-// @Param body body model.AdminApproveReq false "备注"
-// @Success 200 {object} resp.Body
-// @Failure 409 {object} resp.Body
-// @Router /admin/tickets/{id}/withdraw/reject [post]
-func (h *Admin) WithdrawReject(c *gin.Context) {
+func (h *Admin) DeleteNotice(c *gin.Context) {
 	id, ok := idParam(c)
 	if !ok {
 		return
 	}
-	var req model.AdminApproveReq
-	_ = c.ShouldBindJSON(&req) // body 可选
-	if err := h.svc.ReviewWithdraw(c.Request.Context(), h.adminID(c), id, false, req.Remark, c.ClientIP()); err != nil {
+	if err := h.svc.DeleteNotice(c.Request.Context(), id); err != nil {
 		resp.Fail(c, err)
 		return
 	}
 	resp.OK(c, nil)
 }
 
-// ---- 内容排序（F15） ----
-
-// SortNotices 公告排序
+// SortNotices 公告排序（F15）
 // @Summary 公告排序（items 按 sort 值更新，单事务）
 // @Tags 管理端
 // @Security BearerAuth
@@ -86,7 +91,68 @@ func (h *Admin) SortNotices(c *gin.Context) {
 	resp.OK(c, nil)
 }
 
-// SortKnowledges 知识库排序
+// ---- 知识库 ----
+
+// ListKnowledges 知识库列表（含隐藏）
+// @Summary 知识库列表
+// @Tags 管理端
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} resp.Body{data=[]model.AdminKnowledgeItem}
+// @Router /admin/knowledges [get]
+func (h *Admin) ListKnowledges(c *gin.Context) {
+	data, err := h.svc.ListAllKnowledges(c.Request.Context())
+	if err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.OK(c, gin.H{"list": data})
+}
+
+func (h *Admin) CreateKnowledge(c *gin.Context) {
+	var req model.AdminKnowledgeReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+		return
+	}
+	data, err := h.svc.CreateKnowledge(c.Request.Context(), &req)
+	if err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.OK(c, data)
+}
+
+func (h *Admin) UpdateKnowledge(c *gin.Context) {
+	id, ok := idParam(c)
+	if !ok {
+		return
+	}
+	var req model.AdminKnowledgeReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+		return
+	}
+	if err := h.svc.UpdateKnowledge(c.Request.Context(), id, &req); err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.OK(c, nil)
+}
+
+func (h *Admin) DeleteKnowledge(c *gin.Context) {
+	id, ok := idParam(c)
+	if !ok {
+		return
+	}
+	if err := h.svc.DeleteKnowledge(c.Request.Context(), id); err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.OK(c, nil)
+}
+
+// SortKnowledges 知识库排序（F15）
 // @Summary 知识库排序（items 按 sort 值更新，单事务）
 // @Tags 管理端
 // @Security BearerAuth
@@ -277,20 +343,76 @@ func (h *Admin) TestMailTemplate(c *gin.Context) {
 	resp.OK(c, nil)
 }
 
-// ---- 版本检查（F20） ----
+// ---- 订阅模板（F10） ----
 
-// Version 版本信息
-// @Summary 版本检查 + 变更日志（配置 update.manifest_url 时远端拉取最新版本）
+// ListSubscriptionTemplates 订阅模板列表
+// @Summary 订阅模板列表（内置生成器模板 + 自定义覆盖合并）
 // @Tags 管理端
 // @Security BearerAuth
 // @Produce json
-// @Success 200 {object} resp.Body{data=model.AdminVersionResp}
-// @Router /admin/version [get]
-func (h *Admin) Version(c *gin.Context) {
-	data, err := h.svc.VersionInfo(c.Request.Context())
+// @Success 200 {object} resp.Body{data=object{list=[]model.AdminSubscriptionTemplateItem}}
+// @Router /admin/subscription-templates [get]
+func (h *Admin) ListSubscriptionTemplates(c *gin.Context) {
+	data, err := h.svc.ListSubscriptionTemplates(c.Request.Context())
 	if err != nil {
 		resp.Fail(c, err)
 		return
 	}
-	resp.OK(c, data)
+	resp.OK(c, gin.H{"list": data})
+}
+
+// SaveSubscriptionTemplate 保存订阅模板
+// @Summary 保存订阅模板（Go template 语法，保存前用示例数据渲染校验）
+// @Tags 管理端
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param name path string true "客户端类型（clash/sing-box/v2ray）"
+// @Param body body model.AdminSubscriptionTemplateReq true "请求"
+// @Success 200 {object} resp.Body
+// @Router /admin/subscription-templates/{name} [put]
+func (h *Admin) SaveSubscriptionTemplate(c *gin.Context) {
+	var req model.AdminSubscriptionTemplateReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+		return
+	}
+	if err := h.svc.SaveSubscriptionTemplate(c.Request.Context(), h.adminID(c), c.Param("name"), req.Content, c.ClientIP()); err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.OK(c, nil)
+}
+
+// ResetSubscriptionTemplate 恢复默认订阅模板
+// @Summary 恢复订阅模板内置生成器（删除自定义行）
+// @Tags 管理端
+// @Security BearerAuth
+// @Produce json
+// @Param name path string true "客户端类型"
+// @Success 200 {object} resp.Body
+// @Router /admin/subscription-templates/{name} [delete]
+func (h *Admin) ResetSubscriptionTemplate(c *gin.Context) {
+	if err := h.svc.ResetSubscriptionTemplate(c.Request.Context(), h.adminID(c), c.Param("name"), c.ClientIP()); err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.OK(c, nil)
+}
+
+// PreviewSubscriptionTemplate 预览订阅模板
+// @Summary 预览订阅模板（按当前模板用示例数据渲染；v2ray 返回 base64 前文本）
+// @Tags 管理端
+// @Security BearerAuth
+// @Produce json
+// @Param name path string true "客户端类型"
+// @Success 200 {object} resp.Body{data=model.AdminSubscriptionTemplatePreviewResp}
+// @Router /admin/subscription-templates/{name}/preview [post]
+func (h *Admin) PreviewSubscriptionTemplate(c *gin.Context) {
+	content, err := h.svc.PreviewSubscriptionTemplate(c.Request.Context(), c.Param("name"))
+	if err != nil {
+		resp.Fail(c, err)
+		return
+	}
+	resp.OK(c, model.AdminSubscriptionTemplatePreviewResp{Name: c.Param("name"), Content: content})
 }

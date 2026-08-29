@@ -13,6 +13,7 @@ import (
 
 	"ylink-backend/internal/config"
 	"ylink-backend/internal/handler"
+	admin "ylink-backend/internal/handler/admin"
 	"ylink-backend/internal/middleware"
 	jwtpkg "ylink-backend/internal/pkg/jwt"
 	"ylink-backend/internal/pkg/mailer"
@@ -53,7 +54,7 @@ type app struct {
 	subH     *handler.Subscribe
 	inviteH  *handler.Invite
 	ticketH  *handler.Ticket
-	adminH   *handler.Admin
+	adminH   *admin.Admin
 	nodeH    *handler.Node
 	tgH      *handler.Telegram
 }
@@ -133,7 +134,7 @@ func newApp(d Deps) *app {
 		subH:       handler.NewSubscribe(subSvc),
 		inviteH:    handler.NewInvite(inviteSvc),
 		ticketH:    handler.NewTicket(ticketSvc),
-		adminH:     handler.NewAdmin(adminSvc),
+		adminH:     admin.NewAdmin(adminSvc),
 		nodeH:      handler.NewNode(nodeSvc),
 		tgH:        handler.NewTelegram(tgSvc),
 	}

@@ -43,6 +43,7 @@ type app struct {
 	ticketSvc  *service.TicketService
 	adminSvc   *service.AdminService
 	nodeSvc    *service.NodeService
+	tgSvc      *service.TelegramService
 
 	authH    *handler.Auth
 	userH    *handler.User
@@ -54,6 +55,7 @@ type app struct {
 	ticketH  *handler.Ticket
 	adminH   *handler.Admin
 	nodeH    *handler.Node
+	tgH      *handler.Telegram
 }
 
 // New 构建 gin 引擎（中间件链 + 分组路由）。
@@ -108,6 +110,8 @@ func newApp(d Deps) *app {
 	ticketSvc := service.NewTicketService(d.DB, d.Redis, repos)
 	adminSvc := service.NewAdminService(d.DB, d.Redis, repos, d.Cfg, settingSvc, d.Mailer)
 	nodeSvc := service.NewNodeService(d.DB, d.Redis, repos)
+	tgSvc := service.NewTelegramService(d.DB, d.Redis, repos, d.Cfg)
+	adminSvc.SetTelegram(tgSvc)
 	return &app{
 		repos:      repos,
 		authSvc:    authSvc,
@@ -120,6 +124,7 @@ func newApp(d Deps) *app {
 		ticketSvc:  ticketSvc,
 		adminSvc:   adminSvc,
 		nodeSvc:    nodeSvc,
+		tgSvc:      tgSvc,
 		authH:      handler.NewAuth(authSvc),
 		userH:      handler.NewUser(userSvc),
 		contentH:   handler.NewContent(contentSvc),
@@ -130,6 +135,7 @@ func newApp(d Deps) *app {
 		ticketH:    handler.NewTicket(ticketSvc),
 		adminH:     handler.NewAdmin(adminSvc),
 		nodeH:      handler.NewNode(nodeSvc),
+		tgH:        handler.NewTelegram(tgSvc),
 	}
 }
 
@@ -188,6 +194,9 @@ func registerUser(g *gin.RouterGroup, d Deps, a *app) {
 	authed.POST("/tickets/:id/reply", a.ticketH.Reply)
 	authed.POST("/tickets/:id/close", a.ticketH.Close)
 	authed.POST("/tickets/:id/reopen", a.ticketH.Reopen)
+	// Telegram 绑定（F12）
+	authed.POST("/user/telegram/bind-code", a.tgH.BindCode)
+	authed.POST("/user/telegram/unbind", a.tgH.Unbind)
 }
 
 // registerAdmin 管理端 API（role=admin）。路径段由 security.admin_path 配置（F22，默认 admin）。
@@ -278,6 +287,13 @@ func registerAdmin(g *gin.RouterGroup, d Deps, a *app) {
 	admin.PUT("/mail-templates/:name", a.adminH.SaveMailTemplate)
 	admin.DELETE("/mail-templates/:name", a.adminH.ResetMailTemplate)
 	admin.POST("/mail-templates/:name/test", a.adminH.TestMailTemplate)
+	// 订阅模板（F10）
+	admin.GET("/subscription-templates", a.adminH.ListSubscriptionTemplates)
+	admin.PUT("/subscription-templates/:name", a.adminH.SaveSubscriptionTemplate)
+	admin.DELETE("/subscription-templates/:name", a.adminH.ResetSubscriptionTemplate)
+	admin.POST("/subscription-templates/:name/preview", a.adminH.PreviewSubscriptionTemplate)
+	// Telegram（F12）
+	admin.POST("/telegram/webhook/setup", a.adminH.SetupTelegramWebhook)
 	// 版本检查（F20）
 	admin.GET("/version", a.adminH.Version)
 }
@@ -291,10 +307,12 @@ func registerClient(g *gin.RouterGroup, d Deps, a *app) {
 	cli.GET("/subscribe/:token", a.subH.ClientSubscribe)
 }
 
-// registerWebhook 支付异步通知：服务端间，免鉴权。
+// registerWebhook 服务端间回调：支付异步通知 + Telegram bot webhook（F12，免登录）。
 func registerWebhook(g *gin.RouterGroup, d Deps, a *app) {
 	wh := g.Group("/payment")
 	wh.POST("/notify/:method", a.orderH.Notify)
+	tg := g.Group("/telegram")
+	tg.POST("/webhook", a.tgH.Webhook)
 }
 
 // registerNode 节点上报端点（模式 A）：X-Node-Key 密钥鉴权。

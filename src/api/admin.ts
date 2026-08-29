@@ -31,6 +31,10 @@ import type {
   AdminMailTemplateItem,
   AdminMailTemplateReq,
   AdminMailTemplateTestReq,
+  AdminSubscriptionTemplateItem,
+  AdminSubscriptionTemplatePreviewResp,
+  AdminSubscriptionTemplateReq,
+  AdminTelegramWebhookSetupResp,
   AdminServerReq,
   AdminSettingsItem,
   AdminSettingsReq,
@@ -205,6 +209,20 @@ export const apiAdmin = {
   resetMailTemplate: (name: string) => http.delete<null>(ap(`mail-templates/${name}`)),
   testMailTemplate: (name: string, body: AdminMailTemplateTestReq) =>
     http.post<null>(ap(`mail-templates/${name}/test`), { body }),
+
+  // 订阅模板（F10）
+  subscriptionTemplates: () =>
+    http.get<{ list: AdminSubscriptionTemplateItem[] }>(ap('subscription-templates')),
+  saveSubscriptionTemplate: (name: string, body: AdminSubscriptionTemplateReq) =>
+    http.put<null>(ap(`subscription-templates/${name}`), { body }),
+  resetSubscriptionTemplate: (name: string) =>
+    http.delete<null>(ap(`subscription-templates/${name}`)),
+  previewSubscriptionTemplate: (name: string) =>
+    http.post<AdminSubscriptionTemplatePreviewResp>(ap(`subscription-templates/${name}/preview`)),
+
+  // Telegram（F12）
+  setupTelegramWebhook: () =>
+    http.post<AdminTelegramWebhookSetupResp>(ap('telegram/webhook/setup')),
 
   // 版本检查（F20）
   version: () => http.get<AdminVersionResp>(ap('version')),

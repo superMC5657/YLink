@@ -2,11 +2,20 @@
 
 > 本文档记录 `src/` 目录 Vue 3 用户端应用的开发状态,是 docs/frontend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-28(**F04 报表增强:营收退款趋势图新增「余额使用/余额退款」两条虚线**——现金/余额实虚线分组,四系列;此前:总览快捷操作分组重设计、邮件模板弹窗缺陷修复等,更早见下)
+> 最后更新:2026-08-29(**第四批 Xboard 缺口补齐前端:订阅模板管理页(F10)+ Telegram 绑定卡片(F12)**;此前:F04 报表四系列、总览快捷操作分组重设计等,更早见下)
 
 ---
 
 ## 1. 已完成项
+
+### Xboard 缺口补齐 · 第四批前端(✅ 完成,2026-08-29,对齐 .scratch/xboard-gap-fill/spec.md)
+
+| 项 | 说明 |
+|---|---|
+| F10 订阅模板管理页 | 新页 `AdminSubscriptionTemplatesView.vue`(镜像 F11 邮件模板交互):客户端类型(clash/sing-box/v2ray)列表 + 变量标签 + 编辑弹窗(textarea,保存前由后端示例数据渲染校验) + 预览弹窗(示例数据渲染,v2ray 显示 base64 前文本) + 恢复内置;路由 `admin-subscription-templates`、nav 菜单(icon: link)、i18n `adminSubscriptionTemplates.*` 与 nav/`admin.subscriptionTemplates`、`apiAdmin.subscriptionTemplates*`、`AdminSubscriptionTemplate*` 类型、mock 数据 |
+| F12 Telegram 绑定卡片 | `ProfileView.vue` Telegram 卡片新增「账号绑定」行:`telegram_bound` 徽章(取自 `GET /user/profile` 新字段)、「获取绑定验证码」弹窗(6 位码 + 一键复制 `/bind <code>` + bot 用户名指引)、「解绑」确认;`apiUser.telegramBindCode/telegramUnbind`、`TelegramBindCodeResp` 类型、mock(bind-code/unbind + profile GET 补 `telegram_bound`) |
+| F12 管理端配置入口 | `AdminSettingsView` KEY_META 新增 `telegram` 键(metaTelegram 文案:bot_token/bot_username/webhook_secret/enabled 说明),JSON 编辑沿用现有交互 |
+| i18n | zh-CN/en-US 同步新增 `adminSubscriptionTemplates`(20 键)、`profile.tgBind*`(9 键)、`adminSettings.metaTelegram*`、nav/`admin.subscriptionTemplates`;`contentPlaceholder` 字面量花括号已按 `{'{{.NodeBlock}}'}` 转义(i18n 编译回归用例通过) |
 
 ### F04 报表增强 · 营收退款趋势四系列(✅ 完成,2026-08-28)
 

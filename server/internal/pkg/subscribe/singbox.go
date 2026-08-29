@@ -1,9 +1,5 @@
 package subscribe
 
-import (
-	"encoding/json"
-)
-
 // SingBox sing-box JSON 生成器。
 type SingBox struct{}
 
@@ -34,7 +30,16 @@ type transportConfig struct {
 	Path string `json:"path,omitempty"`
 }
 
+// Build 渲染内置 sing-box 模板（F10 重构：模板文本见 template.go，输出与原硬编码一致）。
 func (SingBox) Build(u *User, nodes []Node) ([]byte, error) {
+	data, err := BuildTemplateData("sing-box", u, nodes, "", "")
+	if err != nil {
+		return nil, err
+	}
+	return RenderTemplate("sing-box", BuiltinTemplate("sing-box"), data)
+}
+
+func buildOutbounds(nodes []Node) ([]outbound, error) {
 	outbounds := make([]outbound, 0, len(nodes))
 	for _, n := range nodes {
 		ob := outbound{Type: n.Type, Tag: n.Name, Server: n.Host, ServerPort: n.Port, UDP: true}
@@ -69,9 +74,5 @@ func (SingBox) Build(u *User, nodes []Node) ([]byte, error) {
 		}
 		outbounds = append(outbounds, ob)
 	}
-	doc := map[string]any{
-		"log":       map[string]any{"level": "info"},
-		"outbounds": outbounds,
-	}
-	return json.MarshalIndent(doc, "", "  ")
+	return outbounds, nil
 }

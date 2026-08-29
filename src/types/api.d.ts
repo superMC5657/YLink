@@ -146,6 +146,15 @@ export interface ProfileUpdateReq {
 export interface ProfileResp {
   remind_expire: boolean
   remind_traffic: boolean
+  telegram_bound?: boolean
+}
+
+// ---------- 用户端 · Telegram 绑定（F12） ----------
+
+export interface TelegramBindCodeResp {
+  code: string
+  bot_username: string
+  ttl_minutes: number
 }
 
 export interface ChangePasswordReq {
@@ -982,6 +991,33 @@ export interface AdminMailTemplateReq {
 
 export interface AdminMailTemplateTestReq {
   to_email: string
+}
+
+// ---------- 管理端 · 订阅模板（F10） ----------
+
+export interface AdminSubscriptionTemplateItem {
+  name: string
+  content: string
+  is_custom: boolean
+  variables: string[]
+  remark: string
+  updated_at: string | null
+}
+
+export interface AdminSubscriptionTemplateReq {
+  content: string
+}
+
+export interface AdminSubscriptionTemplatePreviewResp {
+  name: string
+  content: string
+}
+
+// ---------- 管理端 · Telegram（F12） ----------
+
+export interface AdminTelegramWebhookSetupResp {
+  webhook_url: string
+  message: string
 }
 
 // ---------- 管理端 · 版本检查（F20） ----------

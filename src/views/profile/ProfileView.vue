@@ -134,6 +134,57 @@ async function onCheckUpdate() {
   }
 }
 
+// ---------- Telegram 绑定（F12） ----------
+const telegramBound = ref(false)
+const bindModal = ref(false)
+const bindCode = ref('')
+const bindBot = ref('')
+const gettingCode = ref(false)
+const unbinding = ref(false)
+
+async function openBindModal() {
+  if (gettingCode.value) return
+  gettingCode.value = true
+  bindCode.value = ''
+  try {
+    const data = await apiUser.telegramBindCode()
+    bindCode.value = data.code
+    bindBot.value = data.bot_username
+    bindModal.value = true
+  } catch (e) {
+    message.error((e as Error).message)
+  } finally {
+    gettingCode.value = false
+  }
+}
+
+async function copyBindCommand() {
+  await copyText(`/bind ${bindCode.value}`)
+  message.success(t('common.copied'))
+}
+
+function onUnbind() {
+  dialog.warning({
+    title: t('profile.tgUnbind'),
+    content: t('profile.tgUnbindConfirm'),
+    positiveText: t('common.confirm'),
+    negativeText: t('common.cancel'),
+    onPositiveClick: async () => {
+      if (unbinding.value) return
+      unbinding.value = true
+      try {
+        await apiUser.telegramUnbind()
+        telegramBound.value = false
+        message.success(t('profile.tgUnboundDone'))
+      } catch (e) {
+        message.error((e as Error).message)
+      } finally {
+        unbinding.value = false
+      }
+    },
+  })
+}
+
 // ---------- 会话管理（F14） ----------
 const sessions = ref<UserSessionItem[]>([])
 const sessionsLoading = ref(false)
@@ -174,6 +225,7 @@ onMounted(() => {
     if (profile) {
       remindExpire.value = profile.remind_expire
       remindTraffic.value = profile.remind_traffic
+      telegramBound.value = profile.telegram_bound ?? false
     }
   })
   // 桌面端展示当前应用版本(Web 端无此概念,保持空)
@@ -305,6 +357,47 @@ onMounted(() => {
                 t('profile.contactBot')
               }}</span>
               <AppIcon name="external-link" :size="15" class="ml-auto text-[var(--c-text-sub)]" />
+            </button>
+          </div>
+
+          <!-- 账号绑定（F12） -->
+          <div
+            class="mt-4 flex items-center gap-3 rounded-xl border border-[var(--c-border)] p-3.5"
+          >
+            <span
+              class="flex h-10 w-10 items-center justify-center rounded-full"
+              style="background: var(--c-primary-soft); color: var(--c-primary-text)"
+            >
+              <AppIcon name="send" :size="19" />
+            </span>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <span class="text-14 font-500 text-[var(--c-text)]">{{
+                  t('profile.tgBindTitle')
+                }}</span>
+                <StatusBadge :type="telegramBound ? 'success' : 'neutral'">
+                  {{ telegramBound ? t('profile.tgBound') : t('profile.tgUnbound') }}
+                </StatusBadge>
+              </div>
+              <p class="mt-0.5 truncate text-12 text-[var(--c-text-sub)]">
+                {{ t('profile.contactBot') }}
+              </p>
+            </div>
+            <button
+              v-if="!telegramBound"
+              class="btn-soft-primary h-8 shrink-0 px-3 text-14"
+              :disabled="gettingCode"
+              @click="openBindModal"
+            >
+              {{ t('profile.tgGetCode') }}
+            </button>
+            <button
+              v-else
+              class="btn-soft-neutral h-8 shrink-0 px-3 text-14"
+              :disabled="unbinding"
+              @click="onUnbind"
+            >
+              {{ t('profile.tgUnbind') }}
             </button>
           </div>
         </div>
@@ -463,6 +556,28 @@ onMounted(() => {
         </button>
       </div>
       <p class="mt-3 text-14 text-[var(--c-warning)]">{{ t('profile.resetSubscribeTip') }}</p>
+    </n-modal>
+
+    <!-- Telegram 绑定验证码弹窗（F12） -->
+    <n-modal
+      v-model:show="bindModal"
+      preset="card"
+      :title="t('profile.tgCodeTitle')"
+      style="width: 460px"
+    >
+      <div class="space-y-4">
+        <p class="text-14 text-[var(--c-text-sub)]">
+          {{ t('profile.tgCodeTip', { bot: '@' + bindBot }) }}
+        </p>
+        <div class="flex items-center justify-between gap-3 rounded-xl bg-[var(--c-bg)] px-4 py-3">
+          <span class="num-font text-22 font-600 tracking-widest text-[var(--c-text)]">{{
+            bindCode
+          }}</span>
+          <button class="btn-soft-neutral h-8 px-3 text-14" @click="copyBindCommand">
+            <AppIcon name="copy" :size="14" /> /bind {{ bindCode }}
+          </button>
+        </div>
+      </div>
     </n-modal>
   </div>
 </template>

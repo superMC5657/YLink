@@ -198,7 +198,7 @@
 
 ### 5.2 通知设置
 
-`GET /user/profile` — 读取通知设置；响应：`data` 为 `{ "remind_expire": bool, "remind_traffic": bool }`。
+`GET /user/profile` — 读取通知设置；响应：`data` 为 `{ "remind_expire": bool, "remind_traffic": bool, "telegram_bound": bool }`（`telegram_bound` 为 F12 Telegram 绑定状态）。
 
 `PUT /user/profile`
 
@@ -265,6 +265,12 @@
 活跃会话列表（refresh 白名单维度，Redis 元数据）。`jti` 为会话标识；`current` 标记当前会话；升级前登录的历史会话 `ip`/`user_agent` 可能为空，`created_at` 为 **null**（无元数据时后端不透出零值时间，前端降级显示「--」）。
 
 `DELETE /user/sessions/{jti}` — 踢下线指定会话：删除 refresh 白名单并写入踢下线标记，该会话 access **立即失效**，其余会话不受影响；当前会话不可自行踢除（40000），会话不存在返回 40400。
+
+### 5.8 Telegram 绑定（F12，2026-08-29）
+
+`POST /user/telegram/bind-code` — 获取绑定验证码：返回 `{ "code": "483902", "bot_username": "ylink_bot", "ttl_minutes": 10 }`。用户在 10 分钟内向 bot 发送 `/bind <code>`（经 Telegram webhook，见 §19）完成绑定；60s 重发间隔（42900）、每日 20 次上限（42900）；站点未启用（settings `telegram.enabled=false` 或 `bot_token` 为空）返回 40000。
+
+`POST /user/telegram/unbind` — 解绑：清除 `users.telegram_id`，解绑后立即停止 Telegram 提醒推送；未绑定时返回 40000。
 
 ---
 
@@ -628,6 +634,8 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 | 佣金 | `GET /admin/commission-logs`（含订单佣金与提现流水，`type` 区分） |
 | 邮件模板 | `GET /admin/mail-templates`、`PUT/DELETE /admin/mail-templates/{name}`、`POST /admin/mail-templates/{name}/test`（F11） |
 | 版本 | `GET /admin/version`（F20 版本检查 + 变更日志） |
+| 订阅模板 | `GET /admin/subscription-templates`、`PUT/DELETE /admin/subscription-templates/{name}`、`POST /admin/subscription-templates/{name}/preview`（F10） |
+| Telegram | `POST /admin/telegram/webhook/setup`（F12，注册 webhook，审计） |
 | 流量 | `POST /admin/traffic/import`（一期模式 B 手工导入）、`POST /admin/traffic/reset`（F16 按用户重置流量）、`GET /admin/traffic/resets`（F16 重置记录分页） |
 | 配置 | `GET/PUT /admin/settings` |
 
@@ -668,6 +676,14 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 - `DELETE /admin/mail-templates/{name}`（2026-08-28 F11）：删除自定义行恢复内置默认文案，写审计（`reset_mail_template`）。
 - `POST /admin/mail-templates/{name}/test`（2026-08-28 F11）：请求体 `{to_email}`，以示例占位符渲染并走真实 SMTP 发送；发送失败原样返回错误信息，写审计（`test_mail_template`）。自定义模板缺失/渲染失败时发送侧自动回退内置文案。
 - `GET /admin/version`（2026-08-28 F20）：返回 `{version, latest, has_update, notes}`。`version` 为当前后端版本（`app.version`，部署注入，缺省 `dev`）；配置 `update.manifest_url`（config.yaml / `APP_UPDATE_MANIFEST_URL`）时远端拉取 `{version, notes}` JSON（3s 超时、服务端缓存 10min），`has_update` 按语义化版本比较；未配置或拉取失败 `latest`/`has_update` 为 `null`。自动执行升级不立项。
+- `GET /admin/subscription-templates`（2026-08-29 F10）：订阅模板列表（内置生成器模板 + 自定义覆盖合并），条目 `{name, content, is_custom, variables, remark, updated_at}`；`name` 为客户端类型 `clash` / `sing-box` / `v2ray`。`variables` 为可用变量清单：公共 `{{.SiteName}}`/`{{.UserInfo}}`/`{{.NodeCount}}`，clash 专属 `{{.SpeedLimit}}`（限速 B/s，0=不限）与 `{{.NodeBlock}}`（预渲染 proxies 节点块），sing-box 专属 `{{.Outbounds}}`（预渲染 outbounds JSON 数组），v2ray 专属 `{{.Links}}`（换行分隔分享链接，渲染结果整体 base64 下发）。
+- `PUT /admin/subscription-templates/{name}`（2026-08-29 F10）：请求体 `{content}`（Go template 全文档模板），保存前以示例节点/用户数据渲染校验（非法类型 40400 / 语法错误 40000），写审计（`edit_subscription_template`）。
+- `DELETE /admin/subscription-templates/{name}`（2026-08-29 F10）：删除自定义行恢复内置生成器，写审计（`reset_subscription_template`）。
+- `POST /admin/subscription-templates/{name}/preview`（2026-08-29 F10）：按当前模板（自定义或内置）以示例数据渲染，返回 `{name, content}`；v2ray 返回 base64 编码前文本。自定义模板已损坏时按内置模板渲染（与订阅下发回退行为一致）。
+- **订阅下发回退语义（F10 验收要点）**：自定义模板缺失/渲染失败时订阅自动回退内置生成器并记 warn 日志，**不返回 5xx**；默认（未自定义）订阅输出与重构前逐字节一致。
+- `POST /admin/telegram/webhook/setup`（2026-08-29 F12）：注册 Telegram webhook——调 Bot API `setWebhook`（URL=`{App.BaseURL}/api/v1/telegram/webhook`，`secret_token` 取 settings `telegram.webhook_secret`，缺失时自动生成并回写）；返回 `{webhook_url, message}`；`bot_token` 未配置 40000；写审计（`telegram_webhook_setup`）。Telegram 推送配置在 `PUT /admin/settings` 的 `telegram` 键：`{bot_token, bot_username, webhook_secret, enabled}`。
+
+---
 
 ---
 
@@ -718,3 +734,13 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 1. 任何端点新增/字段变更先提本文档 PR，标注 `Added/Changed/Deprecated`，双方评审通过后实现。
 2. 破坏性变更（删字段、改语义）走版本化：并行暴露 `/api/v2/...`，v1 保留至少一个版本周期。
 3. 后端 Swagger 注解与本文档同步更新；CI 校验 Swagger 可构建。前端 `types/api.d.ts` 与本文档同步更新。
+
+## 19. Telegram Webhook（F12，`POST /api/v1/telegram/webhook`，免登录）
+
+Telegram 服务端回调。请求头 `X-Telegram-Bot-Api-Secret-Token` 必须等于 settings `telegram.webhook_secret`（未配置或为空一律 403，防伪造）。请求体为 Telegram Update JSON（仅消费 `message`）：
+
+- `/bind <code>`：校验 Redis 绑定码（10min 单次有效）→ 写 `users.telegram_id`（`uk_users_telegram` 部分唯一索引兜底，同一 chat 仅绑定一个账号）→ bot sendMessage 回执。
+- `/unbind`：按 chatID 反查清空绑定，回执确认。
+- `/start` / `/help`：用法说明；其余更新静默 200。
+
+对 Telegram 始终返回 200（secret 校验失败除外）；命令处理结果经 bot `sendMessage` 回执，发送失败仅记日志。worker 到期/流量提醒任务在邮件之后对已绑定用户同步推送纯文本通知，失败不影响主流程。

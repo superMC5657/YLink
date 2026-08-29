@@ -83,6 +83,11 @@ export const ADMIN_NAV_GROUPS: NavGroup[] = [
       { name: 'nav.adminCommissionLogs', path: '/admin/commission-logs', icon: 'coins' },
       { name: 'nav.adminTrafficImport', path: '/admin/traffic-import', icon: 'download' },
       { name: 'nav.adminMailTemplates', path: '/admin/mail-templates', icon: 'bell' },
+      {
+        name: 'nav.adminSubscriptionTemplates',
+        path: '/admin/subscription-templates',
+        icon: 'link',
+      },
       { name: 'nav.adminVersion', path: '/admin/version', icon: 'download' },
       { name: 'nav.adminSettings', path: '/admin/settings', icon: 'globe' },
     ],

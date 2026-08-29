@@ -7,6 +7,7 @@ import type {
   ProfileUpdateReq,
   SiteConfig,
   SubscribeInfo,
+  TelegramBindCodeResp,
   TrafficLog,
   UserSessionItem,
   UserStat,
@@ -33,4 +34,7 @@ export const apiUser = {
   // 会话管理（F14）
   sessions: () => http.get<{ list: UserSessionItem[] }>('/user/sessions'),
   revokeSession: (jti: string) => http.delete<null>(`/user/sessions/${jti}`),
+  // Telegram 绑定（F12）
+  telegramBindCode: () => http.post<TelegramBindCodeResp>('/user/telegram/bind-code'),
+  telegramUnbind: () => http.post<null>('/user/telegram/unbind'),
 }

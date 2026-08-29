@@ -29,10 +29,22 @@ type AdminService struct {
 	cfg   *config.Config
 	set   *SettingService
 	ml    *mailer.Mailer
+	tg    *TelegramService
 }
 
 func NewAdminService(db *gorm.DB, rdb *redis.Client, repos *repo.Repos, cfg *config.Config, set *SettingService, ml *mailer.Mailer) *AdminService {
 	return &AdminService{db: db, rdb: rdb, repos: repos, cfg: cfg, set: set, ml: ml}
+}
+
+// SetTelegram 注入 Telegram 服务（F12 webhook 注册端点委托；router 组装期调用）。
+func (s *AdminService) SetTelegram(tg *TelegramService) { s.tg = tg }
+
+// SetupTelegramWebhook POST /admin/telegram/webhook/setup（F12，委托 TelegramService）。
+func (s *AdminService) SetupTelegramWebhook(ctx context.Context, adminID int64, ip string) (*model.AdminTelegramWebhookSetupResp, error) {
+	if s.tg == nil {
+		return nil, errs.New(50000, "Telegram 服务未初始化")
+	}
+	return s.tg.SetupTelegramWebhook(ctx, adminID, ip)
 }
 
 // ---- 审计 ----

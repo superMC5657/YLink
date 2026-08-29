@@ -67,7 +67,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int64, req *mode
 	if err != nil {
 		return nil, errs.ErrNotFound
 	}
-	return &model.UserProfileResp{RemindExpire: user.RemindExpire, RemindTraffic: user.RemindTraffic}, nil
+	return &model.UserProfileResp{RemindExpire: user.RemindExpire, RemindTraffic: user.RemindTraffic, TelegramBound: user.TelegramID != nil}, nil
 }
 
 // Profile GET /user/profile 读取通知设置（前端挂载时回填）。
@@ -76,7 +76,7 @@ func (s *UserService) Profile(ctx context.Context, userID int64) (*model.UserPro
 	if err != nil {
 		return nil, errs.ErrNotFound
 	}
-	return &model.UserProfileResp{RemindExpire: user.RemindExpire, RemindTraffic: user.RemindTraffic}, nil
+	return &model.UserProfileResp{RemindExpire: user.RemindExpire, RemindTraffic: user.RemindTraffic, TelegramBound: user.TelegramID != nil}, nil
 }
 
 // ChangePassword POST /user/password/change 修改密码；成功后吊销其他会话。

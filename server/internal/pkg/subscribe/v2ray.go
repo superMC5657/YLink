@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"strings"
 )
 
 // V2ray base64 分享链接列表生成器（每行一个链接，整体 base64）。
@@ -13,13 +12,13 @@ type V2ray struct{}
 
 func (V2ray) Format() string { return "v2ray" }
 
+// Build 渲染内置 v2ray 模板（F10 重构：模板文本见 template.go，输出与原硬编码一致）。
 func (V2ray) Build(u *User, nodes []Node) ([]byte, error) {
-	links := make([]string, 0, len(nodes))
-	for _, n := range nodes {
-		links = append(links, shareLink(n))
+	data, err := BuildTemplateData("v2ray", u, nodes, "", "")
+	if err != nil {
+		return nil, err
 	}
-	raw := strings.Join(links, "\n")
-	return []byte(base64.StdEncoding.EncodeToString([]byte(raw))), nil
+	return RenderTemplate("v2ray", BuiltinTemplate("v2ray"), data)
 }
 
 // shareLink 单节点分享链接。

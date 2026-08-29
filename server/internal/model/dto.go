@@ -76,6 +76,7 @@ type UpdateProfileReq struct {
 type UserProfileResp struct {
 	RemindExpire  bool `json:"remind_expire"`
 	RemindTraffic bool `json:"remind_traffic"`
+	TelegramBound bool `json:"telegram_bound"` // F12 是否已绑定 Telegram
 }
 
 type UserStatResp struct {

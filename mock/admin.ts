@@ -1426,6 +1426,91 @@ export default [
     },
   },
 
+  // ---------- 订阅模板（F10） ----------
+  {
+    url: '/api/v1/admin/subscription-templates',
+    method: 'get',
+    response: ({ headers }: { headers: Record<string, string> }) => {
+      if (!verifyAdmin(headers)) return unauthorized()
+      return ok({
+        list: [
+          {
+            name: 'clash',
+            content:
+              'mixed-port: 7890\nallow-lan: false\nmode: rule\nlog-level: info\n{{- if .SpeedLimit}}\nlimit-speed: {{.SpeedLimit}}\n{{- end}}\nproxies:\n{{.NodeBlock}}',
+            is_custom: false,
+            variables: [
+              '{{.SiteName}}',
+              '{{.UserInfo}}',
+              '{{.SpeedLimit}}',
+              '{{.NodeCount}}',
+              '{{.NodeBlock}}',
+            ],
+            remark: 'Clash YAML 全文档模板；{{.NodeBlock}} 为预渲染 proxies 节点块',
+            updated_at: null,
+          },
+          {
+            name: 'sing-box',
+            content: '{\n  "log": {\n    "level": "info"\n  },\n  "outbounds": {{.Outbounds}}\n}',
+            is_custom: false,
+            variables: ['{{.SiteName}}', '{{.UserInfo}}', '{{.NodeCount}}', '{{.Outbounds}}'],
+            remark: 'sing-box JSON 全文档模板；{{.Outbounds}} 为预渲染 outbounds 数组',
+            updated_at: null,
+          },
+          {
+            name: 'v2ray',
+            content: '{{.Links}}',
+            is_custom: true,
+            variables: ['{{.SiteName}}', '{{.UserInfo}}', '{{.NodeCount}}', '{{.Links}}'],
+            remark: 'v2ray 分享链接模板；渲染结果整体 base64 后下发',
+            updated_at: '2026-08-29T10:00:00+08:00',
+          },
+        ],
+      })
+    },
+  },
+  {
+    url: '/api/v1/admin/subscription-templates/:name',
+    method: 'put',
+    response: ({ headers }: { headers: Record<string, string> }) => {
+      if (!verifyAdmin(headers)) return unauthorized()
+      return ok(null)
+    },
+  },
+  {
+    url: '/api/v1/admin/subscription-templates/:name',
+    method: 'delete',
+    response: ({ headers }: { headers: Record<string, string> }) => {
+      if (!verifyAdmin(headers)) return unauthorized()
+      return ok(null)
+    },
+  },
+  {
+    url: '/api/v1/admin/subscription-templates/:name/preview',
+    method: 'post',
+    response: ({ headers }: { headers: Record<string, string> }) => {
+      if (!verifyAdmin(headers)) return unauthorized()
+      return ok({
+        name: 'clash',
+        content:
+          'mixed-port: 7890\nallow-lan: false\nmode: rule\nlog-level: info\nlimit-speed: 13125000\nproxies:\n  - name: 示例 香港01\n    type: trojan\n    server: 1.2.3.4\n    port: 443\n',
+      })
+    },
+  },
+
+  // ---------- Telegram（F12） ----------
+  {
+    url: '/api/v1/admin/telegram/webhook/setup',
+    method: 'post',
+    response: ({ headers }: { headers: Record<string, string> }) => {
+      if (!verifyAdmin(headers)) return unauthorized()
+      return ok({
+        webhook_url: 'https://demo.example.com/api/v1/telegram/webhook',
+        message: 'webhook 注册成功',
+      })
+    },
+  },
+
   // ---------- 版本检查（F20） ----------
   {
     url: '/api/v1/admin/version',

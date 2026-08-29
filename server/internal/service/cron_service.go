@@ -28,10 +28,11 @@ type CronService struct {
 	cfg    *config.Config
 	mailer *mailer.Mailer
 	orders *OrderService
+	tg     *TelegramService
 }
 
-func NewCronService(db *gorm.DB, rdb *redis.Client, repos *repo.Repos, cfg *config.Config, m *mailer.Mailer, orders *OrderService) *CronService {
-	return &CronService{db: db, rdb: rdb, repos: repos, cfg: cfg, mailer: m, orders: orders}
+func NewCronService(db *gorm.DB, rdb *redis.Client, repos *repo.Repos, cfg *config.Config, m *mailer.Mailer, orders *OrderService, tg *TelegramService) *CronService {
+	return &CronService{db: db, rdb: rdb, repos: repos, cfg: cfg, mailer: m, orders: orders, tg: tg}
 }
 
 // WithLock 分布式锁包装：仅单实例执行任务。
@@ -245,6 +246,10 @@ func (s *CronService) sendExpireMail(u model.User) {
 	if err := s.mailer.Send(u.Email, subject, body); err != nil {
 		logger.L().Error("send expire mail failed", zapS("email", u.Email), zapE(err))
 	}
+	// F12：已绑定 Telegram 的用户同步推送（失败仅记日志，不影响邮件主流程）
+	if s.tg != nil {
+		s.tg.NotifyUser(context.Background(), u, "您的订阅将于 "+vars["expire_date"]+" 到期，请及时续费以免影响使用。")
+	}
 }
 
 // TrafficRemind 流量提醒（每日 10:00）：用量 ≥80% 且开启提醒。
@@ -272,6 +277,10 @@ func (s *CronService) TrafficRemind(ctx context.Context) {
 		}
 		if err := s.mailer.Send(u.Email, subject, body); err != nil {
 			logger.L().Error("send traffic mail failed", zapS("email", u.Email), zapE(err))
+		}
+		// F12：已绑定 Telegram 的用户同步推送（失败仅记日志）
+		if s.tg != nil {
+			s.tg.NotifyUser(ctx, u, "您的流量已使用 "+vars["percent"]+"%，请注意剩余流量。")
 		}
 	}
 	logger.L().Info("traffic remind done")

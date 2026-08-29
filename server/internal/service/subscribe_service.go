@@ -14,6 +14,7 @@ import (
 	"ylink-backend/internal/config"
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/errs"
+	"ylink-backend/internal/pkg/logger"
 	"ylink-backend/internal/pkg/passwd"
 	redispkg "ylink-backend/internal/pkg/redis"
 	"ylink-backend/internal/pkg/subscribe"
@@ -204,13 +205,13 @@ func (s *SubscribeService) Generate(ctx context.Context, token, flag, userAgent 
 		}
 	}
 
-	content, err := gen.Build(subUser, nodes)
+	// userinfo 缓存 30s，防客户端高频拉取打库（先于内容生成：F10 模板变量需要）
+	ui, err := s.userInfo(ctx, user)
 	if err != nil {
 		return nil, err
 	}
-
-	// userinfo 缓存 30s，防客户端高频拉取打库
-	ui, err := s.userInfo(ctx, user)
+	// F10：自定义订阅模板优先，缺失/渲染失败回退内置生成器（验收：模板错误不导致订阅 500）
+	content, err := s.renderSubscription(gen, subUser, nodes, s.cfg.App.Name, ui)
 	if err != nil {
 		return nil, err
 	}
@@ -220,6 +221,31 @@ func (s *SubscribeService) Generate(ctx context.Context, token, flag, userAgent 
 		UserInfo:    ui,
 		Filename:    "YLink",
 	}, nil
+}
+
+// renderSubscription 生成订阅内容：自定义模板（subscription_templates 表）优先；
+// 自定义缺失/渲染失败回退内置生成器并记 warn（spec F10 验收要点：模板语法错误不导致订阅 500）。
+func (s *SubscribeService) renderSubscription(gen subscribe.Generator, u *subscribe.User, nodes []subscribe.Node, siteName, userInfo string) ([]byte, error) {
+	builtin, err := gen.Build(u, nodes)
+	if err != nil {
+		return nil, err
+	}
+	format := gen.Format()
+	custom, err := (repo.SubscriptionTemplateRepo{}).Get(s.db, format)
+	if err != nil || strings.TrimSpace(custom.Content) == "" {
+		return builtin, nil
+	}
+	data, derr := subscribe.BuildTemplateData(format, u, nodes, siteName, userInfo)
+	if derr != nil {
+		logger.L().Warn("订阅模板数据构造失败，回退内置生成器", zapS("format", format), zapE(derr))
+		return builtin, nil
+	}
+	out, terr := subscribe.RenderTemplate(format, custom.Content, data)
+	if terr != nil {
+		logger.L().Warn("自定义订阅模板渲染失败，回退内置生成器", zapS("format", format), zapE(terr))
+		return builtin, nil
+	}
+	return out, nil
 }
 
 // buildNodes 组装用户套餐可见节点。

@@ -227,3 +227,12 @@ panel.example.com { root * /srv/panel; try_files {path} /index.html; file_server
 | local | 开发本机 | `server/.env.dev`（gitignore，dev.sh / dev-docker.sh 的唯一 env 源;dev-docker.sh 缺失即报错、不内置默认值）;compose 起 postgres/redis;dev.sh 启动 api/worker 时强制 `APP_ENV=development` 开 Swagger(dev-docker.sh 同,容器内 DSN/Redis 由 override 覆盖为服务名) |
 | staging | 预发 | 与生产同构,复制 `.env.release` 改网关为沙箱/0.01 元实测 |
 | production | 正式 | `server/.env.release`（gitignore,真实密钥）;`ENV_FILE=.env.release docker compose up -d`;关 Swagger/debug,严格 CORS 白名单与限流 |
+
+## 9. Telegram 机器人（F12，可选）
+
+管理端「站点设置」编辑 `telegram` 配置项后，在「订阅模板 / Telegram」能力下注册 webhook：
+
+1. 向 @BotFather 创建 bot，取得 `bot_token`；填入 settings `telegram`：`{ "bot_token": "123:ABC", "bot_username": "<bot用户名>", "webhook_secret": "", "enabled": true }` 保存。
+2. 管理端调用 `POST /admin/telegram/webhook/setup`：自动生成 `webhook_secret`（缺失时）并调 Telegram `setWebhook` 注册 `https://<App.BaseURL>/api/v1/telegram/webhook`。`App.BaseURL` 必须是公网 HTTPS 地址（Telegram 强制）。
+3. webhook 端点免登录，凭 `X-Telegram-Bot-Api-Secret-Token` 头（= `webhook_secret`）防伪造，非反代需放行该路径；反代（nginx/caddy）按普通 `/api/v1` 转发即可，无需特殊头处理。
+4. 验证：用户端个人信息页「获取绑定验证码」→ 给 bot 发 `/bind <code>` → bot 回复绑定成功。到期/流量提醒由 worker 每日任务同步推送（失败仅记日志，不影响邮件）。

@@ -388,28 +388,29 @@ func (MailLogRepo) Create(db *gorm.DB, l *model.MailLog) error { return db.Creat
 
 // Repos 聚合全部仓储，注入 service 层。
 type Repos struct {
-	User         UserRepo
-	Invite       InviteCodeRepo
-	Setting      SettingRepo
-	Notice       NoticeRepo
-	Knowledge    KnowledgeRepo
-	KnowledgeCat KnowledgeCategoryRepo
-	Plan         PlanRepo
-	Server       ServerRepo
-	Order        OrderRepo
-	Payment      PaymentRepo
-	Coupon       CouponRepo
-	Commission   CommissionRepo
-	Withdraw     WithdrawRepo
-	Traffic      TrafficLogRepo
-	TrafficReset TrafficResetRepo
-	NodeStat     NodeUserStatRepo
-	Stat         StatRepo
-	AgentApply   AgentApplyRepo
-	Ticket       TicketRepo
-	Audit        AuditLogRepo
-	MailLog      MailLogRepo
-	MailTemplate MailTemplateRepo
+	User                 UserRepo
+	Invite               InviteCodeRepo
+	Setting              SettingRepo
+	Notice               NoticeRepo
+	Knowledge            KnowledgeRepo
+	KnowledgeCat         KnowledgeCategoryRepo
+	Plan                 PlanRepo
+	Server               ServerRepo
+	Order                OrderRepo
+	Payment              PaymentRepo
+	Coupon               CouponRepo
+	Commission           CommissionRepo
+	Withdraw             WithdrawRepo
+	Traffic              TrafficLogRepo
+	TrafficReset         TrafficResetRepo
+	NodeStat             NodeUserStatRepo
+	Stat                 StatRepo
+	AgentApply           AgentApplyRepo
+	Ticket               TicketRepo
+	Audit                AuditLogRepo
+	MailLog              MailLogRepo
+	MailTemplate         MailTemplateRepo
+	SubscriptionTemplate SubscriptionTemplateRepo
 }
 
 // EnsureAdmin 幂等初始化首个管理员：users 表无管理员且环境变量齐全时创建。

@@ -428,3 +428,13 @@ type MailTemplate struct {
 }
 
 func (MailTemplate) TableName() string { return "mail_templates" }
+
+// SubscriptionTemplate 对应 subscription_templates 表：自定义订阅模板（F10），
+// name 为客户端类型（clash/sing-box/v2ray），缺失/渲染失败回退内置生成器。
+type SubscriptionTemplate struct {
+	Name      string    `gorm:"primaryKey;size:32" json:"name"`
+	Content   string    `gorm:"type:text" json:"content"`
+	UpdatedAt time.Time `json:"-"`
+}
+
+func (SubscriptionTemplate) TableName() string { return "subscription_templates" }

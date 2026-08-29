@@ -51,6 +51,7 @@ test-results/
 
 # agent
 .reasonix
+.zcode
 
 # 开发迭代
 .ui-shots

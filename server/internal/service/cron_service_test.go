@@ -20,7 +20,7 @@ func TestCronCloseExpiredOrdersClosesPayments(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	ordersSvc := &OrderService{}
-	cron := NewCronService(e.db, e.rdb, repos, &config.Config{}, nil, ordersSvc)
+	cron := NewCronService(e.db, e.rdb, repos, &config.Config{}, nil, ordersSvc, nil)
 	now := time.Now()
 	o := &model.Order{OrderNo: "O1", UserID: 7, Status: model.OrderPending, CreatedAt: now.Add(-time.Hour)}
 
@@ -50,7 +50,7 @@ func TestCronReconcileSkipsOrphanPayment(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	ordersSvc := &OrderService{}
-	cron := NewCronService(e.db, e.rdb, repos, &config.Config{}, nil, ordersSvc)
+	cron := NewCronService(e.db, e.rdb, repos, &config.Config{}, nil, ordersSvc, nil)
 	now := time.Now()
 
 	// ListPending:一条支付单,订单已取消

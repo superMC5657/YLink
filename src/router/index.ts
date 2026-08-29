@@ -220,6 +220,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: 'admin.mailTemplates' },
       },
       {
+        path: 'subscription-templates',
+        name: 'admin-subscription-templates',
+        component: () => import('@/views/admin/AdminSubscriptionTemplatesView.vue'),
+        meta: { title: 'admin.subscriptionTemplates' },
+      },
+      {
         path: 'version',
         name: 'admin-version',
         component: () => import('@/views/admin/AdminVersionView.vue'),

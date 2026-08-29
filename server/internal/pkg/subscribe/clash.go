@@ -1,7 +1,6 @@
 package subscribe
 
 import (
-	"bytes"
 	"fmt"
 	"strconv"
 	"strings"
@@ -12,20 +11,13 @@ type Clash struct{}
 
 func (Clash) Format() string { return "clash" }
 
+// Build 渲染内置 Clash 模板（F10 重构：模板文本见 template.go，输出与原硬编码一致）。
 func (Clash) Build(u *User, nodes []Node) ([]byte, error) {
-	var buf bytes.Buffer
-	buf.WriteString("mixed-port: 7890\n")
-	buf.WriteString("allow-lan: false\n")
-	buf.WriteString("mode: rule\n")
-	buf.WriteString("log-level: info\n")
-	if u.SpeedLimit != nil && *u.SpeedLimit > 0 {
-		buf.WriteString(fmt.Sprintf("limit-speed: %d\n", *u.SpeedLimit*1024*1024/8)) // Mbps → B/s
+	data, err := BuildTemplateData("clash", u, nodes, "", "")
+	if err != nil {
+		return nil, err
 	}
-	buf.WriteString("proxies:\n")
-	for _, n := range nodes {
-		buf.WriteString(proxyYAML(n))
-	}
-	return buf.Bytes(), nil
+	return RenderTemplate("clash", BuiltinTemplate("clash"), data)
 }
 
 func proxyYAML(n Node) string {

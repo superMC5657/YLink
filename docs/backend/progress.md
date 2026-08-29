@@ -2,11 +2,25 @@
 
 > 本文档记录 `server/` 目录 Go/Gin 后端的开发状态,是 docs/backend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-28(**F04 报表增强:`GET /admin/stat/orders` 新增 `balance_used`/`balance_refunded` 余额两字段**——营收退款趋势图四系列;此前:分页空列表 null 修复、第三批 Xboard 缺口补齐,更早见下)
+> 最后更新:2026-08-30(**第四批 review 修复**:Telegram 绑定 stale 写竞态、webhook 总开关、webhook 注册失败报错、Clash 尾随换行、gofmt;2026-08-29:**第四批 Xboard 缺口补齐:F10 订阅模板管理 + F12 Telegram 机器人**——订阅模板全文档 text/template 化(回退内置生成器)、Telegram 绑定/webhook/提醒推送;此前:F04 报表余额两字段、第三批,更早见下)
 
 ---
 
 ## 1. 已完成项
+
+### Xboard 缺口补齐 · 第四批(✅ 完成,2026-08-29,对齐 .scratch/xboard-gap-fill/spec.md)
+
+| 项 | 说明 | 位置 |
+|---|---|---|
+| F10 订阅模板·生成器模板化 | 三生成器(clash/sing-box/v2ray)重构为 Go text/template 渲染,内置模板注册于 `pkg/subscribe/template.go`(内置模板渲染结果与重构前硬编码输出逐字节一致,`TestClashBuild` 等既有测试保证);数据上下文 `TemplateData`:公共 `{{.SiteName}}`/`{{.UserInfo}}`/`{{.NodeCount}}`,clash `{{.SpeedLimit}}`(B/s)+`{{.NodeBlock}}`(预渲染 proxies 块)、sing-box `{{.Outbounds}}`(预渲染 outbounds JSON 数组)、v2ray `{{.Links}}`——节点语法细节对模板作者不可破坏 | `internal/pkg/subscribe/template.go`、`clash.go`、`singbox.go`、`v2ray.go` |
+| F10 订阅模板·自定义与回退 | `subscription_templates` 表(迁移 0008,name=客户端类型);`renderSubscriptionTemplate`:自定义模板优先,**自定义缺失/渲染失败自动回退内置生成器并记 warn,订阅不 5xx**(spec F10 验收要点);`Generate` 中 userinfo 先于内容生成(模板变量需要) | `internal/service/subscription_template.go`、`subscribe_service.go`、`internal/repo/subscription.go`、`migrations/0008_batch4_subtpl_telegram.{up,down}.sql` |
+| F10 管理端 API | `GET /admin/subscription-templates`(内置+自定义合并,含 variables/remark)、`PUT .../{name}`(保存前示例数据渲染校验,语法错误 40000)、`DELETE .../{name}`(恢复内置)、`POST .../{name}/preview`(示例数据渲染,v2ray 返回 base64 前文本);审计 `edit_subscription_template`/`reset_subscription_template` | `internal/service/subscription_template.go`、`internal/handler/admin_batch4.go`、`internal/router/router.go` |
+| F12 Telegram 服务 | settings 新键 `telegram`(`{bot_token, bot_username, webhook_secret, enabled}`,迁移 0008 seed,管理端设置页 JSON 编辑);`TelegramService` 不引 SDK,`net/http` 直调 Bot API(sendMessage/setWebhook,10s 超时),测试经 `sendFn` 注入避免外呼 | `internal/service/telegram.go`、`internal/config/config.go` |
+| F12 绑定闭环 | `POST /user/telegram/bind-code`(6 位码 Redis `tg:bind:code:{code}` 10min 单次,60s 重发间隔+每日 20 次,未启用 40000)、`POST /telegram/webhook`(secret 头 `X-Telegram-Bot-Api-Secret-Token` 校验,不匹配 40300;`/bind <code>` GetDel 消费验证码后**仅条件更新 telegram_id 一列**(`WHERE id=? AND is_banned=false`,review 修复:不再用 stale 快照全量 Updates 覆盖并发修改的余额等字段;RowsAffected=0 提示账号状态变更),`uk_users_telegram` 部分唯一索引兜底一 chat 一账号;**webhook 尊重 `telegram.enabled` 总开关**(review 修复:关闭后 /bind、/start 等静默忽略,仅 /unbind 始终放行——解绑不被锁死);`/unbind` 按 chatID 反查清空;其余命令回执用法)、`POST /user/telegram/unbind`(条件更新置空——`Updates(struct)` 跳过零值无法清列);解绑后立即停止推送 | `internal/service/telegram.go`、`internal/handler/telegram.go`、`internal/router/router.go` |
+| F12 webhook 注册 | `POST /admin/telegram/webhook/setup`:自动生成 `webhook_secret`(缺失时回写 settings)、调 setWebhook(URL=`{App.BaseURL}/api/v1/telegram/webhook`),返回 `{webhook_url, message}`;**Telegram API 返回 ok=false 时保留审计但返回 50000 错误**(review 修复:不再假成功);审计 `telegram_webhook_setup`;AdminService 经 `SetTelegram` 注入委托(不动构造签名) | `internal/service/telegram.go`、`internal/service/admin_service.go`、`internal/handler/admin_batch4.go` |
+| F12 提醒推送 | cron `sendExpireMail`/`TrafficRemind` 邮件后对已绑定用户追加 Telegram 纯文本通知(`NotifyUser`:未绑定/未启用跳过,**失败仅记日志不阻断主流程**——spec F12 验收要点);`GET /user/profile` 响应新增 `telegram_bound` | `internal/service/cron_service.go`、`cmd/worker/main.go`、`internal/service/user_service.go` |
+
+新增测试 14 例(`batch4_test.go`;2026-08-30 review 修复补 3 例:总开关拦截 /bind 且不消费验证码、总开关放行 /unbind、setWebhook ok=false 返回 50000):订阅渲染回退内置/自定义生效/坏模板回退(逐字节断言)、保存语法错误 40000、内置模板预览(clash/v2ray);Telegram 绑定码未启用/正常签发(重发间隔 429)、webhook 绑定成功(secret+码+写库+回执)、secret 不匹配 40300、解绑(含未绑定 40000)、推送降级(未绑定/未启用/发送失败三态)。`go test ./... -count=1` 全绿。
 
 ### F04 报表增强 · 订单趋势余额两字段(✅ 完成,2026-08-28)
 
@@ -284,10 +298,10 @@
 | F13 快速登录不做 | 用户明确不需要,从第三批移出并删除线标识 | 📝 已关闭 |
 | 第三批名单更新 | 移出 F13、并入 F02,余:F02 佣金提现、F15 公告/知识库排序与分类、F14 会话管理界面、F11 邮件模板管理、F19 品牌配置子集、F20 版本检查+变更日志子集;**第三批全部待做(2026-08-28 用户确认)** | 📝 待实现 |
 
-### 测试状态(✅ 已更新,2026-08-28 实测)
+### 测试状态(✅ 已更新,2026-08-30 实测)
 
 - `go build ./...` / `go vet ./...` / `gofmt -l`(0 输出)全部通过
-- `go test ./... -count=1` 全绿;**119 个测试函数**(2026-08-28 第三批新增 7 例——提现提交/拒绝退回/确认打款/非提现工单拒绝/会话列表与踢下线/邮件模板回退/公告排序,并修正 TestRefreshRotation 断言;2026-08-28 第二批新增 9 例——批量节点删除汇总/update 参数校验/批量更新/复制节点新 node_key/排序单事务/流量重置保留快照/reset_quota 无套餐失败/报表补零/流量 TopN;2026-08-25:0.9.0 新增 3 例——重复 UUID 整体拒绝、节点分组不匹配 `not_subscribed`、存量共享凭证回退;此前 2026-08-22 模式 A 新增 11 例——NodeUsers 同步/onetime 无到期、首次上报全量、同值重报幂等(不写 users/traffic)、计数器回退重启判定、0.5 倍率乘算、unknown_user+not_subscribed 跳过、servers 错误上抛、cumDelta/scaleRate 边界、NodeAuth(无头 401/未知 401/有效注入+缓存命中不再查库)、每用户凭证下发(opt-in 时 config 共享密码不下发断言)、admin 重置密钥(含 404)),此前覆盖:错误码映射、JWT(含 SV 会话版本号)、密码、验证码限频/已注册、注册/登录锁定/刷新旋转、优惠券试算(固定/百分比/封顶)/超限 12001/原子占用/每人限用、下单幂等、续期状态机、回调幂等、epay 验签与篡改拒绝、订阅生成(3 格式)、佣金划转、代理申请、工单流转、工单重开、佣金确认竞态、超时关单(含优惠券回退)、取消并发已支付回滚、退款(余额/券/佣金/订阅收回/onetime/异套餐)、代理审批、bluemonday 清洗、Auth 中间件、余额调整负值拒绝、管理端订单佣金查询、CORS
+- `go test ./... -count=1` 全绿;**144 个测试函数**(2026-08-30 第四批 review 修复新增 3 例——Telegram 总开关拦截 /bind 且不消费验证码、总开关放行 /unbind、setWebhook ok=false 返回 50000;2026-08-29 第四批新增 11 例——订阅模板回退/自定义/坏模板回退/保存校验/预览 + Telegram 绑定码/webhook 绑定/secret 校验/解绑/推送降级;2026-08-28 第三批新增 7 例——提现提交/拒绝退回/确认打款/非提现工单拒绝/会话列表与踢下线/邮件模板回退/公告排序,并修正 TestRefreshRotation 断言;2026-08-28 第二批新增 9 例——批量节点删除汇总/update 参数校验/批量更新/复制节点新 node_key/排序单事务/流量重置保留快照/reset_quota 无套餐失败/报表补零/流量 TopN;2026-08-25:0.9.0 新增 3 例——重复 UUID 整体拒绝、节点分组不匹配 `not_subscribed`、存量共享凭证回退;此前 2026-08-22 模式 A 新增 11 例——NodeUsers 同步/onetime 无到期、首次上报全量、同值重报幂等(不写 users/traffic)、计数器回退重启判定、0.5 倍率乘算、unknown_user+not_subscribed 跳过、servers 错误上抛、cumDelta/scaleRate 边界、NodeAuth(无头 401/未知 401/有效注入+缓存命中不再查库)、每用户凭证下发(opt-in 时 config 共享密码不下发断言)、admin 重置密钥(含 404)),此前覆盖:错误码映射、JWT(含 SV 会话版本号)、密码、验证码限频/已注册、注册/登录锁定/刷新旋转、优惠券试算(固定/百分比/封顶)/超限 12001/原子占用/每人限用、下单幂等、续期状态机、回调幂等、epay 验签与篡改拒绝、订阅生成(3 格式)、佣金划转、代理申请、工单流转、工单重开、佣金确认竞态、超时关单(含优惠券回退)、取消并发已支付回滚、退款(余额/券/佣金/订阅收回/onetime/异套餐)、代理审批、bluemonday 清洗、Auth 中间件、余额调整负值拒绝、管理端订单佣金查询、CORS
 
 ---
 

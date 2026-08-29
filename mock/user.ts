@@ -182,10 +182,35 @@ export default [
   },
   {
     url: '/api/v1/user/profile',
+    method: 'get',
+    response: ({ headers }: { headers: Record<string, string> }) => {
+      if (!verifyAccess(headers)) return unauthorized()
+      return ok({ remind_expire: true, remind_traffic: false, telegram_bound: false })
+    },
+  },
+  {
+    url: '/api/v1/user/profile',
     method: 'put',
     response: ({ headers, body }: { headers: Record<string, string>; body: unknown }) => {
       if (!verifyAccess(headers)) return unauthorized()
       return ok(body)
+    },
+  },
+  // Telegram 绑定（F12）
+  {
+    url: '/api/v1/user/telegram/bind-code',
+    method: 'post',
+    response: ({ headers }: { headers: Record<string, string> }) => {
+      if (!verifyAccess(headers)) return unauthorized()
+      return ok({ code: '483902', bot_username: 'ylink_bot', ttl_minutes: 10 })
+    },
+  },
+  {
+    url: '/api/v1/user/telegram/unbind',
+    method: 'post',
+    response: ({ headers }: { headers: Record<string, string> }) => {
+      if (!verifyAccess(headers)) return unauthorized()
+      return ok(null)
     },
   },
   {

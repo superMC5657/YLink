@@ -366,13 +366,13 @@ type AdminTrafficResetLogItem struct {
 
 // AdminStatOrderPoint 订单日趋势点（date=YYYY-MM-DD）。
 type AdminStatOrderPoint struct {
-	Date             string  `json:"date"`
-	OrderCount       int64   `json:"order_count"`       // 当日创建订单数
-	CompletedCount   int64   `json:"completed_count"`   // 当日完成订单数
-	Revenue          float64 `json:"revenue"`           // 当日实收现金部分（元，按 paid_at）
-	Refunded         float64 `json:"refunded"`          // 当日退款现金部分（元，按 updated_at 近似）
-	BalanceUsed      float64 `json:"balance_used"`      // 当日完成订单余额支付部分（元，按 paid_at）
-	BalanceRefunded  float64 `json:"balance_refunded"`  // 当日退款订单余额部分（元，按 updated_at 近似）
+	Date            string  `json:"date"`
+	OrderCount      int64   `json:"order_count"`      // 当日创建订单数
+	CompletedCount  int64   `json:"completed_count"`  // 当日完成订单数
+	Revenue         float64 `json:"revenue"`          // 当日实收现金部分（元，按 paid_at）
+	Refunded        float64 `json:"refunded"`         // 当日退款现金部分（元，按 updated_at 近似）
+	BalanceUsed     float64 `json:"balance_used"`     // 当日完成订单余额支付部分（元，按 paid_at）
+	BalanceRefunded float64 `json:"balance_refunded"` // 当日退款订单余额部分（元，按 updated_at 近似）
 }
 
 type AdminStatOrdersResp struct {
@@ -512,6 +512,46 @@ type AdminVersionResp struct {
 	Latest    *string `json:"latest"`
 	HasUpdate *bool   `json:"has_update"`
 	Notes     *string `json:"notes"`
+}
+
+// ---- 管理端 · 订阅模板（F10） ----
+
+// AdminSubscriptionTemplateItem 订阅模板视图：custom=已自定义，否则为内置生成器模板。
+type AdminSubscriptionTemplateItem struct {
+	Name      string     `json:"name"`
+	Content   string     `json:"content"`
+	IsCustom  bool       `json:"is_custom"`
+	Variables []string   `json:"variables"`
+	Remark    string     `json:"remark"`
+	UpdatedAt *time.Time `json:"updated_at"`
+}
+
+// AdminSubscriptionTemplateReq 保存订阅模板（Go template 语法，保存前用示例数据渲染校验）。
+type AdminSubscriptionTemplateReq struct {
+	Content string `json:"content" binding:"required"`
+}
+
+// AdminSubscriptionTemplatePreviewResp 预览渲染结果（示例数据）。
+type AdminSubscriptionTemplatePreviewResp struct {
+	Name    string `json:"name"`
+	Content string `json:"content"`
+}
+
+// ---- 用户端 · Telegram 绑定（F12） ----
+
+// TelegramBindCodeResp 绑定验证码：用户在 10 分钟内向 bot 发送 /bind <code>。
+type TelegramBindCodeResp struct {
+	Code        string `json:"code"`
+	BotUsername string `json:"bot_username"`
+	TTLMinutes  int    `json:"ttl_minutes"`
+}
+
+// ---- 管理端 · Telegram（F12） ----
+
+// AdminTelegramWebhookSetupResp webhook 注册结果。
+type AdminTelegramWebhookSetupResp struct {
+	WebhookURL string `json:"webhook_url"`
+	Message    string `json:"message"`
 }
 
 // ---- 管理端 · 用户会话（F14，挂 dto_admin 便于聚合引用） ----

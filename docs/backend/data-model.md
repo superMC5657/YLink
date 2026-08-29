@@ -37,7 +37,7 @@ erDiagram
 | is_banned | BOOLEAN NOT NULL DEFAULT 0 | 封禁标记（封禁即拒绝登录与订阅下发） |
 | remind_expire | BOOLEAN NOT NULL DEFAULT 1 | 到期邮件提醒开关 |
 | remind_traffic | BOOLEAN NOT NULL DEFAULT 0 | 流量邮件提醒开关 |
-| telegram_id | BIGINT NULL | TG 绑定（预留） |
+| telegram_id | BIGINT NULL | F12 Telegram 绑定（chat id）；部分唯一索引 `uk_users_telegram WHERE telegram_id IS NOT NULL`（迁移 0008），一个 chat 仅绑定一个账号 |
 | plan_id | BIGINT NULL | 当前订阅套餐（无订阅为 NULL） |
 | expired_at | TIMESTAMP(3) NULL | 订阅到期时间 |
 | transfer_enable | BIGINT NOT NULL DEFAULT 0 | 套餐总流量（字节） |
@@ -247,6 +247,16 @@ audit_logs：id、admin_id、action（如 `adjust_balance/refund/ban_user`）、
 
 无自定义行（或自定义模板解析失败）时发送侧自动回退内置文案；管理端保存前校验模板可解析（防止语法错误导致发送失败），支持恢复默认与真实 SMTP 测试发送。
 
+### 2.17 subscription_templates（自定义订阅模板，迁移 0008 新增，2026-08-29，F10）
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| name | VARCHAR(32) PK | 客户端类型：`clash` / `sing-box` / `v2ray` |
+| content | TEXT | Go text/template 全文档模板；节点列表经预渲染块变量注入（clash `{{.NodeBlock}}` / sing-box `{{.Outbounds}}` / v2ray `{{.Links}}`），公共变量 `{{.SiteName}}`/`{{.UserInfo}}`/`{{.NodeCount}}` |
+| updated_at | TIMESTAMP(3) | |
+
+无自定义行（或自定义模板渲染失败）时订阅下发自动回退内置生成器（不 5xx，记 warn）；管理端保存前以示例数据渲染校验，支持预览与恢复内置。默认输出与内置生成器逐字节一致。
+
 ## 3. Redis Key 设计
 
 | Key 模式 | 类型/TTL | 用途 |
@@ -256,6 +266,9 @@ audit_logs：id、admin_id、action（如 `adjust_balance/refund/ban_user`）、
 | `refresh:{user_id}:{jti}` | String(JSON)，14d | refresh token 白名单（登出/改密即删）；值为会话元数据 `{ip, ua, ts}` 供 F14 会话列表展示（历史版本为字符串 "1"，降级展示） |
 | `auth:kill:{user_id}` | Hash(field=jti)，14d | F14 踢下线标记：用户端踢下线指定会话写入，Auth 中间件 HExists 命中即 401（单会话 access 立即失效，不影响其余会话） |
 | `login:fail:{email}` | String+INCR，10min | 登录失败锁定计数 |
+| `tg:bind:code:{code}` | String(user_id)，10min | F12 Telegram 绑定验证码（单次有效，GetDel 消费） |
+| `tg:bind:rate:{user_id}` | String，60s | F12 绑定验证码重发间隔 |
+| `tg:bind:daily:{user_id}` | String+INCR，24h | F12 每日验证码签发上限（20 次） |
 | `rl:{scope}:{key}` | 令牌桶 | 接口限流（scope=login/global/subscribe…） |
 | `idem:{key}` | String（响应快照），24h | 下单幂等 |
 | `order:paying:{order_no}` | String，30min | 收银台创建锁，防重复拉起支付 |

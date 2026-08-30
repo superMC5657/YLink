@@ -70,8 +70,8 @@ async function savePwd() {
     })
     message.success(t('profile.passwordChanged'))
     clearPwd()
-  } catch (e) {
-    message.error((e as Error).message)
+  } catch {
+    // 错误提示由 http 层统一 toast,这里仅阻止异常冒泡为 unhandled error
   } finally {
     savingPwd.value = false
   }
@@ -96,8 +96,8 @@ async function onResetSubscribe() {
     showResetModal.value = false
     resetPwd.value = ''
     message.success(t('profile.resetSuccess'))
-  } catch (e) {
-    message.error((e as Error).message)
+  } catch {
+    // 错误提示由 http 层统一 toast,这里仅阻止异常冒泡为 unhandled error
   } finally {
     resetting.value = false
   }
@@ -151,8 +151,8 @@ async function openBindModal() {
     bindCode.value = data.code
     bindBot.value = data.bot_username
     bindModal.value = true
-  } catch (e) {
-    message.error((e as Error).message)
+  } catch {
+    // 错误提示由 http 层统一 toast,这里仅阻止异常冒泡为 unhandled error
   } finally {
     gettingCode.value = false
   }
@@ -176,8 +176,8 @@ function onUnbind() {
         await apiUser.telegramUnbind()
         telegramBound.value = false
         message.success(t('profile.tgUnboundDone'))
-      } catch (e) {
-        message.error((e as Error).message)
+      } catch {
+        // 错误提示由 http 层统一 toast,这里仅阻止异常冒泡为 unhandled error
       } finally {
         unbinding.value = false
       }
@@ -210,8 +210,8 @@ function onRevokeSession(s: UserSessionItem) {
         await apiUser.revokeSession(s.jti)
         message.success(t('profile.sessionRevoked'))
         void loadSessions()
-      } catch (e) {
-        message.error((e as Error).message)
+      } catch {
+        // 错误提示由 http 层统一 toast,这里仅阻止异常冒泡为 unhandled error
       }
     },
   })

@@ -13,7 +13,7 @@
     "build:web": "vite build",
     "preview": "vite preview",
     "typecheck": "vue-tsc --noEmit",
-    "lint": "eslint . --max-warnings 0",
+    "lint": "node scripts/check-error-toast.mjs && eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "lint:css": "stylelint \"src/styles/*.css\" \"src/**/*.vue\"",
     "format": "prettier --write .",

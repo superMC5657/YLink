@@ -6,7 +6,6 @@
 import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import { useOrderStore } from '@/stores/order'
 import { useUserStore } from '@/stores/user'
-import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import { useCountdown } from '@/composables/useCountdown'
 import { openExternal } from '@/utils/platform'
@@ -26,7 +25,6 @@ const emit = defineEmits<{ (e: 'update:show', v: boolean): void; (e: 'paid'): vo
 
 const orderStore = useOrderStore()
 const userStore = useUserStore()
-const message = useMessage()
 const { t } = useI18n()
 const { remaining, start } = useCountdown(1800)
 
@@ -84,9 +82,9 @@ async function initCheckout() {
       start(resp.expire_in || 1800)
     }
     startPolling()
-  } catch (e) {
+  } catch {
+    // 错误提示由 http 层统一 toast;这里仅切换到错误态 UI
     phase.value = 'error'
-    if ((e as Error).message) message.error((e as Error).message)
   }
 }
 

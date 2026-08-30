@@ -40,8 +40,8 @@ async function sendReply() {
     await ticket.reply(replyText.value.trim())
     replyText.value = ''
     scrollToBottom()
-  } catch (e) {
-    message.error((e as Error).message)
+  } catch {
+    // 错误提示由 http 层统一 toast,这里仅阻止异常冒泡为 unhandled error
   } finally {
     sending.value = false
   }
@@ -64,8 +64,8 @@ async function onReopen() {
   try {
     await ticket.reopen()
     message.success(t('ticket.reopened'))
-  } catch (e) {
-    message.error((e as Error).message)
+  } catch {
+    // 错误提示由 http 层统一 toast,这里仅阻止异常冒泡为 unhandled error
   }
 }
 

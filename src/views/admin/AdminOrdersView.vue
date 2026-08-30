@@ -81,7 +81,7 @@ function refund(o: AdminOrderItem) {
         message.success(t('adminOrders.refundSuccess'))
         void load()
       } catch (e) {
-        message.error((e as Error).message)
+        // 错误提示由 http 层统一 toast;这里刷新列表后继续抛出,供 dialog 感知失败
         void load()
         throw e
       }
@@ -105,7 +105,7 @@ function closeOrder(o: AdminOrderItem) {
         message.success(t('adminOrders.closeSuccess'))
         void load()
       } catch (e) {
-        message.error((e as Error).message)
+        // 错误提示由 http 层统一 toast;这里刷新列表后继续抛出,供 dialog 感知失败
         void load()
         throw e
       }

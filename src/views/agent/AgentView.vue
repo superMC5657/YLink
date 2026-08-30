@@ -37,8 +37,8 @@ async function onApply() {
   try {
     await agent.apply()
     message.success(t('agent.applied'))
-  } catch (e) {
-    message.error((e as Error).message)
+  } catch {
+    // 错误提示由 http 层统一 toast,这里仅阻止异常冒泡为 unhandled error
   }
 }
 

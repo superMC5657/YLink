@@ -123,7 +123,7 @@ YLink/
 ## 8. 工程化与代码规范
 
 - **包管理**：pnpm；Node >= 20，Rust >= 1.77.2（`src-tauri/Cargo.toml` rust-version）。
-- **质量门禁**：ESLint 9（flat config）+ Prettier + `vue-tsc --noEmit`；husky/lint-staged（pre-commit 仅处理暂存文件）+ commitlint（commit-msg 校验 Conventional Commits）已接入（CI 另在 GitHub Actions 强制 lint/typecheck/format/test/build）；Stylelint 未引入。
+- **质量门禁**：ESLint 9（flat config）+ Prettier + `vue-tsc --noEmit`；husky/lint-staged（pre-commit 仅处理暂存文件）+ commitlint（commit-msg 校验 Conventional Commits）已接入（CI 另在 GitHub Actions 强制 lint/typecheck/format/test/build）；`pnpm lint` 前置 `scripts/check-error-toast.mjs` 守护「http 层错误 toast 唯一出口」约定（见 data-layer.md §7 调用方约定）；Stylelint 未引入。
 - **命名**：组件 PascalCase；composable `useXxx`；store `useXxxStore`；api 模块按业务域小写命名；CSS 变量 `--c-*` 颜色、`--r-*` 圆角、`--s-*` 阴影、`--t-*` 动效。
 - **样式**：优先 UnoCSS 原子类；组件私有样式用 `<style scoped>`；主题相关一律使用 CSS 变量，禁止写死颜色（保证暗色模式正确）。
 - **注释**：业务组件顶部注明对应截图页面与契约接口；复杂逻辑写「为什么」而非「做什么」。

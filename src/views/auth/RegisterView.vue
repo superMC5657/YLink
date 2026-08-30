@@ -145,7 +145,15 @@ async function onSubmit() {
       {{ t('auth.email') }} + {{ t('auth.password') }}
     </p>
 
-    <n-form ref="formRef" :model="form" :rules="rules" size="large" @keyup.enter="onSubmit">
+    <n-form
+      ref="formRef"
+      :model="form"
+      :rules="rules"
+      size="large"
+      class="register-form"
+      :show-feedback="false"
+      @keyup.enter="onSubmit"
+    >
       <n-form-item ref="emailItemRef" path="email">
         <n-input v-model:value="form.email" :placeholder="t('auth.email')">
           <template #prefix><AppIcon name="user" :size="16" /></template>
@@ -198,7 +206,7 @@ async function onSubmit() {
 
       <button
         type="button"
-        class="btn-primary h-11 w-full text-15"
+        class="btn-primary mt-9 h-11 w-full text-15"
         :disabled="loading"
         @click="onSubmit"
       >
@@ -218,3 +226,10 @@ async function onSubmit() {
     </p>
   </div>
 </template>
+
+<style scoped>
+/* 收紧注册表单纵向间距,与登录页(login-form)保持一致 */
+.register-form :deep(.n-form-item) {
+  margin-bottom: 4px;
+}
+</style>

@@ -119,6 +119,7 @@
 ### 3.2 注册 `/register` / 找回 `/forgot`
 
 - 注册字段：邮箱、邮箱验证码（60s 倒计时按钮）、密码、确认密码、邀请码（选填，URL `?code=` 自动填充）。
+- 表单样式：与登录页一致——`n-form` 关闭 feedback 占位（`:show-feedback="false"`），`.n-form-item` 纵向间距收为 4px；注册按钮带 `mt-9`（36px），对齐登录页「忘记密码」行撑出的按钮上方净空（≈38px）（2026-08-30 对齐）。
 - 找回字段：邮箱、验证码、新密码。
 - 数据：`POST /captcha/email`、`POST /auth/register`、`POST /auth/forgot`。
 - 校验：邮箱格式、密码 ≥8 位且含字母数字、两次一致；错误内联显示。

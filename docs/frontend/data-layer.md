@@ -13,7 +13,7 @@
    - 收到 401 且存在 refresh_token → 调 `POST /auth/refresh` 静默换新；
    - 刷新期间并发请求进入等待队列，只刷新一次（single-flight）；
    - 刷新失败 → 清空会话、跳转 `/login` 并带 `redirect`。
-5. 副作用策略：默认错误 toast 由封装层弹出（可在单次请求 `silent: true` 关闭）；GET 请求支持 `AbortController` 随组件卸载取消。
+5. 副作用策略：默认错误 toast 由封装层弹出（可在单次请求 `silent: true` 关闭），**封装层是错误 toast 的唯一出口**——调用方 `catch` 禁止再弹，详见 §7 调用方约定；GET 请求支持 `AbortController` 随组件卸载取消。
 
 ### 1.2 使用约定
 
@@ -104,6 +104,15 @@ export const createOrder = (body: CreateOrderReq) => http.post<CreateOrderResp>(
 | 429 | toast「操作太频繁，请稍后再试」 |
 | 5xx / 网络错误 | toast「服务异常，请稍后再试」；关键页（仪表板）显示重试按钮 |
 | 支付/下单类写操作 | 按钮 loading + 防重复提交；创建订单支持幂等键（见契约） |
+
+### 调用方约定（2026-08-30 固化，经全局 25 处双 toast 修复沉淀）
+
+http 层是错误 toast 的**唯一出口**（`http.ts` 各错误分支经 `ToastBridge` 注入的 naive `message` 弹出）：
+
+- 组件/store 的 `catch` **禁止**再手动 `message.error((e as Error).message)` 转发 http 错误——会与 http 层 toast 重复（修复前该模式在全项目累积 25 处，见 progress.md 同日小节）；`catch` 只做三件事：恢复本地状态（关 loading/弹窗）、刷新列表、或把错误继续抛给上层（如 dialog 需感知失败）；
+- 确需自定义提示（如表单内联展示）时，给该请求传 `silent: true`，由调用方全权负责展示；
+- **本地错误**（非 http 层管辖：剪贴板失败、canvas 渲染失败、前端 JSON 校验、updater 安装失败等）由调用方用 `message.error(t('…'))` 自行提示——用 i18n 文案，不转发异常 message；
+- 守护：`scripts/check-error-toast.mjs`（已串入 `pnpm lint`，本地与 CI 同时覆盖）扫描「转发错误对象 message」反模式，命中即失败；本地错误 i18n toast 不受影响。
 
 ## 8. 缓存与刷新策略
 

@@ -104,8 +104,8 @@ async function sendReply() {
     scrollToBottom()
     message.success(t('adminTickets.replySuccess'))
     void load()
-  } catch (e) {
-    message.error((e as Error).message)
+  } catch {
+    // 错误提示由 http 层统一 toast,这里仅阻止异常冒泡为 unhandled error
   } finally {
     sending.value = false
   }
@@ -167,8 +167,8 @@ async function confirmWithdrawAction() {
     withdrawAction.value = null
     detail.value = await apiAdmin.ticketDetail(detail.value.id)
     void load()
-  } catch (e) {
-    message.error((e as Error).message)
+  } catch {
+    // 错误提示由 http 层统一 toast,这里仅阻止异常冒泡为 unhandled error
   } finally {
     withdrawSubmitting.value = false
   }

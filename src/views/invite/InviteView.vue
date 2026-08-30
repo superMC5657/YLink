@@ -72,8 +72,8 @@ async function onWithdraw() {
     message.success(t('invite.withdrawSubmitted'))
     showWithdraw.value = false
     await invite.fetchWithdraws()
-  } catch (e) {
-    message.error((e as Error).message)
+  } catch {
+    // 错误提示由 http 层统一 toast,这里仅阻止异常冒泡为 unhandled error
   } finally {
     withdrawing.value = false
   }
@@ -101,8 +101,8 @@ async function onCreateCode() {
     const code = await invite.createCode()
     message.success(t('invite.codeGenerated'))
     void copyText(code.code)
-  } catch (e) {
-    message.error((e as Error).message)
+  } catch {
+    // 错误提示由 http 层统一 toast,这里仅阻止异常冒泡为 unhandled error
   }
 }
 
@@ -120,8 +120,8 @@ async function onTransfer() {
     showTransfer.value = false
     transferAmount.value = null
     await invite.fetchSummary()
-  } catch (e) {
-    message.error((e as Error).message)
+  } catch {
+    // 错误提示由 http 层统一 toast,这里仅阻止异常冒泡为 unhandled error
   } finally {
     transferring.value = false
   }
@@ -142,8 +142,8 @@ function onDeleteCode(code: string) {
       try {
         await invite.deleteCode(code)
         message.success(t('invite.deleteCodeSuccess'))
-      } catch (e) {
-        message.error((e as Error).message)
+      } catch {
+        // 错误提示由 http 层统一 toast,这里仅阻止异常冒泡为 unhandled error
       }
     },
   })

@@ -2,11 +2,35 @@
 
 > 本文档记录 `src/` 目录 Vue 3 用户端应用的开发状态,是 docs/frontend 与 docs/api 的实现对照表。
 > 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-29(**第四批 Xboard 缺口补齐前端:订阅模板管理页(F10)+ Telegram 绑定卡片(F12)**;此前:F04 报表四系列、总览快捷操作分组重设计等,更早见下)
+> 最后更新:2026-08-30(**约定固化:错误 toast 单一出口写入文档 + lint 守护脚本**;此前:缺陷修复:报错 toast 重复弹出两次(全局 25 处),更早见下)
 
 ---
 
 ## 1. 已完成项
+
+### 约定固化 · 错误 toast 单一出口(✅ 完成,2026-08-30)
+
+| 项 | 说明 |
+|---|---|
+| 文档 | `data-layer.md` §1.1 副作用策略明确「封装层是错误 toast 的唯一出口」;§7 新增「调用方约定」:catch 禁止转发 http 错误对象 message(只做状态恢复/刷新列表/继续抛出)、自定义提示传 `silent: true`、本地错误(剪贴板/canvas/前端校验/updater)用 `message.error(t('…'))` i18n 文案自行提示;`README.md` §8 质量门禁同步 |
+| 守护 | 新增 `scripts/check-error-toast.mjs` 并串入 `pnpm lint`(本地与 CI 同时覆盖):扫描「message.error((e as Error).message)/message.error(e.message) 等转发异常 message」反模式,命中即 exit 1 并附修正指引;`ToastBridge.vue`(toast provider 本体)排除;本地错误 i18n toast 不误伤 |
+| 验证 | 放行:当前全库扫描 OK;命中:临时违规探针(`__tmp-violation-probe.ts`,已删)两变体均被抓出 exit 1;`pnpm lint`/`pnpm format:check` 通过 |
+
+### 缺陷修复 · 报错 toast 重复弹出两次(✅ 已修复,2026-08-30)
+
+| 问题 | 修复 |
+|---|---|
+| 个人信息页「获取绑定验证码」报错(后端未配置 Telegram 属预期)时,同一错误 toast 弹出两次 | 根因:`utils/http.ts` 对业务错误默认统一 toast(`silent` 未传时),而组件 catch 里又手动 `message.error((e as Error).message)` —— 同一错误两条 toast。该模式为全局遗留(注册/登录页无此问题,RegisterView 注释即正确惯例) |
+| 修复 | 移除全部组件层重复 toast,catch 统一为空 catch + 惯例注释「错误提示由 http 层统一 toast」;共 **25 处**:ProfileView 5(改密/重置订阅/TG 取码/TG 解绑/撤销会话)、InviteView 4、AdminKnowledgesView 4、TicketDetailView 2、AdminMailTemplatesView 2、AdminOrdersView 2(保留 `void load()`+`throw e`,仅去 toast)、AdminSubscriptionTemplatesView 2(1 处保留关预览弹窗)、AdminTicketsView 2、AgentView 1、PaymentModal 1(保留 error 态 UI,顺带清理未再使用的 useMessage);错误提示行为不变,仅不再重复 |
+| 验证 | `pnpm lint`(0 warning)/ `pnpm typecheck` / `pnpm test`(63/63)通过;rg 确认 `message.error((e as Error).message)` 全库清零;diff 仅涉上述 10 个组件文件 |
+
+### UI 一致性 · 注册页表单间距对齐登录页(✅ 完成,2026-08-30)
+
+| 问题 | 修复 |
+|---|---|
+| 注册页 `/register` 各输入框之间留白明显大于登录页 `/login`,两页观感不一致 | 根因:登录页 `n-form` 设了 `:show-feedback="false"` 并以 scoped 样式把 `.n-form-item` 的 `margin-bottom` 收紧为 4px;注册页缺这两项,走 naive-ui 默认(feedback 占位 + 默认间距)。修复:`RegisterView.vue` 的 `n-form` 补上 `:show-feedback="false"` + `class="register-form"`,新增与登录页同数值的 scoped 样式(4px),两页表单纵向间距一致 |
+| 跟进(2026-08-30) | 邀请码输入框与注册按钮之间仅 4px 紧贴——登录页按钮上方有「忘记密码」链接行(mt-1 + 行高 + mb-3)撑出 38.4px 呼吸空间,注册页无对应元素。注册按钮补 `mt-9`(36px);playwright 实测:邀请码→按钮 40px vs 登录页 38.4px,各 form-item 间距保持 4px,两页节奏一致 |
+| 验证 | `pnpm lint`(0 warning)/ `pnpm typecheck` / `pnpm lint:css` 全部通过;diff 仅涉及 `src/views/auth/RegisterView.vue` |
 
 ### Xboard 缺口补齐 · 第四批前端(✅ 完成,2026-08-29,对齐 .scratch/xboard-gap-fill/spec.md)
 

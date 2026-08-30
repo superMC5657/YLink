@@ -55,8 +55,8 @@ async function save() {
     message.success(t('adminSubscriptionTemplates.saved'))
     modal.value = false
     void load()
-  } catch (e) {
-    message.error((e as Error).message)
+  } catch {
+    // 错误提示由 http 层统一 toast,这里仅阻止异常冒泡为 unhandled error
   } finally {
     saving.value = false
   }
@@ -84,8 +84,8 @@ async function openPreview(item: AdminSubscriptionTemplateItem) {
   try {
     const res = await apiAdmin.previewSubscriptionTemplate(item.name)
     previewContent.value = res.content
-  } catch (e) {
-    message.error((e as Error).message)
+  } catch {
+    // 错误提示由 http 层统一 toast;失败时同样关闭预览弹窗
     previewModal.value = false
   } finally {
     previewLoading.value = false

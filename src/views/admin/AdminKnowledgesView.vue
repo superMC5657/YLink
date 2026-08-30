@@ -146,8 +146,8 @@ async function createCategory() {
     message.success(t('adminKnowledges.catCreated'))
     catNewName.value = ''
     await openCatModal()
-  } catch (e) {
-    message.error((e as Error).message)
+  } catch {
+    // 错误提示由 http 层统一 toast,这里仅阻止异常冒泡为 unhandled error
   } finally {
     catSaving.value = false
   }
@@ -162,8 +162,8 @@ async function renameCategory(c: AdminKnowledgeCategoryItem) {
     message.success(t('adminKnowledges.catUpdated'))
     await openCatModal()
     await load()
-  } catch (e) {
-    message.error((e as Error).message)
+  } catch {
+    // 错误提示由 http 层统一 toast,这里仅阻止异常冒泡为 unhandled error
   } finally {
     catSaving.value = false
   }
@@ -183,8 +183,8 @@ async function moveCategory(index: number, delta: number) {
       apiAdmin.updateKnowledgeCategory(b.id, { name: b.name, sort: a.sort }),
     ])
     await openCatModal()
-  } catch (e) {
-    message.error((e as Error).message)
+  } catch {
+    // 错误提示由 http 层统一 toast,这里仅阻止异常冒泡为 unhandled error
   } finally {
     catSaving.value = false
   }
@@ -201,8 +201,8 @@ function removeCategory(c: AdminKnowledgeCategoryItem) {
         await apiAdmin.deleteKnowledgeCategory(c.id)
         message.success(t('adminKnowledges.catDeleted'))
         await openCatModal()
-      } catch (e) {
-        message.error((e as Error).message)
+      } catch {
+        // 错误提示由 http 层统一 toast,这里仅阻止异常冒泡为 unhandled error
       }
     },
   })

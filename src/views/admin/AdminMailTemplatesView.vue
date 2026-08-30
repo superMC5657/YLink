@@ -55,8 +55,8 @@ async function save() {
     message.success(t('adminMailTemplates.saved'))
     modal.value = false
     void load()
-  } catch (e) {
-    message.error((e as Error).message)
+  } catch {
+    // 错误提示由 http 层统一 toast,这里仅阻止异常冒泡为 unhandled error
   } finally {
     saving.value = false
   }
@@ -89,8 +89,8 @@ async function sendTest() {
     await apiAdmin.testMailTemplate(testName.value, { to_email: testEmail.value.trim() })
     message.success(t('adminMailTemplates.testSent'))
     testModal.value = false
-  } catch (e) {
-    message.error((e as Error).message)
+  } catch {
+    // 错误提示由 http 层统一 toast,这里仅阻止异常冒泡为 unhandled error
   } finally {
     testSending.value = false
   }

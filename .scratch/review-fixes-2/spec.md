@@ -1,4 +1,4 @@
-# Review Fixes 2 (✅ 完成)
+# ✅ Review Fixes 2
 
 > 状态: 全部修复完成
 > 日期: 2026-08-28
@@ -31,10 +31,3 @@
 
 `AdminTrafficImportView` 初始行与 `addRow()` 用 `toISOString().slice(0,10)` 生成默认日期——东八区 0:00–7:59 会默认到前一天，管理员不改动就会导错日期。现改用 `localDateKey(new Date())`。
 
-## Verification
-
-- `cd server && go test ./... -count=1` 通过（service/errs/router 等全绿）。
-- 新增 Go 测试：`TestSendMailAuditTargetSummary`、`TestTrafficResetAuditTargetSummary`（断言 INSERT audit_logs 实参 target= batch:N + detail 留痕）、`TestTransferAmountOverflow`、`TestSubmitWithdrawAmountOverflow`、`TestTicketCloseWithdrawRejected`、`TestTicketReopenWithdrawRejected`、`TestTicketCloseNormalStillAllowed`；`TestListAndRevokeSessions` 补历史会话 nil 断言。
-- `gofmt`（本次改动文件）/ `go vet` clean；`npm run typecheck`、`npm run lint`（--max-warnings 0）、`npm run test`（Vitest 63 用例，含新增 localDateKey 时区用例）全部通过。
-- 文档已同步: `docs/api/README.md`（错误码 13005/14003、§5.7 会话 created_at 可 null、§11.5 提现金额防护、§13.2 工单关闭限制、§16 审计 batch 摘要格式）。
-- 备注: 全量 e2e 未跑（沿用上轮结论：本地 5174 端口残留非 mock dev server，不作为代码结论依据）。

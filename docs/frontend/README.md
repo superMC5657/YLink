@@ -1,20 +1,20 @@
 # 前端开发文档 · 总览与架构
 
-> 用户端应用：一套 Vue 3 SPA 代码，同时产出 **响应式 Web**（桌面/平板/手机浏览器）与 **Tauri 2 桌面应用**（正式打包仅 Windows，2026-08-12 起，见 desktop-tauri.md §7）。本文档覆盖技术选型、应用架构、目录结构、工程化与里程碑。
+> 用户端应用：一套 Vue 3 SPA 代码，同时产出 **响应式 Web**（桌面/平板/手机浏览器）与 **Tauri 2 桌面应用**（正式打包仅 Windows，见 desktop-tauri.md §7）。本文档覆盖技术选型、应用架构、目录结构与工程化。
 
 ## 1. 目标与非目标
 
 ### 目标
 - 1:1 还原并美化截图中的面板 UI（浅色毛玻璃卡片风格），完整支持 **暗色模式**。
 - 桌面、平板、手机三端体验完整：桌面为「侧边栏 + 顶栏」，手机为「顶栏 + 底部标签栏 + 抽屉菜单」（详见 [design-system.md](design-system.md) 第 6 节）。
-- 桌面端由 Tauri 2 承载，提供托盘、深链接一键导入、本地通知与自动更新等原生能力（见 desktop-tauri.md §4/§5；开机自启需求已于 2026-08-13 移除）。
+- 桌面端由 Tauri 2 承载，提供托盘、深链接一键导入、本地通知与自动更新等原生能力（见 desktop-tauri.md §4/§5；开机自启需求已移除）。
 - 与 Go/Gin 后端通过 [../api/README.md](../api/README.md) 契约对接。
 
 ### 非目标（一期不做）
 - 内置代理内核（本应用是「面板客户端」，代理连接由本机 Clash/sing-box 等客户端完成，App 只负责一键导入）。
 - Tauri 移动端：Android APK 打包已启用（见 [desktop-tauri.md](desktop-tauri.md) 第 9 节）；iOS 不打包（需 Apple 开发者账号与审核，代理类应用上架风险高）。
 
-> 管理后台前端已随主 SPA 实现 18 个管理页面（M8 核心 6 + M9 二期 7 + 缺口补齐新增 5），不再是「非目标」；详见 [progress.md](progress.md) §2.4 与 [pages.md](pages.md) §3.14。
+> 管理后台前端已随主 SPA 实现 18 个管理页面；详见 [progress.md](progress.md) §2.4 与 [pages.md](pages.md) §3.14。
 
 ## 2. 技术选型
 
@@ -123,7 +123,7 @@ YLink/
 ## 8. 工程化与代码规范
 
 - **包管理**：pnpm；Node >= 20，Rust >= 1.77.2（`src-tauri/Cargo.toml` rust-version）。
-- **质量门禁**：ESLint 9（flat config）+ Prettier + `vue-tsc --noEmit`；husky/lint-staged（pre-commit 仅处理暂存文件）+ commitlint（commit-msg 校验 Conventional Commits）已接入（CI 另在 GitHub Actions 强制 lint/typecheck/format/test/build）；`pnpm lint` 前置 `scripts/check-error-toast.mjs` 守护「http 层错误 toast 唯一出口」约定（见 data-layer.md §7 调用方约定）；Stylelint 未引入。
+- **质量门禁**：ESLint 9（flat config）+ Prettier + `vue-tsc --noEmit`；husky/lint-staged（pre-commit 仅处理暂存文件）+ commitlint（commit-msg 校验 Conventional Commits）已接入（CI 另在 GitHub Actions 强制 lint/typecheck/format/test/build）；`pnpm lint` 前置 `scripts/check-error-toast.mjs` 守护「http 层错误 toast 唯一出口」约定（见 data-layer.md §7 调用方约定）；Stylelint 已接入（`pnpm lint:css`，随 lint-staged 执行）。
 - **命名**：组件 PascalCase；composable `useXxx`；store `useXxxStore`；api 模块按业务域小写命名；CSS 变量 `--c-*` 颜色、`--r-*` 圆角、`--s-*` 阴影、`--t-*` 动效。
 - **样式**：优先 UnoCSS 原子类；组件私有样式用 `<style scoped>`；主题相关一律使用 CSS 变量，禁止写死颜色（保证暗色模式正确）。
 - **注释**：业务组件顶部注明对应截图页面与契约接口；复杂逻辑写「为什么」而非「做什么」。
@@ -136,13 +136,3 @@ YLink/
 | 组件测试 | Vitest + jsdom | PlanCard、OrderTable、BannerStatCard 等关键组件渲染与交互（已接入，见 progress.md §2.6） |
 | E2E | Playwright | 登录 → 仪表板 → 购买套餐（Mock 支付）→ 订单详情；移动端视口（390×844）冒烟 |
 
-## 10. 里程碑
-
-| 阶段 | 内容 | 验收 |
-|---|---|---|
-| M1 脚手架 | 工程初始化、路由/守卫、Pinia、i18n、设计令牌、UnoCSS、Naive UI 集成、Mock | 登录页可跑通 Mock 登录 |
-| M2 布局 | MainLayout（桌面侧边栏/移动端底栏+抽屉）、顶栏、暗色模式切换 | 三端视口布局正确，亮暗切换无闪烁 |
-| M3 核心页 | 仪表板、使用文档、我的订单、个人信息 | 对应截图页面还原 |
-| M4 交易闭环 | 套餐、下单弹窗、优惠券、收银台、支付轮询 | Mock 环境完成购买全链路 |
-| M5 营销页 | 邀请赚钱、申请代理、工单、节点状态、流量明细 | 全部页面上线 |
-| M6 桌面化 | Tauri 插件接入、托盘、深链接、Android 打包、自动更新（2026-08-12 收尾） | 发布能力全部接入（见 desktop-tauri.md §4/§5/§7 与 progress.md §2.5） |

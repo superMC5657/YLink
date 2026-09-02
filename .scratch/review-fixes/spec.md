@@ -1,4 +1,4 @@
-# Review Fixes 0.9.0 (✅ 完成)
+# ✅ Review Fixes 0.9.0
 
 > 状态: 全部修复完成
 > 日期: 2026-08-25
@@ -34,8 +34,3 @@ Alertmanager 默认走 `ALERT_SMTP_PORT=587`（STARTTLS），不再使用后端 
 
 Alertmanager entrypoint 用 AWK 逐字替换模板，并按 YAML 单引号规则转义，避免用户名/密码含 `&`、`\`、`|`、`'` 时配置损坏。
 
-## Verification
-
-- `go test ./internal/service/... -count=1` 通过。
-- `gofmt -l` 无输出。
-- 文档已同步: `docs/api/README.md`、`docs/backend/*.md`、`docs/frontend/desktop-tauri.md`、`docs/reviews/review-0.9.0.md`(2026-09-03 文档重整后 reviews 单语化为中文,原英文版见 git 历史)。

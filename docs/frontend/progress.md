@@ -3,7 +3,7 @@
 > 本文档描述 `src/` 目录 Vue 3 用户端应用的**当前能力与状态**,是 docs/frontend 与 docs/api 的实现对照表。
 > 维护规则:只记录当前态(能力清单、未完成项、前置条件),不堆叠历史流水账。端点与错误码以 [docs/api/README.md](../api/README.md) 为准,路由与逐页拆解以 [pages.md](pages.md) 为准,数据层以 [data-layer.md](data-layer.md) 为准,视觉规范以 [design-system.md](design-system.md) 为准,桌面端以 [desktop-tauri.md](desktop-tauri.md) 为准;历史修复明细见 [docs/reviews/](../reviews/) 与 git log。
 
-## 1. 状态总览(2026-08-30 实测)
+## 1. 状态总览
 
 | 项 | 状态 |
 |---|---|
@@ -42,7 +42,7 @@ ESLint 9 flat config + Prettier 3 + Stylelint 17(接入 lint-staged);husky pre-c
 
 | 项 | 状态 |
 |---|---|
-| 开机自启开关 | ❌ 需求已移除(2026-08-13):autostart 插件仍注册于 Rust 侧,前端不暴露入口 |
+| 开机自启开关 | ❌ 需求已移除:autostart 插件仍注册于 Rust 侧,前端不暴露入口 |
 | Go 后端 CI | ❌ 不接入(项目决策);前端 CI 仅发布 tag 触发,日常检查走本地门禁 |
 | 总览快捷操作「待办计数」 | 暂缓:接口无待办数据,需后端先行 |
 | 移动端 App 打包 | 未启动(Tauri 移动端策略见 desktop-tauri.md;Android 构建为本地行为,gen/ 不入库) |
@@ -85,6 +85,6 @@ Rust ≥ 1.77(本机已验证)+ WebView2(Win);`pnpm tauri:dev` 联动开发,`pnp
 
 ## 5. 历史记录指引
 
-- 版本评审与修复明细:[docs/reviews/](../reviews/)(review-0.2.0 ~ review-0.9.0,冻结快照)
+- 评审批次与修复明细:[docs/reviews/](../reviews/)(review-round-01 起,冻结快照)
 - 需求立项与决策:[.scratch/](../../.scratch/)(各 feature 的 spec.md)
 - 逐次变更:git log(Conventional Commits)

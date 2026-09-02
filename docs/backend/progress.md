@@ -3,7 +3,7 @@
 > 本文档描述 `server/` 目录 Go/Gin 后端的**当前能力与状态**,是 docs/backend 与 docs/api 的实现对照表。
 > 维护规则:只记录当前态(能力清单、未完成项、前置条件),不堆叠历史流水账。端点与错误码以 [docs/api/README.md](../api/README.md) 为准,表结构与 Redis Key 以 [data-model.md](data-model.md) 为准,业务状态机以 [core-flows.md](core-flows.md) 为准;历史修复明细见 [docs/reviews/](../reviews/) 与 git log。
 
-## 1. 状态总览(2026-08-30 实测)
+## 1. 状态总览
 
 | 项 | 状态 |
 |---|---|
@@ -11,7 +11,7 @@
 | 测试 | `go test ./... -count=1` 全绿,**144 个测试函数** |
 | 契约对齐 | [docs/api/README.md](../api/README.md) 全量端点已实现(含 §16 管理端与批次新增模块) |
 | 迁移 | `migrations/0001` ~ `0008`(golang-migrate,均含 down) |
-| 代码结构 | 管理端 handler 按业务域拆分为 `internal/handler/admin/` 子包(2026-08-30 重构,路由与方法签名零改动) |
+| 代码结构 | 管理端 handler 按业务域拆分为 `internal/handler/admin/` 子包 |
 
 ## 2. 已完成能力
 
@@ -49,11 +49,7 @@ handler 按业务域组织于 `internal/handler/admin/` 子包:`admin.go`(Admin 
 
 `X-Node-Key` 鉴权(Redis 缓存 60s);`GET /node/users` 按节点分组下发有效订阅用户;`POST /node/report` **累计值差分**幂等(重复上报差分 0;累计回退视为节点重启)→ ×rate → 事务内 `users.u/d` 原子累加 + `traffic_logs` 增量聚合;套餐分组校验(非本分组 `not_subscribed`)与重复 UUID 整体拒绝(`duplicate_uuid`);每用户订阅凭证(节点 config 显式开启 `per_user_credentials` 才下发,存量节点共享凭证不断连);演示 agent `cmd/node-agent`;真实代理后端(Xray stats 等)对接见 [node-agent-guide.md](node-agent-guide.md)。
 
-### 2.9 Xboard 缺口补齐(四批全部完成)
-
-需求与决策见 [.scratch/xboard-gap-fill/spec.md](../../.scratch/xboard-gap-fill/spec.md);2026-08-28 第一批(F08/F22/F05)、第二批(F09/F16/F04)、第三批(F02/F15/F14/F11/F19/F20)、2026-08-29 第四批(F10/F12)。
-
-### 2.10 可观测性
+### 2.9 可观测性
 
 `GET /metrics`(promhttp:请求计数/延迟直方图/支付成功计数)+ worker `:8082/metrics`(cron 运行/耗时);`docker compose --profile obs` 一键 Prometheus/Grafana/Alertmanager/node-exporter,看板 provisioning 自动加载,数据保留 180 天,告警经 Alertmanager 邮件(STARTTLS);生产 Caddy 拦截公网 /metrics。
 
@@ -62,7 +58,7 @@ handler 按业务域组织于 `internal/handler/admin/` 子包:`admin.go`(Admin 
 | 项 | 状态 |
 |---|---|
 | F17 节点机器管理 | 缓排(见 xboard spec);当前手工对接 + node-agent-guide 已可运转 |
-| 后端 CI / Release 流水线 | ❌ 不接入(项目决策,2026-08-12 确认):构建/部署走本机 `make` + 手动流程,见 deploy.md |
+| 后端 CI / Release 流水线 | ❌ 不接入(项目决策):构建/部署走本机 `make` + 手动流程,见 deploy.md |
 | F18 节点路由 / F21 插件系统 | ❌ 不做(xboard spec 决策) |
 | 完整主题包 / 订阅自动升级 | ❌ 不做(仅取品牌配置、版本检查最小子集) |
 
@@ -96,6 +92,6 @@ handler 按业务域组织于 `internal/handler/admin/` 子包:`admin.go`(Admin 
 
 ## 5. 历史记录指引
 
-- 版本评审与修复明细:[docs/reviews/](../reviews/)(review-0.2.0 ~ review-0.9.0,冻结快照)
+- 评审批次与修复明细:[docs/reviews/](../reviews/)(review-round-01 起,冻结快照)
 - 需求立项与决策:[.scratch/](../../.scratch/)(各 feature 的 spec.md,review-fixes 批次含 issues/ 工单)
 - 逐次变更:git log(Conventional Commits)

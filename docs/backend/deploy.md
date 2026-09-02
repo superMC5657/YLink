@@ -8,7 +8,7 @@ app:
   env: production            # development / production
   addr: ":8081"
   base_url: "https://api.example.com"   # 用于拼接订阅链接/支付回调地址
-  version: "0.4.1"           # 后端版本号（F20 管理端版本检查展示；与镜像 tag 一致）
+  version: "0.1.0"           # 后端版本号（F20 管理端版本检查展示；与镜像 tag 一致）
 
 database:
   dsn: "${DB_DSN}"           # host=127.0.0.1 port=5433 user=ylink password=xxx dbname=ylink-backend sslmode=disable
@@ -42,14 +42,14 @@ payment:
 cors:
   allow_origins: ["https://panel.example.com"]   # Web 前端域名(https)；Tauri 端无 CORS 需求
 
-# 安全部署项（F22，2026-08-28）：全部启动注入（config.yaml 或 APP_SECURITY_* 环境变量），不落库
+# 安全部署项（F22）：全部启动注入（config.yaml 或 APP_SECURITY_* 环境变量），不落库
 security:
   admin_path: "admin"       # 管理端 API 路径段（/api/v1/{admin_path}/...）；改后前端需以 VITE_ADMIN_PATH 同值重新构建
   subscribe_path: "client"  # 订阅下发路径段（/api/v1/{subscribe_path}/subscribe/{token}）；订阅 URL 由服务端拼接下发
   safe_mode: false          # true 时仅白名单域名可访问 /api/v1/*（App.base_url 的 host 自动纳入），其余 403
   safe_domains: []          # 追加白名单域名，如 ["panel.example.com", "sub.example.com"]
 
-# 在线更新（F20，2026-08-28）：仅版本检查 + 变更日志展示，自动升级不立项
+# 在线更新（F20）：仅版本检查 + 变更日志展示，自动升级不立项
 update:
   manifest_url: ""          # 可选；返回 {"version":"x.y.z","notes":"变更日志"} 的 URL，空=不做远端检查
 
@@ -66,7 +66,7 @@ log:
 2. **订阅路径定制（`security.subscribe_path`）**：重启后生效；订阅 URL 均由服务端拼接下发，变更后旧 URL 立即 404，用户需在用户中心重新复制订阅链接。
 3. **safe_mode 域名白名单（`security.safe_mode` + `security.safe_domains`）**：开启后 `Host` 不在白名单（`app.base_url` 的 host + `safe_domains`）的请求一律 403（统一信封 code=40300）。`/healthz`、`/readyz`、`/metrics` 不受影响。确保先把真实面板/订阅域名写入 `safe_domains` 再开启，否则会拒绝合法流量。
 
-### 1.2 版本号与更新源（F20，2026-08-28）
+### 1.2 版本号与更新源（F20）
 
 - **当前版本（`app.version`）**：展示于管理端「系统更新」页（`GET /admin/version`）。部署时随 config.yaml 或环境变量 `APP_APP_VERSION` 注入（建议与镜像 tag / 构建号一致），缺省 `dev`。升级版本时同步更新该值，管理端即可核对运行中的版本。
 - **更新源（`update.manifest_url`，可选）**：配置一个返回 JSON 的 URL（如对象存储静态文件）：
@@ -199,12 +199,12 @@ panel.example.com { root * /srv/panel; try_files {path} /index.html; file_server
 - `GET /healthz`：进程存活；`GET /readyz`：DB/Redis 连通（供编排探针）。
 - 日志：zap JSON → 文件按天切割（lumberjack），容器同时输出 stdout 便于 `docker logs`；错误日志含 request_id。
 - 慢查询：GORM logger 记录 >200ms SQL。
-- 指标（✅ 已落地,2026-08-22 首版;2026-08-25 扩展）：`promhttp` `/metrics`（api：QPS、延迟直方图、支付成功计数、Go 运行时;worker：`cron_job_runs_total`/`cron_job_duration_seconds`,见下）。
+- 指标（✅ 已落地）：`promhttp` `/metrics`（api：QPS、延迟直方图、支付成功计数、Go 运行时;worker：`cron_job_runs_total`/`cron_job_duration_seconds`,见下）。
   - **数据链路**：api `:8081/metrics`、worker `:8082/metrics`、node-exporter `:9100/metrics` 均经 compose 内网被 Prometheus 抓取(15s);Prometheus 数据**保留半年**(`--storage.tsdb.retention.time=180d`,原默认 15d,另有 `--storage.tsdb.retention.size=20GB` 兜底;指标存于 `prometheus_data` 卷,注意其磁盘占用随保留期增长)。
   - **Grafana 看板**：`docker compose --profile obs up -d` 启动 prometheus + grafana(compose 内网抓取,Grafana 绑 `127.0.0.1:3000`,首登 admin / `GRAFANA_ADMIN_PASSWORD`(默认 admin)即改密);看板经 provisioning 自动加载(`deploy/obs/`),无需手动导入,共两张:`YLink API`(QPS/状态码/p50-p95/支付成功/错误率/Top 路径/Go 运行时)与 `YLink 基础设施`(worker: cron 执行量/失败跳过/耗时 p50-p95;机器: 负载/CPU/内存/磁盘/网络)。默认 `up -d` 不启动 obs 服务。
   - **告警**：`--profile obs` 同时启动 alertmanager(绑 `127.0.0.1:9093`),规则见 `deploy/obs/rules.yml`(进程存活 API/worker、5xx 错误率>10%、CPU/内存>90%、根分区磁盘>85%),命中后**邮件通知**:SMTP 默认复用 `env_file` 的 `APP_SMTP_HOST/USERNAME/PASSWORD`,端口走 **STARTTLS** 的 `ALERT_SMTP_PORT`(默认 587;QQ 465 是隐式 SMTPS,Alertmanager 不支持,供应商仅提供 465 时需在其前放置 SMTPS→STARTTLS relay,也可用 `ALERT_SMTP_HOST/FROM` 覆盖);收件人取 `ALERT_EMAIL_TO`(未配置默认发 admin@example.com,生产必须显式配置;entrypoint 用 AWK 逐字替换模板并按 YAML 单引号规则转义)。DB/Redis 连通性与每日支付成功率仍由既有脚本兜底。
   - **公网收口**：生产 Caddyfile api 域名 `@metrics` 拦截 `/metrics` 返回 404（与 Swagger 同款纵深防御）;Prometheus/Alertmanager 走内网抓取不受影响,node-exporter 亦不映射公网端口。
-- 告警（2026-08-25 起由 Prometheus rules + alertmanager 邮件承担进程/错误率/资源告警,见上）;DB/Redis 连通性与每日支付成功率仍由既有脚本兜底。
+- 兜底：DB/Redis 连通性与每日支付成功率仍由既有脚本承担。
 
 ## 6. 备份与恢复
 
@@ -214,7 +214,7 @@ panel.example.com { root * /srv/panel; try_files {path} /index.html; file_server
 
 ## 7. 发布与回滚（手动流程）
 
-> 2026-08-12 项目决策：后端**不接入 GitHub Actions**（无 CI job、无镜像构建/部署流水线），发布走本机手动流程。
+> 项目决策：后端**不接入 GitHub Actions**（无 CI job、无镜像构建/部署流水线），发布走本机手动流程。
 
 - **构建**：`make build` 产出 `bin/server` 与 `bin/worker`；或用 `docker compose up -d --build` 走 §3 编排（api/worker 由 Dockerfile 构建，镜像 tag 由服务器本地管理）。
 - **发布**：更新代码 → `make build`（或 `docker compose build api worker`）→ 重启容器 `docker compose up -d api worker`；滚动期间短暂 502 由 Caddy 重试掩盖，或双实例蓝绿（二期）。

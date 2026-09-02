@@ -1,456 +1,90 @@
-# 前端开发 · 进度追踪(已完成 / 未完成 / 前置条件)
+# 前端开发 · 当前状态
 
-> 本文档记录 `src/` 目录 Vue 3 用户端应用的开发状态,是 docs/frontend 与 docs/api 的实现对照表。
-> 更新规则:每完成一个里程碑/修复一个缺陷,同步更新本文档「已完成」;新增缺口写入「未完成」并标注依赖。
-> 最后更新:2026-08-30(**约定固化:错误 toast 单一出口写入文档 + lint 守护脚本**;此前:缺陷修复:报错 toast 重复弹出两次(全局 25 处),更早见下)
+> 本文档描述 `src/` 目录 Vue 3 用户端应用的**当前能力与状态**,是 docs/frontend 与 docs/api 的实现对照表。
+> 维护规则:只记录当前态(能力清单、未完成项、前置条件),不堆叠历史流水账。端点与错误码以 [docs/api/README.md](../api/README.md) 为准,路由与逐页拆解以 [pages.md](pages.md) 为准,数据层以 [data-layer.md](data-layer.md) 为准,视觉规范以 [design-system.md](design-system.md) 为准,桌面端以 [desktop-tauri.md](desktop-tauri.md) 为准;历史修复明细见 [docs/reviews/](../reviews/) 与 git log。
 
----
+## 1. 状态总览(2026-08-30 实测)
 
-## 1. 已完成项
-
-### 约定固化 · 错误 toast 单一出口(✅ 完成,2026-08-30)
-
-| 项 | 说明 |
+| 项 | 状态 |
 |---|---|
-| 文档 | `data-layer.md` §1.1 副作用策略明确「封装层是错误 toast 的唯一出口」;§7 新增「调用方约定」:catch 禁止转发 http 错误对象 message(只做状态恢复/刷新列表/继续抛出)、自定义提示传 `silent: true`、本地错误(剪贴板/canvas/前端校验/updater)用 `message.error(t('…'))` i18n 文案自行提示;`README.md` §8 质量门禁同步 |
-| 守护 | 新增 `scripts/check-error-toast.mjs` 并串入 `pnpm lint`(本地与 CI 同时覆盖):扫描「message.error((e as Error).message)/message.error(e.message) 等转发异常 message」反模式,命中即 exit 1 并附修正指引;`ToastBridge.vue`(toast provider 本体)排除;本地错误 i18n toast 不误伤 |
-| 验证 | 放行:当前全库扫描 OK;命中:临时违规探针(`__tmp-violation-probe.ts`,已删)两变体均被抓出 exit 1;`pnpm lint`/`pnpm format:check` 通过 |
+| 质量门禁 | `pnpm lint`(ESLint 0 warning)/ `pnpm lint:css`(Stylelint)/ `pnpm typecheck`(vue-tsc)/ `pnpm format:check` 全部通过 |
+| 单测 | `pnpm test`(Vitest + jsdom)**63 用例**全绿 |
+| E2E | `pnpm e2e`(Playwright,桌面 1280 + 移动 390 双 project)全量通过 |
+| 构建 | `pnpm build` 成功(含 PWA 产物);`cargo check`(src-tauri)通过 |
 
-### 缺陷修复 · 报错 toast 重复弹出两次(✅ 已修复,2026-08-30)
+## 2. 已完成能力
 
-| 问题 | 修复 |
+### 2.1 工程骨架
+
+Vue 3.5 + TS + Vite 6 + pnpm(`<script setup>`,Node ≥ 20);UnoCSS(presetUno/Attributify/Icons + 自定义 shortcuts);Vue Router 4 hash 模式(用户端 + `/admin` 管理端双布局 + guest/登录/admin 三类守卫 + 页面标题);Pinia + persistedstate(12 个业务 store);vue-i18n@11 zh-CN/en-US 按模块命名空间、语言包懒加载;vite-plugin-mock 按契约造数(含 401/错误码/支付自动完成);`public/theme.js` 首帧防闪烁;运行时可改后端地址并持久化。
+
+### 2.2 布局与设计系统
+
+设计令牌 tokens.css(亮/暗两套 CSS 变量)+ Naive UI theme.ts 真实色值 overrides(**双源必须同步**);桌面 240px 侧边栏(折叠 72px)+ 毛玻璃吸顶顶栏;平板/手机 `<768px` 底栏 4 Tab + 抽屉菜单、768-1024 迷你侧边栏;AuthLayout 全局壳、客服浮球、toast 桥接;基础 UI 组件全局注册(AppIcon/UiCard/StatNumber/StatusBadge/PriceText/EmptyState/PageHeader/CopyText 等);桌面内容区 max-w-1440 + 窄桌面自动折叠侧边栏 + 表格 overflow 适配(`scripts/diag-layout.mjs` 可测量 5 分辨率溢出)。
+
+### 2.3 用户端页面
+
+仪表板(统计卡/订阅卡/公告 markdown + 优惠码高亮复制/快捷操作)、使用文档(搜索/分类分组/markdown)、我的订单(表格/卡片双视图/详情弹窗/待支付轮询)、套餐购买(周期切换/优惠券试算与点选/可用券列表/收银台二维码/余额直付)、一键导入(10 款客户端 scheme + 复制兜底)、邀请赚钱(统计卡/划转/邀请码/注册链接/提现入口与记录,F02)、申请代理、节点状态(60s 静默轮询,不暴露 host/port)、个人信息(改密/通知开关/Telegram 绑定卡片 F12/会话管理 F14/重置订阅)、工单(列表/对话流/回复关闭)、流量明细(ECharts)、门户分流页 `/portal`(管理员双卡分流,admin-console-split)。
+
+### 2.4 管理后台
+
+独立 `AdminLayout` + `AdminSidebar`(唯一菜单源,移动端汉堡抽屉),登录落点按角色分流(`/portal`);模块全量:总览(统计卡 + 按运营频率分组的 8 快捷入口)、用户管理(多选批量/CSV 导出/发邮件/重置订阅)、套餐、节点管理(多选批量/复制/排序/node_key)、订单(本地化枚举文案/退款)、工单(提现工单审核 F02)、优惠券(含一键公告)、公告/知识库(排序弹窗/分类管理 F15)、代理审批、佣金日志(提现流水徽章)、流量管理(导入/重置/重置记录三标签 F16)、统计报表(ECharts 五图 + 余额四系列 F04)、审计日志(可读化 target)、站点设置(含 telegram 键)、邮件模板(F11)、订阅模板(F10)、版本检查(F20)。
+
+### 2.5 桌面端(Tauri 2)
+
+Rust 工程 + 10 插件最小授权(http scope 限 https/localhost);平台适配层 `utils/platform.ts`(Web 自动降级,动态 import 保护);http 走 plugin-http 原生栈(不受 CORS 限制);深链接 `ylink://`(单实例转发已有实例)+ Android intent-filter;自动更新(updater 插件 + pubkey + Release 流水线产出 latest.json + 更新浮动卡片);本地通知(支付成功/工单回复/订阅到期,Tauri 与 Web Notification 降级);托盘 + 单实例;存储适配 plugin-store(localStorage 一次性迁移);NSIS 仅 Windows 打包(installer-hooks.nsh 必须保留,否则打包失败)。
+
+### 2.6 工程化与质量门禁
+
+ESLint 9 flat config + Prettier 3 + Stylelint 17(接入 lint-staged);husky pre-commit/commit-msg(Conventional Commits);Vitest 63 用例(含 i18n 消息编译回归锁);Playwright E2E 双 project(webServer 固定 `.env.e2e` Mock);CI 仅 tag 触发 3 job(frontend-quality / frontend-e2e / rust);Release 流水线(Windows NSIS + 签名 + 公开产物仓库);PWA(manifest + Workbox 离线壳,dev 不启用);**错误 toast 单一出口约定**(http 封装层是唯一 toast 出口,组件 catch 禁止转发错误 message;`scripts/check-error-toast.mjs` 串入 `pnpm lint` 守护,详见 data-layer.md §1.1/§7)。
+
+## 3. 未完成与已决策
+
+| 项 | 状态 |
 |---|---|
-| 个人信息页「获取绑定验证码」报错(后端未配置 Telegram 属预期)时,同一错误 toast 弹出两次 | 根因:`utils/http.ts` 对业务错误默认统一 toast(`silent` 未传时),而组件 catch 里又手动 `message.error((e as Error).message)` —— 同一错误两条 toast。该模式为全局遗留(注册/登录页无此问题,RegisterView 注释即正确惯例) |
-| 修复 | 移除全部组件层重复 toast,catch 统一为空 catch + 惯例注释「错误提示由 http 层统一 toast」;共 **25 处**:ProfileView 5(改密/重置订阅/TG 取码/TG 解绑/撤销会话)、InviteView 4、AdminKnowledgesView 4、TicketDetailView 2、AdminMailTemplatesView 2、AdminOrdersView 2(保留 `void load()`+`throw e`,仅去 toast)、AdminSubscriptionTemplatesView 2(1 处保留关预览弹窗)、AdminTicketsView 2、AgentView 1、PaymentModal 1(保留 error 态 UI,顺带清理未再使用的 useMessage);错误提示行为不变,仅不再重复 |
-| 验证 | `pnpm lint`(0 warning)/ `pnpm typecheck` / `pnpm test`(63/63)通过;rg 确认 `message.error((e as Error).message)` 全库清零;diff 仅涉上述 10 个组件文件 |
+| 开机自启开关 | ❌ 需求已移除(2026-08-13):autostart 插件仍注册于 Rust 侧,前端不暴露入口 |
+| Go 后端 CI | ❌ 不接入(项目决策);前端 CI 仅发布 tag 触发,日常检查走本地门禁 |
+| 总览快捷操作「待办计数」 | 暂缓:接口无待办数据,需后端先行 |
+| 移动端 App 打包 | 未启动(Tauri 移动端策略见 desktop-tauri.md;Android 构建为本地行为,gen/ 不入库) |
 
-### UI 一致性 · 注册页表单间距对齐登录页(✅ 完成,2026-08-30)
+## 4. 前置条件(运行 / 联调 / 上线)
 
-| 问题 | 修复 |
-|---|---|
-| 注册页 `/register` 各输入框之间留白明显大于登录页 `/login`,两页观感不一致 | 根因:登录页 `n-form` 设了 `:show-feedback="false"` 并以 scoped 样式把 `.n-form-item` 的 `margin-bottom` 收紧为 4px;注册页缺这两项,走 naive-ui 默认(feedback 占位 + 默认间距)。修复:`RegisterView.vue` 的 `n-form` 补上 `:show-feedback="false"` + `class="register-form"`,新增与登录页同数值的 scoped 样式(4px),两页表单纵向间距一致 |
-| 跟进(2026-08-30) | 邀请码输入框与注册按钮之间仅 4px 紧贴——登录页按钮上方有「忘记密码」链接行(mt-1 + 行高 + mb-3)撑出 38.4px 呼吸空间,注册页无对应元素。注册按钮补 `mt-9`(36px);playwright 实测:邀请码→按钮 40px vs 登录页 38.4px,各 form-item 间距保持 4px,两页节奏一致 |
-| 验证 | `pnpm lint`(0 warning)/ `pnpm typecheck` / `pnpm lint:css` 全部通过;diff 仅涉及 `src/views/auth/RegisterView.vue` |
-
-### Xboard 缺口补齐 · 第四批前端(✅ 完成,2026-08-29,对齐 .scratch/xboard-gap-fill/spec.md)
-
-| 项 | 说明 |
-|---|---|
-| F10 订阅模板管理页 | 新页 `AdminSubscriptionTemplatesView.vue`(镜像 F11 邮件模板交互):客户端类型(clash/sing-box/v2ray)列表 + 变量标签 + 编辑弹窗(textarea,保存前由后端示例数据渲染校验) + 预览弹窗(示例数据渲染,v2ray 显示 base64 前文本) + 恢复内置;路由 `admin-subscription-templates`、nav 菜单(icon: link)、i18n `adminSubscriptionTemplates.*` 与 nav/`admin.subscriptionTemplates`、`apiAdmin.subscriptionTemplates*`、`AdminSubscriptionTemplate*` 类型、mock 数据 |
-| F12 Telegram 绑定卡片 | `ProfileView.vue` Telegram 卡片新增「账号绑定」行:`telegram_bound` 徽章(取自 `GET /user/profile` 新字段)、「获取绑定验证码」弹窗(6 位码 + 一键复制 `/bind <code>` + bot 用户名指引)、「解绑」确认;`apiUser.telegramBindCode/telegramUnbind`、`TelegramBindCodeResp` 类型、mock(bind-code/unbind + profile GET 补 `telegram_bound`) |
-| F12 管理端配置入口 | `AdminSettingsView` KEY_META 新增 `telegram` 键(metaTelegram 文案:bot_token/bot_username/webhook_secret/enabled 说明),JSON 编辑沿用现有交互 |
-| i18n | zh-CN/en-US 同步新增 `adminSubscriptionTemplates`(20 键)、`profile.tgBind*`(9 键)、`adminSettings.metaTelegram*`、nav/`admin.subscriptionTemplates`;`contentPlaceholder` 字面量花括号已按 `{'{{.NodeBlock}}'}` 转义(i18n 编译回归用例通过) |
-
-### F04 报表增强 · 营收退款趋势四系列(✅ 完成,2026-08-28)
-
-| 项 | 说明 |
-|---|---|
-| 图表 | 「营收与退款趋势」由 2 系列扩为 4 系列:实收(olive 实线)/退款(danger 实线)+ 新增余额使用(primary 虚线)/余额退款(pink 虚线);实线=现金部分、虚线=余额部分,线型即口径分组 |
-| 数据 | `AdminStatOrderPoint` 增 `balance_used`/`balance_refunded`(元),契约见 docs/api/README.md;mock statOrders 同步演示数据 |
-| i18n | `adminReports.balanceUsed`(余额使用(元)/Balance Used (CNY))、`balanceRefunded`(余额退款(元)/Balance Refunded (CNY)),`revenueHint` 更新口径说明 |
-| 测试 | e2e `admin.spec.ts` 新增「统计报表(F04)」用例:报表页渲染、趋势卡标题与口径说明可见、5 图 canvas 渲染、无 pageerror |
-
-### 总览快捷操作重设计 · 按运营频率分组 8 入口(✅ 完成,2026-08-28)
-
-| 项 | 说明 |
-|---|---|
-| 结构 | 快捷操作从 4 个入口(用户/套餐/节点/订单,与侧边栏顺序同构、信息无增量)重组为**按运营频率分两组共 8 个**:「日常运营」用户管理/订单管理/工单管理/代理审批(每天高频,代理审批有积压即收入流失);「运营与配置」公告管理/优惠券管理/流量管理/节点管理(周期性与触达/基建)。分组标签编码使用频率信息,非装饰 |
-| 取舍 | 套餐管理移出(配置类低频,侧边栏可达);统计报表/审计日志/佣金日志等不入选(报表与总览页重叠,其余低频);入口仍为导航链接,不引入待办计数(接口无此数据,留待后续) |
-| 视觉 | 与仪表盘 QuickActionGrid 同风格(彩色浅底 pill);图标色 8 个互不重复,底色组内互不重复,全部走设计令牌(亮/暗主题自动适配) |
-| i18n | `adminOverview.quickDailyOps`(日常运营/Daily Operations)、`quickPeriodicOps`(运营与配置/Operations & Setup),zh/en |
-| 测试 | e2e `admin.spec.ts` 新增「总览快捷操作」用例:两组标签可见、8 入口齐全、跳转 href 抽查(工单/流量) |
-
-### 缺陷修复 · 管理后台邮件模板「编辑/测试发送」弹窗无法打开(✅ 已修复,2026-08-28)
-
-| 问题 | 修复 |
-|---|---|
-| 邮件模板页(F11)列表正常渲染,但点击「编辑」/「测试发送」弹窗不出现,无任何报错提示 | 根因:`zh-CN.ts`/`en-US.ts` 的 `adminMailTemplates.syntaxTip` 与 `bodyPlaceholder` 文案含 Go template 字面量占位符 `{{.site_name}}`/`{{.code}}`,vue-i18n 消息编译器将其解析为插值语法报 `Not allowed nest placeholder`;dev 模式(`__DEV__`)下该编译错误在渲染期**抛出**,弹窗内 `<n-form>`(`syntaxTip`)与 placeholder(`bodyPlaceholder`)渲染中断 → `n-modal` 内容挂载失败(页面仅 console.warn,无醒目提示) |
-| 修复 | 文案改用 vue-i18n **字面量插值语法**转义:`{'{{.site_name}}'}`(编译期还原为原文,不参与插值);en 同步。影响仅此 4 条文案,其余文案无字面量花括号 |
-| 回归锁 | 新增 `src/locales/__tests__/i18n.spec.ts`:遍历 zh-CN/en-US 每条消息执行 `t()`,任一编译失败即红(可拦住未来任何文案里的字面量花括号);e2e `admin.spec.ts` 新增「邮件模板管理(F11 回归)」用例:编辑弹窗打开→输入→保存成功→测试发送弹窗打开,并断言全程无 pageerror/console.error |
-
-复现与验证:Playwright(mock)复现点击「编辑」后 `.n-modal` 不挂载 + `pageerror: Message compilation error: Not allowed nest placeholder`(栈:`getCompileContext.onError → throw`);修复后编辑弹窗、输入、保存、测试发送弹窗全部正常,无 pageerror。vitest 61 用例(新增 2)、vue-tsc、eslint、e2e 全量 29 用例通过。
-
-### 缺陷修复 · 管理后台「流量管理」页转圈卡死(✅ 已修复,2026-08-28)
-
-| 问题 | 修复 |
-|---|---|
-| naive-ui 按需注册缺失组件 | `main.ts` 的 `create({ components })` 显式注册清单漏了 **NTabs / NTabPane / NRadio / NCheckbox**——模板里的 `<n-tabs>` 等被当作未知元素渲染:tab 栏消失、三个 tab 内容全部堆叠。已补注册(影响面:`AdminTrafficImportView` 的 n-tabs/n-tab-pane/n-radio,`AdminUsersView`/`AdminNodesView` 的 n-checkbox) | 
-| 后端分页空列表返回 `null` | Go nil slice 被 encoding/json 序列化为 `null`,`resp.PageOK` 未兜底;前端 `logs.value = res.list` 后模板以 `logs.length === 0` 判空对 null 抛 `TypeError`,渲染中断 → n-spin 卡在转圈状态(**转圈的直接成因**)。已在 `PageOK` 统一把 nil slice 序列化为 `[]`(全部走 `PageOK` 的分页接口一并受益),并新增单测 `resp_test.go` 覆盖 nil/空/非空三种切片 |
-| 前端列表赋值兜底 | `AdminTrafficImportView.loadLogs` 改 `logs.value = res.list ?? []`,对旧版后端 `list:null` 防御 |
-
-复现与验证:Playwright(真实后端)复现 `TypeError: Cannot read properties of null (reading 'length')` + `unknownTags: n-tabs/n-tab-pane/n-radio`;修复后(mock 环境)tab 栏三标签正常渲染、重置记录列表/空态正常、无 pageerror 与组件解析告警;`go test ./internal/pkg/resp/` 3 用例通过,前端 vitest 59 用例通过。
-
-### 缺陷修复 · 审计日志筛选栏「目标」框独占一行(✅ 已修复,2026-08-28)
-
-| 问题 | 修复 |
-|---|---|
-| 目标输入框撑满整行、独占一行(1440 宽屏即可复现) | 根因:naive-ui 运行时注入的 `.n-input { width: 100% }` 晚于 uno.css 加载,同特异性下覆盖了 UnoCSS 的 `.w-44 { width: 11rem }`(`n-input-number/n-select/n-date-picker` 无此默认值,故仅 `n-input` 中招)。改为 important 语法 `class="w-44!"` 稳赢覆盖,模板处附注释说明 |
-| 同类隐患清理 | `AdminKnowledgesView` 搜索框 `n-input class="w-52"` 同样被覆盖(搜索框实际撑满),一并改 `w-52!`;其余 `w-40/w-52/w-72` 挂在 `n-input-number/n-select/n-date-picker` 上不受影响,`n-input class="w-full"`(25 处)与默认行为一致无需处理 |
-
-验证:Playwright 测量 1440/1280 视口下筛选栏五元素同行(ID 160 + 动作 208 + 目标 176 + 日期 288 + 搜索 60),1024 窄屏下按钮自然换行;知识库搜索框实测 208px;`vue-tsc --noEmit` 通过;vitest 59 用例通过。
-
-### 缺陷修复 · 审计日志页 i18n 与 mock 缺口(✅ 已修复,2026-08-28)
-
-| 问题 | 修复 |
-|---|---|
-| 搜索按钮显示原始 key `common.search` | `common` 命名空间从未定义 `search`(此前只有 `adminUsers.search`),`AdminAuditLogsView` 的 `t('common.search')` 落空回显 key 原文。已在 zh/en 的 `common` 下补 `search: '搜索'/'Search'` |
-| 日期范围占位符显示英文 "Start Date"/"End Date" | `App.vue` 的 `n-config-provider` 从未传 naive-ui `locale`/`date-locale`,组件内置文案恒为英文。现按 `app.language` 动态传 `zhCN/dateZhCN` 与 `enUS/dateEnUS`,所有 naive-ui 内置文案(日期/分页/空态等)随应用语言切换 |
-| mock 缺 `GET /admin/audit-logs` 端点 | API 契约与真实后端均有,仅 mock 缺失,mock/e2e 环境下审计日志页请求 404。已补演示数据(6 条)与筛选语义对齐后端的端点(admin_id/action/target 精确,from≤created_at<to,含 actions 聚合) |
-| 「目标」搜索框 | 非缺陷:审计日志按 target(如 `user:10086`)筛选是 F08 设计内功能,与 API `target` 参数对应 |
-
-验证:Playwright(mock)确认按钮文案「搜索」、日期占位「开始日期/结束日期」、列表 6 行渲染、全页无原始 key 泄漏与 pageerror;`vue-tsc --noEmit` 通过;vitest 59 用例通过。
-
-### Xboard 缺口补齐 · 第三批前端(✅ 完成,2026-08-28,对齐 .scratch/xboard-gap-fill/spec.md)
-
-| 项 | 说明 | 位置 |
-|---|---|---|
-| F02 佣金提现 | 邀请页新增(仅代理商 `user.isAgent` 可见):「申请提现」按钮 + 弹窗(金额/提现方式 Alipay|USDT|Bank/收款账号,可提现额度提示与冻结-退回规则说明),提交后调 `/invite/withdraw` 刷新 summary;「提现记录」卡片(桌面表格/移动卡片,状态徽章 处理中/已发放/已退回);工单列表对 `type=1` 提现工单显示「佣金提现」徽章 | `views/invite/InviteView.vue`、`views/ticket/TicketsView.vue`、`stores/invite.ts`、`api/invite.ts` |
-| F02 管理端审核 | 工单管理页:列表行「提现」徽章;详情弹窗顶部提现信息卡(金额/方式/账号/状态/处理备注);处理中的提现工单显示「确认打款」「拒绝退回」按钮 + 二次确认弹窗(可填备注),成功后刷新详情与列表 | `views/admin/AdminTicketsView.vue`、`api/admin.ts`(withdrawPay/withdrawReject) |
-| F02 佣金日志 | 佣金日志页对 `type=1` 提现流水显示「提现」徽章 | `views/admin/AdminCommissionLogsView.vue` |
-| F14 会话管理 | 个人信息页新增「登录设备与会话」卡片:活跃会话列表(设备 UA/IP/登录时间,当前设备徽章)+ 行内「踢下线」(确认弹窗);数据 `GET/DELETE /user/sessions` | `views/profile/ProfileView.vue`、`api/user.ts` |
-| F15 内容排序 | 公告/知识库管理页均新增「排序」弹窗(↑/↓ 调序,保存按 0..n 写 `/admin/notices/sort`、`/admin/knowledges/sort`,复用 F09 节点排序交互) | `views/admin/AdminNoticesView.vue`、`views/admin/AdminKnowledgesView.vue`、`api/admin.ts`(sortNotices/sortKnowledges) |
-| F15 分类管理 | 知识库页「分类管理」弹窗:按语言的新增分类、行内改名(保存级联)、↑/↓ 排序(同语言相邻交换)、有文档时禁删;知识表单的分类输入升级为可搜索下拉(选已有分类带 `category_id` / 直接输入新名称自动建行),切换语言联动刷新选项 | 同上、`api/admin.ts`(knowledgeCategories CRUD) |
-| F11 邮件模板 | 新增 `/admin/mail-templates` 页:模板列表(名称/主题/用途/占位符标签/默认或已自定义状态)+ 编辑弹窗(subject+body,语法提示)+ 测试发送弹窗(真实 SMTP,失败原因 toast)+ 恢复默认;设置页移除遗留「邮件模板」占位入口 | `views/admin/AdminMailTemplatesView.vue`(新)、`views/admin/AdminSettingsView.vue`、`router/index.ts`、`router/nav.ts` |
-| F19 品牌配置 | 新增 `utils/brand.ts`:`App.vue` 挂载后监听 `/config` 的 `primary_color`/`background_url`——主色联动覆盖 CSS 设计令牌(--c-primary 系五变量,JS 混色派生 soft/hover/text/grad,暗色适配)与 Naive 主题 overrides(亮/暗各自派生);背景图应用 body 层(cover+fixed);非法色值/空值回退默认主题 | `utils/brand.ts`(新)、`App.vue`、`stores/config.ts` |
-| F20 系统更新 | 新增 `/admin/version` 页:当前版本/最新版本/更新状态徽章 + 「检查更新」按钮(有新版 warning 提示人工升级)+ 变更日志展示(未配置更新源时明确提示) | `views/admin/AdminVersionView.vue`(新)、`router/index.ts`、`router/nav.ts` |
-| api/类型/mock | `api/admin.ts` 新增 withdraw 审核/内容排序/分类 CRUD/邮件模板/版本共 13 个端点,`api/invite.ts`/`api/user.ts` 新增提现与会话端点;`types/api.d.ts` 同步全部类型(SiteConfig 品牌字段/Ticket type/WithdrawItem/UserSessionItem/AdminKnowledgeCategoryItem/AdminMailTemplateItem/AdminVersionResp 等);`mock/` 补齐 F02/F14/F15/F11/F20 演示端点 | `src/api/*`、`src/types/api.d.ts`、`mock/admin.ts`、`mock/business.ts`、`mock/user.ts` |
-| i18n | `adminMailTemplates`/`adminVersion` 新命名空间,`invite`/`profile`/`adminTickets`/`adminNotices`/`adminKnowledges`/`adminCommissionLogs`/`adminSettings` 扩展 key,`nav`/`admin` 路由标题(zh/en 对齐) | `locales/zh-CN.ts`、`locales/en-US.ts` |
-
-### Xboard 缺口补齐 · 第二批前端(✅ 完成,2026-08-28,对齐 .scratch/xboard-gap-fill/spec.md)
-
-| 项 | 说明 | 位置 |
-|---|---|---|
-| F09 节点批量/复制/排序 | 节点页复选框多选(n-checkbox 全选/行选)+ 批量工具栏(批量上架/下架/删除、批量修改弹窗:状态/分组/倍率可清空字段「不修改」语义)+ 行内「复制」按钮(确认后调 `/servers/{id}/copy`)+ 「节点排序」弹窗(↑/↓ 调序,保存按 0..n 写入 `/servers/sort`);批量结果汇总 toast 列出失败原因(与用户批量同风格) | `views/admin/AdminNodesView.vue` |
-| F16 流量重置 | 「流量导入」页改造为「流量管理」三标签:导入(原功能不变)/重置(用户 ID 列表 textarea + 模式单选 清零用量/重新给量 + 快照保留提示,确认弹窗后调 `/traffic/reset`,汇总成功/失败)/重置记录(分页表:用户/模式/重置前后用量与额度,`user_id` 筛选) | `views/admin/AdminTrafficImportView.vue` |
-| F04 统计报表页 | 新增 `/admin/reports` 页:近 7/30/90 天范围切换,ECharts 五图——营收与退款趋势(双折线)、注册趋势(柱状)、套餐分布(横向条形)、用户流量 Top10(横向,formatBytes)、节点流量 Top10(横向);CSS 变量取色随暗色模式重渲染,resize/dispose 生命周期与 TrafficView 一致;侧边栏「统计报表」入口(总览之下) | `views/admin/AdminReportsView.vue`、`router/index.ts`、`router/nav.ts`、`components/ui/AppIcon.vue`(新增 chart 图标) |
-| api/类型/mock | `api/admin.ts` 新增 batchServers/copyServer/sortServers/resetTraffic/trafficResets/statOrders/statUsers/statTraffic;`types/api.d.ts` 新增 F09/F16/F04 全部请求/响应类型;`mock/admin.ts` 补齐 8 个新端点(含重置记录与报表演示数据) | `src/api/admin.ts`、`src/types/api.d.ts`、`mock/admin.ts` |
-| i18n | `adminReports` 新命名空间、`adminNodes` 批量/复制/排序 key、`adminTrafficImport` 重置/记录 key(zh/en 对齐);`nav.adminReports`、`admin.reports`;流量导航改名「流量管理/Traffic」 | `locales/zh-CN.ts`、`locales/en-US.ts` |
-
-### Xboard 缺口补齐 · 第一批前端(✅ 完成,2026-08-28,对齐 .scratch/xboard-gap-fill/spec.md)
-
-| 项 | 说明 | 位置 |
-|---|---|---|
-| F08 审计日志页 | `/admin/audit-logs`:操作人 ID/动作(下拉取自后端 actions)/目标/日期范围筛选 + 分页(20/50/100) + 明细弹窗(JSON 美化);侧边栏「审计日志」入口。**2026-08-28 可读化**:动作代码经 i18n 映射为文案(`adminAuditLogs.actions.*`,未收录回退原始代码并 title 提示),目标显示「类型 + 名称」(`target_kind`/`target_display`,回退原始 target);筛选下拉/表格/详情弹窗同规则 | `views/admin/AdminAuditLogsView.vue`、`router/index.ts`、`router/nav.ts` |
-| F05 用户管理增强 | 用户页多选(n-checkbox 全选/行选) + 批量工具栏(封禁/解封/调余额/发邮件,结果汇总 toast 列出失败原因) + CSV 导出(blob→浏览器下载) + 行内「重置订阅」(确认后弹窗展示新链接) | `views/admin/AdminUsersView.vue` |
-| F22 admin_path 适配 | `api/admin.ts` 全部路径经 `ap()` helper 拼接,路径段取 `VITE_ADMIN_PATH`(默认 admin),与后端 `security.admin_path` 同值部署 | `src/api/admin.ts` |
-| http 下载能力 | `download(url, query)`:GET + Bearer + 401 静默刷新重试一次,返回 blob(CSV 不走 envelope) | `utils/http.ts` |
-| i18n | `adminAuditLogs` 命名空间 + `adminUsers` 扩展 key(zh/en 对齐) | `locales/zh-CN.ts`、`locales/en-US.ts` |
-
-### M1 脚手架(✅ 完成)
-
-| 项 | 说明 | 位置 |
-|---|---|---|
-| 工程初始化 | Vue 3.5 + TS + Vite 6 + pnpm,`<script setup>`;Node ≥ 20 | `package.json`、`vite.config.ts`、`tsconfig.json` |
-| 原子化 CSS | UnoCSS(presetUno / presetAttributify / presetIcons / transformerDirectives),自定义 shortcuts(`btn-primary`/`btn-olive`/`card-base` 等) | `uno.config.ts` |
-| 路由 | Vue Router 4 hash 模式,29 条路由(16 用户端 + 13 管理端:login/register/forgot/dashboard/docs/docs-detail/orders/invite/agent/plans/nodes/profile/tickets/tickets-detail/traffic/404 + admin 13 页,guest/登录双守卫 + 页面标题) | `src/router/index.ts`、`guards.ts`、`nav.ts` |
-| 状态管理 | Pinia + persistedstate,12 个业务 store | `src/stores/*` |
-| 国际化 | vue-i18n@11,zh-CN / en-US 按模块命名空间,`Accept-Language` 联动 | `src/locales/*` |
-| 环境变量 | `VITE_API_BASE_URL` / `VITE_USE_MOCK` / `VITE_APP_NAME`,运行时后端地址可改并持久化 | `.env.development`、`.env.production`、`utils/storage.ts` |
-| 防闪烁 | `public/theme.js` 独立首帧脚本(外链满足 CSP script-src 'self'),渲染前读持久化主题写入 `data-theme` | `public/theme.js`、`src/index.html` |
-| Mock | vite-plugin-mock,8 个模块文件(auth/business/config/order/server/user/notices/admin)严格按契约(含 401/错误码/支付自动完成模拟);**2026-08-11 公告数据源合并至 `mock/notices.ts`(用户端 `GET /notices` 与管理端 `/admin/notices` CRUD 读写同一数组,修复管理后台发布的公告用户端不可见);管理端 Mock 在 `mock/admin.ts`(13 模块端点)** | `mock/*.ts` |
-
-### M2 布局与设计系统(✅ 完成)
-
-| 项 | 说明 | 位置 |
-|---|---|---|
-| 设计令牌 | 亮/暗两套 CSS 变量(色彩/形状/阴影/动效/字体),业务代码不写死颜色 | `src/styles/tokens.css` |
-| Naive UI 覆盖 | 亮/暗两套**真实色值** overrides(seemly 不支持 CSS 变量字符串,已规避) | `src/styles/theme.ts` |
-| 桌面布局 | 240px 侧边栏(折叠 72px)+ 毛玻璃吸顶顶栏(折叠钮/站点名/主题/语言/用户 chip) | `components/app/AppSidebar.vue`、`AppHeader.vue` |
-| 平板/手机 | `<768px` 底栏 4 Tab + 抽屉菜单(分组一致);`768-1024` 迷你侧边栏;useMediaQuery 断点驱动 | `MobileTabBar.vue`、`DrawerMenu.vue`、`MainLayout.vue` |
-| 全局壳 | AuthLayout(居中卡片 + 氛围背景 + 语言/主题)、客服浮球、naive message/dialog provider + toast 桥接 | `layouts/*`、`CustomerServiceFab.vue`、`ToastBridge.vue` |
-| 基础组件 | AppIcon(离线线性图标 60+)/ UiCard / StatNumber / StatusBadge / PriceText / EmptyState / PageHeader / CopyText / LanguageToggle / ThemeToggle(三态循环),全部全局注册 | `components/ui/*` |
-
-### M3 核心页(✅ 完成)
-
-| 页面 | 组件与交互 | 数据来源 |
-|---|---|---|
-| 仪表板 | Banner 统计卡(余额绿/佣金粉)、订阅卡(到期徽章/进度条 80%/95% 变色/五宫格)、公告手风琴(markdown-it + DOMPurify;**正文反引号包裹的优惠码渲染为高亮 chip,点击一键复制**,显示最新 10 条)、9 宫格快捷操作(一键导入/免费流量/APP 下载弹窗);窗口聚焦静默刷新 | `GET /user/stat`、`/user/subscribe`、`/notices` |
-| 使用文档 | 300ms 防抖搜索(前端过滤 + 传 keyword)、语言切换、分类分组、详情 markdown 渲染(代码块/强标记营销红) | `GET /knowledges`、`/knowledges/{id}` |
-| 我的订单 | 表格/卡片双视图切换、状态筛选、分页、详情弹窗(屏幕中央,全字段 + 支付入口 + 取消)、待支付 5s 轮询 | `GET /orders`、`/orders/{no}`、`cancel` |
-
-### M4 交易闭环(✅ 完成)
-
-| 能力 | 说明 | 数据来源 |
-|---|---|---|
-| 套餐卡 | 3/2/1 列响应式网格、周期胶囊切换联动价格与「省 N%」、markdown 营销红字 | `GET /plans` |
-| 下单弹窗 | 周期选择 → 优惠券试算(成功显示减免/失败红字)→ **可用优惠券列表展示(点选自动填入试算, `GET /coupons/available`)** → 支付方式(余额不足置灰显差额)→ 费用明细 → 提交;`Idempotency-Key` 幂等建单 | `POST /coupons/check`、`POST /orders` |
-| 收银台 | 二维码(qrcode 库渲染)/ 跳转 URL 两种形态、1800s 倒计时、3s 轮询订单、支付成功结果卡、余额直付即完成 | `POST /orders/{no}/checkout`、`GET /orders/{no}` |
-| 一键导入 | 客户端选择弹窗(Clash/sing-box/Shadowrocket/v2rayNG 等 10 款),scheme 唤起 + 复制订阅链接兜底 | `utils/deeplink.ts` |
-
-### M5 营销与用户页(✅ 完成)
-
-| 页面 | 说明 |
-|---|---|
-| 邀请赚钱 | 5 张统计卡(佣金粉/比例/注册数/累计/确认中)+ 划转弹窗(≤ 可划转余额)、邀请码增删复制、注册链接复制、佣金记录(仅已发放) |
-| 申请代理 | 左侧申请卡(四态按钮:未达标灰/可申请主色/审核中 warning/已代理 success)+ 条件 ✓/✗ + 特权/注意事项(取站点配置) |
-| 节点状态 | 分组卡片、状态点(正常 ping 动画/拥挤黄/维护灰)、类型/倍率/标签徽章、60s 静默轮询;**不展示** host/port |
-| 个人信息 | Banner 复用、通知开关即改即存、下划线式改密(清空/保存)、Telegram 外链、重置订阅(密码二次确认 → 新链接展示 + 提示重导) |
-| 我的工单 | 列表卡片、新建弹窗(主题/优先级/内容)、详情对话气泡流(用户右/客服左)、回复/关闭(已关闭置灰) |
-| 流量明细 | 近 7/30 天/自定义范围、ECharts 堆叠柱状图(亮暗主题联动)、汇总卡、明细表 |
-| 404 | 渐变数字 + 返回首页 |
-
-### M7 桌面分辨率适配(✅ 完成)
-
-| 项 | 说明 |
-|---|---|
-| 内容区宽度 | `max-w-[1200px]` → `max-w-[1440px]`:1920 屏利用率 62%→75%,2560 屏留白减半;窄屏(<1200)自动全宽 |
-| 窄桌面侧边栏 | 1024-1279px 视口进入主布局时自动折叠为 72px(内容区 +160px),用户可手动展开 |
-| 表格适配 | 订单表/邀请页两张表包 `overflow-x-auto` 容器:窄屏表格内部滚动,页面不再被撑破;订单表紧凑化(单元格 padding/字号)+ 订单号截断 12 字符,1440 屏免滚动 |
-| docs 搜索修复 | 搜索行 flex 组合 `flex-1 md:w-64 md:flex-none` 冲突导致溢出,改 `min-w-0 flex-1 md:max-w-72` |
-| 溢出兜底 | `<main>` 增加 `overflow-x-hidden`,任何横向泄漏不外溢 |
-| 诊断工具 | `scripts/diag-layout.mjs`:5 分辨率 × 12 路由自动测量(页面级溢出/内容区宽度/表格滚动),当前 0 异常 |
-| 验证 | E2E 32/32(登录用例适配登录页不再预填账号)+ typecheck + lint 全绿 |
-
-### 审查修复(✅ 已修复,阻断项清零)
-
-| 问题 | 修复 |
-|---|---|
-| **全站字号放大 4 倍(字体比例不协调根因)** | presetUno 的 `text-<number>` 规则按 4px 基准转 rem(`text-13` → `3.25rem` = 52px),导致 292 处字号类全部放大 4 倍(11→44px、16→64px、28→112px),文字溢出按钮/撑爆卡片。在 `uno.config.ts` 增加自定义规则 `[/^text-(\d+)$/ → font-size: Npx]` 覆盖(UnoCSS 用户规则优先),全站字号回归规范阶梯 11/12/13/14/16/18/20/28/32;`scripts/diag-font.mjs` 测量验证 |
-| persistedstate 插件用 `app.use()` 注册导致 `context.pinia` 未定义,首帧崩溃 | 改为 `pinia.use(piniaPluginPersistedstate)` |
-| naive-ui `create()` 默认注册空组件,`n-config-provider` 等全部无法解析 | 显式列出 18 个用到的组件 |
-| themeOverrides 传 CSS 变量(`var(--c-primary)`)被 seemly 解析报错 | 拆亮/暗两套真实色值 overrides,与 tokens.css 双源同步(见前置条件 3.5) |
-| 业务组件直接使用 `<AppIcon>`/`<StatusBadge>` 等而未局部 import | 基础 UI 组件统一全局注册 |
-| vite-plugin-mock 按文件隔离编译,跨文件 sessions Map 不共享导致 401 | token 校验改无状态格式匹配(`Bearer mock-access-*`) |
-| 冒烟访问 `/plans` 被重定向到 dashboard | hash 路由下脚本改用 `/#/` 前缀 |
-
-### M6 桌面化(Tauri 2)(✅ 完成,2026-08-12)
-
-| 项 | 说明 | 位置 |
-|---|---|---|
-| Rust 工程 | Cargo.toml(10 个插件 crate)/ build.rs / main.rs / lib.rs(插件注册 + 托盘 + 单实例) | `src-tauri/` |
-| 配置 | tauri.conf.json(1280×800 主窗、CSP、bundle targets nsis 仅 Windows) | `src-tauri/tauri.conf.json` |
-| 权限 | capabilities/default.json 最小授权(核心 + 10 插件,http scope 限 https/localhost) | `src-tauri/capabilities/default.json` |
-| 图标 | `pnpm tauri icon` 从脚本生成源图产出全套(ico/icns/png/Android) | `src-tauri/icons/`、`scripts/gen-icon.py` |
-| 前端适配 | platform.ts(clipboard/opener/deep-link 动态 import)、http.ts(plugin-http 原生 fetch)、app.ts(applyTheme 同步窗口标题栏)、main.ts(深链接路由跳转) | `src/utils/*`、`src/stores/app.ts`、`src/main.ts` |
-| 验证 | `cargo check` 通过(首次编译约 5 分钟);Web 构建不受动态 import 影响 | — |
-
-### M6 发布能力收尾(✅ 完成,2026-08-12,更新卡片 / 单实例深链转发 / 本地通知)
-
-| 项 | 说明 | 位置 |
-|---|---|---|
-| 更新卡片 UI | `utils/updater.ts`(checkForUpdate / downloadAndInstall,动态 import,Web 端自动降级)+ `components/app/UpdateCard.vue`(右下角浮动卡片:版本号 + 更新日志 + 下载进度 + 立即更新/稍后,监听 `app:check-update` 事件)+ App.vue 挂载启动静默检查 + 设置页「检查更新」入口(仅 Tauri 显示,含当前版本号);失败静默忽略 | `src/utils/updater.ts`、`src/components/app/UpdateCard.vue`、`src/App.vue`、`views/profile/ProfileView.vue` |
-| 单实例深链接转发 | `lib.rs` 单实例回调从 argv 提取 `ylink://` URL,用 deep-link 插件同名事件 `deep-link://new-url`(payload URL 数组)emit 给已有实例,前端 `onOpenUrl` 直接路由跳转;端到端链路打通 | `src-tauri/src/lib.rs`(Emitter) |
-| 本地通知触发点 | `utils/notify.ts` 统一封装(Tauri plugin-notification / Web Notification API 降级);触发点:支付成功(PaymentModal)、工单已回复(MainLayout 60s 轮询 + 状态快照去重)、订阅到期 ≤3 天(窗口聚焦刷新检测 + 按到期日去重)。**2026-08-14 增强**:工单已回复在窗口聚焦/可见时立即检查(`onFocus`/`onVisibility` 补 `checkTickets()`),不再依赖最多 60s 轮询延迟 | `src/utils/notify.ts`、`src/composables/useLocalNotifications.ts`、`layouts/MainLayout.vue`、`components/business/PaymentModal.vue` |
-| NSIS installer hooks | `src-tauri/nsis/installer-hooks.nsh` 入库(2026-08-25,0.9.0 评审):提供 4 个 no-op 宏,当前无自定义逻辑,但文件必须保留,否则 `tauri.conf.json` 的 `installerHooks` 路径缺失会导致 Windows NSIS 打包失败 | `src-tauri/nsis/installer-hooks.nsh`、`tauri.conf.json` |
-
-### 工程化与质量门禁(✅ 完成)
-
-| 项 | 说明 | 位置 |
-|---|---|---|
-| ESLint 9 flat config | js + typescript-eslint + eslint-plugin-vue(flat/recommended)+ eslint-config-prettier,0 error 0 warning | `eslint.config.ts` |
-| Prettier 3 | 全仓格式化 + format:check | `.prettierrc.json`、`.prettierignore` |
-| 构建清理 | ✅ 已修复(2026-08-14):Vite `root=src` 且 `outDir=../dist` 时默认不清空 `dist`,补 `build.emptyOutDir: true`,旧 hashed 产物不再残留且警告消失 | `vite.config.ts` |
-| Vitest 单测 | jsdom,**58 用例**(格式化/http 401 刷新重放/**惰性 apiBase**/invite store/倒计时 + PlanCard/OrderTable/BannerStatCard/SharePanel 组件测试 18 例 + **storage 迁移**),v8 覆盖率 | `vitest.config.ts`、`src/**/__tests__/*` |
-| Playwright E2E | 正式套件 42 例(21 用例 × 桌面/移动双 project、webServer 自动起 Mock),替代原冒烟脚本 | `playwright.config.ts`、`tests/e2e/*` |
-| CI | 仅发布 tag(`v*`)触发 3 job(2026-08-12 调整:此前 push main/PR 每次提交都跑,改后日常检查走本地 `pnpm lint/typecheck/test/format:check`):`frontend-quality`(lint→typecheck→format:check→test→build:web)+ `frontend-e2e`(失败上传报告)+ `rust`(windows-latest:build:web → cargo check);Go 后端不走 Actions(项目决策) | `.github/workflows/ci.yml` |
-| i18n 懒加载 | 语言包按需动态 import,useLocale 统一切换 | `src/locales/index.ts`、`src/composables/useLocale.ts` |
-| i18n 全量接入(2026-08-25) | 管理端 13 视图 + 用户端视图残留 + 共享组件(AppHeader/DrawerMenu/QuickActionGrid/OrderConfirmModal/OrderDetailModal/PaymentModal/ImportClientSheet/SubscribeCard/CopyText/EmptyState/LanguageToggle/ThemeToggle 等)+ 工具层(format/http/deeplink 走 `i18n.global.t`)全部接入;zh/en key 784 个完全对齐;vitest 新增 `src/test/setup.ts` 预载 zh-CN | `src/locales/*.ts`、`src/views/admin/*`、`src/components/**`、`src/utils/format.ts`、`src/utils/http.ts`、`src/utils/deeplink.ts`、`src/test/setup.ts` |
-| 注册页强制邀请码 | 站点 `invite_code_required=true` 时校验必填 | `src/views/auth/RegisterView.vue` |
-| 离线横幅 | 顶部红色常驻横幅 + 恢复 toast | `src/components/app/ToastBridge.vue` |
-
-### M8 管理后台(✅ 完成,2026-08-10)
-
-| 项 | 说明 | 位置 |
-|---|---|---|
-| 角色区分基建 | auth store `isAdmin` getter;路由 meta `admin` 标志 + 守卫(非管理员访问 `/admin/*` 重定向 `/dashboard`);侧边栏/移动端抽屉按角色追加「管理后台」分组;顶栏用户下拉管理员增加「管理后台」入口 | `src/stores/auth.ts`、`src/router/*`、`components/app/*` |
-| 管理端契约 | `src/api/admin.ts` 封装已实现 6 模块端点(总览/用户/套餐/节点/订单/工单);类型对齐后端 DTO(价格统一为元);剩余 7 组端点(优惠券/公告/知识库/代理审批/佣金/流量导入/站点设置)当时未封装(**2026-08-11 M9 已全部补齐**,见下) | `src/api/admin.ts`、`src/types/api.d.ts` |
-| 总览 | 7 项运营统计卡 + 快捷入口 | `views/admin/AdminOverviewView.vue` |
-| 用户管理 | 搜索/分页/封禁/角色调整/调余额(均写审计) | `views/admin/AdminUsersView.vue` |
-| 套餐管理 | CRUD:周期定价(元)/流量/设备/限速/节点分组/上架/排序 | `views/admin/AdminPlansView.vue` |
-| 节点管理 | 分组 CRUD + 节点 CRUD(6 协议/地址/配置 JSON/倍率/状态/标签);**2026-08-22 模式 A 配套:新增「上报密钥」列(CopyText 复制 node_key)+「重置密钥」按钮(确认弹窗提示旧密钥立即失效,`POST /admin/servers/{id}/node-key/reset`,mock 同步)** | `views/admin/AdminNodesView.vue` |
-| 订单管理 | 状态筛选/分页/退款(余额退回+佣金回滚);**2026-08-28 本地化**:周期/支付方式由原始枚举(`month/epay_alipay` 等)映射为文案(复用 `periodLabel`,新增 `payMethodLabel` 于 `utils/format.ts`,未知值回退原始值) | `views/admin/AdminOrdersView.vue` |
-| 工单管理 | 列表/详情/客服回复/关闭 | `views/admin/AdminTicketsView.vue` |
-| Mock + E2E | `mock/admin.ts` 管理端 Mock;`tests/e2e/admin.spec.ts` 角色区分 6 用例 × 双 project(管理员可见入口/普通用户不可见且访问被重定向) | `mock/*`、`tests/e2e/*` |
-
-### M9 管理后台二期剩余 7 模块(✅ 完成,2026-08-11)
-
-| 模块 | 说明 | 位置 |
-|---|---|---|
-| 优惠券管理 | 列表/新建/编辑/删除:类型(固定金额/百分比)/面值/最低消费/每人限用/总量/适用周期/适用套餐/生效失效时间/启停;**一键公告(按优惠券生成公告草稿,标题/正文预填且可编辑,优惠码反引号包裹发布后用户端高亮可复制,调 `POST /admin/notices`)** | `views/admin/AdminCouponsView.vue` |
-| 公告管理 | 列表/发布/编辑/删除:标题/内容(Markdown)/展示开关/排序 | `views/admin/AdminNoticesView.vue` |
-| 知识库管理 | 列表(语言筛选+关键词搜索)/新建/编辑/删除:分类/标题/正文(Markdown)/语言/展示/排序 | `views/admin/AdminKnowledgesView.vue` |
-| 代理审批 | 状态筛选/分页/通过/拒绝(通过后升级代理商) | `views/admin/AdminAgentAppliesView.vue` |
-| 佣金日志 | 状态筛选(确认中/已发放/已撤销)/分页,展示邀请人/被邀请人/订单/比例/佣金 | `views/admin/AdminCommissionLogsView.vue` |
-| 流量导入 | 模式 B 手工导入:多行 user_id/date/u/d(字节),批量提交写审计 | `views/admin/AdminTrafficImportView.vue` |
-| 站点设置 | 按 key(site/payment/invite/agent/order/templates)编辑配置 JSON,保存后缓存失效 | `views/admin/AdminSettingsView.vue` |
-| API 封装 | `apiAdmin` 新增 7 组端点(优惠券/公告/知识库/代理审批/佣金日志/流量导入/站点设置),类型对齐契约 §16.1 | `src/api/admin.ts`、`src/types/api.d.ts` |
-| Mock | `mock/admin.ts` 补齐 7 组端点(含 CRUD 状态变更);移除无契约引用的遗留「佣金管理」幽灵端点 | `mock/admin.ts` |
-| 后端配套 | 新增 `GET /admin/notices`、`GET /admin/knowledges`(含隐藏);优惠券列表改返回 `AdminCouponView`(展开 type/value/used_count 等,价格转元) | `server/internal/**`(见 backend progress) |
-| i18n | 修复既存缺陷:admin 页面标题 key 从未在语言包定义(标签页显示原始 key),补 `admin.*` 13 项(zh/en) + nav 7 项 | `src/locales/*.ts` |
-| config 缓存修复 | 站点配置 localStorage 缓存 24h→60s(对齐后端 Redis 60s),申请代理页进页 `fetchConfig(true)` 强制刷新:管理后台改代理政策/注册开关/支付方式后用户端 ≤60s 生效 | `src/stores/config.ts`、`views/agent/AgentView.vue`(见 data-layer.md §8) |
-
-### 验证状态(✅ 已验证,2026-08-10 全量实测)
-
-- `pnpm typecheck`(vue-tsc --noEmit)零错误
-- `pnpm build`(vue-tsc + vite build)成功,主包 gzip ≈ 254KB;PWA 产物:dist/sw.js(precache 62 项)+ manifest.webmanifest + registerSW.js
-- `pnpm lint` 0 error 0 warning;`pnpm test` **43/43 通过**(2026-08-11 一期小缺口收尾后:新增 PlanCard/OrderTable/BannerStatCard 组件测试 12 例)
-- `pnpm e2e`(Playwright)**42 例通过**(2026-08-11 `--list` 复核:21 用例 × 双 project):登录 → 仪表板 → 套餐 → 下单(余额支付)→ 订单 → 7 页面可达性 → 暗色切换 → 移动端底栏导航 + **管理后台角色区分 12 例**(6 用例 × 双 project;调试残留 `zz-errfail.spec.ts` 已移除)
-- `cargo check`(src-tauri)通过
-- **M9 二期 7 模块(2026-08-11)**:`pnpm typecheck` / `pnpm lint`(0 warning)/ `pnpm test`(31/31)/ `pnpm build` 全绿;后端 `go build`/`go vet`/`gofmt -l`(0 输出)/`go test`(47 函数)全绿;7 个新页面已注册路由 + 管理端菜单,交互验证待手动(Mock 管理员 `admin@example.com` / `Admin@123456`)
-- **一期小缺口收尾(2026-08-11)**:`pnpm typecheck`/`pnpm lint`/`pnpm test`(43/43)/`pnpm build`(含 PWA)全绿;commit-msg 钩子实测规范消息通过、无 type 消息被拒
-- **M6 发布能力收尾(2026-08-12)**:更新卡片 UI / 单实例深链转发 / 本地通知三项完成(见第 1 节);`pnpm typecheck`/`pnpm lint`(0 warning)/`pnpm test`(43/43)/`pnpm build`(含 PWA)/`pnpm format:check` 全绿;`cargo check` 通过;后端 `go build`/`go vet`/`gofmt -l`(0 输出)/`go test`(**64 函数**)全绿(含工单重开 4 例);桌面端交互(更新卡片/深链唤起/本地通知)待手动实测
-
-### 全量审查修复(✅ 已修复,2026-08-11)
-
-第三轮全仓库审查(见 docs/reviews/review-0.2.0.md)的前端修复:
-
-| 问题 | 修复 |
-|---|---|
-| 流量明细响应形状与契约不符(裸数组 vs `{list}`) | `src/api/user.ts` 类型改为 `{ list }`,`user store` 解析 `.list`,`mock/user.ts` 对齐契约 |
-| 会话过期跳转丢失 hash 路由 / Tauri 下 404 | `utils/http.ts` 改为 `location.hash = '#/login?redirect=…'` |
-| 标签页标题显示原始 i18n key | `router/guards.ts` 用 `i18n.global.t(title)` 翻译 |
-| FOUC 脚本读取错误形状 + 内联脚本被 CSP 拦截 | 内联脚本移至 `public/theme.js`(JSON.parse 直接取模式),满足 `script-src 'self'` |
-| 通知开关未回填 / 视图直调 api | `ProfileView` 挂载时 `fetchProfile` 回填,改用 `user store` actions;`OrderConfirmModal` 优惠券试算改走 `orderStore.checkCoupon`;`InviteView` 不再直改 store 状态 |
-| deep-link 插件未注册 | `Cargo.toml` 加 `tauri-plugin-deep-link`,`lib.rs` 注册,capabilities 加 `deep-link:default`;删除 `tauri.conf.json` updater 占位 |
-| 二维码 / ECharts 硬编码颜色 | `PaymentModal`、`TrafficView` 运行时读取 CSS 变量(设计规范 tokens.css) |
-| 省 N% 计算与周期文案重复 3 份 | 抽取共享工具 `planSavePercent` / `periodLabel`(`utils/format.ts`) |
-| `apiPlan.list` 死代码/类型矛盾 | 删除 |
-| CopyText 展示文本不响应 prop 变化 | 改用 `computed` |
-| AdminUsersView 重复实现 formatBytes | 删除本地实现,统一用 `formatBytes` |
-| E2E 调试残留 | 删除 `zz-errfail.spec.ts`;`mobile.spec.ts` 未断言调用改为 `expect(...).toBeVisible()` |
-| Mock 优惠券可无限次使用(2026-08-12) | `mock/order.ts` 的 `POST /orders` 原先无任何限用校验,任意用户可无限次用同一张券下单;补齐「每人限用」:`couponLimitPerUser`/`couponUsage`(下单即占用,种子订单计入) + `/coupons/available` 过滤已用满 + `/coupons/check` 与 `/orders` 拒绝 12001;同时统一三处折扣口径(couponDiscount 共享),修掉 WELCOME 在 check=5.0 与 orders=1.5 不一致;真实后端校验本就完整,另把 `validateCoupon`/`AvailableCoupons` 中 `err == nil &&` 的宽松判断改为查询失败保守拒绝/过滤 |
-
-### 管理端与用户端分拆 · 门户分流(✅ 完成,2026-08-28)
-
-spec 见 `.scratch/admin-console-split/spec.md`(A1-A7 全勾)。管理员登录后与普通用户共用布局/菜单混排的问题,按「两端彻底分拆 + 门户分流页」方案落地,后端零改动(role=1 判定不变):
-
-| 项 | 实现 |
-|---|---|
-| 门户分流页 | 新增 `src/views/portal/PortalView.vue`(`/portal`,meta.admin):AuthLayout 风格全屏页,双卡片「用户中心 → /dashboard」「管理后台 → /admin/overview」,含登录邮箱与退出登录 |
-| 管理端独立布局 | 新增 `src/layouts/AdminLayout.vue` + `src/components/app/AdminSidebar.vue`(唯一菜单源 `ADMIN_NAV_GROUPS` 13 项,底部「返回用户中心」);不渲染 MobileTabBar/客服浮球、不接下拉刷新;移动端汉堡打开独立管理抽屉(复用 AdminSidebar `fill` 模式) |
-| 路由迁移 | `router/index.ts`:13 条 admin 子路由从 MainLayout 迁出挂 `/admin`(AdminLayout,`meta.admin` 上移父记录,父子 meta 自动合并),新增 `/admin` → `/admin/overview` redirect;MainLayout children 不再含任何 admin 路由 |
-| 用户端去混排 | `AppSidebar`/`DrawerMenu` 菜单源只取 `NAV_GROUPS`;AppSidebar 底部新增「进入管理后台」按钮(`v-if=auth.isAdmin`);`AppHeader` 加 `admin` prop:管理端显示「管理后台」徽标,下拉首项两端对称互切(管理端「返回用户中心」/ 用户端「进入管理后台」) |
-| 守卫与登录落点 | `guards.ts`:guest 页已登录 → 管理员 `/portal`、普通用户 `/dashboard`;`LoginView.vue`:登录成功无 `redirect` 参数时同规则分流;普通用户访问 `/portal`/`/admin/*` 仍重定向 `/dashboard` |
-| i18n | zh-CN/en-US 新增 `portal.title/welcome/userCenter/adminConsole`、`nav.backToUser/enterAdmin` |
-| e2e | `tests/e2e/admin.spec.ts`:`loginAs` 落点改 `#/portal`;新增门户双卡、两端底部按钮互切、两端顶栏下拉互切、移动端双抽屉隔离、普通用户访问 `/portal` 重定向等用例(抽屉断言用 `getByRole('dialog')` 限定);20/20 全绿 |
-| 文档 | `docs/frontend/pages.md` §1 路由表(/portal + /admin + AdminLayout)、守卫规则、§2.1/2.2、新增 §2.4/§2.5、§3.14 已同步 |
-
-验证:`pnpm typecheck` / `pnpm test`(vitest 59/59)/ `pnpm e2e tests/e2e/admin.spec.ts`(20/20)/ `pnpm lint` 全绿。
-
----
-
-## 2. 未完成项
-
-### M6 桌面化(Tauri 2)—— 发布能力已收尾(✅ 完成,2026-08-12)
-
-| 项 | 状态 | 依赖/说明 |
-|---|---|---|
-| `src-tauri/` 工程 | ✅ `Cargo.toml`/`build.rs`/`main.rs`/`lib.rs`/`tauri.conf.json`/`capabilities/default.json`/全套图标,`cargo check` 通过 | 契约见 docs/frontend/desktop-tauri.md;Rust 1.97 已满足 |
-| 插件接入(Rust) | ✅ http / store / clipboard / opener / single-instance / autostart / notification / process / window-state / os | capabilities 最小授权;http scope 限 `https://**` + localhost |
-| 平台适配层(前端) | ✅ `utils/platform.ts` 启用 Tauri 分支(clipboard/opener/deep-link 动态 import);`utils/http.ts` 走 plugin-http 原生 fetch;`stores/app.ts` applyTheme 同步窗口标题栏;`main.ts` 深链接路由跳转 | Web 端自动降级不受影响 |
-| 托盘/单实例 | ✅ 托盘菜单(显示主窗口/退出)+ single-instance 聚焦已有窗口 | lib.rs setup |
-| deep-link 注册 | ✅ 插件已注册(Rust `#[cfg(desktop)]` init)+ capabilities `deep-link:default`;前端 `onDeepLink` 路由跳转已就绪(main.ts);**2026-08-12 单实例已转发 argv/深链 URL**(见第 1 节 M6 发布能力收尾) | Release 域名与 `ylink://` 注册见 desktop-tauri.md §3/§4/§5 |
-| 自动更新 | ✅ 已全部就绪(2026-08-12):Rust 已注册 updater、`tauri.conf.json` 已配 pubkey+endpoints、Release 流水线产出 `latest.json`,前端更新卡片已实现(见第 1 节 M6 发布能力收尾) | desktop-tauri.md §5 |
-| 通知触发点 | ✅ 已实现(2026-08-12):到期/工单回复/支付成功本地通知(见第 1 节 M6 发布能力收尾) | — |
-| Windows 打包与 updater 签名 | ✅ 已配置(2026-08-12):Release 流水线 + 签名密钥已生成;2026-08-12 收窄为仅 Windows 打包 | `.github/workflows/release-tauri.yml` + `TAURI_SIGNING_PRIVATE_KEY`(见 desktop-tauri.md §5/§7) |
-| 存储适配 | ✅ 已实现(2026-08-13):`utils/storage.ts` 同步 facade(内存 Map + 异步落盘 `app-settings.json`),`initStorage()` 启动预载,persistedstate 与全部 localStorage 调用点统一走 storage 层(见 §2 二期表与 review-0.6.0) | 见 storage.ts 注释 |
-
-### 一期小缺口收尾(✅ 完成,2026-08-11)
-
-| 项 | 说明 | 位置 |
-|---|---|---|
-| 组件渲染测试 | 补关键业务组件测试:PlanCard(价格/周期切换/购买 emit/Markdown 净化)、OrderTable(行渲染/状态徽章/去支付条件/事件)、BannerStatCard(邮箱/金额/空态兜底);共享 i18n helper(语言包懒加载后 setLocaleMessage) | `src/components/business/__tests__/*` |
-| husky + lint-staged + commitlint | Conventional Commits 约定工具化:pre-commit 跑 lint-staged(eslint --fix + prettier 仅处理暂存文件),commit-msg 跑 commitlint(type-enum 白名单);配置为 ESM(项目 type: module) | `.husky/pre-commit`、`.husky/commit-msg`、`commitlint.config.js`、`package.json` |
-
-> **修复(2026-08-12)**:`.husky/` 钩子文件此前缺失(仅剩 `git config core.hooksPath=.husky/_` 指向,提交时钩子静默不生效)。已重建 `.husky/pre-commit`(`npx lint-staged`)、`.husky/commit-msg`(`npx --no -- commitlint --edit "$1"`)并入库;`pnpm prepare` 重建 `.husky/_/` stub。验证:合法 commit 消息通过、非法消息被拦截(exit 1),pre-commit 桥接 lint-staged 正常。
-| 移动端下拉刷新 | `usePullToRefresh` composable:原生 touch 监听(passive:false,仅 scrollTop=0 且下拉时 preventDefault),MainLayout 集成指示器(下拉刷新/释放立即刷新/刷新中),触发与窗口聚焦一致的静默刷新仪表板 | `src/composables/usePullToRefresh.ts`、`layouts/MainLayout.vue` |
-| 订单加载更多 | 移动端卡片视图用「加载更多」翻页追加(store fetch 支持 append),桌面表格视图保留分页器 | `src/stores/order.ts`、`views/order/OrdersView.vue` |
-| PWA | vite-plugin-pwa@1.3:manifest(name/short_name/theme_color #6558F5/128-192-512 图标含 maskable)+ Workbox 离线壳(globPatterns 预缓存 + navigateFallback index.html);registerType autoUpdate + injectRegister script(非 inline,兼容 Tauri CSP script-src 'self');dev 不启用;Tauri 端不受影响 | `vite.config.ts`、`src/index.html`、`public/pwa-*.png` |
-
-### 一期遗留缺口(候补项,排在二期之前)
-
-> 以下候补项不属于一期交付承诺,列为候补;统一排在一期收尾之后、二期启动之前补齐,不再单独设档。
-
-| 项 | 说明 |
-|---|---|
-| ~~Stylelint~~ | ✅ 已引入(2026-08-22):stylelint 17 + stylelint-config-standard + postcss-html(解析 .vue);`.stylelintrc.json` 关闭格式/色值记法类规则(避免与 Prettier 及 tokens.css/theme.ts 双源同步冲突),豁免 Vue `:deep`/vendor 前缀;`pnpm lint:css` 0 违规,已接入 CI frontend-quality job 与 lint-staged(`*.{css,vue}` stylelint --fix) |
-| 既有 format:check 告警 | ✅ 已解决(2026-08-12):`0ac021c` 全量格式化修复 23 个不合规文件,review-0.4.0 补格式化 `scripts/build-latest-json.mjs` 后,`pnpm format:check` 全仓通过(见 docs/reviews/review-0.4.0.md) |
-
-### 二期 / 明确标注待办(✅ 完成,2026-08-13)
-
-| 项 | 状态 | 依赖/说明 |
-|---|---|---|
-| 移动端深链/分享面板 | 深链 ✅ 已接入(2026-08-13);分享面板 ✅ 已实现(2026-08-14):`SharePanel.vue` 浮动面板(n-modal 居中,悬浮于窗口之上)+ 品牌邀请卡片(渐变背景 + 站点名 + 邀请码 + 二维码白块)+ 复制链接 + 下载图片(2026-08-14 改版:原底部弹层 n-drawer 与系统分享 navigator.share 移除,改为 canvas 把紫色邀请卡片合成 PNG 供下载,纯前端实现)。**注册链接前缀修复(2026-08-14)**:原后端用 API `base_url`(localhost:8081)拼前缀,现由前端 `invite` store 的 `effectiveRegisterUrlPrefix` 自适应 —— 优先 `VITE_WEB_BASE_URL`(生产/Tauri 打包显式配置,模板说明见入库的 .env.production.example),否则取当前页面 origin(本地 dev=5174、Caddy=80、生产 HTTPS=443),兜底相对路径;二维码固定深色码(白块内不随暗色主题反色)。**后端字段仅返回路径后缀(2026-08-14)**:`register_url_prefix` 改为常量 `/#/register?code=`(不含域名),完整链接一律由前端拼 origin,杜绝 8081 API 地址泄漏进分享链接(见 review-0.8.0.md 第五轮)。**评审修复(2026-08-22,review-0.8.0.md 第八轮)**:渐变/兜底/重复代码等 15 项发现全部修复,详见该轮 | deep-link 注册移出 cfg(desktop) + tauri.conf.json `plugins.deep-link.mobile`(scheme ylink) + Android manifest intent-filter(gen/ 不入库,本地构建生效) |
-| 更新卡片 UI | ✅ 已实现(2026-08-12),见第 1 节 M6 发布能力收尾 | — |
-| ~~开机自启~~ | ✅ 需求已移除(2026-08-13):不再提供开机自启开关;`utils/platform.ts` 自启封装与设置页入口已还原(autostart 插件仍注册于 Rust 侧,前端不暴露) | — |
-| 存储适配 plugin-store | ✅ 已实现(2026-08-13):`utils/storage.ts` 同步 facade(内存 Map + 异步落盘 `app-settings.json`),`initStorage()` 启动预载,persistedstate 与全部 localStorage 调用点统一走 storage 层 | — |
-| 存储适配评审修复(review-0.6.0 P1/P2) | ✅ 已修复(2026-08-13):① `http.ts` 的 `API_BASE` 改为请求时惰性解析(`resolveApiBase()`),持久化自定义 apiBase 在 `initStorage()` 后生效;② `initStorage()` 增加一次性迁移,将旧 WebView `localStorage`(`app:` 前缀)导入 plugin-store,已有键不覆盖、`app:_legacy:migrated:v1` 标记保证一次性。单测:http.spec.ts + 新增 storage.spec.ts | 见 review-0.6.0.md |
-
-### 工程化与待办(✅2026-08-11 核对)
-
-| 项 | 状态 | 说明 |
-|---|---|---|
-| 后端 CI / Rust CI | Rust ✅ 已接入(2026-08-12;2026-08-12 迁至 windows-latest 与打包平台一致);Go 后端 ❌ 不接入(项目决策:后端不走 Actions) | `.github/workflows/ci.yml` `rust` job(windows-latest:先 `pnpm build:web` 生成 dist → `cargo check`);`backend` job 已删除(2026-08-12),后端由本地 make/手动构建 |
-| Release / updater(仅 Windows 打包) | ✅ 已接入(2026-08-12,公开产物仓库方案;2026-08-12 收窄为仅 Windows) | 代码仓库 private;`.github/workflows/release-tauri.yml`:tag `v*` / 手动触发 → guard(tag 校验)→ 单平台构建(windows-latest `pnpm tauri build --bundles nsis`,TAURI_SIGNING_PRIVATE_KEY 自动签名 .sig)→ `scripts/build-latest-json.mjs` 合并 latest.json(url 加 `gh-proxy.com` 前缀)→ `gh release` 推送到**公开产物仓库** `superMC5657/ylink-releases`(`RELEASES_PAT` secret);`tauri-plugin-updater` 已注册 + pubkey 写入 + capabilities 补 `updater:default`;updater endpoints = gh-proxy 优先 + 直连兑底;前端更新卡片已实现(见下行) |
-| 自启 / 通知 / 更新卡片前端入口 | ~~自启~~ ❌ 需求已移除(2026-08-13)(不再提供开关,autostart 插件仍注册于 Rust 侧但前端不暴露);通知/更新卡片 ✅ 已实现(2026-08-12),见第 1 节 M6 发布能力收尾 | deep-link 前端监听已就绪(`utils/platform.ts` `onDeepLink` + `main.ts` 路由跳转) |
-| 单实例深链接转发 | ✅ 已实现(2026-08-12) | Rust `lib.rs` 单实例回调提取 argv 中 `ylink://` URL,emit `deep-link://new-url` 转发已有实例(见第 1 节 M6 发布能力收尾) |
-| 移动端深链 `ylink://` | ✅ 已接入(2026-08-13) | deep-link 注册移出 cfg(desktop)+ `tauri.conf.json` `plugins.deep-link.mobile`(scheme ylink)+ Android manifest intent-filter(gen/ 不入库,本地构建生效;desktop-tauri.md §9.5 已更新) |
-
----
-
-## 3. 前置条件(运行 / 联调 / 上线)
-
-### 3.1 本地运行
+### 4.1 本地运行
 
 | 前置 | 说明 |
 |---|---|
-| Node ≥ 20 + pnpm ≥ 10 | ✅ 已满足:本机 Node 24.14.0、pnpm 10.33.0(2026-08-12 实测) |
-| 安装依赖 | `pnpm install`(pnpm 10 需批准 esbuild 构建脚本:`pnpm.onlyBuiltDependencies` 已在 package.json 配置) |
-| 启动 | `pnpm dev` → http://localhost:5174(Mock 环境默认开启) |
-| 演示账号 | `2734921923@qq.com` / `Passw0rd`(Mock 仅校验该口令;任意 `Bearer mock-access-*` 视为有效) |
-| 构建 | `pnpm build`(vue-tsc 类型检查 + vite 构建,产物 `dist/` 可独立部署静态托管) |
+| Node ≥ 20 + pnpm ≥ 10 | `pnpm install`(esbuild 构建脚本已在 `pnpm.onlyBuiltDependencies` 批准) |
+| 启动 | `pnpm dev` → http://localhost:5174(Mock 默认开启) |
+| Mock 演示账号 | `2734921923@qq.com` / `Passw0rd`(Mock 仅校验该口令;任意 `Bearer mock-access-*` 有效) |
+| 构建 | `pnpm build`(vue-tsc + vite,产物 `dist/` 可独立静态托管) |
 
-### 3.2 测试与质量门禁
+### 4.2 测试与质量门禁
 
-| 前置 | 说明 |
+| 项 | 说明 |
 |---|---|
-| 单元测试 | `pnpm test`(Vitest + jsdom,**59 用例**,2026-08-22 实测 59/59);`pnpm test:coverage` 看覆盖率 |
-| E2E | `pnpm e2e`(Playwright):webServer 以 `pnpm dev --mode e2e` 启动,**固定使用 `.env.e2e`(Mock)**,不受 `.env.development.local` 联调覆盖影响;本地默认系统 Chrome(`channel:'chrome'`),CI 用 `playwright install chromium`;双 project(桌面 1280 / 移动 390×844) |
-| 布局诊断 | `node scripts/diag-layout.mjs`:5 分辨率(1024-2560)× 12 路由测量页面级横向溢出与内容区宽度(需先起 Mock dev) |
-| 质量门禁 | `pnpm lint`(ESLint 0 error 0 warning)、`pnpm lint:css`(Stylelint,2026-08-22 起)、`pnpm typecheck`、`pnpm format:check`(Prettier) |
-| 注意 | E2E 会创建订单/触发支付,反复运行产生累积数据(Mock 内存态,重启 dev 即清空);登录页**不预填账号**,E2E 手动填写 Mock 演示账号 |
+| 单测 | `pnpm test`;`pnpm test:coverage` 看覆盖率(v8) |
+| E2E | `pnpm e2e`:webServer 以 `pnpm dev --mode e2e` 启动,固定 `.env.e2e`(Mock),不受 `.env.development.local` 影响;本地用系统 Chrome,CI 用 `playwright install chromium`;双 project(桌面 1280 / 移动 390×844);E2E 会创建订单/触发支付(Mock 内存态,重启即清空);登录页不预填账号 |
+| 布局诊断 | `node scripts/diag-layout.mjs`(需先起 Mock dev):5 分辨率 × 路由测横向溢出 |
+| 门禁 | `pnpm lint` / `pnpm lint:css` / `pnpm typecheck` / `pnpm format:check` |
 
-### 3.3 对接真实后端
+### 4.3 对接真实后端
 
-| 前置 | 说明 |
-|---|---|
-| 关闭 Mock | `.env.development` 设 `VITE_USE_MOCK=false` |
-| API 地址 | `VITE_API_BASE_URL=https://{host}/api/v1`;运行时也可在设置入口改后端地址并持久化(`utils/storage.ts` 的 `app:apiBase`) |
-| CORS | 后端需允许 Web 域名(浏览器 fetch);Tauri 版无此要求(http 插件原生栈) |
-| Web 登录 CORS | ✅ 已修复(2026-08-14):`dev-docker.sh` 构建前端时强制 `VITE_API_BASE_URL=/api/v1`,Web 经 Caddy 同域反代,不再跨端口直连 `localhost:8081`;`configs/config.yaml` CORS 白名单补充 `http://localhost` / `http://127.0.0.1`,直连 8081 的本地 Web 也能通过预检。已有浏览器若持久化过旧 `app:apiBase`,需在登录页点「重置后端接口地址」 | `scripts/dev-docker.sh`、`server/configs/config.yaml` |
-| 契约同步 | 后端字段变更先改 docs/api/README.md → 再改 `src/types/api.d.ts` → api 模块(见 docs/README §5 变更流程) |
+`.env.development` 设 `VITE_USE_MOCK=false`;`VITE_API_BASE_URL=https://{host}/api/v1`(运行时也可在设置入口改并持久化);浏览器端需后端 CORS 放行 Web 域名(Tauri 版原生栈不受限);全容器联调直接用 `scripts/dev-docker.sh`(Caddy 同域反代,无需 CORS);浏览器若持久化过旧 `app:apiBase`,在登录页点「重置后端接口地址」。契约变更流程:先改 docs/api/README.md → 再改 `src/types/api.d.ts` → api 模块。
 
-### 3.4 设计令牌维护(重要)
+### 4.4 设计令牌维护(重要)
 
-| 前置 | 说明 |
-|---|---|
-| 双源同步 | CSS 变量在 `tokens.css`;Naive UI overrides 在 `theme.ts`(亮/暗两套真实色值)。**改色必须两处同步**,否则 naive 组件(按钮/开关/分页)与自绘组件视觉漂移 |
-| 禁止写死颜色 | 业务代码一律用 `var(--c-*)`,保证暗色正确;naive 侧只能用 theme.ts 的 overrides 间接引用 |
+CSS 变量在 `tokens.css`,Naive UI overrides 在 `theme.ts`(亮/暗两套真实色值)——**改色必须两处同步**,否则 naive 组件与自绘组件视觉漂移;业务代码禁止写死颜色,一律 `var(--c-*)`。
 
-### 3.5 Tauri 桌面端
+### 4.5 Tauri 桌面端
 
-| 前置 | 说明 |
-|---|---|
-| Rust 工具链 | Rust ≥ 1.77(`src-tauri/Cargo.toml` rust-version = 1.77.2);✅ 已满足:本机 Rust 1.97.1(2026-08-12 实测);WebView2(Win);`pnpm tauri:dev` 开发联动,`pnpm tauri:build` 打包 |
-| 首次编译 | cargo 拉取 10+ 插件 crate,首次约 5 分钟;`cargo check` 可单独快速验证 |
-| 图标 | 改品牌后运行 `python scripts/gen-icon.py && pnpm tauri icon app-icon.png` 重新生成全套 |
-| 深链接/更新 | 发布前需注册 `ylink://` 协议(Rust 侧 deep-link 插件)与 `tauri signer generate` 密钥(见第 2 节) |
-| 平台适配 | Web 与 Tauri 共用一套代码,`utils/platform.ts` 自动降级;勿在 Web 端调用 Tauri 专属 API(已全部动态 import 保护) |
+Rust ≥ 1.77(本机已验证)+ WebView2(Win);`pnpm tauri:dev` 联动开发,`pnpm tauri:build` 打包;首次 cargo 编译约 5 分钟(`cargo check` 可快速验证);改品牌后 `python scripts/gen-icon.py && pnpm tauri icon app-icon.png` 重新生成图标;发布前需注册 `ylink://` 协议与 updater 签名密钥(见 desktop-tauri.md §5/§7)。
 
-### 3.6 上线(生产)
+### 4.6 上线(生产)
 
-| 前置 | 说明 |
-|---|---|
-| 构建产物 | `dist/` 部署到 Nginx/Caddy/对象存储 + CDN;hash 路由无需服务端 rewrite |
-| 后端地址 | 打包时 `VITE_API_BASE_URL` 写入产物;或首次打开后由用户在设置页配置并持久化 |
-| 安全 | 见 desktop-tauri.md §6(Web 版按 CSP 收紧;Markdown 已 DOMPurify 二次过滤,后端仍应按契约做写入侧清洗) |
+`dist/` 部署到 Nginx/Caddy/对象存储 + CDN(hash 路由无需服务端 rewrite);打包时写入 `VITE_API_BASE_URL`(或用户首次打开后自配);安全基线见 desktop-tauri.md §6(CSP 收紧;Markdown 已 DOMPurify 过滤,后端仍做写入侧清洗)。
 
----
+## 5. 历史记录指引
 
-## 4. 与契约文档的对照基准
-
-- 端点、错误码、信封格式、单位约定:以 [docs/api/README.md](../api/README.md) 为准(本实现已对齐;`types/api.d.ts` 与契约一一对应)
-- 视觉令牌/响应式/组件规范:以 [docs/frontend/design-system.md](design-system.md) 为准
-- 路由表与逐页拆解:以 [docs/frontend/pages.md](pages.md) 为准(29 条路由全部落地:16 用户端 + 13 管理端)
-- 数据层(HTTP 封装/store/i18n/深链接):以 [docs/frontend/data-layer.md](data-layer.md) 为准
-- 桌面化:以 [docs/frontend/desktop-tauri.md](desktop-tauri.md) 为准(M6 已完成,deep-link/自动更新/Windows 打包等发布能力见第 2 节)
+- 版本评审与修复明细:[docs/reviews/](../reviews/)(review-0.2.0 ~ review-0.9.0,冻结快照)
+- 需求立项与决策:[.scratch/](../../.scratch/)(各 feature 的 spec.md)
+- 逐次变更:git log(Conventional Commits)

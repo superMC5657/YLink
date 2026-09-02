@@ -1,6 +1,6 @@
 # 后端开发文档 · 总览与架构
 
-> Go/Gin 服务端：为用户端 App 提供 REST API，同时承担支付回调、订阅配置下发、定时任务（佣金结算/到期提醒）。管理端 API 同进程暴露（`/admin` 前缀）；管理后台前端已随主 SPA 实现全部 13 模块（M8 核心 6 模块 + M9 二期 7 模块）。
+> Go/Gin 服务端：为用户端 App 提供 REST API，同时承担支付回调、订阅配置下发、定时任务（佣金结算/到期提醒）。管理端 API 同进程暴露（`/admin` 前缀）；管理后台前端已随主 SPA 实现 18 个管理页面（M8 核心 6 + M9 二期 7 + 缺口补齐新增 5）。
 
 ## 1. 技术选型
 
@@ -131,7 +131,7 @@ type Generator interface { Format() string; Build(u *User, nodes []Server) ([]by
 ## 9. 测试与工程化
 
 - **单测**：service 层为主（repo 用 sqlmock 或以接口 mock；Redis 用 miniredis）；重点：下单算价、优惠券、佣金、订阅状态机、回调验签幂等。
-- **集成测试**：一期未引入 dockertest；核心链路以 service 层单测覆盖（见 progress.md §1 测试状态）。
+- **集成测试**：一期未引入 dockertest；核心链路以 service 层单测覆盖（当前 144 个测试函数，见 progress.md §1 状态总览）。
 - **Makefile**：`make run / migrate / swagger / lint / test / build`。
 - **CI**：本机 `make lint / test / build` 可用；按项目决策，后端**不接入 GitHub Actions**（代码仓库 private，后端构建/部署由本机或内部流程完成；前端 CI 见 docs/frontend）。
 - **Swagger**：handler 注解维护，`make swagger` 生成；接口变更时与契约文档同步 PR 评审。

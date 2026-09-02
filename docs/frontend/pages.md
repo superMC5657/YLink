@@ -90,14 +90,14 @@
 ┌────────────┬──────────────────────────────────────────┐
 │AdminSidebar│ AppHeader(admin)（折叠/站点名/管理后台徽标｜主题/语言/用户）│
 │  管理后台   ├──────────────────────────────────────────┤
-│ 13 项菜单   │            <router-view>                 │
+│ 18 项菜单   │            <router-view>                 │
 │(仅此一个源) │         （滚动容器）                      │
 │            │                                          │
 │ 返回用户中心 │                                          │
 └────────────┴──────────────────────────────────────────┘
 ```
 
-- AdminSidebar（`src/components/app/AdminSidebar.vue`）：唯一菜单源 `ADMIN_NAV_GROUPS`（13 项），底部固定「返回用户中心」按钮（回 `/dashboard`）；`fill` 模式（宽度 100%、固定展开、隐藏折叠钮）供移动端抽屉复用。
+- AdminSidebar（`src/components/app/AdminSidebar.vue`）：唯一菜单源 `ADMIN_NAV_GROUPS`（18 项），底部固定「返回用户中心」按钮（回 `/dashboard`）；`fill` 模式（宽度 100%、固定展开、隐藏折叠钮）供移动端抽屉复用。
 - AppHeader 传 `admin` prop：站点名旁显示「管理后台」徽标，用户下拉首项为「返回用户中心」（与用户端「进入管理后台」对称互切）。
 - 手机 <768px：顶栏汉堡打开**独立抽屉**（内容与桌面侧边栏一致，仅管理菜单）；**不渲染 MobileTabBar、不渲染客服浮球**。
 - 不接 `usePullToRefresh` 等用户端设施。
@@ -216,30 +216,38 @@ DashboardPage
 
 - 404 页：插画 + 返回首页按钮；接口异常统一 toast；网络断开顶部横幅提示（`navigator.onLine` 监听），恢复自动重试关键数据。
 
-### 3.14 管理后台 `/admin/*`（M8 + M9，13 模块，role=1）
+### 3.14 管理后台 `/admin/*`（18 个页面，role=1）
 
-- 布局：独立 `AdminLayout`（§2.4），侧边栏/移动抽屉只含 13 项管理菜单；管理员经门户分流页 `/portal`（§2.5）或用户端底部按钮/顶栏下拉进入；`meta.admin` 挂 AdminLayout 父记录。
+- 布局：独立 `AdminLayout`（§2.4），侧边栏/移动抽屉只含 18 项管理菜单；管理员经门户分流页 `/portal`（§2.5）或用户端底部按钮/顶栏下拉进入；`meta.admin` 挂 AdminLayout 父记录。
 
 M8 核心 6 模块：
 
-- 总览 `/admin/overview`：7 项运营统计卡（用户/代理/订单/收入/在售套餐）+ 快捷操作（按运营频率分组两组共 8 入口：日常运营=用户/订单/工单/代理审批，运营与配置=公告/优惠券/流量/节点）。
-- 用户 `/admin/users`：搜索/分页、封禁/角色调整、调余额（均写审计）。
+- 总览 `/admin/overview`：7 项运营统计卡（用户/代理/订单/收入/在售套餐，含全体用户余额）+ 快捷操作（按运营频率分组两组共 8 入口：日常运营=用户/订单/工单/代理审批，运营与配置=公告/优惠券/流量/节点）。
+- 用户 `/admin/users`：搜索/分页、封禁/角色调整、调余额（均写审计）；多选批量操作、CSV 导出、发邮件、重置订阅密钥（F05）。
 - 套餐 `/admin/plans`：CRUD（周期定价元/流量/设备/限速/节点分组/上架/排序）。
-- 节点 `/admin/nodes`：分组 CRUD + 节点 CRUD（6 协议/地址/配置 JSON/倍率/状态/标签）。
-- 订单 `/admin/orders`：状态筛选/分页、退款（余额退回+佣金回滚）、关闭待支付订单。
-- 工单 `/admin/tickets`：列表/详情、客服回复、关闭。
+- 节点 `/admin/nodes`：分组 CRUD + 节点 CRUD（6 协议/地址/配置 JSON/倍率/状态/标签）；多选批量/复制/排序、node_key 重置（F09，模式 A 配套）。
+- 订单 `/admin/orders`：状态筛选/分页、退款（余额退回+佣金回滚）、关闭待支付订单；佣金金额列与周期/支付方式文案本地化。
+- 工单 `/admin/tickets`：列表/详情、客服回复、关闭；提现工单确认打款/拒绝退回（F02）。
 
 M9 二期 7 模块（2026-08-11）：
 
 - 优惠券 `/admin/coupons`：列表/新建/编辑/删除（固定金额/百分比、面值/最低消费/限用/适用周期/套餐/生效时间/启停），一键公告（生成公告草稿，优惠码反引号包裹）。
-- 公告 `/admin/notices`：列表/发布/编辑/删除（Markdown 正文、展示开关、排序）。
-- 知识库 `/admin/knowledges`：列表（语言筛选+搜索）/新建/编辑/删除（分类/正文/语言/展示/排序）。
+- 公告 `/admin/notices`：列表/发布/编辑/删除（Markdown 正文、展示开关、排序弹窗 F15）。
+- 知识库 `/admin/knowledges`：列表（语言筛选+搜索）/新建/编辑/删除（分类/正文/语言/展示/排序弹窗与分类管理 F15）。
 - 代理审批 `/admin/agent-applies`：状态筛选/分页、通过/拒绝（通过后升级代理商）。
-- 佣金日志 `/admin/commission-logs`：状态筛选/分页，展示邀请人/被邀请人/订单/比例/佣金。
-- 流量导入 `/admin/traffic-import`：模式 B 手工导入（user_id/date/u/d 字节，批量提交写审计）。
-- 站点设置 `/admin/settings`：按 key（site/payment/invite/agent/order/templates）编辑配置 JSON，保存后缓存失效。
+- 佣金日志 `/admin/commission-logs`：状态筛选/分页，展示邀请人/被邀请人/订单/比例/佣金；提现流水徽章（F02）。
+- 流量管理 `/admin/traffic-import`：三标签——导入（模式 B 手工导入）/重置（清零用量/重新给量，F16）/重置记录。
+- 站点设置 `/admin/settings`：按 key（site/payment/invite/agent/order/templates/telegram）编辑配置 JSON，保存后缓存失效。
 
-- 数据来源：`api/admin.ts` 封装 13 组端点（M8 6 组 + M9 7 组，契约第 16 节）；管理后台视图直调 `apiAdmin` 不经 store（文档化例外，见 data-layer.md §2）。
+缺口补齐新增 5 模块（2026-08-28 ~ 08-29，F04/F08/F11/F10/F20）：
+
+- 统计报表 `/admin/reports`：近 7/30/90 天 ECharts 五图（营收退款四系列趋势/注册趋势/套餐分布/用户与节点流量 Top10）。
+- 审计日志 `/admin/audit-logs`：操作人/动作/目标/日期筛选 + 分页 + 明细弹窗，动作与目标可读化。
+- 邮件模板 `/admin/mail-templates`：模板列表/编辑/测试发送/恢复默认。
+- 订阅模板 `/admin/subscription-templates`：按客户端类型编辑/预览/恢复内置。
+- 版本检查 `/admin/version`：当前/最新版本、检查更新、变更日志展示。
+
+- 数据来源：`api/admin.ts` 按契约第 16 节封装全量端点；管理后台视图直调 `apiAdmin` 不经 store（文档化例外，见 data-layer.md §2）。
 
 ## 4. 弹窗与全局组件清单
 

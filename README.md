@@ -1,6 +1,6 @@
 # YLink · 代理订阅售卖系统
 
-> 一套仿 YLink 面板风格的代理订阅售卖系统，包含 **用户端应用**（响应式 Web + Tauri 2 桌面端）与 **Go/Gin 服务端**，管理后台随主 SPA 实现全部 13 模块。
+> 一套仿 YLink 面板风格的代理订阅售卖系统，包含 **用户端应用**（响应式 Web + Tauri 2 桌面端）与 **Go/Gin 服务端**，管理后台随主 SPA 实现 18 个管理页面。
 
 ## 系统组成
 
@@ -8,7 +8,7 @@
 |---|---|---|
 | 用户端 | 响应式 Web（桌面/平板/手机浏览器）+ Tauri 2 桌面应用（正式打包仅 Windows，见 desktop-tauri.md §7） | Vue 3.5 + TS + Vite 6 + Naive UI + UnoCSS + Pinia |
 | 服务端 | REST API + 订阅下发 + 支付回调 + 定时任务 | Go 1.26 + Gin + GORM + PostgreSQL 16 + Redis 7 |
-| 管理端 | 运营后台（同仓 SPA 内 13 模块：M8 核心 6 + M9 二期 7） | Vue 3 SPA（同仓库） |
+| 管理端 | 运营后台（同仓 SPA，18 个管理页面） | Vue 3 SPA（同仓库） |
 
 ## 功能范围
 
@@ -18,7 +18,7 @@
 - **营销**：邀请赚钱（邀请码、佣金、划转）、申请代理、公告优惠码一键复制
 - **订阅**：节点状态、一键导入 10 款客户端（Clash/sing-box 等）、订阅配置下发
 - **用户**：个人信息（改密、通知开关、Telegram）、我的工单、流量明细（ECharts）
-- **管理后台**：套餐/节点/用户/订单/优惠券/公告/知识库/工单/流量导入/代理审批等 13 模块
+- **管理后台**：套餐/节点/用户/订单/优惠券/公告/知识库/工单/流量/统计报表/审计日志/邮件与订阅模板/版本管理等 18 个页面
 
 ## 快速开始
 
@@ -77,9 +77,9 @@ YLink/
 | [docs/frontend/README.md](docs/frontend/README.md) | 前端：技术选型、架构、目录结构、工程化 |
 | [docs/backend/README.md](docs/backend/README.md) | 后端：技术选型、分层架构、中间件、工程化 |
 | [docs/api/README.md](docs/api/README.md) | 接口契约：通用约定、错误码、全量端点（前后端唯一事实来源） |
-| [docs/frontend/progress.md](docs/frontend/progress.md) | 前端进度追踪（已完成/未完成/前置条件） |
-| [docs/backend/progress.md](docs/backend/progress.md) | 后端进度追踪（已完成/未完成/前置条件） |
-| [docs/reviews/](docs/reviews/) | 代码评审记录（review-0.2.0 ~ 0.9.0，中英文对照） |
+| [docs/frontend/progress.md](docs/frontend/progress.md) | 前端当前状态（能力清单/未完成/前置条件） |
+| [docs/backend/progress.md](docs/backend/progress.md) | 后端当前状态（能力清单/未完成/前置条件） |
+| [docs/reviews/](docs/reviews/) | 代码评审记录（review-0.2.0 ~ 0.9.0，中文，冻结快照） |
 
 ## 环境要求
 

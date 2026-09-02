@@ -14,7 +14,7 @@
 - 内置代理内核（本应用是「面板客户端」，代理连接由本机 Clash/sing-box 等客户端完成，App 只负责一键导入）。
 - Tauri 移动端：Android APK 打包已启用（见 [desktop-tauri.md](desktop-tauri.md) 第 9 节）；iOS 不打包（需 Apple 开发者账号与审核，代理类应用上架风险高）。
 
-> 管理后台前端已随主 SPA 实现全部 13 模块（M8 核心 6 模块 + M9 二期 7 模块，2026-08-11），不再是「非目标」；详见 [progress.md](progress.md) §1 M8/M9。
+> 管理后台前端已随主 SPA 实现 18 个管理页面（M8 核心 6 + M9 二期 7 + 缺口补齐新增 5），不再是「非目标」；详见 [progress.md](progress.md) §2.4 与 [pages.md](pages.md) §3.14。
 
 ## 2. 技术选型
 
@@ -133,7 +133,7 @@ YLink/
 | 层 | 工具 | 范围 |
 |---|---|---|
 | 单测 | Vitest + Vue Test Utils | http 封装（拦截/刷新/解包）、格式化工具、下单金额计算、表单校验、store 逻辑 |
-| 组件测试（未写，可后补） | Vitest + jsdom | StatCard、PlanCard、OrderTable 等关键组件渲染与交互（见 progress.md §2 一期缺口） |
+| 组件测试 | Vitest + jsdom | PlanCard、OrderTable、BannerStatCard 等关键组件渲染与交互（已接入，见 progress.md §2.6） |
 | E2E | Playwright | 登录 → 仪表板 → 购买套餐（Mock 支付）→ 订单详情；移动端视口（390×844）冒烟 |
 
 ## 10. 里程碑
@@ -145,4 +145,4 @@ YLink/
 | M3 核心页 | 仪表板、使用文档、我的订单、个人信息 | 对应截图页面还原 |
 | M4 交易闭环 | 套餐、下单弹窗、优惠券、收银台、支付轮询 | Mock 环境完成购买全链路 |
 | M5 营销页 | 邀请赚钱、申请代理、工单、节点状态、流量明细 | 全部页面上线 |
-| M6 桌面化 | Tauri 插件接入、托盘、深链接、Android 打包、自动更新（2026-08-12 收尾） | 发布能力全部接入（见 desktop-tauri.md §4/§5/§7 与 progress.md §1/§2） |
+| M6 桌面化 | Tauri 插件接入、托盘、深链接、Android 打包、自动更新（2026-08-12 收尾） | 发布能力全部接入（见 desktop-tauri.md §4/§5/§7 与 progress.md §2.5） |

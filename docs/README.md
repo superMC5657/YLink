@@ -9,7 +9,7 @@
 | 用户端 | 响应式 Web（桌面/平板/手机浏览器）+ Tauri 2 桌面应用（正式打包仅 Windows，见 desktop-tauri.md §7） | Vue 3.5 + TS + Vite 6 + Naive UI + UnoCSS + Pinia | [frontend/](frontend/README.md) |
 | 服务端 | REST API + 订阅下发 + 支付回调 | Go 1.26.1 + Gin + GORM + PostgreSQL 16 + Redis 7 | [backend/](backend/README.md) |
 | 接口契约 | 前后端唯一事实来源 | REST + JSON，OpenAPI 风格描述 | [api/README.md](api/README.md) |
-| 管理端 | 运营后台（同仓 SPA 内 13 模块全部实现：M8 核心 6 模块 + M9 二期 7 模块） | Vue 3 SPA（同仓库） | 见 [api/README.md](api/README.md) §16 |
+| 管理端 | 运营后台（同仓 SPA，18 个管理页面：M8 核心 6 + M9 二期 7 + 缺口补齐新增 5） | Vue 3 SPA（同仓库） | 见 [api/README.md](api/README.md) §16 |
 
 ## 2. 总体架构
 
@@ -33,14 +33,9 @@
 └────────────┘
 ```
 
-## 3. 功能范围（对照截图）
+## 3. 功能范围
 
-- 账户体系：注册 / 登录 / 找回密码（邮箱验证码）、Token 会话
-- 仪表板：余额与佣金、公告、快捷操作、当前订阅与流量统计
-- 使用文档：知识库分类、搜索、多语言、Markdown 正文
-- 财务：我的订单（列表/卡片双视图）、邀请赚钱（邀请码、佣金、划转）、申请代理
-- 订阅：套餐购买（优惠券、余额抵扣、在线支付）、节点状态、一键导入客户端
-- 用户：个人信息（改密、通知开关、Telegram）、我的工单、流量明细
+面向访客的功能清单维护在[根 README](../README.md)「功能范围」一节,此处不重复;各端实现细节见 frontend/backend 文档。
 
 ## 4. 文档导航
 
@@ -58,7 +53,10 @@
 | [backend/deploy.md](backend/deploy.md) | 后端：配置、Docker 部署、运维 |
 | [backend/progress.md](backend/progress.md) | 后端：开发进度追踪（已完成 / 未完成 / 前置条件） |
 | [backend/node-agent-guide.md](backend/node-agent-guide.md) | 后端：节点 agent（Xray 流量上报）部署对接说明 |
+| [backend/launch-checklist.md](backend/launch-checklist.md) | 后端：上线前置检查清单（域名/环境/第三方账号/预演） |
 | [api/README.md](api/README.md) | 接口契约：通用约定、错误码、全量端点定义 |
+| [reviews/](reviews/) | 代码评审记录（review-0.2.0 ~ 0.9.0，中文，按版本冻结的历史快照） |
+| [.scratch/](../.scratch/)（仓库根） | 需求立项与决策：各 feature 的 spec.md（review-fixes 批次含 issues/ 工单） |
 
 ## 5. 全局约定
 

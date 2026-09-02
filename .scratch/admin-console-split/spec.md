@@ -1,4 +1,4 @@
-/# 管理端与用户端分拆 · 门户分流（Spec）✅
+# 管理端与用户端分拆 · 门户分流（Spec）✅
 
 > Status: done（2026-08-28 实现完成，e2e 全绿，见 docs/frontend/progress.md）
 > 日期: 2026-08-28

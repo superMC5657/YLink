@@ -135,13 +135,13 @@ capabilities/default.json 采用最小授权：逐项声明上述插件权限，
 
 ### 9.4 Release 签名（上架必需）
 
-`src-tauri/gen/android/app/build.gradle.kts` 已配置签名读取逻辑，缺省时 release 构建产出未签名 APK。**本项目已配置完毕**：`src-tauri/gen/android/keystore.properties` 已存在（`keyAlias=upload`，storeFile 指向 `E:\envs\android_sdk\zyan.jks`，2026-08-10 重新生成，**密码已重置为 `Ylink@2026Sign`**），`pnpm tauri:android:build` 产出的 release APK 已自动签名（验证命令：`apksigner verify --print-certs app-universal-release.apk`）。
+`src-tauri/gen/android/app/build.gradle.kts` 已配置签名读取逻辑，缺省时 release 构建产出未签名 APK。**本项目已配置完毕**：`src-tauri/gen/android/keystore.properties` 已存在（`keyAlias=upload`；storeFile 路径与密码只存于该文件，不入库），`pnpm tauri:android:build` 产出的 release APK 已自动签名（验证命令：`apksigner verify --print-certs app-universal-release.apk`）。
 
 > ⚠️ 若在 CI/其他机器重建：keystore 文件与 `keystore.properties` 均在 `gen/`（不入库），需自行恢复。重新配置格式（Windows 路径**必须双反斜杠**，否则 Properties 会把 `\e` 等当转义符、路径被吞成 `E:envs...`）：
 > ```
 > keyAlias=<别名>
 > password=<密钥库密码>
-> storeFile=E:\\envs\\android_sdk\\zyan.jks
+> storeFile=E:\\path\\to\\ylink.jks
 > ```
 > 生成命令：`keytool -genkeypair -v -keystore <path> -alias upload -keyalg RSA -keysize 2048 -validity 10000`（生成时需输入密码，勿用空密码）。
 

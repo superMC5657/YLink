@@ -1,36 +1,36 @@
-# Code Review — YLink v0.5.0 (Admin Order Commission Data)
+# 代码评审 — YLink v0.5.0（管理端订单佣金数据）
 
-- **Version:** 0.5.0
-- **Date:** 2026-08-13
-- **Scope:** Recent changes for exposing `commission_amount` in the admin order list.
-- **Method:** Reviewer-model review; frontend typecheck, Vitest (43 tests), and server Go tests passed.
-- **Status:** All findings resolved (P2 fixed 2026-08-13).
+- **版本：** 0.5.0
+- **日期：** 2026-08-13
+- **范围：** 管理端订单列表新增 `commission_amount` 的近期变更。
+- **方法：** 评审模型审查；前端类型检查、Vitest（43 项）及 server Go 测试均通过。
+- **状态：** 全部发现已解决（P2 已于 2026-08-13 修复）。
 
-## Summary
+## 摘要
 
-The main behavior change is implemented and the available validation passes. The P2 finding (commission lookup failure silently ignored) has been fixed: `ListOrders` now propagates the batch commission query error, so the admin order endpoint no longer returns successful-looking data with `commission_amount: null` for every order when the lookup fails.
+本次主要行为变更已实现，现有验证均通过。P2 发现（批量查询佣金失败被静默忽略）已修复：`ListOrders` 现在会透传批量佣金查询的错误，管理端订单接口不再在查询失败时返回 `commission_amount` 全为 null 的"成功"响应。
 
-## Completed
+## 已完成
 
-Added `commission_amount` to the admin order list by batch-loading commission records by order number.
-Propagate commission lookup failures (P2) — `ListOrders` returns the error from `ListByOrderNos` instead of silently ignoring it; regression test `TestAdminListOrdersCommissionQueryError` added.
+管理端订单列表已按订单号批量加载佣金记录，并增加 `commission_amount` 字段。
+透传佣金查询失败（P2）— `ListOrders` 改为返回 `ListByOrderNos` 的错误而非静默忽略；新增回归测试 `TestAdminListOrdersCommissionQueryError`。
 
-## Findings
+## 发现
 
-### ✅ [P2] Propagate commission lookup failures — server/internal/service/admin_service.go:196-197
+### ✅ [P2] 透传佣金查询失败 — server/internal/service/admin_service.go:196-197
 
-`ListOrders` ignores errors from the batch commission query:
+`ListOrders` 忽略了批量佣金查询的错误：
 
 ```go
 if comms, err := s.repos.Commission.ListByOrderNos(s.db, orderNosOf(list)); err == nil {
 ```
 
-When the database/query fails, the endpoint still returns the order list with an empty commission map. Return the lookup error instead, so the admin UI does not display inaccurate financial data as a successful response.
+数据库或查询失败时，接口仍使用空佣金映射返回订单列表。应直接返回该查询错误，避免管理端 UI 将错误的财务数据当作成功结果展示。
 
-**Status:** Resolved (2026-08-13). `ListOrders` now returns the error from the batch commission query; the old `err == nil` swallow is removed. Covered by `TestAdminListOrdersCommissionQueryError`.
+**状态：** 已解决（2026-08-13）。`ListOrders` 现在直接返回批量佣金查询的错误，删除了原先 `err == nil` 的静默吞错；由 `TestAdminListOrdersCommissionQueryError` 覆盖。
 
-## Verification
+## 验证
 
-- Frontend typecheck — passed
-- Vitest — 43 tests passed
-- Server Go tests — passed (67 → 68 test functions, including the new P2 regression test)
+- 前端类型检查 — 通过
+- Vitest — 43 项通过
+- server Go 测试 — 通过（测试函数 67 → 68，含新增 P2 回归测试）

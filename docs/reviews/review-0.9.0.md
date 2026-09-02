@@ -1,48 +1,48 @@
-# Code Review — YLink v0.9.0 (Legacy Node Credentials & Node Reporting / Alerting Fixes)
+# 代码评审 — YLink v0.9.0（存量节点兼容 & 节点上报/告警修复）
 
-- **Date:** 2026-08-25
-- **Scope:** Review findings on subscription credential rollout, node reporting validation/dedup, demo agent baseline, Alertmanager SMTP delivery, and Windows NSIS packaging.
-- **Status:** All 3×P1 and 4×P2 findings fixed.
+- **日期：** 2026-08-25
+- **范围：** 订阅凭证切换兼容、节点上报分组校验与重复 UUID 拒绝、demo agent 零基线、Alertmanager 邮件投递、Windows NSIS 打包。
+- **状态：** 3×P1 + 4×P2 全部修复。
 
-## Findings
+## 发现
 
 ### ✅ [P1] Keep subscription credentials valid until node inbounds are provisioned
 
-Node subscription generation now only uses `users.uuid` when the server config explicitly enables `per_user_credentials: true`. Legacy nodes continue to receive the shared `servers.config` credential, so clients do not lose connectivity on the next subscription refresh before inbound provisioning is completed.
+订阅下发仅在节点 config 显式开启 `per_user_credentials: true` 时使用 `users.uuid`；未开启的存量节点继续使用 `servers.config` 共享凭证，inbound 未配发前不会因订阅刷新断连。
 
 ### ✅ [P1] Use a STARTTLS-capable SMTP endpoint for Alertmanager
 
-Alertmanager now defaults to `ALERT_SMTP_PORT=587` (STARTTLS) instead of reusing the backend QQ 465 implicit-TLS port. Operators who must use port 465 are directed to place an SMTPS-to-STARTTLS relay in front of Alertmanager, or override `ALERT_SMTP_HOST/FROM`.
+Alertmanager 默认走 `ALERT_SMTP_PORT=587`（STARTTLS），不再复用后端 QQ 465 隐式 TLS；必须用 465 时文档要求前置 SMTPS→STARTTLS relay，或覆盖 `ALERT_SMTP_HOST/FROM`。
 
 ### ✅ [P1] Add the configured NSIS hook file
 
-`src-tauri/nsis/installer-hooks.nsh` is now committed with the four no-op NSIS hook macros, so the `installerHooks` path in `tauri.conf.json` resolves during Windows NSIS builds.
+已提交 `src-tauri/nsis/installer-hooks.nsh`（含 4 个 no-op 宏），`tauri.conf.json` 的 `installerHooks` 路径在 Windows NSIS 构建时可解析。
 
 ### ✅ [P2] Limit reports to users in the authenticated node's group
 
-`POST /node/report` now checks each user's plan `group_ids` against the authenticated server's group. Mismatches are rejected with `not_subscribed`.
+`POST /node/report` 校验用户套餐 `group_ids` 是否包含节点分组，不匹配返回 `not_subscribed`。
 
 ### ✅ [P2] Reject duplicate UUIDs in a report payload
 
-Duplicate UUIDs in one request are rejected as a group before user lookup or transaction work, returning `duplicate_uuid` for every occurrence.
+单请求重复 UUID 在查用户/开事务前整体拒绝，所有重复条目返回 `duplicate_uuid`。
 
 ### ✅ [P2] Send the zero baseline before advancing demo counters
 
-`node-agent` now reports the current counters first (zero on startup) to establish the snapshot baseline, then advances randomized cumulative counters for the next round.
+`node-agent` 先上报当前计数（启动首轮为 0）建立快照基线，再推进下一轮随机累计值。
 
 ### ✅ [P2] Escape SMTP values before inserting them with sed
 
-The Alertmanager entrypoint now substitutes placeholders with AWK and escapes YAML single quotes (`'` → `''`), preventing valid credentials from corrupting `alertmanager.yml`.
+Alertmanager entrypoint 改用 AWK 逐字替换模板，并按 YAML 单引号规则转义，避免合法用户名/密码损坏配置。
 
-## Changes
+## 变更
 
-- Backend: `subscribe_service.go`, `node_service.go`, `node_service_test.go`, `subscribe_service_test.go`, `cmd/node-agent/main.go`.
-- Observability: `docker-compose.yml`, `alertmanager.yml.tmpl`, `server/.env.example`.
-- Desktop: `src-tauri/nsis/installer-hooks.nsh` (new).
-- Docs: API contract, backend core flows/data model/deploy/progress/checklist, frontend Tauri docs, this review record, and `.scratch/review-fixes/`.
+- 后端：`subscribe_service.go`、`node_service.go` 及对应测试、`cmd/node-agent/main.go`。
+- 可观测性：`docker-compose.yml`、`alertmanager.yml.tmpl`、`server/.env.example`。
+- 桌面端：`src-tauri/nsis/installer-hooks.nsh`（新增）。
+- 文档：API 契约、后端 core-flows/data-model/deploy/progress/checklist、前端 Tauri 文档、本评审记录与 `.scratch/review-fixes/`。
 
-## Verification
+## 验证
 
-- `go test ./internal/service/... -count=1` passes.
-- `gofmt -l` is clean for changed Go files.
-- Docker Compose config parsing and remaining repo checks were run where available.
+- `go test ./internal/service/... -count=1` 通过。
+- 变更 Go 文件 `gofmt -l` 无输出。
+- 可用环境下完成 Docker Compose 配置解析与其余仓库检查。

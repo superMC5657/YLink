@@ -1,7 +1,7 @@
 # ✅ NSIS 默认安装位置改为 AppData\Local\Programs
 
 - **需求**：Tauri 2（YLink）安装器的默认安装位置由 `C:\Users\<user>\AppData\Local\YLink` 改为 `C:\Users\<user>\AppData\Local\Programs\YLink`。
-- **状态**：✅ 已完成（2026-02）
+- **状态**：✅ 已完成（2026-08）
 - **影响面**：仅 NSIS 安装器（`bundle.targets = ["nsis"]`），`installMode: "currentUser"` 分支的**全新安装**默认路径。
 
 ## 背景与约束

@@ -38,4 +38,4 @@ Alertmanager entrypoint 用 AWK 逐字替换模板，并按 YAML 单引号规则
 
 - `go test ./internal/service/... -count=1` 通过。
 - `gofmt -l` 无输出。
-- 文档已同步: `docs/api/README.md`、`docs/backend/*.md`、`docs/frontend/desktop-tauri.md`、`docs/reviews/{,zh-cn/}review-0.9.0.md`。
+- 文档已同步: `docs/api/README.md`、`docs/backend/*.md`、`docs/frontend/desktop-tauri.md`、`docs/reviews/review-0.9.0.md`(2026-09-03 文档重整后 reviews 单语化为中文,原英文版见 git 历史)。

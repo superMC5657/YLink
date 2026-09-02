@@ -1,20 +1,22 @@
-# CD:Tauri Windows 打包 → 签名 → 发布到公开产物仓库（供公网下载 + 更新）
+# CD:Tauri Windows 打包 → 签名 → 发布到公开产物仓库(供公网下载 + 更新)
 #
-# 方案(2026-08-12 确认):
-#   - 代码仓库 private(不开源),产物发布到公开产物仓库,保证匿名下载与 gh-proxy 加速可行
+# 方案:
+#   - 代码仓库为 private(不开源),产物发布到独立的公开产物仓库
+#     (见下方 env 块的 RELEASES_REPO),保证匿名下载与 gh-proxy 加速可行
 #   - latest.json 的资产 url 统一加 gh-proxy.com 前缀加速国内更新;updater endpoints 见
-#     src-tauri/tauri.conf.json(gh-proxy 优先,直连兑底)
-#   - 目前只要求 Windows 打包(2026-08-12 收窄):仅 windows-latest → NSIS 安装包;
+#     src-tauri/tauri.conf.json(gh-proxy 优先,直连兜底)
+#   - 目前只要求 Windows 打包:仅 windows-latest → NSIS 安装包;
 #     如需 macOS/Linux,再往 build job 恢复平台矩阵(见该 job 注释)
+#   - 前端/类型检查等 CI 质量门在 ci.yml,与本流水线并行触发
 #
 # 触发:push tag v* 或手动 workflow_dispatch
-# 需要配置的 repository secrets:
+# 需要配置的 repository secrets(在本仓库配置):
 #   TAURI_SIGNING_PRIVATE_KEY = 私钥(tauri signer sign 支持,base64 字符串)。
-#     注意:本项目密钥**有密码**(见 .env.production 的 TAURI_SIGNING_PRIVATE_KEY_PASSWORD),
-#     CI 必须同时配置 TAURI_SIGNING_PRIVATE_KEY_PASSWORD,否则 tauri build 无法解密私钥签名。
-#     .env.production 是本机文件(已 gitignore),CI 读不到,需把 key 与 password 配到 GitHub secrets。
-#   RELEASES_PAT = 对公开产物仓库 superMC5657/ylink-releases 有 contents:write 权限的 PAT
-#     (如 fine-grained token,仅授给该仓库的 Contents: Read/Write)
+#     注意:若密钥设置了密码,必须同时配置 TAURI_SIGNING_PRIVATE_KEY_PASSWORD,
+#     否则 tauri build 无法解密私钥签名。密钥与密码通常只存本机(如项目根 .env,
+#     已 gitignore),CI 读不到,需配到 GitHub secrets。
+#   RELEASES_PAT = 对 env 块 RELEASES_REPO 指定的产物仓库有 contents:write
+#     权限的 PAT(如 fine-grained token,仅授给该仓库的 Contents: Read/Write)
 name: Release Tauri
 
 on:
@@ -30,6 +32,13 @@ on:
 permissions:
   contents: read
 
+# 项目特定配置:拷贝本工作流到其他应用时,只需修改这一块
+# (配合 scripts/bump-version.mjs 与 scripts/build-latest-json.mjs 的 --name,
+#  两个脚本本身已与项目解耦)
+env:
+  APP_NAME: YLink
+  RELEASES_REPO: superMC5657/ylink-release
+
 jobs:
   # 发布守卫:校验 tag 格式,不符合直接失败
   guard:
@@ -39,8 +48,8 @@ jobs:
       - name: Check tag format
         run: |
           TAG="${{ github.event.inputs.tag || github.ref_name }}"
-          if [[ "$TAG" != v* ]]; then
-            echo "::error::发布 tag 必须是 v* 格式(当前: $TAG)。请打 vX.Y.Z 格式的 tag 或手动发布时填写 Release tag 输入"
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::发布 tag 必须符合 SemVer 格式 (如 v0.1.0 或 v1.0.0-rc.1, 当前: $TAG)。请打 vX.Y.Z 格式的 tag 或手动发布时填写 Release tag 输入"
             exit 1
           fi
           echo "tag 检查通过: $TAG"
@@ -133,16 +142,25 @@ jobs:
       # 合并各平台产物生成 latest.json(url 带 gh-proxy.com 加速前缀);
       # file 传 basename(即 release 资产名),产物与 .sig 在 artifacts/<target>/ 下
       # 目前只有 windows-x86_64;恢复多平台时把列表扩回,如 "windows-x86_64 darwin-x86_64 linux-x86_64"
+      # 产物统一命名 latest.json(不带 -cn 后缀)
+      # 注意:GitHub release 资产上传会把文件名中的空格替换为 '.',这里先在本地把
+      # 安装包与 .sig 重命名(空格→'.'),保证 本地文件名 / release 资产名 / latest.json url 三者一致
       - name: Build latest.json
         run: |
           ASSETS='['
           for T in windows-x86_64; do
             FILE=$(ls artifacts/$T/* 2>/dev/null | grep -v '\.sig$' | head -1 || true)
             if [ -z "$FILE" ]; then continue; fi
-            ASSETS="${ASSETS}{\"target\":\"$T\",\"file\":\"$(basename "$FILE")\"},"
+            BASE=$(basename "$FILE")
+            SAFE="${BASE// /.}"
+            if [ "$BASE" != "$SAFE" ]; then
+              mv "artifacts/$T/$BASE" "artifacts/$T/$SAFE"
+              if [ -f "artifacts/$T/$BASE.sig" ]; then mv "artifacts/$T/$BASE.sig" "artifacts/$T/$SAFE.sig"; fi
+            fi
+            ASSETS="${ASSETS}{\"target\":\"$T\",\"file\":\"$SAFE\"},"
           done
           ASSETS="${ASSETS%,}]"
-          node scripts/build-latest-json.mjs --repo superMC5657/ylink-releases --tag "$TAG" --assets "$ASSETS" --dir artifacts --output artifacts/latest.json
+          node scripts/build-latest-json.mjs --name "$APP_NAME" --repo "$RELEASES_REPO" --tag "$TAG" --assets "$ASSETS" --dir artifacts --output artifacts/latest.json
 
       - name: Publish GitHub release (releases repo)
         env:
@@ -150,11 +168,13 @@ jobs:
         run: |
           set -e
           # 同名 tag 已存在则删除重建(产物仓库每次发版全量替换)
-          gh release delete "$TAG" --yes --cleanup-tag --repo superMC5657/ylink-releases || true
+          gh release delete "$TAG" --yes --cleanup-tag --repo "$RELEASES_REPO" || true
           cd artifacts
-          # 产物名不含空格(YLink_<ver>_x64-setup.exe 等),可直接展开
-          gh release create "$TAG" $(find . -type f -printf '%P ') \
-            --repo superMC5657/ylink-releases \
-            --title "YLink $TAG" \
-            --notes "YLink $TAG 安装包与更新元数据。更新走 gh-proxy.com 镜像加速,客户端 updater 自动检查。" \
+          # 文件名可能含空格($APP_NAME_<ver>_x64-setup.exe),用数组展开避免 shell 分词
+          FILES=()
+          while IFS= read -r -d '' f; do FILES+=("$f"); done < <(find . -type f -print0)
+          gh release create "$TAG" "${FILES[@]}" \
+            --repo "$RELEASES_REPO" \
+            --title "$APP_NAME $TAG" \
+            --notes "$APP_NAME $TAG 安装包与更新元数据。更新走 gh-proxy.com 镜像加速,客户端 updater 自动检查。" \
             --latest

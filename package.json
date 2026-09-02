@@ -1,6 +1,6 @@
 {
   "name": "YLink",
-  "version": "0.6.1",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "代理订阅售卖系统 · 用户端(响应式 Web + Tauri 2)",
@@ -18,7 +18,7 @@
     "lint:css": "stylelint \"src/styles/*.css\" \"src/**/*.vue\"",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "bump:version": "node scripts/bump-version.mjs",
+    "bump:version": "node scripts/bump-version.mjs --name YLink",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

@@ -51,7 +51,7 @@ export const createOrder = (body: CreateOrderReq) => http.post<CreateOrderResp>(
 ## 3. 持久化适配（`utils/storage.ts`）
 
 - 接口：`getItem / setItem / removeItem`，内部 Tauri → `@tauri-apps/plugin-store`（`app-settings.json`），浏览器 → `localStorage`。
-- 实现（2026-08-13 迁移完成）：plugin-store 为异步 API、persistedstate 为同步 StorageLike，`storage.ts` 用「同步 facade + 异步落盘」桥接——`initStorage()` 启动预载全部键到内存 Map，getItem/setItem 同步走内存，写操作排队异步落盘（插件 autoSave 兜底）；`storageLike` 供 persistedstate，业务层 `getItem/setItem/removeItem` 统一 JSON 序列化。所有直接 localStorage 调用点（stores/app·auth persist、http.ts token、useLocalNotifications、LoginView apiBase）已统一走 storage 层。
+- 实现：plugin-store 为异步 API、persistedstate 为同步 StorageLike，`storage.ts` 用「同步 facade + 异步落盘」桥接——`initStorage()` 启动预载全部键到内存 Map，getItem/setItem 同步走内存，写操作排队异步落盘（插件 autoSave 兜底）；`storageLike` 供 persistedstate，业务层 `getItem/setItem/removeItem` 统一 JSON 序列化。所有直接 localStorage 调用点（stores/app·auth persist、http.ts token、useLocalNotifications、LoginView apiBase）已统一走 storage 层。
 - 持久化内容：token 对、主题模式、语言、侧边栏折叠、后端地址、站点配置缓存。
 - 注意：token 不落盘日志、不参与 URL；桌面端如需更高安全可后续换 keyring 存储（接口保持兼容）。
 
@@ -105,11 +105,11 @@ export const createOrder = (body: CreateOrderReq) => http.post<CreateOrderResp>(
 | 5xx / 网络错误 | toast「服务异常，请稍后再试」；关键页（仪表板）显示重试按钮 |
 | 支付/下单类写操作 | 按钮 loading + 防重复提交；创建订单支持幂等键（见契约） |
 
-### 调用方约定（2026-08-30 固化，经全局 25 处双 toast 修复沉淀）
+### 调用方约定
 
 http 层是错误 toast 的**唯一出口**（`http.ts` 各错误分支经 `ToastBridge` 注入的 naive `message` 弹出）：
 
-- 组件/store 的 `catch` **禁止**再手动 `message.error((e as Error).message)` 转发 http 错误——会与 http 层 toast 重复（修复前该模式在全项目累积 25 处，见 progress.md 同日小节）；`catch` 只做三件事：恢复本地状态（关 loading/弹窗）、刷新列表、或把错误继续抛给上层（如 dialog 需感知失败）；
+- 组件/store 的 `catch` **禁止**再手动 `message.error((e as Error).message)` 转发 http 错误——会与 http 层 toast 重复；`catch` 只做三件事：恢复本地状态（关 loading/弹窗）、刷新列表、或把错误继续抛给上层（如 dialog 需感知失败）；
 - 确需自定义提示（如表单内联展示）时，给该请求传 `silent: true`，由调用方全权负责展示；
 - **本地错误**（非 http 层管辖：剪贴板失败、canvas 渲染失败、前端 JSON 校验、updater 安装失败等）由调用方用 `message.error(t('…'))` 自行提示——用 i18n 文案，不转发异常 message；
 - 守护：`scripts/check-error-toast.mjs`（已串入 `pnpm lint`，本地与 CI 同时覆盖）扫描「转发错误对象 message」反模式，命中即失败；本地错误 i18n toast 不受影响。

@@ -37,12 +37,16 @@
 | `/admin/commission-logs` | 管理后台·佣金日志 | AdminLayout | 管理员 | 管理端侧边栏-管理后台 |
 | `/admin/traffic-import` | 管理后台·流量导入 | AdminLayout | 管理员 | 管理端侧边栏-管理后台 |
 | `/admin/settings` | 管理后台·站点设置 | AdminLayout | 管理员 | 管理端侧边栏-管理后台 |
+| `/admin/reports` | 管理后台·统计报表 | AdminLayout | 管理员 | 管理端侧边栏-管理后台 |
+| `/admin/mail-templates` | 管理后台·邮件模板 | AdminLayout | 管理员 | 管理端侧边栏-管理后台 |
+| `/admin/subscription-templates` | 管理后台·订阅模板 | AdminLayout | 管理员 | 管理端侧边栏-管理后台 |
+| `/admin/version` | 管理后台·版本检查 | AdminLayout | 管理员 | 管理端侧边栏-管理后台 |
 | `/:pathMatch(.*)*` | 404 | MainLayout | — | — |
 
 守卫规则：
 - `meta.guest` 页面：已登录访问 → 管理员重定向 `/portal`，普通用户重定向 `/dashboard`。
 - 其余页面：未登录跳转 `/login?redirect=<原路径>`，登录成功后回跳；登录提交成功若无 `redirect` 参数，管理员 → `/portal`，普通用户 → `/dashboard`（见 LoginView.vue）。
-- `meta.admin` 页面（`/portal` 与 `/admin/*`，父记录 AdminLayout 挂 `meta.admin`，vue-router 父子 meta 自动合并）：非管理员（role≠1）访问重定向 `/dashboard`（见 [progress.md](progress.md) M8）。
+- `meta.admin` 页面（`/portal` 与 `/admin/*`，父记录 AdminLayout 挂 `meta.admin`，vue-router 父子 meta 自动合并）：非管理员（role≠1）访问重定向 `/dashboard`。
 - Token 过期由 http 层静默刷新；刷新失败才清会话跳登录（见 [data-layer.md](data-layer.md)）。
 
 ## 2. 布局
@@ -119,7 +123,7 @@
 ### 3.2 注册 `/register` / 找回 `/forgot`
 
 - 注册字段：邮箱、邮箱验证码（60s 倒计时按钮）、密码、确认密码、邀请码（选填，URL `?code=` 自动填充）。
-- 表单样式：与登录页一致——`n-form` 关闭 feedback 占位（`:show-feedback="false"`），`.n-form-item` 纵向间距收为 4px；注册按钮带 `mt-9`（36px），对齐登录页「忘记密码」行撑出的按钮上方净空（≈38px）（2026-08-30 对齐）。
+- 表单样式：与登录页一致——`n-form` 关闭 feedback 占位（`:show-feedback="false"`），`.n-form-item` 纵向间距收为 4px；注册按钮带 `mt-9`（36px），对齐登录页「忘记密码」行撑出的按钮上方净空（≈38px）。
 - 找回字段：邮箱、验证码、新密码。
 - 数据：`POST /captcha/email`、`POST /auth/register`、`POST /auth/forgot`。
 - 校验：邮箱格式、密码 ≥8 位且含字母数字、两次一致；错误内联显示。
@@ -220,7 +224,7 @@ DashboardPage
 
 - 布局：独立 `AdminLayout`（§2.4），侧边栏/移动抽屉只含 18 项管理菜单；管理员经门户分流页 `/portal`（§2.5）或用户端底部按钮/顶栏下拉进入；`meta.admin` 挂 AdminLayout 父记录。
 
-M8 核心 6 模块：
+核心 6 模块：
 
 - 总览 `/admin/overview`：7 项运营统计卡（用户/代理/订单/收入/在售套餐，含全体用户余额）+ 快捷操作（按运营频率分组两组共 8 入口：日常运营=用户/订单/工单/代理审批，运营与配置=公告/优惠券/流量/节点）。
 - 用户 `/admin/users`：搜索/分页、封禁/角色调整、调余额（均写审计）；多选批量操作、CSV 导出、发邮件、重置订阅密钥（F05）。
@@ -229,7 +233,7 @@ M8 核心 6 模块：
 - 订单 `/admin/orders`：状态筛选/分页、退款（余额退回+佣金回滚）、关闭待支付订单；佣金金额列与周期/支付方式文案本地化。
 - 工单 `/admin/tickets`：列表/详情、客服回复、关闭；提现工单确认打款/拒绝退回（F02）。
 
-M9 二期 7 模块（2026-08-11）：
+二期 7 模块：
 
 - 优惠券 `/admin/coupons`：列表/新建/编辑/删除（固定金额/百分比、面值/最低消费/限用/适用周期/套餐/生效时间/启停），一键公告（生成公告草稿，优惠码反引号包裹）。
 - 公告 `/admin/notices`：列表/发布/编辑/删除（Markdown 正文、展示开关、排序弹窗 F15）。
@@ -239,7 +243,7 @@ M9 二期 7 模块（2026-08-11）：
 - 流量管理 `/admin/traffic-import`：三标签——导入（模式 B 手工导入）/重置（清零用量/重新给量，F16）/重置记录。
 - 站点设置 `/admin/settings`：按 key（site/payment/invite/agent/order/templates/telegram）编辑配置 JSON，保存后缓存失效。
 
-缺口补齐新增 5 模块（2026-08-28 ~ 08-29，F04/F08/F11/F10/F20）：
+缺口补齐新增 5 模块（F04/F08/F11/F10/F20）：
 
 - 统计报表 `/admin/reports`：近 7/30/90 天 ECharts 五图（营收退款四系列趋势/注册趋势/套餐分布/用户与节点流量 Top10）。
 - 审计日志 `/admin/audit-logs`：操作人/动作/目标/日期筛选 + 分页 + 明细弹窗，动作与目标可读化。

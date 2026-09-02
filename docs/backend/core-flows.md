@@ -95,7 +95,7 @@ sequenceDiagram
 
 - 佣金比例：默认取 settings `invite_commission_rate`（如 40%）；代理商（role=2）取 `agent_commission_rate`，可不同。
 - 循环佣金：被邀请人每次付费（含续费）都产生佣金，截图中「40%（循环）」即此语义。
-- **余额支付不产生佣金（2026-08-13 需求变更）**：仅在线支付渠道（epay 等）支付成功后写佣金；`grantCommission` 对 `pay_method = balance` 的订单直接跳过。历史已产生的余额支付佣金不受影响。
+- **余额支付不产生佣金**：仅在线支付渠道（epay 等）支付成功后写佣金；`grantCommission` 对 `pay_method = balance` 的订单直接跳过。历史已产生的余额支付佣金不受影响。
 
 ## 5. 代理商申请
 
@@ -124,10 +124,10 @@ sequenceDiagram
 
 ## 7. 工单流转
 
-- 用户创建（status=0 待回复）→ 客服回复（status=1 已回复，last_reply_at 更新）→ 用户再回复（回到 0）→ 任一方关闭（status=2；**「只允许重开一次」已实现（2026-08-12）**：关闭后用户可 `POST /tickets/{id}/reopen` 重开，状态回 0 且 `reopen_count+1`，整个工单生命周期最多一次，已重开返回 14002）。
+- 用户创建（status=0 待回复）→ 客服回复（status=1 已回复，last_reply_at 更新）→ 用户再回复（回到 0）→ 任一方关闭（status=2；**「只允许重开一次」**：关闭后用户可 `POST /tickets/{id}/reopen` 重开，状态回 0 且 `reopen_count+1`，整个工单生命周期最多一次，已重开返回 14002）。
 - 用户侧轮询发现 status 变为「已回复」时触发本地通知（桌面端）/ 红点。
 
-## 8. 流量数据来源（两种模式；B 一期已实现，A 2026-08-22 二期实现）
+## 8. 流量数据来源（两种模式均已实现）
 
 - **模式 A（节点上报，已实现）**：节点 agent 以 `X-Node-Key`（每节点独立密钥，`servers.node_key`）调用两组接口：
   - `GET /node/users` 拉取本节点分组下有效订阅用户（uuid/u/d/transfer_enable/expired_at），据此配置 inbound 每用户凭证并做本地掐断；

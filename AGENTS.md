@@ -12,7 +12,7 @@ Five canonical roles mapped to label strings: `needs-triage`, `needs-info`, `rea
 
 ### Domain docs
 
-Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root. 本仓暂未创建这两者，按需惰性生成（缺失时的处理约定见 `docs/agents/domain.md`）。
 
 ## Notes
 

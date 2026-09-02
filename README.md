@@ -1,13 +1,13 @@
 # YLink · 代理订阅售卖系统
 
-> 一套仿 YLink 面板风格的代理订阅售卖系统，包含 **用户端应用**（响应式 Web + Tauri 2 桌面端）与 **Go/Gin 服务端**，管理后台随主 SPA 实现 18 个管理页面。
+> 一套仿 Xboard 面板风格的代理订阅售卖系统，包含 **用户端应用**（响应式 Web + Tauri 2 桌面端）与 **Go/Gin 服务端**，管理后台随主 SPA 实现 18 个管理页面。
 
 ## 系统组成
 
 | 端 | 形态 | 技术栈 |
 |---|---|---|
 | 用户端 | 响应式 Web（桌面/平板/手机浏览器）+ Tauri 2 桌面应用（正式打包仅 Windows，见 desktop-tauri.md §7） | Vue 3.5 + TS + Vite 6 + Naive UI + UnoCSS + Pinia |
-| 服务端 | REST API + 订阅下发 + 支付回调 + 定时任务 | Go 1.26 + Gin + GORM + PostgreSQL 16 + Redis 7 |
+| 服务端 | REST API + 订阅下发 + 支付回调 + 定时任务 | Go 1.26.1 + Gin + GORM + PostgreSQL 16 + Redis 7 |
 | 管理端 | 运营后台（同仓 SPA，18 个管理页面） | Vue 3 SPA（同仓库） |
 
 ## 功能范围
@@ -47,7 +47,7 @@ make run                     # API 服务（:8081）
 
 ```bash
 pnpm tauri:dev       # 开发联动
-pnpm tauri:build     # Windows 打包（nsis，含签名；2026-08-12 起仅 Windows）
+pnpm tauri:build     # Windows 打包（nsis，含签名）
 ```
 
 ## CI / CD
@@ -79,11 +79,11 @@ YLink/
 | [docs/api/README.md](docs/api/README.md) | 接口契约：通用约定、错误码、全量端点（前后端唯一事实来源） |
 | [docs/frontend/progress.md](docs/frontend/progress.md) | 前端当前状态（能力清单/未完成/前置条件） |
 | [docs/backend/progress.md](docs/backend/progress.md) | 后端当前状态（能力清单/未完成/前置条件） |
-| [docs/reviews/](docs/reviews/) | 代码评审记录（review-0.2.0 ~ 0.9.0，中文，冻结快照） |
+| [docs/reviews/](docs/reviews/) | 代码评审记录（review-round-01 起，按评审批次冻结的历史快照） |
 
 ## 环境要求
 
 - Node >= 20、pnpm（lockfileVersion 9.0）
 - Rust >= 1.77.2（`src-tauri/Cargo.toml` rust-version）
-- Go 1.26（`server/go.mod`）
+- Go 1.26.1（`server/go.mod`）
 - PostgreSQL 16、Redis 7

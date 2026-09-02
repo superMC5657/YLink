@@ -266,7 +266,7 @@
 
 `DELETE /user/sessions/{jti}` — 踢下线指定会话：删除 refresh 白名单并写入踢下线标记，该会话 access **立即失效**，其余会话不受影响；当前会话不可自行踢除（40000），会话不存在返回 40400。
 
-### 5.8 Telegram 绑定（F12，2026-08-29）
+### 5.8 Telegram 绑定（F12）
 
 `POST /user/telegram/bind-code` — 获取绑定验证码：返回 `{ "code": "483902", "bot_username": "ylink_bot", "ttl_minutes": 10 }`。用户在 10 分钟内向 bot 发送 `/bind <code>`（经 Telegram webhook，见 §19）完成绑定；60s 重发间隔（42900）、每日 20 次上限（42900）；站点未启用（settings `telegram.enabled=false` 或 `bot_token` 为空）返回 40000。
 
@@ -614,9 +614,9 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 
 ## 16. 管理端 API 附录（`/api/v1/admin`，role=admin）
 
-> 2026-08-28（F22）：路径段 `admin` 可经 `security.admin_path`（config.yaml / `APP_SECURITY_ADMIN_PATH`）定制，前端以 `VITE_ADMIN_PATH` 同步；默认 `admin` 不变。
+> （F22）路径段 `admin` 可经 `security.admin_path`（config.yaml / `APP_SECURITY_ADMIN_PATH`）定制，前端以 `VITE_ADMIN_PATH` 同步；默认 `admin` 不变。
 
-用户端 App 不调用；供管理后台使用（前端 18 个管理页面全部实现：M8 核心 6 + M9 二期 7 + 缺口补齐新增 5（统计报表/审计日志/邮件模板/订阅模板/版本检查），清单见 docs/frontend/pages.md §3.14）。响应走统一信封。
+用户端 App 不调用；供管理后台使用（前端 18 个管理页面全部实现，清单见 docs/frontend/pages.md §3.14）。响应走统一信封。
 
 | 模块 | 端点 |
 |---|---|
@@ -639,18 +639,18 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 | 流量 | `POST /admin/traffic/import`（一期模式 B 手工导入）、`POST /admin/traffic/reset`（F16 按用户重置流量）、`GET /admin/traffic/resets`（F16 重置记录分页） |
 | 配置 | `GET/PUT /admin/settings` |
 
-### 16.1 管理端响应字段约定（2026-08-10 细化）
+### 16.1 管理端响应字段约定
 
 - `GET /admin/plans` 返回 `{list: AdminPlanView[]}`：价格字段（`month_price`/`quarter_price`/`half_year_price`/`year_price`/`onetime_price`）**单位为元**（`null` 表示未开放该周期），并展开 `group_ids: number[]`、`is_show`、`sort`、`traffic_gb`、`speed_limit`、`device_limit`。请求体 `AdminPlanReq` 同字段，价格传元。
 - `GET /admin/servers` 返回 `{list: AdminServerView[]}`：展开用户端隐藏的 `group_id`/`host`/`port`/`config`/`is_show`/`sort`，`tags: string[]`，并含 `node_key`（节点上报密钥，见 §17）。请求体 `AdminServerReq` 中 `type ∈ {shadowsocks,vmess,vless,trojan,hysteria2,tuic}`、`status ∈ {1=正常,2=拥挤,3=维护}`、`config` 为协议私有参数 JSON 字符串（配发每用户 inbound 后加 `"per_user_credentials": true`）；新建节点服务端自动生成 `node_key`（请求体不传）。
 - `GET /admin/users` 分页返回 `{list,total,page,page_size}`，`balance`/`commission_balance` 单位为元；`PUT /admin/users/{id}` 请求体 `{role?, banned?}`（`role ∈ {0,1,2}`）；`POST /admin/users/{id}/balance` 请求体 `{amount(元，可正可负), remark?}`。
-- `GET /admin/users/export`（2026-08-28 F05）：CSV 流式导出（与列表同一 `keyword` 筛选，UTF-8 BOM，每批 500 分批写防内存峰值）。列：`id,email,balance,commission_balance,plan,expired_at,transfer_bytes,u_bytes,d_bytes,created_at,inviter_email`（金额元；流量字节；时间 RFC3339）。
-- `POST /admin/users/batch`（2026-08-28 F05）：请求体 `{action ∈ {ban,unban,adjust_balance}, ids(1..500), amount?(元, adjust_balance 必填), remark?}`；逐个执行（复用单用户状态机与负值保护），返回 `{success, failed: [{id, reason}]}`；ban/unban 会 bump 会话版本号踢下线。
-- `POST /admin/users/mail`（2026-08-28 F05）：请求体 `{ids(1..100), subject(≤200), body(≤10000)}`；SMTP 同步逐发，结果写 `mail_logs`（失败原因留痕），整体写审计（`send_mail`）；返回 `{sent, failed: [{id, reason}]}`。
-- `POST /admin/users/{id}/sub-token/reset`（2026-08-28 F05）：管理端重置订阅 token（无需用户密码），旧订阅链接立即失效（清 `sub:userinfo`/`sub:rl` 缓存），返回 `{subscribe_url}`，写审计（`reset_sub_token`）。
-- `GET /admin/audit-logs`（2026-08-28 F08）：审计日志只读查询。Query：`admin_id?/action?/target?/from?/to?`（日期 YYYY-MM-DD，含 to 当天）+ 分页；返回 `{list, total, page, page_size, actions}`，条目含 `admin_email`（联表操作人）与 `detail`（jsonb 原始字符串）；`actions` 为去重动作列表供筛选。
-  - **2026-08-28 可读化增强**：条目新增 `target_kind`（`user`/`users`/`server`/`knowledge_category`/`order`/`mail_template`，按 action 分派；未收录动作或空 target 为 `null`）与 `target_display`（target 反查的可读名称：用户邮箱 / 节点名 / 分类名；订单号与邮件模板名原样透出；多用户列表取前 3 个邮箱，超出显示 `…(+N)`）。**用户类目标一律以邮箱表示**；用户已被删除（users 表查不到）时用 detail 里留痕的 `email` 兜底（`ban_user`/`update_role`/`adjust_balance`/`reset_sub_token` 写入时留痕）。反查与兜底均失败时字段为 `null`，由前端回退显示原始 target；展示增强失败不影响主查询。筛选参数仍使用原始 `action`/`target` 值。
-  - **批量动作 target 为摘要（2026-08-28 安全修复）**：`send_mail`/`traffic_reset` 等 ID 列表类批量动作的 target 写入 `batch:<count>` 摘要（target 列 VARCHAR(128)，完整 ID 列表超长会导致审计插入失败、操作成功但审计静默丢失），完整 ID 列表留痕在 detail JSON（`ids`/`user_ids`）；可读化对 `batch:` 前缀直接透出摘要不再反查实体。历史数据的 ID 列表格式（`"7"`/`"[7 8 9]"`/`"7,8,9"`）仍兼容解析。
+- `GET /admin/users/export`（F05）：CSV 流式导出（与列表同一 `keyword` 筛选，UTF-8 BOM，每批 500 分批写防内存峰值）。列：`id,email,balance,commission_balance,plan,expired_at,transfer_bytes,u_bytes,d_bytes,created_at,inviter_email`（金额元；流量字节；时间 RFC3339）。
+- `POST /admin/users/batch`（F05）：请求体 `{action ∈ {ban,unban,adjust_balance}, ids(1..500), amount?(元, adjust_balance 必填), remark?}`；逐个执行（复用单用户状态机与负值保护），返回 `{success, failed: [{id, reason}]}`；ban/unban 会 bump 会话版本号踢下线。
+- `POST /admin/users/mail`（F05）：请求体 `{ids(1..100), subject(≤200), body(≤10000)}`；SMTP 同步逐发，结果写 `mail_logs`（失败原因留痕），整体写审计（`send_mail`）；返回 `{sent, failed: [{id, reason}]}`。
+- `POST /admin/users/{id}/sub-token/reset`（F05）：管理端重置订阅 token（无需用户密码），旧订阅链接立即失效（清 `sub:userinfo`/`sub:rl` 缓存），返回 `{subscribe_url}`，写审计（`reset_sub_token`）。
+- `GET /admin/audit-logs`（F08）：审计日志只读查询。Query：`admin_id?/action?/target?/from?/to?`（日期 YYYY-MM-DD，含 to 当天）+ 分页；返回 `{list, total, page, page_size, actions}`，条目含 `admin_email`（联表操作人）与 `detail`（jsonb 原始字符串）；`actions` 为去重动作列表供筛选。
+  - **可读化增强**：条目新增 `target_kind`（`user`/`users`/`server`/`knowledge_category`/`order`/`mail_template`，按 action 分派；未收录动作或空 target 为 `null`）与 `target_display`（target 反查的可读名称：用户邮箱 / 节点名 / 分类名；订单号与邮件模板名原样透出；多用户列表取前 3 个邮箱，超出显示 `…(+N)`）。**用户类目标一律以邮箱表示**；用户已被删除（users 表查不到）时用 detail 里留痕的 `email` 兜底（`ban_user`/`update_role`/`adjust_balance`/`reset_sub_token` 写入时留痕）。反查与兜底均失败时字段为 `null`，由前端回退显示原始 target；展示增强失败不影响主查询。筛选参数仍使用原始 `action`/`target` 值。
+  - **批量动作 target 为摘要（安全修复）**：`send_mail`/`traffic_reset` 等 ID 列表类批量动作的 target 写入 `batch:<count>` 摘要（target 列 VARCHAR(128)，完整 ID 列表超长会导致审计插入失败、操作成功但审计静默丢失），完整 ID 列表留痕在 detail JSON（`ids`/`user_ids`）；可读化对 `batch:` 前缀直接透出摘要不再反查实体。历史数据的 ID 列表格式（`"7"`/`"[7 8 9]"`/`"7,8,9"`）仍兼容解析。
 - `GET /admin/orders` 分页返回 `{list,total,page,page_size}`，`status ∈ {0=待支付,1=已完成,2=已取消,3=已退款}`，金额单位为元；列表项含 `commission_amount`（该订单产生的佣金，元；无佣金记录为 `null`，余额支付订单恒为 `null`）。
 - `GET /admin/coupons` 返回 `{list: AdminCouponView[]}`：展开 `type ∈ {1=固定金额,2=百分比}`、`value`（type=1 为元、type=2 为百分比数值，如 10 表示 10%）、`min_spend` 单位为元、`limit_per_user`/`total_limit`/`used_count`、`valid_periods: string[]`（仅限可用周期）、`plan_ids: number[]`（仅限可用套餐，空=全部）、`started_at`/`ended_at`（null=不限）、`is_enable`、`created_at`。请求体 `AdminCouponReq` 同字段（`valid_periods`/`plan_ids` 传数组）。
 - `GET /admin/notices` 返回 `{list: AdminNoticeItem[]}`（含隐藏，倒序）：`id/title/content/is_show/sort/created_at`。请求体 `AdminNoticeReq`：`title/content` 必填、`is_show?`、`sort?`。
@@ -658,38 +658,36 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 - `GET /admin/agent/applies` 分页返回 `{list,total,page,page_size}`，`status ∈ {0=待审核,1=通过,2=拒绝}`（`-1` 或缺省=全部）；列表项含 `user_email`/`valid_invites`。`POST /admin/agent/applies/{id}/approve|reject` 请求体 `{remark?}`，仅待审核可审（否则 409）。
 - `GET /admin/commission-logs` 分页返回 `{list,total,page,page_size}`，`status ∈ {0=确认中,1=已发放,2=已撤销}`；列表项含 `invite_email`/`from_email`/`order_no`/`order_amount`/`rate`/`amount`（元）/`confirmed_at`/`created_at`。
 - `POST /admin/traffic/import` 请求体 `{items: [{user_id, date(YYYY-MM-DD), u, d}]}`（至少 1 项，流量单位为字节），成功后写审计。
-- `POST /admin/servers/batch`（2026-08-28 F09）：请求体 `{action ∈ {delete,update}, ids(1..500), status?(1|2|3), is_show?, group_id?, rate?}`；`update` 至少提供一项公共字段（`rate` 须为正数）。整批单事务执行、逐节点汇总，返回 `{success, failed: [{id, reason}]}`（不存在/更新失败记录原因不中断）；整体写审计（`batch_server_delete`/`batch_server_update`）。
-- `POST /admin/servers/{id}/copy`（2026-08-28 F09）：复制节点，全字段相同、名称追加 `-copy`，**重新生成 `node_key`**（不与源节点共享）；返回新节点 `AdminServerView`，写审计（`copy_server`）。
-- `POST /admin/servers/sort`（2026-08-28 F09）：请求体 `{items: [{id, sort}]}`（1..500 项），单事务按传入 sort 值更新，写审计（`sort_server`）；前端按展示顺序生成 0..n。
-- `POST /admin/traffic/reset`（2026-08-28 F16）：请求体 `{user_ids(1..500), mode ∈ {clear_usage, reset_quota}}`。逐用户单事务：行锁读用户 → `clear_usage` 清零 `u/d`（不动 `transfer_enable`），`reset_quota` 另将 `transfer_enable` 重置为当前套餐流量额度（无生效套餐记失败）→ 写 `traffic_reset_logs`。**保留 `node_user_stats` 快照**：下次上报按既有累计值差分，仅重置后新流量计入（清空快照会导致全量累计重复计费）。返回 `{success, failed: [{id, reason}]}`；写审计（`traffic_reset`）。
-- `GET /admin/traffic/resets`（2026-08-28 F16）：重置记录分页（Query `user_id?` + 分页），条目含 `user_email`（联表）、`mode`、`before_u/before_d/before_transfer_enable/after_transfer_enable`（字节）、`created_at`。
-- `GET /admin/stat/orders?days=`（2026-08-28 F04；2026-08-28 增余额两字段）：订单日趋势，`days ∈ 1..365`（默认 30）。返回 `{days, items: [{date, order_count, completed_count, revenue, refunded, balance_used, balance_refunded}]}`；`order_count` 按创建日、`completed_count`/`revenue`/`balance_used` 按 `paid_at`（已完成订单）、`refunded`/`balance_refunded` 按 `updated_at` 近似（已退款订单）；`revenue`/`refunded` 为现金部分（`pay_amount`），`balance_used`/`balance_refunded` 为余额部分（`balance_used`，退款时余额原路退回），二者相加为订单实付总额；金额单位元；逐日补零便于绘图。
-- `GET /admin/stat/users?days=`（2026-08-28 F04）：返回 `{days, register_trend: [{date, count}], plan_distribution: [{plan_id, plan_name, users}]}`；注册按 `created_at` 逐日补零，套餐分布为当前生效订阅（`plan_id` 非空）按套餐聚合、按人数降序。
-- `GET /admin/stat/traffic?days=`（2026-08-28 F04）：返回 `{days, user_top: [{user_id, email, total_bytes}], node_top: [{server_id, name, bytes}]}` 各 Top10；`user_top` 按 `traffic_logs` 日明细 `u+d` 合计（受 `days` 限定），`node_top` 按 `node_user_stats` 上报累计值合计（未乘倍率，节点全周期，无时间维度）。
+- `POST /admin/servers/batch`（F09）：请求体 `{action ∈ {delete,update}, ids(1..500), status?(1|2|3), is_show?, group_id?, rate?}`；`update` 至少提供一项公共字段（`rate` 须为正数）。整批单事务执行、逐节点汇总，返回 `{success, failed: [{id, reason}]}`（不存在/更新失败记录原因不中断）；整体写审计（`batch_server_delete`/`batch_server_update`）。
+- `POST /admin/servers/{id}/copy`（F09）：复制节点，全字段相同、名称追加 `-copy`，**重新生成 `node_key`**（不与源节点共享）；返回新节点 `AdminServerView`，写审计（`copy_server`）。
+- `POST /admin/servers/sort`（F09）：请求体 `{items: [{id, sort}]}`（1..500 项），单事务按传入 sort 值更新，写审计（`sort_server`）；前端按展示顺序生成 0..n。
+- `POST /admin/traffic/reset`（F16）：请求体 `{user_ids(1..500), mode ∈ {clear_usage, reset_quota}}`。逐用户单事务：行锁读用户 → `clear_usage` 清零 `u/d`（不动 `transfer_enable`），`reset_quota` 另将 `transfer_enable` 重置为当前套餐流量额度（无生效套餐记失败）→ 写 `traffic_reset_logs`。**保留 `node_user_stats` 快照**：下次上报按既有累计值差分，仅重置后新流量计入（清空快照会导致全量累计重复计费）。返回 `{success, failed: [{id, reason}]}`；写审计（`traffic_reset`）。
+- `GET /admin/traffic/resets`（F16）：重置记录分页（Query `user_id?` + 分页），条目含 `user_email`（联表）、`mode`、`before_u/before_d/before_transfer_enable/after_transfer_enable`（字节）、`created_at`。
+- `GET /admin/stat/orders?days=`（F04）：订单日趋势，`days ∈ 1..365`（默认 30）。返回 `{days, items: [{date, order_count, completed_count, revenue, refunded, balance_used, balance_refunded}]}`；`order_count` 按创建日、`completed_count`/`revenue`/`balance_used` 按 `paid_at`（已完成订单）、`refunded`/`balance_refunded` 按 `updated_at` 近似（已退款订单）；`revenue`/`refunded` 为现金部分（`pay_amount`），`balance_used`/`balance_refunded` 为余额部分（`balance_used`，退款时余额原路退回），二者相加为订单实付总额；金额单位元；逐日补零便于绘图。
+- `GET /admin/stat/users?days=`（F04）：返回 `{days, register_trend: [{date, count}], plan_distribution: [{plan_id, plan_name, users}]}`；注册按 `created_at` 逐日补零，套餐分布为当前生效订阅（`plan_id` 非空）按套餐聚合、按人数降序。
+- `GET /admin/stat/traffic?days=`（F04）：返回 `{days, user_top: [{user_id, email, total_bytes}], node_top: [{server_id, name, bytes}]}` 各 Top10；`user_top` 按 `traffic_logs` 日明细 `u+d` 合计（受 `days` 限定），`node_top` 按 `node_user_stats` 上报累计值合计（未乘倍率，节点全周期，无时间维度）。
 - `GET /admin/settings` 返回 `{list: [{key, value}]}`，`value` 为配置项 JSON 字符串（`site`/`payment`/`invite`/`agent`/`order`）；`PUT /admin/settings` 请求体 `{key, value}`（单 key 保存，写后失效配置缓存）。`site` 支持品牌键：`primary_color`（Hex 主色，空=默认）与 `background_url`（背景图 URL，空=默认），经 `GET /config` 下发（F19）。
-- `POST /admin/tickets/{id}/withdraw/pay` / `withdraw/reject`（2026-08-28 F02）：提现工单（type=1）审核。pay=确认打款（线下打款由管理员线下执行，系统内将提现流水记为完成并关闭工单）；reject=拒绝并**自动退回**佣金（写 `withdraw_refund` 三态流水）后关闭工单。请求体 `{remark?}` 可选备注（回写工单系统消息与提现单 `review_remark`）。仅处理中的提现单可审（否则 13004），两类操作均写审计（`withdraw_pay`/`withdraw_reject`）。
-- `GET /admin/tickets` 与 `GET /admin/tickets/{id}`（2026-08-28 F02）：列表项与详情含 `type ∈ {0=普通,1=佣金提现}`；详情对提现工单附 `withdraw` 提现单信息（`id/user_id/amount(元)/method/account/status/review_remark/reviewed_at/created_at`）。
-- `POST /admin/notices/sort`、`POST /admin/knowledges/sort`（2026-08-28 F15）：请求体 `{items: [{id, sort}]}`（1..500 项），单事务按传入 sort 值更新，写审计（`sort_notice`/`sort_knowledge`）；用户端公告按 `sort ASC` 展示、知识库分组顺序按分类 `sort`。
-- `GET /admin/knowledge-categories?language=`（2026-08-28 F15）：分类列表（language 空=全部），条目 `{id, language, name, sort, knowledge_count}`。`POST /admin/knowledge-categories` 请求体 `{language, name, sort?}`；`PUT /admin/knowledge-categories/{id}` 请求体 `{name, sort?}`（改名级联同步知识文档展示分类）；`DELETE /admin/knowledge-categories/{id}`（分类下仍有文档拒绝 40000）。知识保存（`AdminKnowledgeReq`）支持 `category_id?` 显式归类，仅传 `category` 时按（language, name）自动归并/建行。
-- `GET /admin/mail-templates`（2026-08-28 F11）：邮件模板列表（内置默认 + 自定义覆盖合并），条目 `{name, subject, body, is_custom, placeholders, remark, updated_at}`；内置模板名：`captcha`（占位符 `{{.site_name}}`/`{{.code}}`）、`expire_remind`（`{{.expire_date}}`）、`traffic_remind`（`{{.percent}}`）。
-- `PUT /admin/mail-templates/{name}`（2026-08-28 F11）：请求体 `{subject, body}`（Go template 语法，保存前校验可解析，非法模板名 40400/语法错误 40000），写审计（`edit_mail_template`）。
-- `DELETE /admin/mail-templates/{name}`（2026-08-28 F11）：删除自定义行恢复内置默认文案，写审计（`reset_mail_template`）。
-- `POST /admin/mail-templates/{name}/test`（2026-08-28 F11）：请求体 `{to_email}`，以示例占位符渲染并走真实 SMTP 发送；发送失败原样返回错误信息，写审计（`test_mail_template`）。自定义模板缺失/渲染失败时发送侧自动回退内置文案。
-- `GET /admin/version`（2026-08-28 F20）：返回 `{version, latest, has_update, notes}`。`version` 为当前后端版本（`app.version`，部署注入，缺省 `dev`）；配置 `update.manifest_url`（config.yaml / `APP_UPDATE_MANIFEST_URL`）时远端拉取 `{version, notes}` JSON（3s 超时、服务端缓存 10min），`has_update` 按语义化版本比较；未配置或拉取失败 `latest`/`has_update` 为 `null`。自动执行升级不立项。
-- `GET /admin/subscription-templates`（2026-08-29 F10）：订阅模板列表（内置生成器模板 + 自定义覆盖合并），条目 `{name, content, is_custom, variables, remark, updated_at}`；`name` 为客户端类型 `clash` / `sing-box` / `v2ray`。`variables` 为可用变量清单：公共 `{{.SiteName}}`/`{{.UserInfo}}`/`{{.NodeCount}}`，clash 专属 `{{.SpeedLimit}}`（限速 B/s，0=不限）与 `{{.NodeBlock}}`（预渲染 proxies 节点块），sing-box 专属 `{{.Outbounds}}`（预渲染 outbounds JSON 数组），v2ray 专属 `{{.Links}}`（换行分隔分享链接，渲染结果整体 base64 下发）。
-- `PUT /admin/subscription-templates/{name}`（2026-08-29 F10）：请求体 `{content}`（Go template 全文档模板），保存前以示例节点/用户数据渲染校验（非法类型 40400 / 语法错误 40000），写审计（`edit_subscription_template`）。
-- `DELETE /admin/subscription-templates/{name}`（2026-08-29 F10）：删除自定义行恢复内置生成器，写审计（`reset_subscription_template`）。
-- `POST /admin/subscription-templates/{name}/preview`（2026-08-29 F10）：按当前模板（自定义或内置）以示例数据渲染，返回 `{name, content}`；v2ray 返回 base64 编码前文本。自定义模板已损坏时按内置模板渲染（与订阅下发回退行为一致）。
-- **订阅下发回退语义（F10 验收要点）**：自定义模板缺失/渲染失败时订阅自动回退内置生成器并记 warn 日志，**不返回 5xx**；默认（未自定义）订阅输出与重构前逐字节一致。
-- `POST /admin/telegram/webhook/setup`（2026-08-29 F12）：注册 Telegram webhook——调 Bot API `setWebhook`（URL=`{App.BaseURL}/api/v1/telegram/webhook`，`secret_token` 取 settings `telegram.webhook_secret`，缺失时自动生成并回写）；返回 `{webhook_url, message}`；`bot_token` 未配置 40000；写审计（`telegram_webhook_setup`）。Telegram 推送配置在 `PUT /admin/settings` 的 `telegram` 键：`{bot_token, bot_username, webhook_secret, enabled}`。
-
----
+- `POST /admin/tickets/{id}/withdraw/pay` / `withdraw/reject`（F02）：提现工单（type=1）审核。pay=确认打款（线下打款由管理员线下执行，系统内将提现流水记为完成并关闭工单）；reject=拒绝并**自动退回**佣金（写 `withdraw_refund` 三态流水）后关闭工单。请求体 `{remark?}` 可选备注（回写工单系统消息与提现单 `review_remark`）。仅处理中的提现单可审（否则 13004），两类操作均写审计（`withdraw_pay`/`withdraw_reject`）。
+- `GET /admin/tickets` 与 `GET /admin/tickets/{id}`（F02）：列表项与详情含 `type ∈ {0=普通,1=佣金提现}`；详情对提现工单附 `withdraw` 提现单信息（`id/user_id/amount(元)/method/account/status/review_remark/reviewed_at/created_at`）。
+- `POST /admin/notices/sort`、`POST /admin/knowledges/sort`（F15）：请求体 `{items: [{id, sort}]}`（1..500 项），单事务按传入 sort 值更新，写审计（`sort_notice`/`sort_knowledge`）；用户端公告按 `sort ASC` 展示、知识库分组顺序按分类 `sort`。
+- `GET /admin/knowledge-categories?language=`（F15）：分类列表（language 空=全部），条目 `{id, language, name, sort, knowledge_count}`。`POST /admin/knowledge-categories` 请求体 `{language, name, sort?}`；`PUT /admin/knowledge-categories/{id}` 请求体 `{name, sort?}`（改名级联同步知识文档展示分类）；`DELETE /admin/knowledge-categories/{id}`（分类下仍有文档拒绝 40000）。知识保存（`AdminKnowledgeReq`）支持 `category_id?` 显式归类，仅传 `category` 时按（language, name）自动归并/建行。
+- `GET /admin/mail-templates`（F11）：邮件模板列表（内置默认 + 自定义覆盖合并），条目 `{name, subject, body, is_custom, placeholders, remark, updated_at}`；内置模板名：`captcha`（占位符 `{{.site_name}}`/`{{.code}}`）、`expire_remind`（`{{.expire_date}}`）、`traffic_remind`（`{{.percent}}`）。
+- `PUT /admin/mail-templates/{name}`（F11）：请求体 `{subject, body}`（Go template 语法，保存前校验可解析，非法模板名 40400/语法错误 40000），写审计（`edit_mail_template`）。
+- `DELETE /admin/mail-templates/{name}`（F11）：删除自定义行恢复内置默认文案，写审计（`reset_mail_template`）。
+- `POST /admin/mail-templates/{name}/test`（F11）：请求体 `{to_email}`，以示例占位符渲染并走真实 SMTP 发送；发送失败原样返回错误信息，写审计（`test_mail_template`）。自定义模板缺失/渲染失败时发送侧自动回退内置文案。
+- `GET /admin/version`（F20）：返回 `{version, latest, has_update, notes}`。`version` 为当前后端版本（`app.version`，部署注入，缺省 `dev`）；配置 `update.manifest_url`（config.yaml / `APP_UPDATE_MANIFEST_URL`）时远端拉取 `{version, notes}` JSON（3s 超时、服务端缓存 10min），`has_update` 按语义化版本比较；未配置或拉取失败 `latest`/`has_update` 为 `null`。自动执行升级不立项。
+- `GET /admin/subscription-templates`（F10）：订阅模板列表（内置生成器模板 + 自定义覆盖合并），条目 `{name, content, is_custom, variables, remark, updated_at}`；`name` 为客户端类型 `clash` / `sing-box` / `v2ray`。`variables` 为可用变量清单：公共 `{{.SiteName}}`/`{{.UserInfo}}`/`{{.NodeCount}}`，clash 专属 `{{.SpeedLimit}}`（限速 B/s，0=不限）与 `{{.NodeBlock}}`（预渲染 proxies 节点块），sing-box 专属 `{{.Outbounds}}`（预渲染 outbounds JSON 数组），v2ray 专属 `{{.Links}}`（换行分隔分享链接，渲染结果整体 base64 下发）。
+- `PUT /admin/subscription-templates/{name}`（F10）：请求体 `{content}`（Go template 全文档模板），保存前以示例节点/用户数据渲染校验（非法类型 40400 / 语法错误 40000），写审计（`edit_subscription_template`）。
+- `DELETE /admin/subscription-templates/{name}`（F10）：删除自定义行恢复内置生成器，写审计（`reset_subscription_template`）。
+- `POST /admin/subscription-templates/{name}/preview`（F10）：按当前模板（自定义或内置）以示例数据渲染，返回 `{name, content}`；v2ray 返回 base64 编码前文本。自定义模板已损坏时按内置模板渲染（与订阅下发回退行为一致）。
+- **订阅下发回退语义（F10 验收要点）**：自定义模板缺失/渲染失败时订阅自动回退内置生成器并记 warn 日志，**不返回 5xx**。
+- `POST /admin/telegram/webhook/setup`（F12）：注册 Telegram webhook——调 Bot API `setWebhook`（URL=`{App.BaseURL}/api/v1/telegram/webhook`，`secret_token` 取 settings `telegram.webhook_secret`，缺失时自动生成并回写）；返回 `{webhook_url, message}`；`bot_token` 未配置 40000；写审计（`telegram_webhook_setup`）。Telegram 推送配置在 `PUT /admin/settings` 的 `telegram` 键：`{bot_token, bot_username, webhook_secret, enabled}`。
 
 ---
 
 ## 17. 节点上报接口（模式 A，`/api/v1/node`，X-Node-Key 鉴权）
 
-供节点端 agent（服务间）调用，2026-08-22 二期新增。请求头 `X-Node-Key: <节点密钥>`（每台节点独立，管理端节点列表查看/重置）；响应走统一信封；无效或缺失密钥 → 40100（HTTP 401）。
+供节点端 agent（服务间）调用。请求头 `X-Node-Key: <节点密钥>`（每台节点独立，管理端节点列表查看/重置）；响应走统一信封；无效或缺失密钥 → 40100（HTTP 401）。
 
 ### 17.1 用户同步
 

@@ -19,20 +19,6 @@
 3. `tauri.conf.json` 的 `bundle.windows.nsis` 增加 `"template": "nsis/installer.nsi"`。
 4. 模板头部保留注释：来源版本、改动点、升级 tauri-cli 时需重新 diff 同步。
 
-## 过程记录
-
-- 从 GitHub（`tauri-cli-v2.11.4` tag，经 gh-proxy 镜像）拉取官方 `installer.nsi` 作基准。
-- 与官方模板逐行 diff 确认：仅头部注释 + 一行路径改动，无其他差异。
-- `pnpm tauri build` 全量打包验证（见下方验证结果），updater 产物（`.exe` + `.sig`）不受影响。
-
-## 验证结果
-
-- `pnpm tauri build` 全量构建成功：`YLink_0.6.0_x64-setup.exe` + updater 签名（`.sig`）正常生成，自定义模板占位符渲染与 makensis 编译通过。
-- 一手实证：临时以 `--config` 覆盖 `bundle.windows.nsis.compression = "none"` 重新打包（solid lzma 会压缩字符串表导致不可搜索），对产物做 UTF-16LE 字节搜索——
-  - 新路径字面量 `Programs\YLink` 命中 1 处，位于 `.onInit` 字符串区（紧邻 `EarlyChecks`，与模板结构吻合），即 `StrCpy $INSTDIR "$LOCALAPPDATA\Programs\YLink"` 的编译产物；
-  - 旧路径字面量 `$LOCALAPPDATA + "\YLink"` 不再作为默认值出现。
-- 验证后已用默认 lzma 压缩重新打包，`bundle/nsis` 下的正式产物与仓库配置一致；临时 config 与探针脚本均已清理。
-
 ## 行为说明（重要）
 
 - **全新安装**：默认装到 `%LOCALAPPDATA%\Programs\YLink`。

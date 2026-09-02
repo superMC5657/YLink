@@ -46,7 +46,7 @@ erDiagram
 | speed_limit | INT NULL | 套餐限速 Mbps（快照） |
 | device_limit | INT NULL | 同时在线设备数（快照） |
 | sub_token | CHAR(36) UNIQUE NOT NULL | 订阅 token（UUID，可重置） |
-| uuid | CHAR(36) UNIQUE NOT NULL | 用户订阅凭证（迁移 0004 新增，2026-08-22）：vmess/vless/tuic 的 uuid、shadowsocks/trojan/hysteria2 的密码，节点上报按此归因 |
+| uuid | CHAR(36) UNIQUE NOT NULL | 用户订阅凭证（迁移 0004 新增）：vmess/vless/tuic 的 uuid、shadowsocks/trojan/hysteria2 的密码，节点上报按此归因 |
 
 索引：`(plan_id, expired_at)`（到期提醒扫描）、`invite_by_id`。
 
@@ -150,7 +150,7 @@ knowledge_categories（迁移 0007 新增，F15）：id、language（`zh-CN/en-U
 
 ### 2.10 tickets（工单）/ ticket_messages（消息）
 
-tickets：id、user_id INDEX、subject、level（0=低 1=中 2=高）、**type（0=普通 1=佣金提现，迁移 0007 新增，F02；level 为优先级语义勿混用）**、status（0=待回复 1=已回复 2=已关闭）、reopen_count（已重开次数，最多一次，2026-08-12 迁移 0003 新增）、last_reply_at、created_at。
+tickets：id、user_id INDEX、subject、level（0=低 1=中 2=高）、**type（0=普通 1=佣金提现，迁移 0007 新增，F02；level 为优先级语义勿混用）**、status（0=待回复 1=已回复 2=已关闭）、reopen_count（已重开次数，最多一次，迁移 0003 新增）、last_reply_at、created_at。
 ticket_messages：id、ticket_id INDEX、sender_type（0=用户 1=客服）、sender_id、message TEXT、created_at。
 
 ### 2.11 traffic_logs（流量日明细）
@@ -164,7 +164,7 @@ ticket_messages：id、ticket_id INDEX、sender_type（0=用户 1=客服）、se
 
 唯一索引 `(user_id, date)`；由节点上报数据（见 core-flows.md 第 8 节）或定时任务结转写入；流量明细页按 `date` 范围查询。模式 A 节点上报走**增量聚合**（`ON CONFLICT DO UPDATE SET u = u + ?`），模式 B 手工导入为**覆盖校准**（同日导入覆盖节点上报值）。
 
-### 2.11.1 node_user_stats（节点上报快照，迁移 0004 新增，2026-08-22）
+### 2.11.1 node_user_stats（节点上报快照，迁移 0004 新增）
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
@@ -181,7 +181,7 @@ ticket_messages：id、ticket_id INDEX、sender_type（0=用户 1=客服）、se
 settings：`key` VARCHAR(64) PK、`value` JSONB（站点名、logo、TG 链接、客服地址、佣金比例、代理条件、支付开关、SMTP 模板等）。
 audit_logs：id、admin_id、action（如 `adjust_balance/refund/ban_user`）、target、detail JSONB、ip、created_at。
 
-### 2.13 mail_logs（邮件发送日志，迁移 0005 新增，2026-08-28）
+### 2.13 mail_logs（邮件发送日志，迁移 0005 新增）
 
 管理端向用户发送邮件的留痕（F05）：
 
@@ -198,7 +198,7 @@ audit_logs：id、admin_id、action（如 `adjust_balance/refund/ban_user`）、
 
 批量操作 / CSV 导出 / 重置订阅密钥（F05 其余子项）不引入新表，审计统一走 `audit_logs`（新增动作 `send_mail`、`reset_sub_token`）。
 
-### 2.14 traffic_reset_logs（流量重置记录，迁移 0006 新增，2026-08-28）
+### 2.14 traffic_reset_logs（流量重置记录，迁移 0006 新增）
 
 管理端按用户重置流量的留痕（F16）：
 
@@ -217,7 +217,7 @@ audit_logs：id、admin_id、action（如 `adjust_balance/refund/ban_user`）、
 
 迁移 0006 同时为 F04 报表聚合补时间索引：`traffic_logs(date)`、`orders(paid_at) WHERE paid_at IS NOT NULL`（部分索引）、`users(created_at)`。
 
-### 2.15 commission_withdraws（佣金提现单，迁移 0007 新增，2026-08-28，F02）
+### 2.15 commission_withdraws（佣金提现单，迁移 0007 新增，F02）
 
 仅代理商工单提现的最小闭环（spec F02）：提交即扣减 `commission_balance`（行锁防双花），管理员手动确认发放（线下打款）或拒绝（自动退回）：
 
@@ -236,7 +236,7 @@ audit_logs：id、admin_id、action（如 `adjust_balance/refund/ban_user`）、
 
 资金链路：提交（扣 `commission_balance` + 写 `commission_logs` 提现流水 status=0）→ 确认（流水 status=1，工单关闭）/ 拒绝（退回佣金 + 流水 status=2，工单关闭）。两类审核均写 `audit_logs`（`withdraw_pay`/`withdraw_reject`）；提现单与工单同事务行锁防并发双处理。
 
-### 2.16 mail_templates（自定义邮件模板，迁移 0007 新增，2026-08-28，F11）
+### 2.16 mail_templates（自定义邮件模板，迁移 0007 新增，F11）
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
@@ -247,7 +247,7 @@ audit_logs：id、admin_id、action（如 `adjust_balance/refund/ban_user`）、
 
 无自定义行（或自定义模板解析失败）时发送侧自动回退内置文案；管理端保存前校验模板可解析（防止语法错误导致发送失败），支持恢复默认与真实 SMTP 测试发送。
 
-### 2.17 subscription_templates（自定义订阅模板，迁移 0008 新增，2026-08-29，F10）
+### 2.17 subscription_templates（自定义订阅模板，迁移 0008 新增，F10）
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
@@ -255,7 +255,7 @@ audit_logs：id、admin_id、action（如 `adjust_balance/refund/ban_user`）、
 | content | TEXT | Go text/template 全文档模板；节点列表经预渲染块变量注入（clash `{{.NodeBlock}}` / sing-box `{{.Outbounds}}` / v2ray `{{.Links}}`），公共变量 `{{.SiteName}}`/`{{.UserInfo}}`/`{{.NodeCount}}` |
 | updated_at | TIMESTAMP(3) | |
 
-无自定义行（或自定义模板渲染失败）时订阅下发自动回退内置生成器（不 5xx，记 warn）；管理端保存前以示例数据渲染校验，支持预览与恢复内置。默认输出与内置生成器逐字节一致。
+无自定义行（或自定义模板渲染失败）时订阅下发自动回退内置生成器（不 5xx，记 warn）；管理端保存前以示例数据渲染校验，支持预览与恢复内置。
 
 ## 3. Redis Key 设计
 

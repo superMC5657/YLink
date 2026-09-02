@@ -1,4 +1,4 @@
-# 管理后台总览 · 全体用户余额统计
+# ✅ 管理后台总览 · 全体用户余额统计
 
 > 日期: 2026-08-30
 
@@ -25,6 +25,3 @@
 - [x] 前端类型检查通过（`vue-tsc --noEmit`）
 - [x] 契约文档同步（`docs/api/README.md` §16 仪表盘行标注 `total_balance`）
 
-## 5. 实施记录（2026-08-30）
-
-- ✅ 全部完成：`server/internal/model/dto_admin.go`、`server/internal/service/admin_service.go`、`src/types/api.d.ts`、`src/views/admin/AdminOverviewView.vue`、`src/locales/zh-CN.ts`、`src/locales/en-US.ts`、`docs/api/README.md`。

@@ -1,4 +1,4 @@
-# 管理端与用户端分拆 · 门户分流（Spec）✅
+# ✅ 管理端与用户端分拆 · 门户分流（Spec）
 
 > Status: done（2026-08-28 实现完成，e2e 全绿，见 docs/frontend/progress.md）
 > 日期: 2026-08-28
@@ -97,19 +97,3 @@
 - [x] A5 移动端：用户端抽屉无管理菜单；管理端独立抽屉只含管理菜单且可正常操作
 - [x] A6 普通用户访问 `/admin/*`、`/portal` 均重定向 `/dashboard`，任何入口不可见
 - [x] A7 `tests/e2e/admin.spec.ts` 全绿；`docs/frontend/pages.md` 路由表/布局章节同步更新
-
-## 5. 实施步骤
-
-- [x] M1 路由与布局拆分：`AdminLayout.vue`、路由迁移、guards、LoginView 跳转
-- [x] M2 导航组件改造：AppSidebar / DrawerMenu 去管理菜单，两端底部互切按钮，AppHeader 入口
-- [x] M3 门户页 PortalView（含 i18n key）
-- [x] M4 e2e 用例更新与新增，跑 `pnpm test:e2e` 验证
-- [x] M5 文档同步：`docs/frontend/pages.md` + 本 spec 状态更新
-
-## 6. 实施记录（2026-08-28）
-
-- 按方案 3.1–3.6 全量落地，后端零改动（role=1 判定不变）。
-- `nav.ts` 的 `ADMIN_NAV_GROUPS` 未做二级分组（spec 3.3 标注非必须，保持单组 13 项）。
-- `AppSidebar` 折叠状态（`app.sidebarCollapsed`）在两端共享；管理端抽屉复用 `AdminSidebar fill` 模式（宽度 100%、固定展开、隐藏折叠钮），未新增 `AdminDrawerMenu.vue` 文件。
-- e2e：`loginAs` 落点改为 `#/portal`；新增 6 个用例（门户双卡、底部按钮互切、顶栏下拉互切、移动端双抽屉隔离、普通用户访问 /portal 重定向）；抽屉内断言用 `getByRole('dialog')` 限定，避免与页面标题/TabBar/快捷入口文本重名冲突。
-- 验证：`pnpm typecheck` 通过、`pnpm test`（vitest 59/59）全绿、`pnpm e2e tests/e2e/admin.spec.ts` 20/20 全绿。

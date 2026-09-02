@@ -1,6 +1,6 @@
 # 后端开发文档 · 总览与架构
 
-> Go/Gin 服务端：为用户端 App 提供 REST API，同时承担支付回调、订阅配置下发、定时任务（佣金结算/到期提醒）。管理端 API 同进程暴露（`/admin` 前缀）；管理后台前端已随主 SPA 实现 18 个管理页面（M8 核心 6 + M9 二期 7 + 缺口补齐新增 5）。
+> Go/Gin 服务端：为用户端 App 提供 REST API，同时承担支付回调、订阅配置下发、定时任务（佣金结算/到期提醒）。管理端 API 同进程暴露（`/admin` 前缀）；管理后台前端已随主 SPA 实现 18 个管理页面（清单见 docs/frontend/pages.md §3.14）。
 
 ## 1. 技术选型
 
@@ -20,7 +20,7 @@
 | 定时任务 | robfig/cron/v3 | 佣金确认、到期提醒、流量日结转 |
 | 邮件 | gomail（SMTP） | 验证码、到期/流量提醒 |
 | 二维码 | skip2/go-qrcode | 支付二维码（若网关不返回图片） |
-| 测试 | testify + miniredis + go-sqlmock | 单测（70 个测试函数，全绿） |
+| 测试 | testify + miniredis + go-sqlmock | 单测覆盖核心链路，测试数见 [progress.md](progress.md) |
 
 ## 2. 分层架构
 
@@ -131,7 +131,7 @@ type Generator interface { Format() string; Build(u *User, nodes []Server) ([]by
 ## 9. 测试与工程化
 
 - **单测**：service 层为主（repo 用 sqlmock 或以接口 mock；Redis 用 miniredis）；重点：下单算价、优惠券、佣金、订阅状态机、回调验签幂等。
-- **集成测试**：一期未引入 dockertest；核心链路以 service 层单测覆盖（当前 144 个测试函数，见 progress.md §1 状态总览）。
+- **集成测试**：一期未引入 dockertest；核心链路以 service 层单测覆盖（测试数见 [progress.md](progress.md) §1）。
 - **Makefile**：`make run / migrate / swagger / lint / test / build`。
 - **CI**：本机 `make lint / test / build` 可用；按项目决策，后端**不接入 GitHub Actions**（代码仓库 private，后端构建/部署由本机或内部流程完成；前端 CI 见 docs/frontend）。
 - **Swagger**：handler 注解维护，`make swagger` 生成；接口变更时与契约文档同步 PR 评审。
@@ -152,14 +152,3 @@ type Generator interface { Format() string; Build(u *User, nodes []Server) ([]by
 - 手段：套餐/节点/配置 Redis 缓存；列表接口全部分页；`subscription-userinfo` 读缓存 30s；PostgreSQL 合理索引（见 data-model.md）；GORM 预加载防 N+1；慢查询日志 >200ms 告警。
 - 横向扩容：服务无状态（会话在 Redis），多实例前置负载均衡即可；cron 进程单实例运行（或加分布式锁）。
 
-## 12. 里程碑
-
-| 阶段 | 内容 |
-|---|---|
-| B1 骨架 | 工程初始化、配置/日志/中间件、迁移、健康检查、统一响应 |
-| B2 账户 | 验证码邮件、注册/登录/刷新/找回、用户信息、JWT 与限流 |
-| B3 内容 | 公告、知识库、站点配置、节点列表 |
-| B4 交易 | 套餐、优惠券、下单、易支付接入与回调、余额支付、订单状态机 |
-| B5 订阅 | 订阅下发（Clash/sing-box/v2ray）、重置订阅、流量统计与明细 |
-| B6 营销 | 邀请码、佣金结算 cron、划转、代理申请审核 |
-| B7 工单与其他 | 工单、到期提醒邮件、管理端 API、压测与上线 |

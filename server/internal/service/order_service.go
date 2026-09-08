@@ -541,27 +541,35 @@ func (s *OrderService) checkoutBalance(ctx context.Context, order *model.Order) 
 
 // ---- 支付回调 ----
 
-// HandleNotify 处理异步通知：验签在 handler 层完成，这里做幂等与账务。
+// HandleNotify 处理异步通知：验签在 handler 层完成。
+// 每条验签通过的回调原文落 payments.notify_payload（对账证据）；
+// 非成功终态仅落库后 ack（不做账务、不报错，由 handler 回 success 防网关重试风暴）。
 func (s *OrderService) HandleNotify(ctx context.Context, method string, nr *payment.NotifyResult) error {
-	if nr == nil || !nr.Paid || nr.TradeNo == "" {
-		return errors.New("notify not paid")
+	if nr == nil || nr.OrderNo == "" {
+		return errors.New("notify missing order")
 	}
 	err := repo.WithTx(s.db, func(tx *gorm.DB) error {
+		// 读支付单(先于订单,非成功终态也要落 payload)
+		paymentRec, err := s.repos.Payment.GetByOrderAndMethod(tx, nr.OrderNo, method)
+		if err != nil {
+			return err
+		}
+		paymentRec.NotifyPayload = nr.Raw
+		if !nr.Paid || nr.TradeNo == "" {
+			return s.repos.Payment.Save(tx, paymentRec)
+		}
 		order, err := s.repos.Order.GetByNoForUpdate(tx, nr.OrderNo)
 		if err != nil {
 			return err
 		}
 		if order.Status != model.OrderPending {
-			return nil // 已处理（幂等）
+			// 已处理(幂等):仍保存回调原文,补充对账证据
+			return s.repos.Payment.Save(tx, paymentRec)
 		}
 		if order.PayAmount != nr.Amount {
 			return errors.New("amount mismatch")
 		}
 		// 支付单落成功（trade_no 唯一约束兜底并发）
-		paymentRec, err := s.repos.Payment.GetByOrderAndMethod(tx, nr.OrderNo, method)
-		if err != nil {
-			return err
-		}
 		if paymentRec.Status == model.PaySuccess {
 			return nil
 		}

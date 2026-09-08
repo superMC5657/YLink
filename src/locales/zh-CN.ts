@@ -538,6 +538,9 @@ export default {
     onlyCompletedRefundable: '仅已完成订单可退款',
     refundTitle: '订单退款',
     refundConfirm: '确定对订单 {no} 退款 ¥{amount} 吗?余额将退回、佣金回滚并写入审计。',
+    refundScopeTip:
+      '退款仅在系统内原路退回余额部分;现金支付部分需线下在网关(支付宝/微信)侧操作退款,并在下方回填网关退款单号留痕。同套餐续期订单退款将整体收回订阅(含原有未过期时长)。',
+    gatewayRefundId: '外部网关退款单号(可选,现金退款后必填建议)',
     refundBtn: '退款',
     refundRemark: '管理后台手动退款',
     refundSuccess: '退款成功',

@@ -138,6 +138,8 @@ type AdminOrderItem struct {
 
 type RefundReq struct {
 	Remark string `json:"remark"`
+	// 外部网关退款单号:现金支付需线下在网关侧退款后回填,仅审计留痕,系统不做网关调用
+	GatewayRefundID string `json:"gateway_refund_id,omitempty"`
 }
 
 // ---- 管理端 · 优惠券 ----

@@ -30,6 +30,7 @@ type NotifyResult struct {
 	TradeNo string // 网关流水号
 	Amount  int64  // 实收（分）
 	Paid    bool
+	Raw     string // 回调原文（form 编码），对账落 payments.notify_payload
 }
 
 // QueryResult 主动查单结果。

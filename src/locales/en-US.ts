@@ -541,6 +541,9 @@ export default {
     refundTitle: 'Refund Order',
     refundConfirm:
       'Refund order {no} for ¥{amount}? The balance will be returned, commission rolled back and audited.',
+    refundScopeTip:
+      'The refund only returns the balance part within the system. For cash payments, refund via the gateway (Alipay/WeChat) offline and fill in the gateway refund ID below for auditing. Refunding a renewal order revokes the whole subscription (including existing unexpired time).',
+    gatewayRefundId: 'External gateway refund ID (optional, recommended for cash refunds)',
     refundBtn: 'Refund',
     refundRemark: 'Manual refund from admin panel',
     refundSuccess: 'Refund successful',

@@ -626,7 +626,7 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 | 审计日志 | `GET /admin/audit-logs`（F08 只读：筛选/分页/明细） |
 | 套餐 | `GET/POST/PUT/DELETE /admin/plans` |
 | 节点 | `GET/POST/PUT/DELETE /admin/servers`、`POST /admin/servers/batch`（F09 批量删除/更新公共字段）、`POST /admin/servers/{id}/copy`（F09 复制节点）、`POST /admin/servers/sort`（F09 批量排序）、`/admin/server-groups`、`POST /admin/servers/{id}/node-key/reset`（重置节点密钥，审计；旧密钥立即失效） |
-| 订单 | `GET /admin/orders`、`POST /admin/orders/{no}/refund`（审计 + 佣金回滚）、`POST /admin/orders/{no}/close`（关闭待支付订单，审计） |
+| 订单 | `GET /admin/orders`、`POST /admin/orders/{no}/refund`（审计 + 佣金回滚；请求体 `{remark?, gateway_refund_id?}`，`gateway_refund_id` 为外部网关退款单号——系统仅原路退回余额，现金部分线下网关退款后回填留痕）、`POST /admin/orders/{no}/close`（关闭待支付订单，审计） |
 | 优惠券 | `GET/POST/PUT/DELETE /admin/coupons` |
 | 内容 | `GET/POST/PUT/DELETE /admin/notices`、`/admin/knowledges`、`POST /admin/notices/sort`（F15 排序）、`POST /admin/knowledges/sort`（F15 排序）、`GET/POST/PUT/DELETE /admin/knowledge-categories`（F15 分类管理） |
 | 工单 | `GET /admin/tickets`、`GET /admin/tickets/{id}`、`POST /admin/tickets/{id}/reply`、`/close`、`POST /admin/tickets/{id}/withdraw/pay`（F02 确认打款）、`POST /admin/tickets/{id}/withdraw/reject`（F02 拒绝退回） |

@@ -67,7 +67,7 @@ func (h *Admin) Refund(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	if err := h.svc.Refund(c.Request.Context(), h.adminID(c), c.Param("order_no"), req.Remark, c.ClientIP()); err != nil {
+	if err := h.svc.Refund(c.Request.Context(), h.adminID(c), c.Param("order_no"), req.Remark, req.GatewayRefundID, c.ClientIP()); err != nil {
 		resp.Fail(c, err)
 		return
 	}

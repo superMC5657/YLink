@@ -621,6 +621,8 @@ export interface AdminOrderItem {
 
 export interface RefundReq {
   remark?: string
+  /** 外部网关退款单号:现金部分线下网关退款后回填,仅审计留痕 */
+  gateway_refund_id?: string
 }
 
 export interface AdminTicketItem {

@@ -139,7 +139,7 @@ func TestAdminRefundWithCommissionRollback(t *testing.T) {
 	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"audit_logs\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
-	err := svc.Refund(context.Background(), 1, "O1", "测试退款", "127.0.0.1")
+	err := svc.Refund(context.Background(), 1, "O1", "测试退款", "", "127.0.0.1")
 	require.NoError(t, err)
 }
 
@@ -341,7 +341,7 @@ func TestAdminRefundRevokesOnetimeTraffic(t *testing.T) {
 	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"audit_logs\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
-	err := svc.Refund(context.Background(), 1, "O2", "退流量", "127.0.0.1")
+	err := svc.Refund(context.Background(), 1, "O2", "退流量", "", "127.0.0.1")
 	require.NoError(t, err)
 }
 
@@ -372,7 +372,7 @@ func TestAdminRefundKeepsOtherPlanSubscription(t *testing.T) {
 	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"audit_logs\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
-	err := svc.Refund(context.Background(), 1, "O3", "退其他套餐单", "127.0.0.1")
+	err := svc.Refund(context.Background(), 1, "O3", "退其他套餐单", "", "127.0.0.1")
 	require.NoError(t, err)
 }
 

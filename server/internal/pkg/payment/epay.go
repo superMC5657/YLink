@@ -80,22 +80,25 @@ func (e *Epay) VerifyNotify(r *http.Request) (*NotifyResult, error) {
 		TradeNo: form.Get("trade_no"),
 		Amount:  amountFen,
 		Paid:    paid,
+		Raw:     form.Encode(), // Encode 按 key 升序,原文落库供对账
 	}, nil
 }
 
-// Query 主动查单（彩虹协议 act=order）。
+// Query 主动查单（彩虹协议 act=order）。key 走 POST form，避免出现在 URL/网关访问日志里。
 func (e *Epay) Query(ctx context.Context, orderNo string) (*QueryResult, error) {
-	params := url.Values{}
-	params.Set("act", "order")
-	params.Set("pid", e.cfg.PID)
-	params.Set("key", e.cfg.Key)
-	params.Set("out_trade_no", orderNo)
-	u := strings.TrimRight(e.cfg.Gateway, "/") + "/api.php?" + params.Encode()
+	form := url.Values{}
+	form.Set("act", "order")
+	form.Set("pid", e.cfg.PID)
+	form.Set("key", e.cfg.Key)
+	form.Set("out_trade_no", orderNo)
+	u := strings.TrimRight(e.cfg.Gateway, "/") + "/api.php"
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u,
+		strings.NewReader(form.Encode()))
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -170,13 +173,49 @@ func (e *Epay) verify(form url.Values, sign string) bool {
 // ---- 金额工具 ----
 
 func fenToYuanStr(fen int64) string {
-	return strconv.FormatFloat(float64(fen)/100, 'f', 2, 64)
+	// 纯整数格式化,不经 float(fen/100),避免大额浮点精度问题
+	sign := ""
+	if fen < 0 {
+		sign = "-"
+		fen = -fen
+	}
+	return fmt.Sprintf("%s%d.%02d", sign, fen/100, fen%100)
 }
 
+// yuanStrToFen 元字符串 → 分(字符串分位精确解析,不经 float;
+// float*100+0.5 在如 8.65 等二进制近似值上会差 1 分导致整单对账失败)。
+// 仅接受 0-2 位小数的非负金额,其余一律拒绝。
 func yuanStrToFen(s string) (int64, error) {
-	f, err := strconv.ParseFloat(s, 64)
-	if err != nil {
-		return 0, err
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return 0, fmt.Errorf("empty money")
 	}
-	return int64(f*100 + 0.5), nil
+	intPart, fracPart, hasDot := strings.Cut(s, ".")
+	if !isDigits(intPart) || (hasDot && !isDigits(fracPart)) {
+		return 0, fmt.Errorf("invalid money %q", s)
+	}
+	if len(fracPart) > 2 {
+		return 0, fmt.Errorf("too many decimals in %q", s)
+	}
+	fen, err := strconv.ParseInt(intPart, 10, 64)
+	if err != nil || fen < 0 {
+		return 0, fmt.Errorf("invalid money %q", s)
+	}
+	fen *= 100
+	if len(fracPart) >= 1 {
+		fen += int64(fracPart[0]-'0') * 10
+	}
+	if len(fracPart) >= 2 {
+		fen += int64(fracPart[1] - '0')
+	}
+	return fen, nil
+}
+
+func isDigits(s string) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] < '0' || s[i] > '9' {
+			return false
+		}
+	}
+	return true
 }

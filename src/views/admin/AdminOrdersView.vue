@@ -62,31 +62,37 @@ function onPageChange(p: number) {
   void load()
 }
 
+// 退款弹窗状态:退款仅余额原路退回;现金部分需线下在网关侧退款并回填外部单号(审计)
+const refundModal = ref(false)
+const refundOrder = ref<AdminOrderItem | null>(null)
+const refundGatewayId = ref('')
+const refunding = ref(false)
+
 function refund(o: AdminOrderItem) {
   if (o.status !== 1) {
     message.warning(t('adminOrders.onlyCompletedRefundable'))
     return
   }
-  dialog.warning({
-    title: t('adminOrders.refundTitle'),
-    content: t('adminOrders.refundConfirm', {
-      no: o.order_no,
-      amount: o.pay_amount.toFixed(2),
-    }),
-    positiveText: t('adminOrders.refundBtn'),
-    negativeText: t('common.cancel'),
-    onPositiveClick: async () => {
-      try {
-        await apiAdmin.refund(o.order_no, { remark: t('adminOrders.refundRemark') })
-        message.success(t('adminOrders.refundSuccess'))
-        void load()
-      } catch (e) {
-        // 错误提示由 http 层统一 toast;这里刷新列表后继续抛出,供 dialog 感知失败
-        void load()
-        throw e
-      }
-    },
-  })
+  refundOrder.value = o
+  refundGatewayId.value = ''
+  refundModal.value = true
+}
+
+async function confirmRefund() {
+  const o = refundOrder.value
+  if (!o || refunding.value) return
+  refunding.value = true
+  try {
+    await apiAdmin.refund(o.order_no, {
+      remark: t('adminOrders.refundRemark'),
+      gateway_refund_id: refundGatewayId.value.trim() || undefined,
+    })
+    message.success(t('adminOrders.refundSuccess'))
+    refundModal.value = false
+    void load()
+  } finally {
+    refunding.value = false
+  }
 }
 
 function closeOrder(o: AdminOrderItem) {
@@ -213,5 +219,50 @@ onMounted(() => void load())
         />
       </div>
     </div>
+
+    <!-- 退款确认弹窗:明示退款语义(仅余额原路;现金需线下网关退),外部单号回填审计 -->
+    <n-modal
+      v-model:show="refundModal"
+      preset="card"
+      :title="t('adminOrders.refundTitle')"
+      class="max-w-95"
+    >
+      <div class="space-y-4">
+        <p class="text-14 text-[var(--c-text-sub)]">
+          {{
+            t('adminOrders.refundConfirm', {
+              no: refundOrder?.order_no ?? '',
+              amount: (refundOrder?.pay_amount ?? 0).toFixed(2),
+            })
+          }}
+        </p>
+        <div
+          class="flex items-start gap-2.5 rounded-xl p-3.5"
+          style="background: var(--c-warning-bg)"
+        >
+          <AppIcon
+            name="alert"
+            :size="17"
+            class="mt-0.5 shrink-0"
+            :style="{ color: 'var(--c-warning)' }"
+          />
+          <p class="text-14 leading-5 text-[var(--c-text)]">
+            {{ t('adminOrders.refundScopeTip') }}
+          </p>
+        </div>
+        <div>
+          <label class="mb-1 block text-14 text-[var(--c-text-sub)]">
+            {{ t('adminOrders.gatewayRefundId') }}
+          </label>
+          <input
+            v-model="refundGatewayId"
+            class="h-10 w-full rounded-[var(--r-control)] border border-[var(--c-border)] bg-[var(--c-bg-card)] px-3 text-14 text-[var(--c-text)] outline-none transition-colors focus:border-[var(--c-primary)]"
+          />
+        </div>
+        <button class="btn-danger h-10 w-full text-14" :disabled="refunding" @click="confirmRefund">
+          {{ t('adminOrders.refundBtn') }}
+        </button>
+      </div>
+    </n-modal>
   </div>
 </template>

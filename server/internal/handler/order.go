@@ -4,9 +4,11 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 
 	"ylink-backend/internal/middleware"
 	"ylink-backend/internal/model"
+	"ylink-backend/internal/pkg/logger"
 	"ylink-backend/internal/pkg/payment"
 	"ylink-backend/internal/pkg/resp"
 	"ylink-backend/internal/pkg/validate"
@@ -189,7 +191,9 @@ func (h *Order) Checkout(c *gin.Context) {
 	resp.OK(c, data)
 }
 
-// Notify POST /payment/notify/{method}（服务端间，免鉴权）
+// Notify POST /payment/notify/{method}（服务端间，免鉴权）。
+// 应答语义：验签失败/账务失败 → fail(400) 由网关重试；验签通过的非成功终态
+// （如 trade_status=TRADE_CLOSED）→ success 确认并告警，业务终态无需网关重试。
 func (h *Order) Notify(c *gin.Context) {
 	method := c.Param("method")
 	driver := payment.Get(method)
@@ -198,8 +202,23 @@ func (h *Order) Notify(c *gin.Context) {
 		return
 	}
 	nr, err := driver.VerifyNotify(c.Request)
-	if err != nil || nr == nil || !nr.Paid {
+	if err != nil || nr == nil {
+		// 验签失败:可能是伪造或传输损坏,fail 让网关重试
 		c.String(400, "fail")
+		return
+	}
+	if !nr.Paid {
+		// 验签通过但非成功终态:ack 防重试风暴,原文落库后告警人工跟进
+		logger.L().Warn("payment notify non-success terminal state",
+			zap.String("method", method), zap.String("order_no", nr.OrderNo),
+			zap.String("trade_no", nr.TradeNo))
+		if err := h.svc.HandleNotify(c.Request.Context(), method, nr); err != nil {
+			logger.L().Error("payment notify persist failed",
+				zap.String("method", method), zap.Error(err))
+			c.String(400, "fail")
+			return
+		}
+		c.String(200, "success")
 		return
 	}
 	if err := h.svc.HandleNotify(c.Request.Context(), method, nr); err != nil {

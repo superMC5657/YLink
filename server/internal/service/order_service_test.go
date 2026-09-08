@@ -210,11 +210,11 @@ func TestHandleNotifyIdempotent(t *testing.T) {
 	p := &model.Payment{ID: 1, OrderNo: "O2026", UserID: 7, Method: "epay_alipay", Amount: 1000, Status: 0, CreatedAt: now, UpdatedAt: now}
 
 	e.mock.ExpectBegin()
+	// 读支付单(先于订单:非成功终态也要落 payload)
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"payments\"")).WillReturnRows(paymentRow(p))
 	// 行锁读订单
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"orders\"")).WillReturnRows(orderRow(o))
-	// 读支付单
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"payments\"")).WillReturnRows(paymentRow(p))
-	// Save payment（UPDATE）
+	// Save payment（UPDATE,含 notify_payload）
 	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"payments\"")).WillReturnResult(sqlmock.NewResult(0, 1))
 	// Save order（UPDATE）
 	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"orders\"")).WillReturnResult(sqlmock.NewResult(0, 1))
@@ -229,7 +229,25 @@ func TestHandleNotifyIdempotent(t *testing.T) {
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"users\"")).WillReturnRows(userRow(&model.User{ID: 7, Email: "u@b.com", PlanID: nil, InviteByID: nil, CreatedAt: now, UpdatedAt: now}))
 	e.mock.ExpectCommit()
 
-	err := svc.HandleNotify(ctx, "epay_alipay", &payment.NotifyResult{OrderNo: "O2026", TradeNo: "T1", Amount: 1000, Paid: true})
+	err := svc.HandleNotify(ctx, "epay_alipay", &payment.NotifyResult{OrderNo: "O2026", TradeNo: "T1", Amount: 1000, Paid: true, Raw: "out_trade_no=O2026&trade_status=TRADE_SUCCESS"})
+	require.NoError(t, err)
+}
+
+// TestHandleNotifyNonPaidAck 非成功终态:仅落回调原文,不做账务(幂等 ack)。
+func TestHandleNotifyNonPaidAck(t *testing.T) {
+	e, svc := newOrderEnv(t)
+	ctx := context.Background()
+	now := time.Now()
+	p := &model.Payment{ID: 1, OrderNo: "O2026", UserID: 7, Method: "epay_alipay", Amount: 1000, Status: 0, CreatedAt: now, UpdatedAt: now}
+
+	e.mock.ExpectBegin()
+	// 读支付单
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"payments\"")).WillReturnRows(paymentRow(p))
+	// 仅 Save payment(落 payload),无订单更新/账务
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"payments\"")).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectCommit()
+
+	err := svc.HandleNotify(ctx, "epay_alipay", &payment.NotifyResult{OrderNo: "O2026", TradeNo: "T1", Amount: 1000, Paid: false, Raw: "trade_status=TRADE_CLOSED"})
 	require.NoError(t, err)
 }
 

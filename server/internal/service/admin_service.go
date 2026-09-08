@@ -647,7 +647,9 @@ func (s *AdminService) CloseOrder(ctx context.Context, adminID int64, orderNo, r
 }
 
 // Refund POST /admin/orders/{no}/refund：退款 + 收回订阅 + 佣金回滚 + 优惠券回退 + 审计。
-func (s *AdminService) Refund(ctx context.Context, adminID int64, orderNo, remark, ip string) error {
+// 退款仅在系统内原路处理余额部分;现金部分需管理员线下在网关侧操作退款,
+// 并将网关退款单号经 gatewayRefundID 回填审计(系统不做网关退款调用)。
+func (s *AdminService) Refund(ctx context.Context, adminID int64, orderNo, remark, gatewayRefundID, ip string) error {
 	return repo.WithTx(s.db, func(tx *gorm.DB) error {
 		order, err := s.repos.Order.GetByNoForUpdate(tx, orderNo)
 		if err != nil {
@@ -706,6 +708,7 @@ func (s *AdminService) Refund(ctx context.Context, adminID int64, orderNo, remar
 		}
 		return s.audit(tx, adminID, "refund", orderNo, ip, map[string]any{
 			"pay_amount": order.PayAmount, "remark": sanitize.Text(remark),
+			"gateway_refund_id": sanitize.Text(gatewayRefundID),
 		})
 	})
 }

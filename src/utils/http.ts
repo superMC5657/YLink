@@ -3,7 +3,8 @@
  * 规范见 docs/frontend/data-layer.md §1 与 docs/api/README.md §1。
  */
 import type { ApiEnvelope, ApiError } from '@/types/api'
-import { getItem, removeItem, setItem } from '@/utils/storage'
+import { getItem } from '@/utils/storage'
+import { applyTokens, clearTokens, getAccessToken, getRefreshToken } from '@/utils/tokens'
 import { clientTag, isTauri } from '@/utils/platform'
 import { i18n } from '@/i18n'
 
@@ -35,21 +36,17 @@ function resolveApiBase(): string {
   return getItem<string>('apiBase') ?? import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
 }
 
-/** 令牌读写(与 useAuthStore 持久化共用 localStorage 'app:auth') */
+/** 令牌读取:access 仅内存、refresh 经 utils/tokens.ts 收口(内存+最小持久化) */
 export function readTokens(): RefreshTokens | null {
-  const auth = getItem<{ accessToken: string; refreshToken: string }>('auth')
-  if (!auth?.accessToken) return null
-  return { accessToken: auth.accessToken, refreshToken: auth.refreshToken }
+  if (!getAccessToken() && !getRefreshToken()) return null
+  return { accessToken: getAccessToken(), refreshToken: getRefreshToken() }
 }
 
 export function writeTokens(t: RefreshTokens): void {
-  const prev = getItem<Record<string, unknown>>('auth') ?? {}
-  setItem('auth', { ...prev, accessToken: t.accessToken, refreshToken: t.refreshToken })
+  applyTokens(t.accessToken, t.refreshToken)
 }
 
-export function clearTokens(): void {
-  removeItem('auth')
-}
+export { clearTokens }
 
 let language = 'zh-CN'
 export function setHttpLanguage(lang: string): void {
@@ -177,10 +174,11 @@ async function request<T>(method: string, url: string, opts: HttpOptions = {}): 
     // 非 JSON 响应
   }
 
-  // 401:业务性 401(如登录失败 40101"邮箱或密码错误")直接透出后端 message,
-  // 不做会话刷新;仅会话过期(40100)或非业务 401 才尝试静默刷新重放。
-  if (resp.status === 401) {
-    if (json && typeof json.code === 'number' && json.code !== 40100) {
+  // 会话过期 = HTTP 401 或业务码 40100(真实后端为 HTTP 401;mock 以 200 包裹 40100,
+  // 两种形态都走静默刷新重放);其余业务性 401(如登录失败 40101)直接透出后端 message
+  const expiredEnvelope = json !== null && json.code === 40100
+  if (resp.status === 401 || expiredEnvelope) {
+    if (resp.status === 401 && json && typeof json.code === 'number' && json.code !== 40100) {
       const err = new ApiErrorImpl(
         json.code,
         json.message || tt('network.requestFailed'),

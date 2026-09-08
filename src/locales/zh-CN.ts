@@ -95,6 +95,8 @@ export default {
     yes: '是',
     no: '否',
     copyFailed: '复制失败',
+    show: '显示',
+    hide: '隐藏',
     expired: '已过期',
     unknown: '未知',
     defaultSubName: '订阅',

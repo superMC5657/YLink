@@ -10,7 +10,8 @@ import { useAuthStore } from '@/stores/auth'
 import type { AdminRole, AdminUserItem } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { useMessage, useDialog } from 'naive-ui'
-import { formatBytes } from '@/utils/format'
+import { formatBytes, maskUrl } from '@/utils/format'
+import { copyText } from '@/utils/platform'
 
 const { t } = useI18n()
 const message = useMessage()
@@ -302,8 +303,10 @@ function resetSub(u: AdminUserItem) {
       const resp = await apiAdmin.resetUserSubToken(u.id)
       dialog.info({
         title: t('adminUsers.resetSubDone'),
-        content: resp.subscribe_url,
+        // 订阅链接掩码展示:原文含令牌,不整体进弹窗文本;复制按钮复制完整原文
+        content: maskUrl(resp.subscribe_url),
         positiveText: t('adminUsers.copy'),
+        onPositiveClick: () => copyText(resp.subscribe_url),
       })
     },
   })

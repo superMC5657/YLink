@@ -2,7 +2,9 @@ import { test as base, expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
 /**
- * 注入 Mock 会话到 localStorage(persistedstate key 为 'app:auth',带 app: 前缀)。
+ * 注入 Mock 会话到 localStorage(持久化键 'app:auth',带 app: 前缀)。
+ * 持久面最小化:仅 refreshToken + user(accessToken 只存内存,首个请求 401 后
+ * 经 mock /auth/refresh 静默刷新补回,mock-refresh-* 一律放行)。
  * Mock token 无状态校验:任意 'Bearer mock-access-*' 有效。
  */
 export async function injectAuth(page: Page): Promise<void> {
@@ -11,7 +13,6 @@ export async function injectAuth(page: Page): Promise<void> {
     localStorage.setItem(
       'app:auth',
       JSON.stringify({
-        accessToken: 'mock-access-e2e-' + Date.now(),
         refreshToken: 'mock-refresh-e2e',
         user: { id: 10086, email: 'e2e@test.com', role: 0 },
       }),

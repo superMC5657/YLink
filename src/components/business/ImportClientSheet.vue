@@ -10,6 +10,7 @@ import { useUserStore } from '@/stores/user'
 import { useConfigStore } from '@/stores/config'
 import { useMessage } from 'naive-ui'
 import { copyText } from '@/utils/platform'
+import { maskUrl } from '@/utils/format'
 import { useI18n } from 'vue-i18n'
 
 const show = defineModel<boolean>('show', { default: false })
@@ -19,6 +20,8 @@ const config = useConfigStore()
 const message = useMessage()
 const { t } = useI18n()
 const copied = ref(false)
+/** 订阅链接默认掩码展示,显式点击后才显示原文(令牌类敏感信息不进 DOM) */
+const revealUrl = ref(false)
 
 function onPick(client: ClientKind) {
   const url = user.subscribe?.subscribe_url
@@ -76,13 +79,26 @@ async function doCopy() {
     </div>
 
     <div
-      class="mt-4 flex items-center justify-between rounded-xl p-3"
+      class="mt-4 flex items-center justify-between gap-2 rounded-xl p-3"
       style="background-color: var(--c-bg-hover)"
     >
-      <span class="min-w-0 flex-1 truncate text-14 text-[var(--c-text-sub)]">
-        {{ user.subscribe?.subscribe_url ?? t('common.noSubscribe') }}
+      <span class="num min-w-0 flex-1 truncate text-14 text-[var(--c-text-sub)]">
+        {{
+          user.subscribe?.subscribe_url
+            ? revealUrl
+              ? user.subscribe.subscribe_url
+              : maskUrl(user.subscribe.subscribe_url)
+            : t('common.noSubscribe')
+        }}
       </span>
-      <button class="btn-soft-blue ml-3 h-8 shrink-0 px-3 text-14" @click="doCopy">
+      <button
+        v-if="user.subscribe?.subscribe_url"
+        class="btn-soft-neutral h-8 shrink-0 px-3 text-14"
+        @click="revealUrl = !revealUrl"
+      >
+        {{ revealUrl ? t('common.hide') : t('common.show') }}
+      </button>
+      <button class="btn-soft-blue h-8 shrink-0 px-3 text-14" @click="doCopy">
         <AppIcon :name="copied ? 'check' : 'copy'" :size="14" />
         {{ copied ? t('common.copied') : t('common.copy') }}
       </button>

@@ -106,6 +106,21 @@ export function periodLabel(period: string): string {
   return map[period] ? tt(map[period]) : period
 }
 
+/**
+ * 订阅链接掩码展示:保留协议+域名,其余以 •••• + 末 4 位示意(令牌主体不进 DOM)。
+ * 非法/非标准 URL 原样返回(调用方兜底为复制按钮,原文仅在显式「显示」时进 DOM)。
+ */
+export function maskUrl(url: string, keepTail = 4): string {
+  const schemeEnd = url.indexOf('://')
+  if (schemeEnd < 0) return url
+  const pathStart = url.indexOf('/', schemeEnd + 3)
+  if (pathStart < 0) return url
+  const origin = url.slice(0, pathStart)
+  const rest = url.slice(pathStart)
+  if (rest.length <= keepTail + 1) return url
+  return `${origin}/••••${rest.slice(-keepTail)}`
+}
+
 /** 支付方式 key → 本地化标签(余额 / 支付宝 / 微信;未知渠道回退原始值) */
 export function payMethodLabel(method: string | null | undefined): string {
   if (!method) return '-'

@@ -31,6 +31,55 @@ let tauriStore: TauriStore | null = null
 const cache = new Map<string, string>()
 let saveQueue: Promise<void> = Promise.resolve()
 
+// ---------- 高频写防抖:100ms 内的多次写合并为一次批量落盘 ----------
+const FLUSH_DELAY = 100
+/** key → 待写值(null 表示删除) */
+const pendingWrites = new Map<string, string | null>()
+let flushTimer: ReturnType<typeof setTimeout> | null = null
+
+function enqueueWrite(key: string, value: string | null): void {
+  pendingWrites.set(key, value)
+  flushTimer ??= setTimeout(() => {
+    flushTimer = null
+    void flushPending()
+  }, FLUSH_DELAY)
+}
+
+/** 批量落盘挂起的写/删;失败批次回滚到待写队列,随下次写入重试 */
+async function flushPending(): Promise<void> {
+  if (!tauriStore || pendingWrites.size === 0) {
+    pendingWrites.clear()
+    return
+  }
+  const batch = new Map(pendingWrites)
+  pendingWrites.clear()
+  const op = saveQueue.then(async () => {
+    for (const [k, v] of batch) {
+      if (v === null) {
+        await tauriStore!.delete(k)
+        continue
+      }
+      let parsed: unknown
+      try {
+        parsed = JSON.parse(v)
+      } catch {
+        parsed = v
+      }
+      await tauriStore!.set(k, parsed)
+    }
+  })
+  // 队列吞错避免断链(前一次失败不应阻塞后续写);本次结果单独取
+  saveQueue = op.catch(() => {})
+  try {
+    await op
+  } catch {
+    // 失败的键放回待写队列(不覆盖期间的新值),随下次 flush 重试
+    for (const [k, v] of batch) {
+      if (!pendingWrites.has(k)) pendingWrites.set(k, v)
+    }
+  }
+}
+
 /** 旧 WebView localStorage → plugin-store 一次性迁移完成标记(key 带 app: 前缀) */
 const MIGRATED_KEY = PREFIX + '_legacy:migrated:v1'
 
@@ -87,7 +136,7 @@ function rawGet(key: string): string | null {
 function rawSet(key: string, value: string): void {
   if (isTauri()) {
     cache.set(key, value)
-    void persistToStore(key, value)
+    enqueueWrite(key, value)
     return
   }
   window.localStorage.setItem(key, value)
@@ -96,15 +145,13 @@ function rawSet(key: string, value: string): void {
 function rawRemove(key: string): void {
   if (isTauri()) {
     cache.delete(key)
-    if (tauriStore) {
-      saveQueue = saveQueue.then(() => tauriStore!.delete(key).then(() => {})).catch(() => {})
-    }
+    enqueueWrite(key, null)
     return
   }
   window.localStorage.removeItem(key)
 }
 
-/** plugin-store 落盘:JSON 字符串还原为结构化值写入(防抖由插件 autoSave)。返回是否成功。 */
+/** plugin-store 直接落盘单键(仅供一次性迁移使用,业务写走防抖批量队列)。返回是否成功。 */
 async function persistToStore(key: string, value: string): Promise<boolean> {
   if (!tauriStore) return false
   let parsed: unknown
@@ -173,10 +220,15 @@ export function setApiBase(url: string): void {
 }
 
 /**
- * 等待所有排队落盘完成(Tauri;Web 端 no-op)。
- * reload/退出前调用,避免 plugin-store 异步写尚未落地就销毁页面导致数据丢失。
+ * 等待所有挂起写与队列落盘完成(Tauri;Web 端 no-op)。
+ * reload/登出前调用,避免防抖窗口内的写尚未落地就销毁页面导致数据丢失。
  */
 export async function flushStorage(): Promise<void> {
   if (!isTauri()) return
+  if (flushTimer) {
+    clearTimeout(flushTimer)
+    flushTimer = null
+  }
+  await flushPending()
   await saveQueue
 }

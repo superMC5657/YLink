@@ -96,6 +96,8 @@ export default {
     yes: 'Yes',
     no: 'No',
     copyFailed: 'Copy failed',
+    show: 'Show',
+    hide: 'Hide',
     expired: 'Expired',
     unknown: 'Unknown',
     defaultSubName: 'Subscription',

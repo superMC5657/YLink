@@ -14,7 +14,7 @@ import { copyText } from '@/utils/platform'
 import { isTauri } from '@/utils/platform'
 import { checkForUpdate, requestCheckUpdate } from '@/utils/updater'
 import { apiUser } from '@/api/user'
-import { formatTime } from '@/utils/format'
+import { formatTime, maskUrl } from '@/utils/format'
 import type { UserSessionItem } from '@/types/api'
 import BannerStatCard from '@/components/business/BannerStatCard.vue'
 
@@ -82,6 +82,8 @@ const showResetModal = ref(false)
 const resetPwd = ref('')
 const resetting = ref(false)
 const newSubscribeUrl = ref('')
+/** 新订阅链接默认掩码,显式「显示」后才展示原文 */
+const revealNewUrl = ref(false)
 
 async function onResetSubscribe() {
   if (resetting.value) return
@@ -93,6 +95,7 @@ async function onResetSubscribe() {
   try {
     const data = await user.resetSubscribe({ password: resetPwd.value })
     newSubscribeUrl.value = data.subscribe_url
+    revealNewUrl.value = false
     showResetModal.value = false
     resetPwd.value = ''
     message.success(t('profile.resetSuccess'))
@@ -547,9 +550,15 @@ onMounted(() => {
         class="flex items-center gap-2 rounded-xl p-3"
         style="background-color: var(--c-bg-hover)"
       >
-        <span class="num min-w-0 flex-1 break-all text-14 text-[var(--c-text)]">{{
-          newSubscribeUrl
-        }}</span>
+        <span class="num min-w-0 flex-1 break-all text-14 text-[var(--c-text)]">
+          {{ revealNewUrl ? newSubscribeUrl : maskUrl(newSubscribeUrl) }}
+        </span>
+        <button
+          class="btn-soft-neutral h-9 shrink-0 px-3 text-14"
+          @click="revealNewUrl = !revealNewUrl"
+        >
+          {{ revealNewUrl ? t('common.hide') : t('common.show') }}
+        </button>
         <button class="btn-primary h-9 shrink-0 px-4 text-14" @click="copyNewUrl">
           <AppIcon name="copy" :size="14" />
           {{ t('common.copy') }}

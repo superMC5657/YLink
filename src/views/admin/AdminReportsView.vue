@@ -2,24 +2,20 @@
 /**
  * 管理后台 · 统计报表(F04):订单/营收趋势、注册趋势、套餐分布、用户/节点流量 TopN。
  * 数据:GET /admin/stat/orders|users|traffic?days=(docs/api/README.md §16)
+ * 图表走 composables/useEcharts(echarts 动态加载);5 图按视口懒初始化(IntersectionObserver)。
  */
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { apiAdmin } from '@/api/admin'
 import type { AdminStatOrdersResp, AdminStatTrafficResp, AdminStatUsersResp } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
-import * as echarts from 'echarts/core'
-import { BarChart, LineChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components'
-import { CanvasRenderer } from 'echarts/renderers'
-import type { ECharts } from 'echarts/core'
+import { useEcharts } from '@/composables/useEcharts'
 import { formatBytes } from '@/utils/format'
-
-echarts.use([BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer])
 
 const app = useAppStore()
 const { t } = useI18n()
+const { getChart, cssVar, whenVisible, resizeAll } = useEcharts()
 
 const loading = ref(false)
 const days = ref<7 | 30 | 90>(30)
@@ -27,24 +23,21 @@ const orders = ref<AdminStatOrdersResp | null>(null)
 const users = ref<AdminStatUsersResp | null>(null)
 const traffic = ref<AdminStatTrafficResp | null>(null)
 
-// 四张图各自挂载点与实例
+// 五张图挂载点;实例由 useEcharts 按 el 缓存,卸载时统一 dispose
 const revChartRef = ref<HTMLDivElement | null>(null)
 const regChartRef = ref<HTMLDivElement | null>(null)
 const planChartRef = ref<HTMLDivElement | null>(null)
 const userTopChartRef = ref<HTMLDivElement | null>(null)
 const nodeTopChartRef = ref<HTMLDivElement | null>(null)
-let revChart: ECharts | null = null
-let regChart: ECharts | null = null
-let planChart: ECharts | null = null
-let userTopChart: ECharts | null = null
-let nodeTopChart: ECharts | null = null
 
-/** 运行时读取 CSS 变量,避免硬编码主题色(与 TrafficView 同约定) */
-function cssVar(name: string, fallback: string): string {
-  if (typeof document === 'undefined') return fallback
-  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
-  return v || fallback
-}
+// 视口懒初始化:图表容器进入视口才允许 init/render,避免同屏 5 图全量渲染卡顿
+const chartVisible = reactive({
+  rev: false,
+  reg: false,
+  plan: false,
+  userTop: false,
+  nodeTop: false,
+})
 
 function baseTooltip(): Record<string, unknown> {
   const isDark = app.isDark
@@ -68,18 +61,19 @@ function axisStyles() {
 }
 
 function renderAll() {
-  renderRevenue()
-  renderRegister()
-  renderPlan()
-  renderUserTop()
-  renderNodeTop()
+  void renderRevenue()
+  void renderRegister()
+  void renderPlan()
+  void renderUserTop()
+  void renderNodeTop()
 }
 
-function renderRevenue() {
-  if (!revChartRef.value || !orders.value) return
-  if (!revChart) revChart = echarts.init(revChartRef.value)
+async function renderRevenue() {
+  if (!revChartRef.value || !orders.value || !chartVisible.rev) return
+  const chart = await getChart(revChartRef.value)
+  if (!chart) return
   const { axisColor, splitColor } = axisStyles()
-  revChart.setOption({
+  chart.setOption({
     backgroundColor: 'transparent',
     ...baseTooltip(),
     legend: {
@@ -142,11 +136,12 @@ function renderRevenue() {
   })
 }
 
-function renderRegister() {
-  if (!regChartRef.value || !users.value) return
-  if (!regChart) regChart = echarts.init(regChartRef.value)
+async function renderRegister() {
+  if (!regChartRef.value || !users.value || !chartVisible.reg) return
+  const chart = await getChart(regChartRef.value)
+  if (!chart) return
   const { axisColor, splitColor } = axisStyles()
-  regChart.setOption({
+  chart.setOption({
     backgroundColor: 'transparent',
     ...baseTooltip(),
     grid: { left: 8, right: 8, top: 16, bottom: 8, containLabel: true },
@@ -174,12 +169,13 @@ function renderRegister() {
   })
 }
 
-function renderPlan() {
-  if (!planChartRef.value || !users.value) return
-  if (!planChart) planChart = echarts.init(planChartRef.value)
+async function renderPlan() {
+  if (!planChartRef.value || !users.value || !chartVisible.plan) return
+  const chart = await getChart(planChartRef.value)
+  if (!chart) return
   const { axisColor, splitColor } = axisStyles()
   const dist = [...users.value.plan_distribution].reverse() // 横向条形图自下而上
-  planChart.setOption({
+  chart.setOption({
     backgroundColor: 'transparent',
     ...baseTooltip(),
     grid: { left: 8, right: 24, top: 16, bottom: 8, containLabel: true },
@@ -207,12 +203,13 @@ function renderPlan() {
   })
 }
 
-function renderUserTop() {
-  if (!userTopChartRef.value || !traffic.value) return
-  if (!userTopChart) userTopChart = echarts.init(userTopChartRef.value)
+async function renderUserTop() {
+  if (!userTopChartRef.value || !traffic.value || !chartVisible.userTop) return
+  const chart = await getChart(userTopChartRef.value)
+  if (!chart) return
   const { axisColor, splitColor } = axisStyles()
   const top = [...traffic.value.user_top].reverse()
-  userTopChart.setOption({
+  chart.setOption({
     backgroundColor: 'transparent',
     ...baseTooltip(),
     grid: { left: 8, right: 24, top: 16, bottom: 8, containLabel: true },
@@ -239,12 +236,13 @@ function renderUserTop() {
   })
 }
 
-function renderNodeTop() {
-  if (!nodeTopChartRef.value || !traffic.value) return
-  if (!nodeTopChart) nodeTopChart = echarts.init(nodeTopChartRef.value)
+async function renderNodeTop() {
+  if (!nodeTopChartRef.value || !traffic.value || !chartVisible.nodeTop) return
+  const chart = await getChart(nodeTopChartRef.value)
+  if (!chart) return
   const { axisColor, splitColor } = axisStyles()
   const top = [...traffic.value.node_top].reverse()
-  nodeTopChart.setOption({
+  chart.setOption({
     backgroundColor: 'transparent',
     ...baseTooltip(),
     grid: { left: 8, right: 24, top: 16, bottom: 8, containLabel: true },
@@ -296,27 +294,34 @@ watch(
 )
 
 function onResize() {
-  for (const c of [revChart, regChart, planChart, userTopChart, nodeTopChart]) c?.resize()
+  resizeAll()
 }
 
 onMounted(() => {
   window.addEventListener('resize', onResize)
+  // 视口内才初始化对应图表(进入视口即渲染,即使数据未到也会在 load 完成后补渲染)
+  const observe = (
+    elRef: typeof revChartRef,
+    key: keyof typeof chartVisible,
+    render: () => void,
+  ) => {
+    const el = elRef.value
+    if (!el) return
+    whenVisible(el, () => {
+      chartVisible[key] = true
+      render()
+    })
+  }
+  observe(revChartRef, 'rev', renderRevenue)
+  observe(regChartRef, 'reg', renderRegister)
+  observe(planChartRef, 'plan', renderPlan)
+  observe(userTopChartRef, 'userTop', renderUserTop)
+  observe(nodeTopChartRef, 'nodeTop', renderNodeTop)
   void load()
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', onResize)
-  for (const [ref, chart] of [
-    [revChartRef, revChart],
-    [regChartRef, regChart],
-    [planChartRef, planChart],
-    [userTopChartRef, userTopChart],
-    [nodeTopChartRef, nodeTopChart],
-  ] as const) {
-    void ref
-    chart?.dispose()
-  }
-  revChart = regChart = planChart = userTopChart = nodeTopChart = null
 })
 </script>
 

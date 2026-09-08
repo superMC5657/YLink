@@ -2,31 +2,26 @@
 /**
  * 流量明细:时间范围选择(近 7 天/30 天/自定义)+ ECharts 柱状图 + 明细表。
  * 数据:GET /user/traffic-logs?from=&to=(契约 §5.6);页面:pages.md §3.12
+ * 图表走 composables/useEcharts(echarts 动态加载,实例/dispose/resize 统一管理)。
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useAppStore } from '@/stores/app'
 import { useI18n } from 'vue-i18n'
 import { formatBytes } from '@/utils/format'
-import * as echarts from 'echarts/core'
-import { BarChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components'
-import { CanvasRenderer } from 'echarts/renderers'
-import type { ECharts } from 'echarts/core'
+import { useEcharts } from '@/composables/useEcharts'
 import dayjs from 'dayjs'
-
-echarts.use([BarChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer])
 
 const user = useUserStore()
 const app = useAppStore()
 const { t } = useI18n()
+const { getChart, cssVar, resizeAll } = useEcharts()
 
 type RangeKey = '7d' | '30d' | 'custom'
 const rangeKey = ref<RangeKey>('30d')
 const customRange = ref<[number, number] | null>(null)
 
 const chartRef = ref<HTMLDivElement | null>(null)
-let chart: ECharts | null = null
 
 const dateRange = computed<{ from: string; to: string }>(() => {
   if (rangeKey.value === '7d') {
@@ -57,34 +52,34 @@ const totalUpload = computed(() => user.trafficLogs.reduce((a, x) => a + x.u, 0)
 const totalDownload = computed(() => user.trafficLogs.reduce((a, x) => a + x.d, 0))
 const totalAll = computed(() => user.trafficLogs.reduce((a, x) => a + x.total, 0))
 
-/** 运行时读取 CSS 变量,避免硬编码主题色(设计规范 tokens.css) */
-function resolveCssVar(name: string, fallback: string): string {
-  if (typeof document === 'undefined') return fallback
-  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
-  return v || fallback
+/** tooltip HTML 拼接前转义非数字片段(seriesName/axisValue 来自数据层),防止注入 */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
 }
 
-function renderChart() {
+async function renderChart() {
   if (!chartRef.value) return
-  if (!chart) {
-    chart = echarts.init(chartRef.value)
-  }
+  const chart = await getChart(chartRef.value)
+  if (!chart) return
   const isDark = app.isDark
-  const axisColor = resolveCssVar('--c-text-sub', isDark ? '#9BA1B7' : '#8A8FA3')
-  const splitColor = resolveCssVar(
-    '--c-border',
-    isDark ? 'rgba(255,255,255,0.06)' : 'rgba(23,25,66,0.06)',
-  )
+  const axisColor = cssVar('--c-text-sub', isDark ? '#9BA1B7' : '#8A8FA3')
+  const splitColor = cssVar('--c-border', isDark ? 'rgba(255,255,255,0.06)' : 'rgba(23,25,66,0.06)')
   chart.setOption({
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
-      backgroundColor: resolveCssVar('--c-bg-card', isDark ? '#171B26' : '#fff'),
-      borderColor: resolveCssVar('--c-border', isDark ? 'rgba(255,255,255,0.1)' : '#EBECF4'),
-      textStyle: { color: resolveCssVar('--c-text', isDark ? '#E8EAF2' : '#1F2430'), fontSize: 12 },
+      backgroundColor: cssVar('--c-bg-card', isDark ? '#171B26' : '#fff'),
+      borderColor: cssVar('--c-border', isDark ? 'rgba(255,255,255,0.1)' : '#EBECF4'),
+      textStyle: { color: cssVar('--c-text', isDark ? '#E8EAF2' : '#1F2430'), fontSize: 12 },
       formatter: (params: { seriesName: string; value: number; axisValue: string }[]) => {
-        const lines = params.map((p) => `${p.seriesName}: ${formatBytes(p.value)}`).join('<br/>')
-        return `${params[0].axisValue}<br/>${lines}`
+        const lines = params
+          .map((p) => `${escapeHtml(p.seriesName)}: ${formatBytes(p.value)}`)
+          .join('<br/>')
+        return `${escapeHtml(params[0].axisValue)}<br/>${lines}`
       },
     },
     legend: {
@@ -114,7 +109,7 @@ function renderChart() {
         type: 'bar',
         stack: 'traffic',
         data: user.trafficLogs.map((x) => x.u),
-        itemStyle: { color: resolveCssVar('--c-primary', '#6558F5'), borderRadius: [3, 3, 0, 0] },
+        itemStyle: { color: cssVar('--c-primary', '#6558F5'), borderRadius: [3, 3, 0, 0] },
         barMaxWidth: 18,
       },
       {
@@ -122,7 +117,7 @@ function renderChart() {
         type: 'bar',
         stack: 'traffic',
         data: user.trafficLogs.map((x) => x.d),
-        itemStyle: { color: resolveCssVar('--c-pink', '#8B5CF6'), borderRadius: [3, 3, 0, 0] },
+        itemStyle: { color: cssVar('--c-pink', '#8B5CF6'), borderRadius: [3, 3, 0, 0] },
         barMaxWidth: 18,
       },
     ],
@@ -146,7 +141,7 @@ watch(
 )
 
 function onResize() {
-  chart?.resize()
+  resizeAll()
 }
 
 onMounted(() => {
@@ -155,8 +150,6 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', onResize)
-  chart?.dispose()
-  chart = null
 })
 </script>
 

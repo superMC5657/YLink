@@ -15,6 +15,9 @@ Type: task
 
 ## Done
 
-- 无重复 `use`；resize/dispose 正常；`pnpm lint/typecheck` 通过。
+- [x] `src/composables/useEcharts.ts`:echarts core/charts/components/renderers 动态 import(模块级缓存全应用单次注册 Bar/Line/Grid/Tooltip/Legend/Canvas),实例按 el 缓存防重复 init,dispose(卸载)/resizeAll/cssVar 统一收口。
+- [x] TrafficView/AdminReportsView 改调 useEcharts;Admin 5 图 IntersectionObserver 视口懒初始化(不支持时降级立即渲染)。
+- [x] Traffic tooltip formatter 补 escapeHtml(seriesName/axisValue 转义),数值仍走 formatBytes。
+- [x] 门禁:`pnpm lint/typecheck` + vitest 72 全绿;build 产物:echarts 仅存在于 renderers/useEcharts 异步 chunk,首屏入口零引用。
 
 ## Comments

@@ -1,23 +1,7 @@
-import {
-  defineConfig,
-  presetUno,
-  presetAttributify,
-  presetIcons,
-  transformerDirectives,
-} from 'unocss'
+import { defineConfig, presetUno, presetAttributify, transformerDirectives } from 'unocss'
 
 export default defineConfig({
-  presets: [
-    presetUno(),
-    presetAttributify(),
-    presetIcons({
-      scale: 1.2,
-      warn: true,
-      collections: {
-        // 由 @iconify/vue 运行时按需加载,此处仅声明
-      },
-    }),
-  ],
+  presets: [presetUno(), presetAttributify()],
   transformers: [transformerDirectives()],
   rules: [
     // 覆盖 presetUno 的 text-<number> 规则:默认按 4px 基准转 rem(如 text-13 → 3.25rem = 52px),

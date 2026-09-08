@@ -2,317 +2,65 @@
 /**
  * 管理后台 · 用户管理:搜索/分页/封禁/角色调整/余额调整。
  * 数据:GET/PUT /admin/users、POST /admin/users/{id}/balance(docs/api/README.md §16)
+ * 状态与动作在 composables/useAdminUsers;四个弹窗拆在 components/admin/。
  */
-import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { apiAdmin } from '@/api/admin'
-import { useAuthStore } from '@/stores/auth'
-import type { AdminRole, AdminUserItem } from '@/types/api'
+import { useAdminUsers } from '@/composables/useAdminUsers'
+import { formatBytes } from '@/utils/format'
 import PageHeader from '@/components/ui/PageHeader.vue'
-import { useMessage, useDialog } from 'naive-ui'
-import { formatBytes, maskUrl } from '@/utils/format'
-import { copyText } from '@/utils/platform'
+import UserBalanceDialog from '@/components/admin/UserBalanceDialog.vue'
+import UserRoleDialog from '@/components/admin/UserRoleDialog.vue'
+import UserBatchBalanceDialog from '@/components/admin/UserBatchBalanceDialog.vue'
+import UserMailDialog from '@/components/admin/UserMailDialog.vue'
 
 const { t } = useI18n()
-const message = useMessage()
-const dialog = useDialog()
-const auth = useAuthStore()
-
-const loading = ref(false)
-const list = ref<AdminUserItem[]>([])
-const total = ref(0)
-const page = ref(1)
-const pageSize = 10
-const keyword = ref('')
-
-// 调余额弹窗
-const balanceModal = ref(false)
-const balanceTarget = ref<AdminUserItem | null>(null)
-const balanceAmount = ref<number | null>(null)
-const balanceRemark = ref('')
-const balanceSaving = ref(false)
-
-// 角色调整弹窗
-const roleModal = ref(false)
-const roleTarget = ref<AdminUserItem | null>(null)
-const roleValue = ref<AdminRole>(0)
-const roleSaving = ref(false)
-
-async function load() {
-  loading.value = true
-  try {
-    const res = await apiAdmin.users({
-      page: page.value,
-      page_size: pageSize,
-      keyword: keyword.value,
-    })
-    list.value = res.list
-    total.value = res.total
-  } finally {
-    loading.value = false
-  }
-}
-
-function onSearch() {
-  page.value = 1
-  void load()
-}
-
-function onPageChange(p: number) {
-  page.value = p
-  void load()
-}
-
-function toggleBan(u: AdminUserItem) {
-  if (u.id === auth.user?.id) {
-    message.warning(t('adminUsers.cannotOperateSelf'))
-    return
-  }
-  dialog.warning({
-    title: u.is_banned ? t('adminUsers.unbanTitle') : t('adminUsers.banTitle'),
-    content: u.is_banned
-      ? t('adminUsers.unbanConfirm', { email: u.email })
-      : t('adminUsers.banConfirm', { email: u.email }),
-    positiveText: t('adminUsers.ok'),
-    negativeText: t('common.cancel'),
-    onPositiveClick: async () => {
-      await apiAdmin.updateUser(u.id, { banned: !u.is_banned })
-      message.success(t('adminUsers.updated'))
-      void load()
-    },
-  })
-}
-
-function changeRole(u: AdminUserItem) {
-  if (u.id === auth.user?.id) {
-    message.warning(t('adminUsers.cannotOperateSelf'))
-    return
-  }
-  roleTarget.value = u
-  roleValue.value = u.role
-  roleModal.value = true
-}
-
-async function saveRole() {
-  if (!roleTarget.value) return
-  roleSaving.value = true
-  try {
-    await apiAdmin.updateUser(roleTarget.value.id, { role: roleValue.value })
-    message.success(t('adminUsers.roleUpdated'))
-    roleModal.value = false
-    void load()
-  } finally {
-    roleSaving.value = false
-  }
-}
-
-function openBalance(u: AdminUserItem) {
-  balanceTarget.value = u
-  balanceAmount.value = null
-  balanceRemark.value = ''
-  balanceModal.value = true
-}
-
-function roleLabel(role: AdminRole): string {
-  return role === 1
-    ? t('adminUsers.roleAdmin')
-    : role === 2
-      ? t('adminUsers.roleAgent')
-      : t('adminUsers.roleNormal')
-}
-
-async function saveBalance() {
-  if (!balanceTarget.value || balanceAmount.value === null) return
-  balanceSaving.value = true
-  try {
-    await apiAdmin.adjustBalance(balanceTarget.value.id, {
-      amount: balanceAmount.value,
-      remark: balanceRemark.value,
-    })
-    message.success(t('adminUsers.balanceAdjusted'))
-    balanceModal.value = false
-    void load()
-  } finally {
-    balanceSaving.value = false
-  }
-}
-
-// ---- F05:多选 / 批量操作 / 导出 / 发邮件 / 重置订阅 ----
-
-const selectedIds = ref<number[]>([])
-
-function isSelected(id: number): boolean {
-  return selectedIds.value.includes(id)
-}
-
-function toggleRow(id: number, checked: boolean) {
-  if (checked) {
-    if (!selectedIds.value.includes(id)) selectedIds.value = [...selectedIds.value, id]
-  } else {
-    selectedIds.value = selectedIds.value.filter((v) => v !== id)
-  }
-}
-
-const allChecked = computed(
-  () => list.value.length > 0 && list.value.every((u) => selectedIds.value.includes(u.id)),
-)
-
-function toggleAll(checked: boolean) {
-  selectedIds.value = checked ? list.value.map((u) => u.id) : []
-}
-
-function clearSelection() {
-  selectedIds.value = []
-}
-
-/** 批量结果汇总提示:成功 n,失败列出原因 */
-function reportBatch(
-  title: string,
-  resp: { success: number; failed: { id: number; reason: string }[] },
-) {
-  if (resp.failed.length === 0) {
-    message.success(`${title}: ${resp.success}`)
-  } else {
-    const detail = resp.failed.map((f) => `#${f.id} ${f.reason}`).join('; ')
-    message.warning(
-      `${title}: ${resp.success} / ${t('adminUsers.failed')} ${resp.failed.length} — ${detail}`,
-    )
-  }
-}
-
-const batchSaving = ref(false)
-
-function batchBan(banned: boolean) {
-  const ids = [...selectedIds.value]
-  if (ids.includes(auth.user?.id ?? -1)) {
-    message.warning(t('adminUsers.cannotOperateSelf'))
-    return
-  }
-  dialog.warning({
-    title: banned ? t('adminUsers.batchBan') : t('adminUsers.batchUnban'),
-    content: t('adminUsers.batchBanConfirm', { count: ids.length }),
-    positiveText: t('adminUsers.ok'),
-    negativeText: t('common.cancel'),
-    onPositiveClick: async () => {
-      batchSaving.value = true
-      try {
-        const resp = await apiAdmin.batchUsers({ action: banned ? 'ban' : 'unban', ids })
-        reportBatch(t('adminUsers.batchDone'), resp)
-        clearSelection()
-        void load()
-      } finally {
-        batchSaving.value = false
-      }
-    },
-  })
-}
-
-// 批量调余额弹窗
-const batchBalanceModal = ref(false)
-const batchBalanceAmount = ref<number | null>(null)
-const batchBalanceRemark = ref('')
-
-function openBatchBalance() {
-  batchBalanceAmount.value = null
-  batchBalanceRemark.value = ''
-  batchBalanceModal.value = true
-}
-
-async function saveBatchBalance() {
-  if (batchBalanceAmount.value === null) return
-  batchSaving.value = true
-  try {
-    const resp = await apiAdmin.batchUsers({
-      action: 'adjust_balance',
-      ids: [...selectedIds.value],
-      amount: batchBalanceAmount.value,
-      remark: batchBalanceRemark.value,
-    })
-    reportBatch(t('adminUsers.batchBalanceDone'), resp)
-    batchBalanceModal.value = false
-    clearSelection()
-    void load()
-  } finally {
-    batchSaving.value = false
-  }
-}
-
-// 发邮件弹窗
-const mailModal = ref(false)
-const mailSubject = ref('')
-const mailBody = ref('')
-const mailSaving = ref(false)
-
-function openSendMail() {
-  mailSubject.value = ''
-  mailBody.value = ''
-  mailModal.value = true
-}
-
-async function saveSendMail() {
-  if (!mailSubject.value || !mailBody.value) return
-  mailSaving.value = true
-  try {
-    const resp = await apiAdmin.sendMail({
-      ids: [...selectedIds.value],
-      subject: mailSubject.value,
-      body: mailBody.value,
-    })
-    if (resp.failed.length === 0) {
-      message.success(t('adminUsers.mailSent', { sent: resp.sent }))
-    } else {
-      const detail = resp.failed.map((f) => `#${f.id} ${f.reason}`).join('; ')
-      message.warning(
-        t('adminUsers.mailPartial', { sent: resp.sent, failed: resp.failed.length }) +
-          ` — ${detail}`,
-      )
-    }
-    mailModal.value = false
-    clearSelection()
-  } finally {
-    mailSaving.value = false
-  }
-}
-
-// CSV 导出(blob → 触发浏览器保存)
-const exporting = ref(false)
-
-async function exportCSV() {
-  exporting.value = true
-  try {
-    const blob = await apiAdmin.exportUsersCSV({ keyword: keyword.value || '' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `users_${new Date().toISOString().slice(0, 10)}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-  } finally {
-    exporting.value = false
-  }
-}
-
-// 重置订阅密钥
-function resetSub(u: AdminUserItem) {
-  dialog.warning({
-    title: t('adminUsers.resetSub'),
-    content: t('adminUsers.resetSubConfirm', { email: u.email }),
-    positiveText: t('adminUsers.ok'),
-    negativeText: t('common.cancel'),
-    onPositiveClick: async () => {
-      const resp = await apiAdmin.resetUserSubToken(u.id)
-      dialog.info({
-        title: t('adminUsers.resetSubDone'),
-        // 订阅链接掩码展示:原文含令牌,不整体进弹窗文本;复制按钮复制完整原文
-        content: maskUrl(resp.subscribe_url),
-        positiveText: t('adminUsers.copy'),
-        onPositiveClick: () => copyText(resp.subscribe_url),
-      })
-    },
-  })
-}
-
-onMounted(() => void load())
+const {
+  loading,
+  list,
+  total,
+  page,
+  pageSize,
+  keyword,
+  balanceModal,
+  balanceTarget,
+  balanceAmount,
+  balanceRemark,
+  balanceSaving,
+  roleModal,
+  roleTarget,
+  roleValue,
+  roleSaving,
+  selectedIds,
+  batchSaving,
+  batchBalanceModal,
+  batchBalanceAmount,
+  batchBalanceRemark,
+  mailModal,
+  mailSubject,
+  mailBody,
+  mailSaving,
+  exporting,
+  roleLabel,
+  allChecked,
+  onSearch,
+  onPageChange,
+  toggleBan,
+  changeRole,
+  saveRole,
+  openBalance,
+  saveBalance,
+  isSelected,
+  toggleRow,
+  toggleAll,
+  clearSelection,
+  batchBan,
+  openBatchBalance,
+  saveBatchBalance,
+  openSendMail,
+  saveSendMail,
+  exportCSV,
+  resetSub,
+} = useAdminUsers()
 </script>
 
 <template>
@@ -470,160 +218,44 @@ onMounted(() => void load())
     </div>
 
     <!-- 调余额弹窗 -->
-    <n-modal
+    <UserBalanceDialog
       v-model:show="balanceModal"
-      preset="card"
-      :title="t('adminUsers.adjustBalanceTitle')"
-      style="width: 420px"
-    >
-      <n-form label-placement="left" label-width="90">
-        <n-form-item :label="t('adminUsers.user')">
-          <span class="text-14">{{ balanceTarget?.email }}</span>
-        </n-form-item>
-        <n-form-item :label="t('adminUsers.amount')">
-          <n-input-number
-            v-model:value="balanceAmount"
-            :placeholder="t('adminUsers.amountPlaceholder')"
-            class="w-full"
-          />
-        </n-form-item>
-        <n-form-item :label="t('adminUsers.remark')">
-          <n-input v-model:value="balanceRemark" :placeholder="t('adminUsers.remarkPlaceholder')" />
-        </n-form-item>
-      </n-form>
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <button class="btn-soft-neutral h-9 px-4 text-14" @click="balanceModal = false">
-            {{ t('common.cancel') }}
-          </button>
-          <button
-            class="btn-primary h-9 px-4 text-14"
-            :disabled="balanceSaving"
-            @click="saveBalance"
-          >
-            {{ t('common.save') }}
-          </button>
-        </div>
-      </template>
-    </n-modal>
+      v-model:amount="balanceAmount"
+      v-model:remark="balanceRemark"
+      :target="balanceTarget"
+      :saving="balanceSaving"
+      @save="saveBalance"
+    />
 
     <!-- 角色调整弹窗 -->
-    <n-modal
+    <UserRoleDialog
       v-model:show="roleModal"
-      preset="card"
-      :title="t('adminUsers.adjustRoleTitle')"
-      style="width: 360px"
-    >
-      <n-form label-placement="left" label-width="60">
-        <n-form-item :label="t('adminUsers.user')">
-          <span class="text-14">{{ roleTarget?.email }}</span>
-        </n-form-item>
-        <n-form-item :label="t('adminUsers.role')">
-          <n-select
-            v-model:value="roleValue"
-            :options="[
-              { label: t('adminUsers.roleNormal'), value: 0 },
-              { label: t('adminUsers.roleAdmin'), value: 1 },
-              { label: t('adminUsers.roleAgent'), value: 2 },
-            ]"
-          />
-        </n-form-item>
-      </n-form>
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <button class="btn-soft-neutral h-9 px-4 text-14" @click="roleModal = false">
-            {{ t('common.cancel') }}
-          </button>
-          <button class="btn-primary h-9 px-4 text-14" :disabled="roleSaving" @click="saveRole">
-            {{ t('common.save') }}
-          </button>
-        </div>
-      </template>
-    </n-modal>
+      v-model:role="roleValue"
+      :target="roleTarget"
+      :saving="roleSaving"
+      @save="saveRole"
+    />
 
     <!-- F05 批量调余额弹窗 -->
-    <n-modal
+    <UserBatchBalanceDialog
       v-model:show="batchBalanceModal"
-      preset="card"
-      :title="t('adminUsers.batchAdjustBalance')"
-      style="width: 420px"
-    >
-      <n-form label-placement="left" label-width="90">
-        <n-form-item :label="t('adminUsers.users')">
-          <span class="text-14">{{
-            t('adminUsers.selectedCount', { count: selectedIds.length })
-          }}</span>
-        </n-form-item>
-        <n-form-item :label="t('adminUsers.amount')">
-          <n-input-number
-            v-model:value="batchBalanceAmount"
-            :placeholder="t('adminUsers.amountPlaceholder')"
-            class="w-full"
-          />
-        </n-form-item>
-        <n-form-item :label="t('adminUsers.remark')">
-          <n-input
-            v-model:value="batchBalanceRemark"
-            :placeholder="t('adminUsers.remarkPlaceholder')"
-          />
-        </n-form-item>
-      </n-form>
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <button class="btn-soft-neutral h-9 px-4 text-14" @click="batchBalanceModal = false">
-            {{ t('common.cancel') }}
-          </button>
-          <button
-            class="btn-primary h-9 px-4 text-14"
-            :disabled="batchSaving || batchBalanceAmount === null"
-            @click="saveBatchBalance"
-          >
-            {{ t('common.save') }}
-          </button>
-        </div>
-      </template>
-    </n-modal>
+      v-model:amount="batchBalanceAmount"
+      v-model:remark="batchBalanceRemark"
+      :selected-count="selectedIds.length"
+      :saving="batchSaving"
+      @save="saveBatchBalance"
+    />
 
     <!-- F05 发送邮件弹窗 -->
-    <n-modal
+    <UserMailDialog
       v-model:show="mailModal"
-      preset="card"
-      :title="t('adminUsers.sendMail')"
-      style="width: 520px"
-    >
-      <n-form label-placement="left" label-width="90">
-        <n-form-item :label="t('adminUsers.users')">
-          <span class="text-14">{{
-            t('adminUsers.selectedCount', { count: selectedIds.length })
-          }}</span>
-        </n-form-item>
-        <n-form-item :label="t('adminUsers.mailSubject')">
-          <n-input v-model:value="mailSubject" :maxlength="200" />
-        </n-form-item>
-        <n-form-item :label="t('adminUsers.mailBody')">
-          <n-input
-            v-model:value="mailBody"
-            type="textarea"
-            :rows="6"
-            :maxlength="10000"
-            show-count
-          />
-        </n-form-item>
-      </n-form>
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <button class="btn-soft-neutral h-9 px-4 text-14" @click="mailModal = false">
-            {{ t('common.cancel') }}
-          </button>
-          <button
-            class="btn-primary h-9 px-4 text-14"
-            :disabled="mailSaving || !mailSubject || !mailBody"
-            @click="saveSendMail"
-          >
-            <AppIcon name="send" :size="14" /> {{ t('common.submit') }}
-          </button>
-        </div>
-      </template>
-    </n-modal>
+      :subject="mailSubject"
+      :body="mailBody"
+      :selected-count="selectedIds.length"
+      :saving="mailSaving"
+      @update:subject="mailSubject = $event"
+      @update:body="mailBody = $event"
+      @save="saveSendMail"
+    />
   </div>
 </template>

@@ -71,7 +71,7 @@ onMounted(async () => {
           </div>
         </div>
 
-        <!-- eslint-disable-next-line vue/no-v-html -->
+        <!-- eslint-disable-next-line vue/no-v-html -- 白名单:rendered 经 renderMarkdown(DOMPurify)过滤 -->
         <div class="markdown-body text-15 leading-7 text-[var(--c-text)]" v-html="rendered" />
       </article>
     </n-spin>

@@ -107,12 +107,13 @@ onMounted(() => {
             class="mt-2.5 rounded-xl p-3.5"
             style="background-color: var(--c-bg-hover)"
           >
-            <!-- eslint-disable-next-line vue/no-v-html -->
+            <!-- eslint-disable vue/no-v-html -- 白名单:expandedHtml 经 renderMarkdown(DOMPurify)过滤 -->
             <div
               class="markdown-body text-14 text-[var(--c-text)]"
               @click="onContentClick"
               v-html="expandedHtml"
             />
+            <!-- eslint-enable vue/no-v-html -->
           </div>
         </div>
         <EmptyState

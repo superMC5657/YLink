@@ -132,8 +132,8 @@ type Generator interface { Format() string; Build(u *User, nodes []Server) ([]by
 
 - **单测**：service 层为主（repo 用 sqlmock 或以接口 mock；Redis 用 miniredis）；重点：下单算价、优惠券、佣金、订阅状态机、回调验签幂等。
 - **集成测试**：一期未引入 dockertest；核心链路以 service 层单测覆盖（测试数见 [progress.md](progress.md) §1）。
-- **Makefile**：`make run / migrate / swagger / lint / test / build`。
-- **CI**：本机 `make lint / test / build` 可用；按项目决策，后端**不接入 GitHub Actions**（代码仓库 private，后端构建/部署由本机或内部流程完成；前端 CI 见 docs/frontend）。
+- **Makefile**：`server/Makefile` 提供 `make run / migrate / swagger / lint / vet / test / build`。
+- **CI**：本机 `make lint / vet / test / build` 可用；按项目决策，后端**不接入 GitHub Actions**（代码仓库 private，后端构建/部署由本机或内部流程完成；前端 CI 见 docs/frontend）。推送 main 前的后端检查入口：仓库根目录 `make go-check`（= `go vet ./...` + `go test ./... -count=1`）；`make check` 一键跑前端 lint/typecheck/test + 后端全量。
 - **Swagger**：handler 注解维护，`make swagger` 生成；接口变更时与契约文档同步 PR 评审。
 
 ## 10. 安全清单

@@ -105,11 +105,12 @@ watch(
     </div>
 
     <!-- 描述 -->
-    <!-- eslint-disable-next-line vue/no-v-html -->
+    <!-- eslint-disable vue/no-v-html -- 白名单:contentHtml 经 renderMarkdown(DOMPurify)过滤 -->
     <div
       class="plan-content mt-4 flex-1 text-14 leading-6 text-[var(--c-text-sub)]"
       v-html="contentHtml"
     />
+    <!-- eslint-enable vue/no-v-html -->
 
     <!-- 购买 -->
     <button

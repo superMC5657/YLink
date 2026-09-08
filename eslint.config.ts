@@ -56,8 +56,11 @@ export default tseslint.config(
       'no-undef': 'off',
       'vue/multi-word-component-names': 'off',
       'vue/require-default-prop': 'off',
-      'vue/no-v-html': 'off',
-      '@typescript-eslint/no-explicit-any': 'off',
+      // v-html 白名单制:仅限已 DOMPurify 过滤的 markdown 渲染与 AppIcon 内联 path,
+      // 新增使用必须带 eslint-disable-next-line vue/no-v-html + 安全理由注释
+      'vue/no-v-html': 'error',
+      // 先 warn 起步:现有代码零 any,新增 any 会在 CI lint(--max-warnings 0)暴露
+      '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       'no-unused-vars': 'off',
     },

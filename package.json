@@ -14,7 +14,7 @@
     "analyze": "vite build --mode analyze",
     "preview": "vite preview",
     "typecheck": "vue-tsc --noEmit",
-    "lint": "node scripts/check-error-toast.mjs && eslint . --max-warnings 0",
+    "lint": "node scripts/check-error-toast.mjs && node scripts/check-tokens-sync.mjs && eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "lint:css": "stylelint \"src/styles/*.css\" \"src/**/*.vue\"",
     "format": "prettier --write .",

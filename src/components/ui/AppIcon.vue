@@ -90,6 +90,7 @@ const PATHS: Record<string, string> = {
 </script>
 
 <template>
+  <!-- eslint-disable vue/no-v-html -- 白名单:本组件唯一职责是渲染仓内静态 SVG path 字面量(PATHS),不含任何外部输入 -->
   <svg
     xmlns="http://www.w3.org/2000/svg"
     :width="props.size"

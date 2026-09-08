@@ -26,7 +26,7 @@ src-tauri/
 | `app.windows[0]` | 1280×800，min 1024×680，title 跟随站点名 | 保留系统原生标题栏 |
 | `beforeDevCommand` / `devUrl` | `pnpm dev` / `http://localhost:5174` | 开发联动 |
 | `beforeBuildCommand` / `frontendDist` | `pnpm build` / `../dist` | 打包联动 |
-| `app.security.csp` | `default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'` | 接口走 http 插件，无需放宽 connect-src |
+| `app.security.csp` | `default-src 'self'; connect-src 'self' https: http://localhost:* http://127.0.0.1:*; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:; object-src 'none'; base-uri 'self'` | 接口走 http 插件（Rust 侧，CSP 不拦）；connect-src 为 webview 侧降级 fetch/本地后端兜底，object-src 'none' + base-uri 'self' 收紧注入面 |
 | `bundle.targets` | `"targets": "nsis"` | 仅 Windows NSIS，不产 MSI；Android APK 由 `tauri android build` 独立控制，不受此影响 |
 | `bundle.windows.nsis.installerHooks` | `nsis/installer-hooks.nsh` | NSIS 自定义安装/卸载钩子文件已入库（含 4 个 no-op 宏）；当前无自定义逻辑，文件必须保留否则 Windows NSIS 构建失败 |
 | `plugins.updater.endpoints` | 已配置（含 pubkey；endpoints 指向公开产物仓库 `superMC5657/ylink-release` 的 latest.json，gh-proxy.com 优先 + 直连兑底） | updater 与前端更新卡片已接入（见 §5） |
@@ -47,7 +47,7 @@ src-tauri/
 | `tauri-plugin-window-state` | 记忆窗口尺寸/位置（仅桌面） | 体验细节 |
 | `tauri-plugin-os` | 系统信息 | 关于页、埋点 UA |
 
-capabilities/default.json 采用最小授权：逐项声明上述插件权限，`http` 权限的 `scope` 实际为 `https://**` + `http://localhost:**` + `http://127.0.0.1:**`（而非文档示例的 `https://api.example.com/**`），深链接插件仅注册 `ylink` scheme。
+capabilities/default.json 采用最小授权：逐项声明上述插件权限，`http` 权限的 `scope` 实际为 `https://**` + `http://localhost:**` + `http://127.0.0.1:**`（而非文档示例的 `https://api.example.com/**`），深链接插件仅注册 `ylink` scheme。`https://**` 为**有意保留**：apiBase 运行时可在设置页改指任意自建站点（见 [README](../../README.md) 配置表），且发布流水线不烘焙 API 域名，静态收敛到单一域名会砍掉多站点客户端能力；updater 下载走 Rust 侧不受 http scope 约束（minisign pubkey 验签兜底），故 updater 域名无需进入该 scope。残余风险：打包 JS 供应链被篡改时理论上可借插件外发 HTTPS 请求，主防线为 CSP `script-src 'self'` + 不加载任何远程脚本。
 
 ## 4. 窗口、托盘与系统行为
 

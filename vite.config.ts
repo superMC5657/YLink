@@ -77,7 +77,14 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
         registerType: 'autoUpdate',
         // 外部脚本注册（injectRegister script）而非 inline，兼容 Tauri CSP script-src 'self'
         injectRegister: 'script',
-        includeAssets: ['pwa-128.png', 'pwa-192.png', 'pwa-512.png'],
+        includeAssets: [
+          'pwa-128.png',
+          'pwa-144.png',
+          'pwa-192.png',
+          'pwa-384.png',
+          'pwa-512.png',
+          'pwa-maskable-512.png',
+        ],
         manifest: {
           name: 'YLink 高速稳定代理订阅',
           short_name: 'YLink',
@@ -90,15 +97,32 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
           scope: './',
           icons: [
             { src: 'pwa-128.png', sizes: '128x128', type: 'image/png' },
+            { src: 'pwa-144.png', sizes: '144x144', type: 'image/png' },
             { src: 'pwa-192.png', sizes: '192x192', type: 'image/png' },
+            { src: 'pwa-384.png', sizes: '384x384', type: 'image/png' },
             { src: 'pwa-512.png', sizes: '512x512', type: 'image/png' },
-            { src: 'pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+            {
+              src: 'pwa-maskable-512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable',
+            },
           ],
         },
         workbox: {
           // 离线壳：index.html + 构建产物(带 hash)预缓存；运行时请求网络优先 + 缓存兜底
-          globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+          globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2,woff,webp,webmanifest,json}'],
           navigateFallback: 'index.html',
+          // API 导航不落 SPA 兜底壳(否则 /api/* 异常时返回 index.html 掩盖真实 502/错误)
+          navigateFallbackDenylist: [/^\/api\//],
+          // API 响应一律只走网络:面板数据必须实时,离线时明确失败而非返回旧数据
+          runtimeCaching: [
+            {
+              urlPattern: ({ url }: { url: URL }) => url.pathname.startsWith('/api/'),
+              handler: 'NetworkOnly',
+              method: 'GET',
+            },
+          ],
         },
         devOptions: { enabled: false },
       }),

@@ -28,6 +28,7 @@ function loadEcharts(): Promise<EchartsCore> {
       components.GridComponent,
       components.TooltipComponent,
       components.LegendComponent,
+      components.DataZoomComponent,
       renderers.CanvasRenderer,
     ])
     return core
@@ -80,9 +81,14 @@ export function useEcharts() {
     return () => io.disconnect()
   }
 
-  /** 重绘所有已创建实例(窗口 resize 时调用) */
+  /** 重绘所有已创建实例(窗口 resize 时调用);200ms 防抖,连续拖拽窗口不卡主线程 */
+  let resizeTimer: ReturnType<typeof setTimeout> | null = null
   function resizeAll(): void {
-    for (const p of pending.values()) void p.then((c) => c.resize()).catch(() => {})
+    if (resizeTimer) clearTimeout(resizeTimer)
+    resizeTimer = setTimeout(() => {
+      resizeTimer = null
+      for (const p of pending.values()) void p.then((c) => c.resize()).catch(() => {})
+    }, 200)
   }
 
   onBeforeUnmount(() => {

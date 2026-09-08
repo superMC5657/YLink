@@ -60,6 +60,11 @@ function axisStyles() {
   }
 }
 
+/** 图表占位 loading:数据未到(或 echarts chunk 首次下载)时给出可见反馈,替代空白卡片 */
+function chartLoading() {
+  return { color: cssVar('--c-primary', '#6558F5'), fontSize: 12 }
+}
+
 function renderAll() {
   void renderRevenue()
   void renderRegister()
@@ -69,9 +74,13 @@ function renderAll() {
 }
 
 async function renderRevenue() {
-  if (!revChartRef.value || !orders.value || !chartVisible.rev) return
+  if (!revChartRef.value || !chartVisible.rev) return
   const chart = await getChart(revChartRef.value)
   if (!chart) return
+  if (!orders.value) {
+    chart.showLoading('default', chartLoading())
+    return
+  }
   const { axisColor, splitColor } = axisStyles()
   chart.setOption({
     backgroundColor: 'transparent',
@@ -86,7 +95,19 @@ async function renderRevenue() {
       textStyle: { color: axisColor, fontSize: 12 },
       top: 0,
     },
-    grid: { left: 8, right: 8, top: 36, bottom: 8, containLabel: true },
+    grid: { left: 8, right: 8, top: 36, bottom: 32, containLabel: true },
+    // 长时序缩放:inside 支持手势/滚轮,slider 供拖选(90 天时不至于一屏挤满)
+    dataZoom: [
+      { type: 'inside' },
+      {
+        type: 'slider',
+        height: 16,
+        bottom: 4,
+        brushSelect: false,
+        borderColor: splitColor,
+        textStyle: { color: axisColor, fontSize: 10 },
+      },
+    ],
     xAxis: {
       type: 'category',
       data: orders.value.items.map((x) => x.date.slice(5)),
@@ -134,12 +155,17 @@ async function renderRevenue() {
       },
     ],
   })
+  chart.hideLoading()
 }
 
 async function renderRegister() {
-  if (!regChartRef.value || !users.value || !chartVisible.reg) return
+  if (!regChartRef.value || !chartVisible.reg) return
   const chart = await getChart(regChartRef.value)
   if (!chart) return
+  if (!users.value) {
+    chart.showLoading('default', chartLoading())
+    return
+  }
   const { axisColor, splitColor } = axisStyles()
   chart.setOption({
     backgroundColor: 'transparent',
@@ -167,12 +193,17 @@ async function renderRegister() {
       },
     ],
   })
+  chart.hideLoading()
 }
 
 async function renderPlan() {
-  if (!planChartRef.value || !users.value || !chartVisible.plan) return
+  if (!planChartRef.value || !chartVisible.plan) return
   const chart = await getChart(planChartRef.value)
   if (!chart) return
+  if (!users.value) {
+    chart.showLoading('default', chartLoading())
+    return
+  }
   const { axisColor, splitColor } = axisStyles()
   const dist = [...users.value.plan_distribution].reverse() // 横向条形图自下而上
   chart.setOption({
@@ -201,12 +232,17 @@ async function renderPlan() {
       },
     ],
   })
+  chart.hideLoading()
 }
 
 async function renderUserTop() {
-  if (!userTopChartRef.value || !traffic.value || !chartVisible.userTop) return
+  if (!userTopChartRef.value || !chartVisible.userTop) return
   const chart = await getChart(userTopChartRef.value)
   if (!chart) return
+  if (!traffic.value) {
+    chart.showLoading('default', chartLoading())
+    return
+  }
   const { axisColor, splitColor } = axisStyles()
   const top = [...traffic.value.user_top].reverse()
   chart.setOption({
@@ -234,12 +270,17 @@ async function renderUserTop() {
       },
     ],
   })
+  chart.hideLoading()
 }
 
 async function renderNodeTop() {
-  if (!nodeTopChartRef.value || !traffic.value || !chartVisible.nodeTop) return
+  if (!nodeTopChartRef.value || !chartVisible.nodeTop) return
   const chart = await getChart(nodeTopChartRef.value)
   if (!chart) return
+  if (!traffic.value) {
+    chart.showLoading('default', chartLoading())
+    return
+  }
   const { axisColor, splitColor } = axisStyles()
   const top = [...traffic.value.node_top].reverse()
   chart.setOption({
@@ -267,6 +308,7 @@ async function renderNodeTop() {
       },
     ],
   })
+  chart.hideLoading()
 }
 
 async function load() {

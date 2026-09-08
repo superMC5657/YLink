@@ -57,5 +57,6 @@ test-results/
 .ui-shots
 tmp
 template_images
+stats-report.html
 # agent 运行态
 .omo/

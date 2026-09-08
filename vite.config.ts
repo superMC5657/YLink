@@ -4,7 +4,42 @@ import vue from '@vitejs/plugin-vue'
 import UnoCSS from 'unocss/vite'
 import { viteMockServe } from 'vite-plugin-mock'
 import { VitePWA } from 'vite-plugin-pwa'
+import { compression } from 'vite-plugin-compression2'
+import { visualizer } from 'rollup-plugin-visualizer'
 import { fileURLToPath, URL } from 'node:url'
+
+/**
+ * manualChunks 分包家族(仅收敛已知依赖,其余走 Rollup 默认拆分):
+ * - vendor-vue:vue 生态 + i18n + dayjs + tauri api(首屏同步)
+ * - vendor-naive:naive-ui 及其传递依赖(首屏同步,随用到的组件 tree-shake)
+ * - vendor-echarts / vendor-md:仅被动态 import(useEcharts/renderMarkdown),
+ *   归入命名 chunk 后仍是异步加载,不进首屏
+ * 不设 catch-all 兜底,避免把异步依赖(qrcode 等)拖进同步 chunk。
+ */
+function manualChunks(id: string): string | undefined {
+  if (!id.includes('node_modules')) return undefined
+  if (/[\\/]node_modules[\\/]zrender[\\/]/.test(id)) return 'vendor-zrender'
+  if (/[\\/]node_modules[\\/]echarts[\\/]/.test(id)) return 'vendor-echarts'
+  if (
+    /[\\/]node_modules[\\/](markdown-it|linkify-it|mdurl|entities|uc\.micro|punycode|dompurify)[\\/]/.test(
+      id,
+    )
+  )
+    return 'vendor-md'
+  if (
+    /[\\/]node_modules[\\/](@css-render|css-render|seemly|vueuc|vooks|evtd|treemate|vdirs|date-fns|naive-ui|@floating-ui)[\\/]/.test(
+      id,
+    )
+  )
+    return 'vendor-naive'
+  if (
+    /[\\/]node_modules[\\/](vue|@vue|vue-router|pinia|pinia-plugin-persistedstate|vue-demi|vue-i18n|@intlify|dayjs|@tauri-apps)[\\/]/.test(
+      id,
+    )
+  )
+    return 'vendor-vue'
+  return undefined
+}
 
 export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
   const env = loadEnv(mode, process.cwd(), '')
@@ -21,8 +56,22 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
       viteMockServe({
         mockPath: 'mock',
         enable: useMock,
-        logger: true,
+        // mock 请求日志仅在开发模式打印,build/preview 不出噪音
+        logger: mode === 'development',
       }),
+      // 构建产物预压缩:单实例同时产出 .gz + .br(compression2 默认双算法),
+      // 配合 Nginx/Caddy static precompression 直发预压缩文件
+      compression({ include: /\.(js|css|html|svg|json)$/, algorithms: ['gzip', 'brotliCompress'] }),
+      // 产物体积分析:pnpm build --mode analyze → 生成 stats-report.html(取数后再定 warning 阈值)
+      ...(mode === 'analyze'
+        ? [
+            visualizer({
+              filename: fileURLToPath(new URL('./stats-report.html', import.meta.url)),
+              gzipSize: true,
+              brotliSize: true,
+            }),
+          ]
+        : []),
       // PWA：manifest + Workbox 离线壳（手机端响应式 Web 可安装/离线；Tauri 不受影响）
       VitePWA({
         registerType: 'autoUpdate',
@@ -66,8 +115,20 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
     build: {
       outDir: '../dist',
       emptyOutDir: true,
+      // es2020 保留:覆盖 Tauri WebView2 与现代浏览器(可选链/空值合并/逻辑赋值),不再下探
       target: 'es2020',
-      chunkSizeWarningLimit: 1500,
+      minify: 'esbuild',
+      sourcemap: false,
+      cssCodeSplit: true,
+      // 阈值按 pnpm analyze(stats-report.html)取数后定:最大合法异步 chunk 为
+      // vendor-echarts ~813KB(echarts core+按需注册,仅图表页加载),首屏最大 vendor-naive ~708KB
+      chunkSizeWarningLimit: 900,
+      rollupOptions: {
+        output: {
+          // Vite 6.4 起 build.manualChunks 不再生效,需挂在 rollupOptions.output
+          manualChunks,
+        },
+      },
     },
   }
 })

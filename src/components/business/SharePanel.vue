@@ -1,15 +1,15 @@
 <script setup lang="ts">
 /**
  * 分享面板(浮动 panel,居中悬浮于窗口之上):品牌邀请卡片(渐变背景 + 站点名 + 邀请码 + 二维码)
- * + 复制链接 + 下载图片(canvas 合成紫色邀请卡片为 PNG 供下载,纯前端实现)。
+ * + 复制链接 + 下载图片(canvas 合成紫色邀请卡片为 WebP 供下载,纯前端实现)。
  * 调用方:邀请页 InviteView(截图4);无契约接口(纯展示组件,链接/邀请码均由调用方传入)。
  * 用途:邀请注册链接等可打开的外部链接;深链 ylink:// 已由 main.ts/deeplink.ts 处理,此处分享的是 https 可访问地址。
- * 二维码用 qrcode 库,生成 512px 保证分享图片清晰;白块内固定深色码(不随暗色主题反色)。
+ * 二维码走 useQrCode 懒加载(qrcode 包不进首屏),生成 512px 保证分享图片清晰;白块内固定深色码(不随暗色主题反色)。
  */
 import { ref, watch } from 'vue'
 import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
-import QRCode from 'qrcode'
+import { useQrCode } from '@/composables/useQrCode'
 import { copyText } from '@/utils/platform'
 import { useConfigStore } from '@/stores/config'
 
@@ -30,9 +30,9 @@ const emit = defineEmits<{ (e: 'update:show', v: boolean): void }>()
 const message = useMessage()
 const { t } = useI18n()
 const config = useConfigStore()
+const { loading: qrLoading, failed: qrFailed, toDataURL: qrToDataURL } = useQrCode()
 
 const qrDataUrl = ref('')
-const qrFailed = ref(false)
 const retryTick = ref(0)
 
 // 二维码颜色固定:白块卡片背景恒为白色,不随主题变化(暗色下用 --c-text 会反色、扫码可靠性下降)
@@ -62,17 +62,11 @@ watch(
       qrFailed.value = false
       return
     }
-    qrFailed.value = false
-    try {
-      qrDataUrl.value = await QRCode.toDataURL(props.text, {
-        width: 512,
-        margin: 1,
-        color: { dark: QR_DARK, light: QR_LIGHT },
-      })
-    } catch {
-      qrDataUrl.value = ''
-      qrFailed.value = true
-    }
+    qrDataUrl.value = await qrToDataURL(props.text, {
+      width: 512,
+      dark: QR_DARK,
+      light: QR_LIGHT,
+    })
   },
 )
 
@@ -146,7 +140,7 @@ function drawCenteredText(
   ctx.textAlign = prevAlign
 }
 
-/** 用 canvas 把紫色邀请卡片(渐变背景 + 站点名 + 邀请码 + 二维码)合成为 PNG 并触发下载(纯前端) */
+/** 用 canvas 把紫色邀请卡片(渐变背景 + 站点名 + 邀请码 + 二维码)合成为图片并触发下载(纯前端) */
 async function onDownloadImage() {
   if (!qrDataUrl.value) {
     message.error(t('share.downloadFailed'))
@@ -204,22 +198,28 @@ async function onDownloadImage() {
   ctx.fillStyle = 'rgba(255,255,255,0.6)'
   drawCenteredText(ctx, props.text, 864, IMG_W - 96, 20)
 
-  canvas.toBlob((blob) => {
-    if (!blob) {
-      message.error(t('share.downloadFailed'))
-      return
-    }
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `ylink-invite-${props.code ?? 'card'}.png`
-    // 旧版 Safari/iOS 要求 anchor 挂载在 DOM 中才能触发下载
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    // Safari/iOS 在下载进行中回收 URL 会中止下载,延迟释放
-    setTimeout(() => URL.revokeObjectURL(url), 1000)
-  }, 'image/png')
+  // WebP q0.9 体积约为 PNG 的 1/5~1/10;不支持编码的旧浏览器按规范自动回退 PNG
+  canvas.toBlob(
+    (blob) => {
+      if (!blob) {
+        message.error(t('share.downloadFailed'))
+        return
+      }
+      const ext = blob.type === 'image/webp' ? 'webp' : 'png'
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `ylink-invite-${props.code ?? 'card'}.${ext}`
+      // 旧版 Safari/iOS 要求 anchor 挂载在 DOM 中才能触发下载
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      // Safari/iOS 在下载进行中回收 URL 会中止下载,延迟释放
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+    },
+    'image/webp',
+    0.9,
+  )
 }
 </script>
 
@@ -256,7 +256,16 @@ async function onDownloadImage() {
         <!-- 二维码白块 -->
         <div class="mt-4 flex justify-center">
           <div class="rounded-2xl bg-white p-3">
-            <img v-if="qrDataUrl" :src="qrDataUrl" alt="qr" class="h-52 w-52" />
+            <img
+              v-if="qrDataUrl"
+              :src="qrDataUrl"
+              alt="qr"
+              width="208"
+              height="208"
+              loading="lazy"
+              decoding="async"
+              class="h-52 w-52"
+            />
             <div
               v-else
               class="flex h-52 w-52 flex-col items-center justify-center gap-2 text-14 text-[var(--c-text-sub)]"
@@ -267,7 +276,7 @@ async function onDownloadImage() {
                   {{ t('common.retry') }}
                 </button>
               </template>
-              <span v-else>{{ t('common.loading') }}</span>
+              <span v-else-if="qrLoading">{{ t('common.loading') }}</span>
             </div>
           </div>
         </div>

@@ -16,9 +16,11 @@ const mocks = vi.hoisted(() => ({
 // 无 NMessageProvider 环境:useMessage 返回假消息对象;copyText 走假实现
 vi.mock('@/utils/platform', () => ({ copyText: mocks.copyText }))
 // jsdom 无 canvas 2D 实现,二维码统一返回假 dataURL,让下载逻辑走到画布分支
-vi.mock('qrcode', () => ({
-  default: { toDataURL: vi.fn(async () => 'data:image/png;base64,iVBORw0KGgo=') },
-}))
+// (useQrCode 动态 import 且解构命名导出,mock 需同时暴露 default 与命名导出)
+vi.mock('qrcode', () => {
+  const toDataURL = vi.fn(async () => 'data:image/png;base64,iVBORw0KGgo=')
+  return { default: { toDataURL }, toDataURL }
+})
 vi.mock('naive-ui', async (importOriginal) => {
   const actual = await importOriginal<typeof import('naive-ui')>()
   return {
@@ -155,6 +157,41 @@ describe('SharePanel 分享面板', () => {
       expect(revokeObjectURL).toHaveBeenCalledWith('blob:fake')
     } finally {
       vi.useRealTimers()
+      getCtx.mockRestore()
+      toBlob.mockRestore()
+      createObjectURL.mockRestore()
+      revokeObjectURL.mockRestore()
+      anchorClick.mockRestore()
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('WebP 编码可用时导出 .webp 文件名', async () => {
+    class FakeImage {
+      onload: (() => void) | null = null
+      onerror: (() => void) | null = null
+      set src(_: string) {
+        queueMicrotask(() => this.onload?.())
+      }
+    }
+    const ctxStub = makeCtxStub()
+    const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:fake')
+    const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockReturnValue()
+    const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    const getCtx = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctxStub)
+    const toBlob = vi
+      .spyOn(HTMLCanvasElement.prototype, 'toBlob')
+      .mockImplementation((cb) => cb(new Blob(['webp'], { type: 'image/webp' })))
+    vi.stubGlobal('Image', FakeImage)
+    try {
+      const w = await mountPanel()
+      const btn = w.findAll('button').find((b) => b.text().includes('下载图片'))
+      await btn!.trigger('click')
+      await flushPromises()
+      expect((anchorClick.mock.instances[0] as HTMLAnchorElement).download).toBe(
+        'ylink-invite-ABC123.webp',
+      )
+    } finally {
       getCtx.mockRestore()
       toBlob.mockRestore()
       createObjectURL.mockRestore()

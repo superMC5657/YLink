@@ -8,10 +8,10 @@ import { useOrderStore } from '@/stores/order'
 import { useUserStore } from '@/stores/user'
 import { useI18n } from 'vue-i18n'
 import { useCountdown } from '@/composables/useCountdown'
+import { useQrCode } from '@/composables/useQrCode'
 import { openExternal } from '@/utils/platform'
 import { notify } from '@/utils/notify'
 import { formatMoney, formatTime } from '@/utils/format'
-import QRCode from 'qrcode'
 import type { Order } from '@/types/api'
 
 const props = defineProps<{
@@ -27,6 +27,7 @@ const orderStore = useOrderStore()
 const userStore = useUserStore()
 const { t } = useI18n()
 const { remaining, start } = useCountdown(1800)
+const { toDataURL: qrToDataURL } = useQrCode()
 
 const phase = ref<'loading' | 'qrcode' | 'url' | 'paid' | 'error'>('loading')
 const qrDataUrl = ref('')
@@ -69,14 +70,16 @@ async function initCheckout() {
       phase.value = 'url'
       start(resp.expire_in || 1800)
     } else {
-      const dataUrl = await QRCode.toDataURL(resp.content ?? '', {
+      const dataUrl = await qrToDataURL(resp.content ?? '', {
         width: 220,
-        margin: 1,
-        color: {
-          dark: resolveCssVar('--c-text', '#1F2430'),
-          light: resolveCssVar('--c-bg-card', '#FFFFFF'),
-        },
+        dark: resolveCssVar('--c-text', '#1F2430'),
+        light: resolveCssVar('--c-bg-card', '#FFFFFF'),
       })
+      if (!dataUrl) {
+        // 二维码生成失败(内容超长等),与接口错误同走错误态 UI
+        phase.value = 'error'
+        return
+      }
       qrDataUrl.value = dataUrl
       phase.value = 'qrcode'
       start(resp.expire_in || 1800)
@@ -157,7 +160,15 @@ onBeforeUnmount(stopPolling)
     <!-- 二维码 -->
     <div v-else-if="phase === 'qrcode'" class="flex flex-col items-center gap-4 py-2">
       <div class="rounded-2xl border border-[var(--c-border)] p-3">
-        <img :src="qrDataUrl" alt="qr" class="h-55 w-55" />
+        <img
+          :src="qrDataUrl"
+          alt="qr"
+          width="220"
+          height="220"
+          loading="lazy"
+          decoding="async"
+          class="h-55 w-55"
+        />
       </div>
       <p class="text-14 text-[var(--c-text-sub)]">{{ t('plan.qrcodeTip') }}</p>
       <div

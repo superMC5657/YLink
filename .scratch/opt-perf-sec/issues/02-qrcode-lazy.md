@@ -15,6 +15,10 @@ Type: task
 
 ## Done
 
-- 首屏 vendor 减小；`pnpm lint/typecheck` + 相关 vitest 通过；弹窗二维码扫码可用。
+- [x] 退守方案落地:`useQrCode.ts` 动态 `import('qrcode')` + loading/failed 态,PaymentModal/SharePanel 两处复用;`qrcode` 移入弹窗异步 chunk,首屏不再包含。
+- [x] SharePanel 邀请卡导出改 WebP q0.9(不支持的浏览器按规范自动回退 PNG,文件名按 blob.type 定扩展名);两处二维码 `<img>` 补 width/height/loading=lazy/decoding=async。
+- [x] `pnpm lint`/`typecheck` + vitest 23 用例(新增 useQrCode 3 例 + SharePanel webp 命名 1 例)全绿;`pnpm build:web` 产物确认 qrcode 仅存在于 PaymentModal 异步 chunk。
 
 ## Comments
+
+- 未选 NQrCode 首选方案:SharePanel 需将二维码作为位图绘入 canvas 合成邀请卡,NQrCode 只渲染内联 SVG/组件,无法直接产出 dataURL,强行序列化 SVG 反而引入脆弱路径;故保留 `qrcode` 依赖但动态加载,两弹窗打开时才拉取。

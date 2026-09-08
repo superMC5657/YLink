@@ -77,6 +77,7 @@ type UserProfileResp struct {
 	RemindExpire  bool `json:"remind_expire"`
 	RemindTraffic bool `json:"remind_traffic"`
 	TelegramBound bool `json:"telegram_bound"` // F12 是否已绑定 Telegram
+	Role          int  `json:"role"`         // 当前用户角色(0=普通,1=管理员,2=代理),前端守卫核实用
 }
 
 type UserStatResp struct {

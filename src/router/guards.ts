@@ -6,10 +6,11 @@ import { i18n } from '@/i18n'
  * 登录守卫:
  * - guest 页:已登录 → 管理员 /portal / 普通用户 /dashboard
  * - 其余:未登录 → /login?redirect=原路径
- * - meta.admin:非管理员(role=1)重定向 /dashboard
+ * - meta.admin:先向服务端核实 role(每会话一次,防持久化 user 过期),
+ *   非管理员访问 /admin/* 进 /403;门户分流页保持仪表板兜底(A6)。
  */
 export function setupGuards(router: Router): void {
-  router.beforeEach((to) => {
+  router.beforeEach(async (to) => {
     const auth = useAuthStore()
     const loggedIn = auth.isLoggedIn
 
@@ -25,9 +26,15 @@ export function setupGuards(router: Router): void {
       }
     }
 
-    // 管理端页面:非管理员(role=1)重定向仪表板
-    if (to.meta.admin && !auth.isAdmin) {
-      return { name: 'dashboard' }
+    // 管理端页面:放行前核实 role;核实过程中会话失效(静默刷新失败)则回登录页
+    if (to.meta.admin) {
+      await auth.ensureRole()
+      if (!auth.isLoggedIn) {
+        return { name: 'login', query: { redirect: to.fullPath } }
+      }
+      if (!auth.isAdmin) {
+        return to.name === 'portal' ? { name: 'dashboard' } : { name: 'forbidden' }
+      }
     }
     return true
   })

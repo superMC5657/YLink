@@ -198,11 +198,11 @@
 
 ### 5.2 通知设置
 
-`GET /user/profile` — 读取通知设置；响应：`data` 为 `{ "remind_expire": bool, "remind_traffic": bool, "telegram_bound": bool }`（`telegram_bound` 为 F12 Telegram 绑定状态）。
+`GET /user/profile` — 读取通知设置与当前用户角色；响应：`data` 为 `{ "remind_expire": bool, "remind_traffic": bool, "telegram_bound": bool, "role": int }`（`telegram_bound` 为 F12 Telegram 绑定状态；`role` 为当前用户角色 0=普通/1=管理员/2=代理，前端路由守卫在放行管理路径前据此核实，见 guards.ts）。
 
 `PUT /user/profile`
 
-请求：`{ "remind_expire": true, "remind_traffic": false }`；响应：`data` 为更新后的完整设置对象。
+请求：`{ "remind_expire": true, "remind_traffic": false }`；响应：`data` 为更新后的完整设置对象（含 `role`）。
 
 ### 5.3 修改密码
 

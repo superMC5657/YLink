@@ -147,6 +147,8 @@ export interface ProfileResp {
   remind_expire: boolean
   remind_traffic: boolean
   telegram_bound?: boolean
+  /** 当前用户角色(0=普通,1=管理员,2=代理):路由守卫放行管理路径前核实 */
+  role: number
 }
 
 // ---------- 用户端 · Telegram 绑定（F12） ----------

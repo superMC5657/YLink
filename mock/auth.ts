@@ -9,6 +9,10 @@ import type { MockMethod } from 'vite-plugin-mock'
 let accessSeq = 0
 let refreshSeq = 0
 
+/** 管理员的 refresh token 集合(同文件内登录/刷新共享状态,跨文件才不共享):
+ *  管理员刷新后仍签发 admin 前缀 access,否则静默刷新会把管理员降级成普通 token */
+const adminRefreshTokens = new Set<string>()
+
 function issueTokens(_userId: number) {
   return {
     accessToken: `mock-access-${++accessSeq}-${Date.now()}`,
@@ -56,6 +60,7 @@ export default [
           accessToken: `mock-admin-access-${++accessSeq}-${Date.now()}`,
           refreshToken: `mock-refresh-${++refreshSeq}-${Date.now()}`,
         }
+        adminRefreshTokens.add(t.refreshToken)
         return {
           code: 0,
           message: 'ok',
@@ -116,7 +121,12 @@ export default [
       if (!body?.refresh_token?.startsWith('mock-refresh-')) {
         return { code: 40100, message: '登录已过期', data: null }
       }
-      const t = issueTokens(USER.id)
+      // 管理员 refresh 原样续签 admin 前缀 access(角色随会话保持,与后端 issueSession 语义一致)
+      const accessToken = adminRefreshTokens.has(body.refresh_token)
+        ? `mock-admin-access-${++accessSeq}-${Date.now()}`
+        : `mock-access-${++accessSeq}-${Date.now()}`
+      const t = { accessToken, refreshToken: `mock-refresh-${++refreshSeq}-${Date.now()}` }
+      if (adminRefreshTokens.has(body.refresh_token)) adminRefreshTokens.add(t.refreshToken)
       return {
         code: 0,
         message: 'ok',

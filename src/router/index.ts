@@ -246,6 +246,12 @@ const routes: RouteRecordRaw[] = [
     ],
   },
   {
+    path: '/403',
+    name: 'forbidden',
+    component: () => import('@/views/ForbiddenView.vue'),
+    meta: { title: 'forbidden.title' },
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'not-found',
     component: () => import('@/views/NotFoundView.vue'),

@@ -6,7 +6,8 @@ import type { Page } from '@playwright/test'
  * - 管理员登录落点为门户分流页 #/portal,双卡片二选一(用户中心/管理后台);
  * - 管理端(AdminLayout)侧边栏/移动抽屉只含 13 项管理菜单,底部「返回用户中心」;
  * - 用户端侧边栏/抽屉不再出现管理菜单,管理员通过底部按钮/顶栏下拉进入管理端;
- * - 普通用户不可见管理入口,访问 /admin/* 与 /portal 均重定向 /dashboard。
+ * - 普通用户不可见管理入口,访问 /admin/* 进 403 页(守卫经 /user/profile 核实 role),
+ *   /portal 保持重定向 /dashboard;普通 token 调 /admin 接口后端返回 40300。
  * Mock 管理员:admin@example.com / Admin@123456(见 mock/auth.ts)。
  */
 async function loginAs(page: Page, email: string, password: string) {
@@ -143,9 +144,22 @@ test.describe('角色区分(普通用户)', () => {
     await expect(authedPage.getByText('用户管理')).toBeHidden()
   })
 
-  test('普通用户直接访问 admin 页面被重定向到仪表板', async ({ authedPage }) => {
+  test('普通用户直接访问 admin 页面进入 403 页', async ({ authedPage }) => {
+    // 守卫先经 /user/profile 核实 role(401 → 静默刷新 → mock-access → role=0),再进 403
     await authedPage.goto('/#/admin/overview')
-    await expect(authedPage).toHaveURL(/#\/dashboard/)
+    await expect(authedPage).toHaveURL(/#\/403/)
+    await expect(authedPage.getByText('无权访问')).toBeVisible()
+  })
+
+  test('普通 token 调 /admin 接口返回 40300(mock 对齐后端 RequireRole)', async ({ authedPage }) => {
+    const code = await authedPage.evaluate(async () => {
+      const resp = await fetch('/api/v1/admin/stat/overview', {
+        headers: { Authorization: 'Bearer mock-access-normal-user' },
+      })
+      const json = (await resp.json()) as { code: number }
+      return json.code
+    })
+    expect(code).toBe(40300)
   })
 
   test('普通用户访问门户页被重定向到仪表板(A6)', async ({ authedPage }) => {

@@ -5,8 +5,9 @@ function ok(data: unknown) {
   return { code: 0, message: 'ok', data }
 }
 
-function unauthorized() {
-  return { code: 40100, message: '未登录或 token 失效', data: null }
+/** 非管理员调管理接口:与后端 RequireRole 一致返回 40300(而非 40100) */
+function forbidden() {
+  return { code: 40300, message: '无权限操作', data: null }
 }
 
 // 管理端 Mock(契约 docs/api/README.md §16);vite-plugin-mock 按文件独立编译,
@@ -641,7 +642,7 @@ export default [
     url: '/api/v1/admin/stat/overview',
     method: 'get',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok(overview)
     },
   },
@@ -656,7 +657,7 @@ export default [
       headers: Record<string, string>
       query: Record<string, string>
     }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       const page = Number(query.page ?? 1)
       const pageSize = Number(query.page_size ?? 20)
       const adminId = query.admin_id
@@ -687,7 +688,7 @@ export default [
       headers: Record<string, string>
       query: Record<string, string>
     }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       const page = Number(query.page ?? 1)
       const pageSize = Number(query.page_size ?? 10)
       const kw = (query.keyword ?? '').toLowerCase()
@@ -699,7 +700,7 @@ export default [
     url: '/api/v1/admin/plans',
     method: 'get',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok({ list: plans })
     },
   },
@@ -707,7 +708,7 @@ export default [
     url: '/api/v1/admin/server-groups',
     method: 'get',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok({ list: serverGroups })
     },
   },
@@ -715,7 +716,7 @@ export default [
     url: '/api/v1/admin/servers',
     method: 'get',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok({ list: servers })
     },
   },
@@ -730,7 +731,7 @@ export default [
       headers: Record<string, string>
       body: { action?: string; ids?: number[] }
     }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       const ids = body.ids ?? []
       if (!body.action || ids.length === 0) {
         return { code: 40000, message: '参数校验失败: action/ids 必填', data: null }
@@ -759,7 +760,7 @@ export default [
       headers: Record<string, string>
       body: { items?: { id: number; sort: number }[] }
     }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       for (const it of body.items ?? []) {
         const s = servers.find((x) => x.id === it.id)
         if (s) s.sort = it.sort
@@ -771,7 +772,7 @@ export default [
     url: '/api/v1/admin/servers/:id/copy',
     method: 'post',
     response: ({ headers, query }: { headers: Record<string, string>; query: { id?: string } }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       const src = servers.find((s) => s.id === Number(query.id))
       if (!src) return { code: 40400, message: '节点不存在', data: null }
       const arr = new Uint8Array(16)
@@ -790,7 +791,7 @@ export default [
     url: '/api/v1/admin/servers/:id/node-key/reset',
     method: 'post',
     response: ({ headers, query }: { headers: Record<string, string>; query: { id?: string } }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       const srv = servers.find((s) => s.id === Number(query.id))
       if (!srv) return { code: 40400, message: '节点不存在', data: null }
       const arr = new Uint8Array(16)
@@ -809,7 +810,7 @@ export default [
       headers: Record<string, string>
       query: Record<string, string>
     }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       const page = Number(query.page ?? 1)
       const pageSize = Number(query.page_size ?? 10)
       const status = query.status
@@ -830,7 +831,7 @@ export default [
       headers: Record<string, string>
       query: { order_no?: string }
     }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       const order = orders.find((o) => o.order_no === query.order_no)
       if (!order) return { code: 40400, message: '订单不存在', data: null }
       if (order.status !== 1) return { code: 40000, message: '仅已完成订单可退款', data: null }
@@ -848,7 +849,7 @@ export default [
       headers: Record<string, string>
       query: { order_no?: string }
     }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       const order = orders.find((o) => o.order_no === query.order_no)
       if (!order) return { code: 40400, message: '订单不存在', data: null }
       if (order.status !== 0) return { code: 40000, message: '仅待支付订单可关闭', data: null }
@@ -866,7 +867,7 @@ export default [
       headers: Record<string, string>
       query: Record<string, string>
     }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       const page = Number(query.page ?? 1)
       const pageSize = Number(query.page_size ?? 10)
       return ok(paged(tickets, page, pageSize))
@@ -876,7 +877,7 @@ export default [
     url: '/api/v1/admin/tickets/:id',
     method: 'get',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok(ticketDetail)
     },
   },
@@ -884,7 +885,7 @@ export default [
     url: '/api/v1/admin/tickets/:id/reply',
     method: 'post',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok(null)
     },
   },
@@ -892,7 +893,7 @@ export default [
     url: '/api/v1/admin/tickets/:id/close',
     method: 'post',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok(null)
     },
   },
@@ -902,7 +903,7 @@ export default [
     url: '/api/v1/admin/coupons',
     method: 'get',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok({ list: coupons })
     },
   },
@@ -916,7 +917,7 @@ export default [
       headers: Record<string, string>
       body: Record<string, unknown>
     }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       if (!body.code || typeof body.value !== 'number' || body.value <= 0) {
         return { code: 40000, message: '参数校验失败: code 必填且 value 须为正数', data: null }
       }
@@ -952,7 +953,7 @@ export default [
       query: { id?: string }
       body: Record<string, unknown>
     }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       const c = coupons.find((x) => String(x.id) === query.id)
       if (!c) return { code: 40400, message: '优惠券不存在', data: null }
       if (!body.code || typeof body.value !== 'number' || body.value <= 0) {
@@ -978,7 +979,7 @@ export default [
     url: '/api/v1/admin/coupons/:id',
     method: 'delete',
     response: ({ headers, query }: { headers: Record<string, string>; query: { id?: string } }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       const idx = coupons.findIndex((x) => String(x.id) === query.id)
       if (idx < 0) return { code: 40400, message: '优惠券不存在', data: null }
       coupons.splice(idx, 1)
@@ -991,7 +992,7 @@ export default [
     url: '/api/v1/admin/knowledges',
     method: 'get',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok({ list: knowledges })
     },
   },
@@ -1012,7 +1013,7 @@ export default [
         sort?: number
       }
     }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       if (!body.category || !body.title || !body.body) {
         return { code: 40000, message: '参数校验失败: category/title/body 必填', data: null }
       }
@@ -1049,7 +1050,7 @@ export default [
         sort?: number
       }
     }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       const k = knowledges.find((x) => String(x.id) === query.id)
       if (!k) return { code: 40400, message: '知识库条目不存在', data: null }
       Object.assign(k, {
@@ -1067,7 +1068,7 @@ export default [
     url: '/api/v1/admin/knowledges/:id',
     method: 'delete',
     response: ({ headers, query }: { headers: Record<string, string>; query: { id?: string } }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       const idx = knowledges.findIndex((x) => String(x.id) === query.id)
       if (idx < 0) return { code: 40400, message: '知识库条目不存在', data: null }
       knowledges.splice(idx, 1)
@@ -1086,7 +1087,7 @@ export default [
       headers: Record<string, string>
       query: Record<string, string>
     }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       const page = Number(query.page ?? 1)
       const pageSize = Number(query.page_size ?? 10)
       const status = query.status
@@ -1101,7 +1102,7 @@ export default [
     url: '/api/v1/admin/agent/applies/:id/approve',
     method: 'post',
     response: ({ headers, query }: { headers: Record<string, string>; query: { id?: string } }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       const a = agentApplies.find((x) => String(x.id) === query.id)
       if (!a) return { code: 40400, message: '申请不存在', data: null }
       if (a.status !== 0) return { code: 40900, message: '该申请已处理', data: null }
@@ -1113,7 +1114,7 @@ export default [
     url: '/api/v1/admin/agent/applies/:id/reject',
     method: 'post',
     response: ({ headers, query }: { headers: Record<string, string>; query: { id?: string } }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       const a = agentApplies.find((x) => String(x.id) === query.id)
       if (!a) return { code: 40400, message: '申请不存在', data: null }
       if (a.status !== 0) return { code: 40900, message: '该申请已处理', data: null }
@@ -1133,7 +1134,7 @@ export default [
       headers: Record<string, string>
       query: Record<string, string>
     }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       const page = Number(query.page ?? 1)
       const pageSize = Number(query.page_size ?? 10)
       const status = query.status
@@ -1156,7 +1157,7 @@ export default [
       headers: Record<string, string>
       body: { items?: unknown[] }
     }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       if (!body.items || body.items.length === 0) {
         return { code: 40000, message: '参数校验失败: items 至少 1 项', data: null }
       }
@@ -1173,7 +1174,7 @@ export default [
       headers: Record<string, string>
       body: { user_ids?: number[]; mode?: string }
     }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       const ids = body.user_ids ?? []
       if (ids.length === 0 || !body.mode) {
         return { code: 40000, message: '参数校验失败: user_ids/mode 必填', data: null }
@@ -1206,7 +1207,7 @@ export default [
       headers: Record<string, string>
       query: Record<string, string>
     }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       const page = Number(query.page ?? 1)
       const pageSize = Number(query.page_size ?? 10)
       const uid = query.user_id
@@ -1221,7 +1222,7 @@ export default [
     url: '/api/v1/admin/stat/orders',
     method: 'get',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok(statOrders)
     },
   },
@@ -1229,7 +1230,7 @@ export default [
     url: '/api/v1/admin/stat/users',
     method: 'get',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok(statUsers)
     },
   },
@@ -1237,7 +1238,7 @@ export default [
     url: '/api/v1/admin/stat/traffic',
     method: 'get',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok(statTraffic)
     },
   },
@@ -1247,7 +1248,7 @@ export default [
     url: '/api/v1/admin/settings',
     method: 'get',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok({ list: settings })
     },
   },
@@ -1261,7 +1262,7 @@ export default [
       headers: Record<string, string>
       body: { key?: string; value?: string }
     }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       if (!body.key || typeof body.value !== 'string') {
         return { code: 40000, message: '参数校验失败: key/value 必填', data: null }
       }
@@ -1280,7 +1281,7 @@ export default [
     url: '/api/v1/admin/tickets/:id/withdraw/pay',
     method: 'post',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok(null)
     },
   },
@@ -1288,7 +1289,7 @@ export default [
     url: '/api/v1/admin/tickets/:id/withdraw/reject',
     method: 'post',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok(null)
     },
   },
@@ -1298,7 +1299,7 @@ export default [
     url: '/api/v1/admin/notices/sort',
     method: 'post',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok(null)
     },
   },
@@ -1306,7 +1307,7 @@ export default [
     url: '/api/v1/admin/knowledges/sort',
     method: 'post',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok(null)
     },
   },
@@ -1316,7 +1317,7 @@ export default [
     url: '/api/v1/admin/knowledge-categories',
     method: 'get',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok({
         list: [
           { id: 1, language: 'zh-CN', name: '入门指南', sort: 0, knowledge_count: 2 },
@@ -1336,7 +1337,7 @@ export default [
       headers: Record<string, string>
       body: { language?: string; name?: string }
     }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok({
         id: Date.now(),
         language: body.language ?? 'zh-CN',
@@ -1349,7 +1350,7 @@ export default [
     url: '/api/v1/admin/knowledge-categories/:id',
     method: 'put',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok(null)
     },
   },
@@ -1357,7 +1358,7 @@ export default [
     url: '/api/v1/admin/knowledge-categories/:id',
     method: 'delete',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok(null)
     },
   },
@@ -1367,7 +1368,7 @@ export default [
     url: '/api/v1/admin/mail-templates',
     method: 'get',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok({
         list: [
           {
@@ -1405,7 +1406,7 @@ export default [
     url: '/api/v1/admin/mail-templates/:name',
     method: 'put',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok(null)
     },
   },
@@ -1413,7 +1414,7 @@ export default [
     url: '/api/v1/admin/mail-templates/:name',
     method: 'delete',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok(null)
     },
   },
@@ -1421,7 +1422,7 @@ export default [
     url: '/api/v1/admin/mail-templates/:name/test',
     method: 'post',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok(null)
     },
   },
@@ -1431,7 +1432,7 @@ export default [
     url: '/api/v1/admin/subscription-templates',
     method: 'get',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok({
         list: [
           {
@@ -1473,7 +1474,7 @@ export default [
     url: '/api/v1/admin/subscription-templates/:name',
     method: 'put',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok(null)
     },
   },
@@ -1481,7 +1482,7 @@ export default [
     url: '/api/v1/admin/subscription-templates/:name',
     method: 'delete',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok(null)
     },
   },
@@ -1489,7 +1490,7 @@ export default [
     url: '/api/v1/admin/subscription-templates/:name/preview',
     method: 'post',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok({
         name: 'clash',
         content:
@@ -1503,7 +1504,7 @@ export default [
     url: '/api/v1/admin/telegram/webhook/setup',
     method: 'post',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok({
         webhook_url: 'https://demo.example.com/api/v1/telegram/webhook',
         message: 'webhook 注册成功',
@@ -1516,7 +1517,7 @@ export default [
     url: '/api/v1/admin/version',
     method: 'get',
     response: ({ headers }: { headers: Record<string, string> }) => {
-      if (!verifyAdmin(headers)) return unauthorized()
+      if (!verifyAdmin(headers)) return forbidden()
       return ok({
         version: '0.4.1',
         latest: null,

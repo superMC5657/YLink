@@ -398,6 +398,11 @@ export default {
     desc: '你访问的页面不存在或已被移除',
     backHome: '返回首页',
   },
+  forbidden: {
+    title: '无权访问',
+    desc: '当前账号没有访问该页面的权限',
+    back: '返回仪表板',
+  },
   network: {
     offline: '网络已断开,正在尝试重连…',
     online: '网络已恢复',

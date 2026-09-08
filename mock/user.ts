@@ -4,6 +4,7 @@ import type {
   KnowledgeDetail,
   KnowledgeGroup,
   Plan,
+  ProfileUpdateReq,
   SubscribeInfo,
   TrafficLog,
 } from '../src/types/api'
@@ -185,15 +186,20 @@ export default [
     method: 'get',
     response: ({ headers }: { headers: Record<string, string> }) => {
       if (!verifyAccess(headers)) return unauthorized()
-      return ok({ remind_expire: true, remind_traffic: false, telegram_bound: false })
+      // role 随 token 前缀区分(与 mock/auth.ts 签发一致):管理端守卫核实用
+      const auth = headers?.authorization ?? headers?.Authorization ?? ''
+      const role = auth.startsWith('Bearer mock-admin-access-') ? 1 : 0
+      return ok({ remind_expire: true, remind_traffic: false, telegram_bound: false, role })
     },
   },
   {
     url: '/api/v1/user/profile',
     method: 'put',
-    response: ({ headers, body }: { headers: Record<string, string>; body: unknown }) => {
+    response: ({ headers, body }: { headers: Record<string, string>; body: ProfileUpdateReq }) => {
       if (!verifyAccess(headers)) return unauthorized()
-      return ok(body)
+      const auth = headers?.authorization ?? headers?.Authorization ?? ''
+      const role = auth.startsWith('Bearer mock-admin-access-') ? 1 : 0
+      return ok({ ...body, telegram_bound: false, role })
     },
   },
   // Telegram 绑定（F12）

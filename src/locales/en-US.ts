@@ -400,6 +400,11 @@ export default {
     desc: 'The page you visited does not exist or was removed',
     backHome: 'Back to home',
   },
+  forbidden: {
+    title: 'Access denied',
+    desc: 'Your account does not have permission to access this page',
+    back: 'Back to dashboard',
+  },
   network: {
     offline: 'Network disconnected, reconnecting…',
     online: 'Network restored',

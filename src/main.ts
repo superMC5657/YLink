@@ -30,7 +30,7 @@ import {
 import 'uno.css'
 
 import App from './App.vue'
-import router from './router'
+import router, { prefetchAdminHeavyViews } from './router'
 import { setupGuards } from './router/guards'
 import { i18n } from './i18n'
 import { useAppStore } from './stores/app'
@@ -120,6 +120,8 @@ async function bootstrap() {
 
   setupGuards(router)
   app.use(router)
+  // 管理员空闲预取重页面 chunk(普通用户跳过);等待初始导航完成后再读 role
+  void router.isReady().then(() => prefetchAdminHeavyViews(auth.isAdmin))
 
   // Tauri 深链接:ylink://plans → 路由 /plans(desktop-tauri.md §4)
   onDeepLink((url) => {

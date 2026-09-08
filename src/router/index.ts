@@ -1,8 +1,14 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
-import MainLayout from '@/layouts/MainLayout.vue'
-import AdminLayout from '@/layouts/AdminLayout.vue'
-import AuthLayout from '@/layouts/AuthLayout.vue'
+
+/**
+ * layouts 懒加载:三个布局壳不进首屏 entry,按路由匹配并行加载各自 chunk
+ * (AdminLayout 仅管理员进入后台时拉取,普通用户首屏不再为其买单)。
+ * chunk 命名:Vite/Rollup 默认按模块名产出 AdminLayout-<hash>.js 等,无需 webpackChunkName 注释。
+ */
+const AuthLayout = () => import('@/layouts/AuthLayout.vue')
+const MainLayout = () => import('@/layouts/MainLayout.vue')
+const AdminLayout = () => import('@/layouts/AdminLayout.vue')
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -252,5 +258,19 @@ const router = createRouter({
   routes,
   scrollBehavior: () => ({ top: 0 }),
 })
+
+/**
+ * 空闲预取管理端重页面 chunk(仅管理员):reports(5 图表)/users(大表格)进入时
+ * 零等待;普通用户不预取。在 router.isReady 后调用(需 pinia 已激活读 role)。
+ */
+export function prefetchAdminHeavyViews(isAdmin: boolean): void {
+  if (!isAdmin) return
+  const prefetch = (): void => {
+    void import('@/views/admin/AdminReportsView.vue')
+    void import('@/views/admin/AdminUsersView.vue')
+  }
+  if (typeof requestIdleCallback === 'function') requestIdleCallback(prefetch, { timeout: 3000 })
+  else setTimeout(prefetch, 1500)
+}
 
 export default router

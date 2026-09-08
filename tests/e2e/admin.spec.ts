@@ -243,6 +243,19 @@ test.describe('统计报表(F04)', () => {
     await expect(page.getByText('营收与退款趋势')).toBeVisible()
     await expect(page.getByText(/实线为现金部分、虚线为余额部分/)).toBeVisible()
 
+    // 图表按视口懒初始化(useEcharts whenVisible):布局滚动容器是 main.overflow-y-auto,
+    // 逐屏滚动让 5 张图全部进入过视口(window 不滚动,故不能用 window.scrollTo)
+    await page.evaluate(async () => {
+      const scroller = document.querySelector('main.overflow-y-auto')
+      if (!scroller) return
+      const step = scroller.clientHeight * 0.8
+      for (let y = 0; y <= scroller.scrollHeight; y += step) {
+        scroller.scrollTo(0, y)
+        await new Promise((r) => setTimeout(r, 100))
+      }
+      scroller.scrollTo(0, 0)
+    })
+
     // 5 张图表容器均有内容渲染
     await expect(page.locator('canvas')).toHaveCount(5)
 

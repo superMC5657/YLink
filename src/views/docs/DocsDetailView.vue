@@ -1,15 +1,14 @@
 <script setup lang="ts">
 /**
- * 文档详情:Markdown 渲染(markdown-it + DOMPurify + 代码高亮),顶部返回。
+ * 文档详情:Markdown 渲染(utils/markdown renderMarkdown:懒加载 + DOMPurify 净化 + 代码高亮),顶部返回。
  * 数据:GET /knowledges/{id}(docs/api/README.md §7.2)
  */
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useKnowledgeStore } from '@/stores/knowledge'
 import { formatTime } from '@/utils/format'
+import { renderMarkdown } from '@/utils/markdown'
 import { useI18n } from 'vue-i18n'
-import MarkdownIt from 'markdown-it'
-import DOMPurify from 'dompurify'
 
 const route = useRoute()
 const router = useRouter()
@@ -18,21 +17,22 @@ const { t } = useI18n()
 
 const loading = ref(true)
 
-const md = new MarkdownIt({
-  html: false,
-  linkify: true,
-  breaks: true,
-  highlight: (_lang: string, str: string) => {
-    // 代码高亮一期使用简单转义 + 行号容器,后续可接入 highlight.js
-    const escaped = str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    return `<pre class="code-block"><code>${escaped}</code></pre>`
-  },
-})
-
 const article = computed(() => knowledge.detail)
 
-const rendered = computed(() =>
-  article.value ? DOMPurify.sanitize(md.render(article.value.body)) : '',
+/** 渲染后的安全 HTML(统一走 renderMarkdown 单例,markdown-it 懒加载 + XSS 净化) */
+const rendered = ref('')
+watch(
+  () => article.value?.body,
+  async (body) => {
+    if (!body) {
+      rendered.value = ''
+      return
+    }
+    const html = await renderMarkdown(body)
+    // 等待期间文章可能已切换,过期结果不写回
+    if (article.value?.body === body) rendered.value = html
+  },
+  { immediate: true },
 )
 
 onMounted(async () => {

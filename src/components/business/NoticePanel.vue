@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * 公告面板:手风琴列表(图标/标题/时间/展开),markdown-it 渲染 + DOMPurify 过滤。
+ * 公告面板:手风琴列表(图标/标题/时间/展开),正文走 utils/markdown renderMarkdown(懒加载+XSS 净化)。
  * 数据:GET /notices?page_size=10(docs/api/README.md §6)
  * 优惠码约定:正文中用反引号包裹的大写「字母+数字」串(如 `618SALE`)渲染为高亮 chip,
  * 点击一键复制;与管理端发布公告共享同一数据源(mock/notices.ts,真实后端天然一致)。
@@ -8,30 +8,41 @@
 import { onMounted, ref } from 'vue'
 import { useNoticeStore } from '@/stores/notice'
 import { fromNow } from '@/utils/format'
+import { renderMarkdown } from '@/utils/markdown'
 import { copyText } from '@/utils/platform'
 import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
-import MarkdownIt from 'markdown-it'
-import DOMPurify from 'dompurify'
 
 const notice = useNoticeStore()
 const message = useMessage()
 const { t } = useI18n()
 const expandedId = ref<number | null>(null)
+/** 展开项渲染后的安全 HTML(单开手风琴,一次只渲染一条;markdown-it 懒加载异步产出) */
+const expandedHtml = ref('')
 
-const md = new MarkdownIt({ html: false, linkify: true, breaks: true })
-
-/** 匹配反引号包裹、同时含字母和数字的 4-20 位大写 token(优惠码形态) */
+/**
+ * 优惠码 chip 白名单:仅大写字母/数字/连字符 4-20 位(不含引号/尖括号等注入字符),
+ * 先过白名单再拼 HTML,属性注入不可能成立;不合白名单保留原 <code> 渲染。
+ */
 const COUPON_RE = /<code>((?=[A-Z0-9-]{4,20})(?=.*[A-Z])(?=.*\d)[A-Z0-9-]+)<\/code>/g
+const CODE_WHITELIST_RE = /^[A-Z0-9-]{4,20}$/
 
-function renderHtml(content: string): string {
-  let html = md.render(content)
-  html = html.replace(
-    COUPON_RE,
-    (_, code: string) =>
-      `<code class="coupon-code" data-code="${code}" title="${t('plan.couponTapToCopy')}">${code}</code>`,
-  )
-  return DOMPurify.sanitize(html)
+/** 渲染 + 白名单校验后追加优惠码 chip(在净化后执行,chip 内容已被白名单约束) */
+function decorateCouponChips(html: string): string {
+  const title = t('plan.couponTapToCopy').replace(/"/g, '&quot;')
+  return html.replace(COUPON_RE, (matched, code: string) => {
+    if (!CODE_WHITELIST_RE.test(code)) return matched
+    return `<code class="coupon-code" data-code="${code}" title="${title}">${code}</code>`
+  })
+}
+
+/** 展开时异步渲染公告正文(统一走 renderMarkdown 单例,含 XSS 净化) */
+async function expand(id: number, content: string) {
+  expandedId.value = id
+  expandedHtml.value = ''
+  const html = await renderMarkdown(content)
+  // 展开项可能在等待期间被切换,过期结果不写回
+  if (expandedId.value === id) expandedHtml.value = decorateCouponChips(html)
 }
 
 /** 点击优惠码 chip → 复制 */
@@ -45,8 +56,13 @@ function onContentClick(e: MouseEvent) {
   })
 }
 
-function toggle(id: number) {
-  expandedId.value = expandedId.value === id ? null : id
+function toggle(id: number, content: string) {
+  if (expandedId.value === id) {
+    expandedId.value = null
+    expandedHtml.value = ''
+  } else {
+    void expand(id, content)
+  }
 }
 
 onMounted(() => {
@@ -71,7 +87,7 @@ onMounted(() => {
         <div v-for="item in notice.list" :key="item.id" class="py-3.5">
           <button
             class="flex w-full cursor-pointer items-center justify-between gap-3 text-left"
-            @click="toggle(item.id)"
+            @click="toggle(item.id, item.content)"
           >
             <span class="min-w-0 flex-1 truncate text-14 font-500 text-[var(--c-text)]">
               {{ item.title }}
@@ -95,7 +111,7 @@ onMounted(() => {
             <div
               class="markdown-body text-14 text-[var(--c-text)]"
               @click="onContentClick"
-              v-html="renderHtml(item.content)"
+              v-html="expandedHtml"
             />
           </div>
         </div>

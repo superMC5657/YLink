@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import PlanCard from '@/components/business/PlanCard.vue'
 import PriceText from '@/components/ui/PriceText.vue'
@@ -57,10 +57,13 @@ describe('PlanCard 套餐卡片', () => {
 
   it('Markdown 正文渲染，脚本标签不生效', async () => {
     const w = await mountPlan()
+    // 正文走 renderMarkdown 异步懒加载(首次需加载 markdown-it 模块),轮询等待渲染完成
+    await vi.waitFor(() => {
+      expect(w.html()).toContain('<strong>高速</strong>')
+    })
     const html = w.html()
-    expect(html).toContain('<strong>高速</strong>')
     // DOMPurify 不允许 script 元素：不出现真实 <script> 标签
     expect(html).not.toContain('<script')
-    expect(html).not.toContain('onerror')
+    expect(html).not.toContain('onerror=')
   })
 })

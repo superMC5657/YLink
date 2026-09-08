@@ -16,6 +16,13 @@ Type: task
 
 ## Done
 
-- dashboard/plans 首屏减小；`pnpm test` XSS 用例全绿；coupon 复制正常。
+- [x] `src/utils/markdown.ts: renderMarkdown()` 单例:markdown-it+DOMPurify 双动态 import(模块级缓存),统一 `html:false/linkify/breaks` + 代码高亮。
+- [x] XSS 集中策略:URI 白名单 `^(https?|mailto):`(i)、FORBID style/form/input、净化后 `a→target=_blank rel=noopener noreferrer`(后处理不可伪造)。
+- [x] 三处改调统一入口:NoticePanel(展开时异步渲染+过期结果丢弃)、PlanCard(watch+immediate 按内容缓存,列表不重复解析)、DocsDetailView(watch article.body)。
+- [x] coupon-code 白名单 `/^[A-Z0-9-]{4,20}$/` 校验后才拼 chip(白名单不含引号/尖括号,属性注入不可能),chip 在净化后追加,i18n title 转义引号。
+- [x] XSS 单测 5 例(内联 HTML 转义/危险协议/链接加固/FORBID 标签/误杀回归)+ PlanCard 集成断言更新。
+- [x] 门禁:`pnpm lint/typecheck` + vitest 72 全绿;build 产物确认首屏入口对 markdown chunk 零引用。
 
 ## Comments
+
+- 实测 markdown-it `html:false` 对内联 HTML 是**转义**(输出 `&lt;script&gt;` 文本)而非删除,且默认拦截 `javascript:` 链接(退化为纯文本);单测按真实行为断言「不产生标签/不产出 href」,另加误杀回归保证 linkify 正常。

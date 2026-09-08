@@ -3,9 +3,8 @@
  * 套餐卡片:名称 → 价格区 → 流量/带宽 → 描述(Markdown)→ 立即购买。
  * 数据:GET /plans(契约 §8);页面:docs/frontend/pages.md §3.8
  */
-import { computed } from 'vue'
-import MarkdownIt from 'markdown-it'
-import DOMPurify from 'dompurify'
+import { computed, ref, watch } from 'vue'
+import { renderMarkdown } from '@/utils/markdown'
 import { useI18n } from 'vue-i18n'
 import { formatSpeed, periodLabel, planSavePercent } from '@/utils/format'
 import type { Plan, PlanPeriod } from '@/types/api'
@@ -22,7 +21,6 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const md = new MarkdownIt({ html: false, linkify: true, breaks: true })
 
 const periods = computed(() => Object.keys(props.plan.prices) as PlanPeriod[])
 const currentPeriod = computed<PlanPeriod>(() => props.period ?? periods.value[0])
@@ -32,9 +30,21 @@ const price = computed(() => props.plan.prices[currentPeriod.value] ?? 0)
 /** 计算选中周期相对月付的折扣文案(季/年) */
 const savePercent = computed(() => planSavePercent(props.plan, currentPeriod.value))
 
-function renderContent(): string {
-  return DOMPurify.sanitize(md.render(props.plan.content))
-}
+/** 正文安全 HTML:统一走 renderMarkdown(懒加载单例+XSS 净化),按内容缓存避免列表 N 次解析 */
+const contentHtml = ref('')
+watch(
+  () => props.plan.content,
+  async (content) => {
+    if (!content) {
+      contentHtml.value = ''
+      return
+    }
+    const html = await renderMarkdown(content)
+    // 等待期间内容可能已变化,过期结果不写回
+    if (props.plan.content === content) contentHtml.value = html
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -98,7 +108,7 @@ function renderContent(): string {
     <!-- eslint-disable-next-line vue/no-v-html -->
     <div
       class="plan-content mt-4 flex-1 text-14 leading-6 text-[var(--c-text-sub)]"
-      v-html="renderContent()"
+      v-html="contentHtml"
     />
 
     <!-- 购买 -->

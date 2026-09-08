@@ -73,7 +73,7 @@ ESLint 9 flat config + Prettier 3 + Stylelint 17(接入 lint-staged);husky pre-c
 
 ### 4.4 设计令牌维护(重要)
 
-CSS 变量在 `tokens.css`,Naive UI overrides 在 `theme.ts`(亮/暗两套真实色值)——**改色必须两处同步**,否则 naive 组件与自绘组件视觉漂移;业务代码禁止写死颜色,一律 `var(--c-*)`。
+CSS 变量在 `tokens.css`,Naive UI overrides 在 `theme.ts`(亮/暗两套真实色值)——**改色必须两处同步**,否则 naive 组件与自绘组件视觉漂移;业务代码禁止写死颜色,一律 `var(--c-*)`。同步已有脚本兜底:`scripts/check-tokens-sync.mjs`(11 组色值映射×亮暗断言)挂在 `pnpm lint` 链上,漂移即报错。
 
 ### 4.5 Tauri 桌面端
 

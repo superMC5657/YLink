@@ -11,7 +11,7 @@
 | 测试 | `go test ./... -count=1` 全绿,**144 个测试函数** |
 | 契约对齐 | [docs/api/README.md](../api/README.md) 全量端点已实现(含 §16 管理端与批次新增模块) |
 | 迁移 | `migrations/0001` ~ `0008`(golang-migrate,均含 down) |
-| 代码结构 | 管理端 handler 按业务域拆分为 `internal/handler/admin/` 子包 |
+| 代码结构 | 管理端 handler 按业务域拆分为 `internal/handler/admin/` 子包;service 层超大文件按域续拆(`admin_service` + `admin_audit/admin_order/admin_ticket/admin_crud`,`order_service` + `order_coupon/order_payment/order_fulfill`) |
 
 ## 2. 已完成能力
 
@@ -25,7 +25,7 @@
 
 ### 2.3 交易闭环
 
-套餐/优惠券/订单/支付全链路:`Idempotency-Key` 幂等(24h,key 按 user_id 隔离);优惠券**下单事务内原子占用**(取消/超时关单/退款三条路径统一回退);余额直付行锁扣减;在线渠道易支付(验签 → 金额比对 → 行锁幂等 → MarkPaid → 开通/续期);开通/续期状态机(叠加/替换/清零规则见 core-flows);退款 = 余额退回 + 收回订阅 + 优惠券回退 + 佣金回滚(行锁);支付成功异步回执邮件。
+套餐/优惠券/订单/支付全链路:`Idempotency-Key` 幂等(24h,key 按 user_id 隔离);优惠券**下单事务内原子占用**(取消/超时关单/退款三条路径统一回退);余额直付行锁扣减;在线渠道易支付(验签 → 金额比对 → 行锁幂等 → MarkPaid → 开通/续期);开通/续期状态机(叠加/替换/清零规则见 core-flows);退款 = 余额退回 + 收回订阅 + 优惠券回退 + 佣金回滚(行锁);支付成功异步回执邮件;退款支持 `gateway_refund_id` 审计留痕;`GET/PUT /user/profile` 响应含 `role`(前端守卫核实用)。
 
 ### 2.4 订阅下发
 

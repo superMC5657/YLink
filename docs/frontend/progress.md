@@ -20,7 +20,7 @@ Vue 3.5 + TS + Vite 6 + pnpm(`<script setup>`,Node ≥ 20);UnoCSS(presetUno/Attr
 
 ### 2.2 布局与设计系统
 
-设计令牌 tokens.css(亮/暗两套 CSS 变量)+ Naive UI theme.ts 真实色值 overrides(**双源必须同步**);桌面 240px 侧边栏(折叠 72px)+ 毛玻璃吸顶顶栏;平板/手机 `<768px` 底栏 4 Tab + 抽屉菜单、768-1024 迷你侧边栏;AuthLayout 全局壳、客服浮球、toast 桥接;基础 UI 组件全局注册(AppIcon/UiCard/StatNumber/StatusBadge/PriceText/EmptyState/PageHeader/CopyText 等);桌面内容区 max-w-1440 + 窄桌面自动折叠侧边栏 + 表格 overflow 适配(`scripts/diag-layout.mjs` 可测量 5 分辨率溢出)。
+设计令牌 tokens.css(亮/暗两套 CSS 变量)+ Naive UI theme.ts 真实色值 overrides(**双源必须同步**);桌面 240px 侧边栏(折叠 72px)+ 毛玻璃吸顶顶栏;平板/手机 `<768px` 底栏 4 Tab + 抽屉菜单、768-1024 迷你侧边栏;AuthLayout 全局壳、客服浮球、toast 桥接;基础 UI 组件全局注册(AppIcon/UiCard/StatNumber/StatusBadge/PriceText/EmptyState/PageHeader/CopyText 等);桌面内容区 max-w-1440 + 窄桌面自动折叠侧边栏 + 表格 overflow 适配。
 
 ### 2.3 用户端页面
 
@@ -64,7 +64,6 @@ ESLint 9 flat config + Prettier 3 + Stylelint 17(接入 lint-staged);husky pre-c
 |---|---|
 | 单测 | `pnpm test`;`pnpm test:coverage` 看覆盖率(v8) |
 | E2E | `pnpm e2e`:webServer 以 `pnpm dev --mode e2e` 启动,固定 `.env.e2e`(Mock),不受 `.env.development.local` 影响;本地用系统 Chrome,CI 用 `playwright install chromium`;双 project(桌面 1280 / 移动 390×844);E2E 会创建订单/触发支付(Mock 内存态,重启即清空);登录页不预填账号 |
-| 布局诊断 | `node scripts/diag-layout.mjs`(需先起 Mock dev):5 分辨率 × 路由测横向溢出 |
 | 门禁 | `pnpm lint` / `pnpm lint:css` / `pnpm typecheck` / `pnpm format:check` |
 
 ### 4.3 对接真实后端
@@ -77,7 +76,7 @@ CSS 变量在 `tokens.css`,Naive UI overrides 在 `theme.ts`(亮/暗两套真实
 
 ### 4.5 Tauri 桌面端
 
-Rust ≥ 1.77(本机已验证)+ WebView2(Win);`pnpm tauri:dev` 联动开发,`pnpm tauri:build` 打包;首次 cargo 编译约 5 分钟(`cargo check` 可快速验证);改品牌后 `python scripts/gen-icon.py && pnpm tauri icon app-icon.png` 重新生成图标;发布前需注册 `ylink://` 协议与 updater 签名密钥(见 desktop-tauri.md §5/§7)。
+Rust ≥ 1.77(本机已验证)+ WebView2(Win);`pnpm tauri:dev` 联动开发,`pnpm tauri:build` 打包;首次 cargo 编译约 5 分钟(`cargo check` 可快速验证);改品牌后以 1024x1024 PNG 源图执行 `pnpm tauri icon <path-to-png>` 重新生成图标;发布前需注册 `ylink://` 协议与 updater 签名密钥(见 desktop-tauri.md §5/§7)。
 
 ### 4.6 上线(生产)
 

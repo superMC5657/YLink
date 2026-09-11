@@ -26,6 +26,7 @@ const KEY_META: Record<string, { labelKey: string; descKey: string }> = {
   agent: { labelKey: 'adminSettings.metaAgent', descKey: 'adminSettings.metaAgentDesc' },
   order: { labelKey: 'adminSettings.metaOrder', descKey: 'adminSettings.metaOrderDesc' },
   telegram: { labelKey: 'adminSettings.metaTelegram', descKey: 'adminSettings.metaTelegramDesc' },
+  node: { labelKey: 'adminSettings.metaNode', descKey: 'adminSettings.metaNodeDesc' },
 }
 
 const activeItem = computed(() => items.value.find((x) => x.key === activeKey.value))

@@ -48,6 +48,15 @@ export function useAdminNodes() {
   const groupName = ref('')
   const groupSort = ref(0)
 
+  // 部署命令弹窗
+  const installModal = ref(false)
+  const installingNode = ref<AdminServerItem | null>(null)
+
+  function openInstallDialog(node: AdminServerItem) {
+    installingNode.value = node
+    installModal.value = true
+  }
+
   const STATUS_KEY: Record<ServerStatus, string> = {
     1: 'node.normal',
     2: 'node.busy',
@@ -453,5 +462,9 @@ export function useAdminNodes() {
     openGroupEdit,
     saveGroup,
     removeGroup,
+    // 部署
+    installModal,
+    installingNode,
+    openInstallDialog,
   }
 }

@@ -33,21 +33,35 @@ type AdminPlanView struct {
 	Sort          int      `json:"sort"`
 }
 
+// NodeSystemStats 节点机器探针与负载数据(模式 A / F17)。
+type NodeSystemStats struct {
+	CPUPercent    float64 `json:"cpu_percent"`
+	MemoryPercent float64 `json:"memory_percent"`
+	DiskPercent   float64 `json:"disk_percent"`
+	NetSpeedIn    int64   `json:"net_speed_in"`  // 瞬时下行带宽(B/s)
+	NetSpeedOut   int64   `json:"net_speed_out"` // 瞬时上行带宽(B/s)
+	Connections   int     `json:"connections"`   // TCP 连接数
+	Uptime        int64   `json:"uptime"`        // 开机时长(秒)
+}
+
 // AdminServerView 管理端节点视图:展开 group_id/host/port/config(用户端隐藏)。
 type AdminServerView struct {
-	ID      int64    `json:"id"`
-	GroupID int64    `json:"group_id"`
-	Name    string   `json:"name"`
-	Type    string   `json:"type"`
-	Host    string   `json:"host"`
-	Port    int      `json:"port"`
-	Config  string   `json:"config"`
-	Rate    float64  `json:"rate"`
-	Tags    []string `json:"tags"`
-	Status  int      `json:"status"`
-	IsShow  bool     `json:"is_show"`
-	Sort    int      `json:"sort"`
-	NodeKey string   `json:"node_key"` // 节点上报密钥(X-Node-Key)
+	ID              int64            `json:"id"`
+	GroupID         int64            `json:"group_id"`
+	Name            string           `json:"name"`
+	Type            string           `json:"type"`
+	Host            string           `json:"host"`
+	Port            int              `json:"port"`
+	Config          string           `json:"config"`
+	Rate            float64          `json:"rate"`
+	Tags            []string         `json:"tags"`
+	Status          int              `json:"status"`
+	IsShow          bool             `json:"is_show"`
+	Sort            int              `json:"sort"`
+	NodeKey         string           `json:"node_key"` // 节点上报密钥(X-Node-Key)
+	IsOnline        bool             `json:"is_online"`
+	LastHeartbeatAt *int64           `json:"last_heartbeat_at"`
+	System          *NodeSystemStats `json:"system,omitempty"`
 }
 
 // ---- 管理端 · 用户 ----

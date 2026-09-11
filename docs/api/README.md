@@ -642,7 +642,7 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 ### 16.1 管理端响应字段约定
 
 - `GET /admin/plans` 返回 `{list: AdminPlanView[]}`：价格字段（`month_price`/`quarter_price`/`half_year_price`/`year_price`/`onetime_price`）**单位为元**（`null` 表示未开放该周期），并展开 `group_ids: number[]`、`is_show`、`sort`、`traffic_gb`、`speed_limit`、`device_limit`。请求体 `AdminPlanReq` 同字段，价格传元。
-- `GET /admin/servers` 返回 `{list: AdminServerView[]}`：展开用户端隐藏的 `group_id`/`host`/`port`/`config`/`is_show`/`sort`，`tags: string[]`，并含 `node_key`（节点上报密钥，见 §17）。请求体 `AdminServerReq` 中 `type ∈ {shadowsocks,vmess,vless,trojan,hysteria2,tuic}`、`status ∈ {1=正常,2=拥挤,3=维护}`、`config` 为协议私有参数 JSON 字符串（配发每用户 inbound 后加 `"per_user_credentials": true`）；新建节点服务端自动生成 `node_key`（请求体不传）。
+- `GET /admin/servers` 返回 `{list: AdminServerView[]}`：展开用户端隐藏的 `group_id`/`host`/`port`/`config`/`is_show`/`sort`，`tags: string[]`，`node_key`（节点上报密钥，见 §17），以及机器监控字段（F17）：`is_online`（布尔值，基于 Redis 心跳 90s TTL 判定）、`last_heartbeat_at`（最近心跳 RFC3339 时间戳，离线为 null）、`system`（硬件实时快照对象：`cpu_percent`/`mem_total`/`mem_used`/`mem_percent`/`disk_total`/`disk_used`/`disk_percent`/`net_rx_rate`/`net_tx_rate`/`tcp_conns`/`udp_conns`/`uptime_sec`/`updated_at`，无探针数据为 null）。请求体 `AdminServerReq` 中 `type ∈ {shadowsocks,vmess,vless,trojan,hysteria2,tuic}`、`status ∈ {1=正常,2=拥挤,3=维护}`、`config` 为协议私有参数 JSON 字符串（配发每用户 inbound 后加 `"per_user_credentials": true`）；新建节点服务端自动生成 `node_key`（请求体不传）。
 - `GET /admin/users` 分页返回 `{list,total,page,page_size}`，`balance`/`commission_balance` 单位为元；`PUT /admin/users/{id}` 请求体 `{role?, banned?}`（`role ∈ {0,1,2}`）；`POST /admin/users/{id}/balance` 请求体 `{amount(元，可正可负), remark?}`。
 - `GET /admin/users/export`（F05）：CSV 流式导出（与列表同一 `keyword` 筛选，UTF-8 BOM，每批 500 分批写防内存峰值）。列：`id,email,balance,commission_balance,plan,expired_at,transfer_bytes,u_bytes,d_bytes,created_at,inviter_email`（金额元；流量字节；时间 RFC3339）。
 - `POST /admin/users/batch`（F05）：请求体 `{action ∈ {ban,unban,adjust_balance}, ids(1..500), amount?(元, adjust_balance 必填), remark?}`；逐个执行（复用单用户状态机与负值保护），返回 `{success, failed: [{id, reason}]}`；ban/unban 会 bump 会话版本号踢下线。
@@ -666,7 +666,7 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 - `GET /admin/stat/orders?days=`（F04）：订单日趋势，`days ∈ 1..365`（默认 30）。返回 `{days, items: [{date, order_count, completed_count, revenue, refunded, balance_used, balance_refunded}]}`；`order_count` 按创建日、`completed_count`/`revenue`/`balance_used` 按 `paid_at`（已完成订单）、`refunded`/`balance_refunded` 按 `updated_at` 近似（已退款订单）；`revenue`/`refunded` 为现金部分（`pay_amount`），`balance_used`/`balance_refunded` 为余额部分（`balance_used`，退款时余额原路退回），二者相加为订单实付总额；金额单位元；逐日补零便于绘图。
 - `GET /admin/stat/users?days=`（F04）：返回 `{days, register_trend: [{date, count}], plan_distribution: [{plan_id, plan_name, users}]}`；注册按 `created_at` 逐日补零，套餐分布为当前生效订阅（`plan_id` 非空）按套餐聚合、按人数降序。
 - `GET /admin/stat/traffic?days=`（F04）：返回 `{days, user_top: [{user_id, email, total_bytes}], node_top: [{server_id, name, bytes}]}` 各 Top10；`user_top` 按 `traffic_logs` 日明细 `u+d` 合计（受 `days` 限定），`node_top` 按 `node_user_stats` 上报累计值合计（未乘倍率，节点全周期，无时间维度）。
-- `GET /admin/settings` 返回 `{list: [{key, value}]}`，`value` 为配置项 JSON 字符串（`site`/`payment`/`invite`/`agent`/`order`）；`PUT /admin/settings` 请求体 `{key, value}`（单 key 保存，写后失效配置缓存）。`site` 支持品牌键：`primary_color`（Hex 主色，空=默认）与 `background_url`（背景图 URL，空=默认），经 `GET /config` 下发（F19）。
+- `GET /admin/settings` 返回 `{list: [{key, value}]}`，`value` 为配置项 JSON 字符串（`site`/`payment`/`invite`/`agent`/`order`/`node`）；`PUT /admin/settings` 请求体 `{key, value}`（单 key 保存，写后失效配置缓存）。`site` 支持品牌键：`primary_color`（Hex 主色，空=默认）与 `background_url`（背景图 URL，空=默认），经 `GET /config` 下发（F19）；`node` 支持节点部署脚本键：`deploy_script_url` 与 `command_template`（支持 `{script_url}`/`{api_url}`/`{node_id}`/`{node_key}` 占位符，F17）。
 - `POST /admin/tickets/{id}/withdraw/pay` / `withdraw/reject`（F02）：提现工单（type=1）审核。pay=确认打款（线下打款由管理员线下执行，系统内将提现流水记为完成并关闭工单）；reject=拒绝并**自动退回**佣金（写 `withdraw_refund` 三态流水）后关闭工单。请求体 `{remark?}` 可选备注（回写工单系统消息与提现单 `review_remark`）。仅处理中的提现单可审（否则 13004），两类操作均写审计（`withdraw_pay`/`withdraw_reject`）。
 - `GET /admin/tickets` 与 `GET /admin/tickets/{id}`（F02）：列表项与详情含 `type ∈ {0=普通,1=佣金提现}`；详情对提现工单附 `withdraw` 提现单信息（`id/user_id/amount(元)/method/account/status/review_remark/reviewed_at/created_at`）。
 - `POST /admin/notices/sort`、`POST /admin/knowledges/sort`（F15）：请求体 `{items: [{id, sort}]}`（1..500 项），单事务按传入 sort 值更新，写审计（`sort_notice`/`sort_knowledge`）；用户端公告按 `sort ASC` 展示、知识库分组顺序按分类 `sort`。
@@ -711,7 +711,23 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 `POST /node/report`
 
 ```json
-{ "data": [ { "uuid": "5f2b7c9e-...", "u": 2147483648, "d": 21474836480 } ] }
+{
+  "data": [ { "uuid": "5f2b7c9e-...", "u": 2147483648, "d": 21474836480 } ],
+  "system": {
+    "cpu_percent": 12.5,
+    "mem_total": 8589934592,
+    "mem_used": 2147483648,
+    "mem_percent": 25.0,
+    "disk_total": 107374182400,
+    "disk_used": 21474836480,
+    "disk_percent": 20.0,
+    "net_rx_rate": 1048576,
+    "net_tx_rate": 2097152,
+    "tcp_conns": 56,
+    "udp_conns": 12,
+    "uptime_sec": 360000
+  }
+}
 ```
 
 | 项 | 说明 |
@@ -719,11 +735,12 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 | 口径 | `u`/`d` 为**累计值**（自 agent 启动起单调递增的字节总数），非增量；服务端与上次快照差分得增量，**重复上报天然幂等**（重试不重复计费） |
 | 计数器回退 | `u` 或 `d` 小于上次快照视为节点计数器重启：该字段增量取当前值（未回退字段仍按差分） |
 | 计费 | 增量 × 节点 `rate`（倍率）累加 `users.u/d`，并按日聚合增量写入 `traffic_logs`（与模式 B 同表；同日手工导入**覆盖**节点上报值，作为校准手段） |
+| 心跳与探针 | 每次上报均自动更新 Redis 心跳键 `node:heartbeat:{id}`（TTL 90s）与系统探针快照 `node:stats:{id}`（TTL 180s，若传入 `system`）；不刷写 PostgreSQL |
 | 缓存 | 受影响用户的 `subscription-userinfo` 缓存（30s）立即失效，客户端下次拉订阅即见新用量 |
 | 响应 | `{ "accepted": 10, "skipped": [ { "uuid": "...", "reason": "unknown_user | not_subscribed | duplicate_uuid" } ] }`；未知 uuid、套餐分组不包含本节点/无订阅/封禁/过期、同一 UUID 重复出现的条目跳过，不报错 |
 
-- `data` 1–1000 条；建议上报周期 60s。
-- 配套演示工具：`server/cmd/node-agent`（模拟累计值定时上报，本地联调用）。
+- `data` 可选（0–1000 条，空流量时仍可单纯上报心跳/探针）；建议上报周期 30–60s。
+- 配套探针与上报 Agent：`server/cmd/node-agent`（Linux 实机采集 `/proc` 与 Windows/macOS 兼容实现，支持 `--endpoint`、`--node-id`、`--node-key`），一键部署脚本见 `deploy/install-agent.sh`。
 
 ---
 

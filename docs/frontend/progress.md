@@ -8,7 +8,7 @@
 | 项 | 状态 |
 |---|---|
 | 质量门禁 | `pnpm lint`(ESLint 0 warning)/ `pnpm lint:css`(Stylelint)/ `pnpm typecheck`(vue-tsc)/ `pnpm format:check` 全部通过 |
-| 单测 | `pnpm test`(Vitest + jsdom)**63 用例**全绿 |
+| 单测 | `pnpm test`(Vitest + jsdom)**79 用例**全绿 |
 | E2E | `pnpm e2e`(Playwright,桌面 1280 + 移动 390 双 project)全量通过 |
 | 构建 | `pnpm build` 成功(含 PWA 产物);`cargo check`(src-tauri)通过 |
 
@@ -28,7 +28,7 @@ Vue 3.5 + TS + Vite 6 + pnpm(`<script setup>`,Node ≥ 20);UnoCSS(presetUno/Attr
 
 ### 2.4 管理后台
 
-独立 `AdminLayout` + `AdminSidebar`(唯一菜单源,移动端汉堡抽屉),登录落点按角色分流(`/portal`);模块全量:总览(统计卡 + 按运营频率分组的 8 快捷入口)、用户管理(多选批量/CSV 导出/发邮件/重置订阅)、套餐、节点管理(多选批量/复制/排序/node_key)、订单(本地化枚举文案/退款)、工单(提现工单审核 F02)、优惠券(含一键公告)、公告/知识库(排序弹窗/分类管理 F15)、代理审批、佣金日志(提现流水徽章)、流量管理(导入/重置/重置记录三标签 F16)、统计报表(ECharts 五图 + 余额四系列 F04)、审计日志(可读化 target)、站点设置(含 telegram 键)、邮件模板(F11)、订阅模板(F10)、版本检查(F20)。
+独立 `AdminLayout` + `AdminSidebar`(唯一菜单源,移动端汉堡抽屉),登录落点按角色分流(`/portal`);模块全量:总览(统计卡 + 按运营频率分组的 8 快捷入口)、用户管理(多选批量/CSV 导出/发邮件/重置订阅)、套餐、节点管理(多选批量/复制/排序/node_key/机器在线状态与硬件探针气泡卡片/一键安装与中台脚本配置 F17)、订单(本地化枚举文案/退款)、工单(提现工单审核 F02)、优惠券(含一键公告)、公告/知识库(排序弹窗/分类管理 F15)、代理审批、佣金日志(提现流水徽章)、流量管理(导入/重置/重置记录三标签 F16)、统计报表(ECharts 五图 + 余额四系列 F04)、审计日志(可读化 target)、站点设置(含 telegram 与节点部署脚本键)、邮件模板(F11)、订阅模板(F10)、版本检查(F20)。
 
 ### 2.5 桌面端(Tauri 2)
 

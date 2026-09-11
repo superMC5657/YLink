@@ -296,6 +296,23 @@ const servers = [
     is_show: true,
     sort: 1,
     node_key: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6',
+    is_online: true,
+    last_heartbeat_at: '2026-09-11T09:20:00+08:00',
+    system: {
+      cpu_percent: 18.5,
+      mem_total: 8589934592,
+      mem_used: 3221225472,
+      mem_percent: 37.5,
+      disk_total: 107374182400,
+      disk_used: 42949672960,
+      disk_percent: 40.0,
+      net_rx_rate: 1048576,
+      net_tx_rate: 2097152,
+      tcp_conns: 42,
+      udp_conns: 8,
+      uptime_sec: 864000,
+      updated_at: '2026-09-11T09:20:00+08:00',
+    },
   },
   {
     id: 2,
@@ -311,6 +328,9 @@ const servers = [
     is_show: true,
     sort: 2,
     node_key: '0f1e2d3c4b5a69788796a5b4c3d2e1f0',
+    is_online: false,
+    last_heartbeat_at: null,
+    system: null,
   },
 ]
 
@@ -623,6 +643,15 @@ const settings = [
       welcome: '欢迎注册 {site_name}！',
       expire: '您的订阅将于 {expired_at} 到期，请及时续费。',
       traffic: '您的流量已使用 {percent}%，请注意剩余流量。',
+    }),
+  },
+  {
+    key: 'node',
+    value: JSON.stringify({
+      deploy_script_url:
+        'https://raw.githubusercontent.com/superMC5657/YLink/main/deploy/install-agent.sh',
+      command_template:
+        'curl -fsSL {script_url} | sudo bash -s -- --endpoint {api_url} --node-id {node_id} --node-key {node_key}',
     }),
   },
 ]

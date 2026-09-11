@@ -8,9 +8,9 @@
 | 项 | 状态 |
 |---|---|
 | 构建/静态检查 | `go build ./...`、`go vet ./...`、`gofmt -l` 全部通过 |
-| 测试 | `go test ./... -count=1` 全绿,**144 个测试函数** |
+| 测试 | `go test ./... -count=1` 全绿,**145 个测试函数** |
 | 契约对齐 | [docs/api/README.md](../api/README.md) 全量端点已实现(含 §16 管理端与批次新增模块) |
-| 迁移 | `migrations/0001` ~ `0008`(golang-migrate,均含 down) |
+| 迁移 | `migrations/0001` ~ `0009`(golang-migrate,均含 down) |
 | 代码结构 | 管理端 handler 按业务域拆分为 `internal/handler/admin/` 子包;service 层超大文件按域续拆(`admin_service` + `admin_audit/admin_order/admin_ticket/admin_crud`,`order_service` + `order_coupon/order_payment/order_fulfill`) |
 
 ## 2. 已完成能力
@@ -41,13 +41,13 @@
 
 ### 2.7 管理端
 
-契约 §16 全量端点:概览(含全体用户余额)、用户(CSV 流式导出/批量操作/发邮件 mail_logs 留痕/重置订阅密钥)、套餐、节点(批量/复制/排序/node-key 重置)、订单(佣金列/退款)、优惠券、公告/知识库(排序/分类管理)、工单(提现审核)、代理审批、佣金日志、流量(导入/重置/重置记录)、审计日志(只读查询 + target 可读化)、站点设置、邮件模板(编辑/测试发送/恢复默认,失败回退内置文案)、订阅模板(编辑/预览/恢复内置)、版本检查(`GET /admin/version` 语义化比较)、Telegram webhook 注册。
+契约 §16 全量端点:概览(含全体用户余额)、用户(CSV 流式导出/批量操作/发邮件 mail_logs 留痕/重置订阅密钥)、套餐、节点(批量/复制/排序/node-key 重置/在线与硬件探针聚合)、订单(佣金列/退款)、优惠券、公告/知识库(排序/分类管理)、工单(提现审核)、代理审批、佣金日志、流量(导入/重置/重置记录)、审计日志(只读查询 + target 可读化)、站点与节点部署设置(F17)、邮件模板(编辑/测试发送/恢复默认,失败回退内置文案)、订阅模板(编辑/预览/恢复内置)、版本检查(`GET /admin/version` 语义化比较)、Telegram webhook 注册。
 
 handler 按业务域组织于 `internal/handler/admin/` 子包:`admin.go`(Admin 结构体+helper)、`dashboard.go`、`user.go`、`plan.go`、`server.go`、`order.go`、`content.go`、`ticket.go`、`agent.go`、`system.go`。
 
-### 2.8 节点上报(流量模式 A)
+### 2.8 节点上报与探针(流量模式 A + F17 机器管理)
 
-`X-Node-Key` 鉴权(Redis 缓存 60s);`GET /node/users` 按节点分组下发有效订阅用户;`POST /node/report` **累计值差分**幂等(重复上报差分 0;累计回退视为节点重启)→ ×rate → 事务内 `users.u/d` 原子累加 + `traffic_logs` 增量聚合;套餐分组校验(非本分组 `not_subscribed`)与重复 UUID 整体拒绝(`duplicate_uuid`);每用户订阅凭证(节点 config 显式开启 `per_user_credentials` 才下发,存量节点共享凭证不断连);演示 agent `cmd/node-agent`;真实代理后端(Xray stats 等)对接见 [node-agent-guide.md](node-agent-guide.md)。
+`X-Node-Key` 鉴权(Redis 缓存 60s);`GET /node/users` 按节点分组下发有效订阅用户;`POST /node/report` **累计值差分**幂等(重复上报差分 0;累计回退视为节点重启)→ ×rate → 事务内 `users.u/d` 原子累加 + `traffic_logs` 增量聚合;套餐分组校验(非本分组 `not_subscribed`)与重复 UUID 整体拒绝(`duplicate_uuid`);每用户订阅凭证(节点 config 显式开启 `per_user_credentials` 才下发,存量节点共享凭证不断连);**高频心跳与系统探针(F17)**:上报携带 `system` 硬件指标(CPU/内存/磁盘/网络速率/连接数/开机时长),写入 Redis `node:heartbeat:{id}`(TTL 90s)与 `node:stats:{id}`(TTL 180s),不刷写 PostgreSQL;管理端聚合接口 `MGet` 毫秒级批量反查;探针 agent `cmd/node-agent`(读取 Linux `/proc` 与跨平台 fallback)+ 一键部署脚本 `deploy/install-agent.sh`。
 
 ### 2.9 可观测性
 
@@ -57,7 +57,7 @@ handler 按业务域组织于 `internal/handler/admin/` 子包:`admin.go`(Admin 
 
 | 项 | 状态 |
 |---|---|
-| F17 节点机器管理 | 缓排(见 xboard spec);当前手工对接 + node-agent-guide 已可运转 |
+| F17 节点机器管理 | ✅ 已完成(Redis 心跳与探针快照 + node-agent 实机监控 + 一键安装与中台配置) |
 | 后端 CI / Release 流水线 | ❌ 不接入(项目决策):构建/部署走本机 `make` + 手动流程,见 deploy.md |
 | F18 节点路由 / F21 插件系统 | ❌ 不做(xboard spec 决策) |
 | 完整主题包 / 订阅自动升级 | ❌ 不做(仅取品牌配置、版本检查最小子集) |

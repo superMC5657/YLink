@@ -281,3 +281,39 @@ func TestCumDeltaAndScale(t *testing.T) {
 	assert.Equal(t, int64(101), scaleRate(101, 1.0))
 	assert.Equal(t, int64(0), scaleRate(0, 1.5))
 }
+
+func TestNodeReportWithSystemAndHeartbeat(t *testing.T) {
+	e, svc := newNodeEnv(t)
+	ctx := context.Background()
+
+	e.expectServerByID(&model.Server{ID: 8, GroupID: 1, Name: "JP-01", Type: "vless", Rate: 1.0, NodeKey: "k-jp"})
+
+	req := &NodeReportReq{
+		Data: []NodeReportItem{}, // 纯心跳探针,无流量数据
+		System: &model.NodeSystemStats{
+			CPUPercent:    25.5,
+			MemoryPercent: 60.2,
+			DiskPercent:   33.0,
+			NetSpeedIn:    1024,
+			NetSpeedOut:   2048,
+			Connections:   42,
+			Uptime:        3600,
+		},
+	}
+
+	resp, err := svc.Report(ctx, 8, req)
+	require.NoError(t, err)
+	assert.Equal(t, 0, resp.Accepted)
+	assert.Empty(t, resp.Skipped)
+
+	// 验证 Redis 中写入了心跳与探针数据
+	hbVal, err := e.rdb.Get(ctx, "node:heartbeat:8").Result()
+	require.NoError(t, err)
+	assert.NotEmpty(t, hbVal)
+
+	statVal, err := e.rdb.Get(ctx, "node:stats:8").Result()
+	require.NoError(t, err)
+	assert.Contains(t, statVal, `"cpu_percent":25.5`)
+	assert.Contains(t, statVal, `"connections":42`)
+}
+

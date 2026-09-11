@@ -6,11 +6,13 @@
  */
 import { useI18n } from 'vue-i18n'
 import { useAdminNodes } from '@/composables/useAdminNodes'
+import { formatBytes, formatPercent } from '@/utils/format'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import NodeFormDialog from '@/components/admin/NodeFormDialog.vue'
 import GroupFormDialog from '@/components/admin/GroupFormDialog.vue'
 import NodeBatchDialog from '@/components/admin/NodeBatchDialog.vue'
 import NodeSortDialog from '@/components/admin/NodeSortDialog.vue'
+import NodeInstallDialog from '@/components/admin/NodeInstallDialog.vue'
 
 const { t } = useI18n()
 
@@ -62,6 +64,9 @@ const {
   openGroupEdit,
   saveGroup,
   removeGroup,
+  installModal,
+  installingNode,
+  openInstallDialog,
 } = useAdminNodes()
 </script>
 
@@ -156,9 +161,77 @@ const {
               <td class="num-font text-14 text-[var(--c-text-sub)]">{{ s.host }}:{{ s.port }}</td>
               <td class="num-font">{{ s.rate }}</td>
               <td>
-                <StatusBadge :type="statusType(s.status)">
-                  {{ statusText(s.status) }}
-                </StatusBadge>
+                <div class="flex flex-col gap-1 items-start">
+                  <StatusBadge :type="statusType(s.status)">
+                    {{ statusText(s.status) }}
+                  </StatusBadge>
+                  <n-popover v-if="s.is_online" trigger="hover" placement="top">
+                    <template #trigger>
+                      <span
+                        class="inline-flex items-center gap-1 text-12 font-medium text-[var(--c-success)] cursor-pointer"
+                      >
+                        <span class="relative flex h-2 w-2">
+                          <span
+                            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"
+                          ></span>
+                          <span
+                            class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"
+                          ></span>
+                        </span>
+                        {{ t('adminNodes.online') }}
+                      </span>
+                    </template>
+                    <div class="space-y-1.5 text-12 p-1 min-w-[170px]">
+                      <div
+                        class="font-600 text-[var(--c-text)] border-b border-[var(--c-border)] pb-1 mb-1"
+                      >
+                        {{ t('adminNodes.probeTitle') }}
+                      </div>
+                      <div class="flex justify-between gap-4">
+                        <span class="text-[var(--c-text-sub)]">CPU:</span>
+                        <span class="font-mono font-500">{{
+                          formatPercent(s.system?.cpu_percent)
+                        }}</span>
+                      </div>
+                      <div class="flex justify-between gap-4">
+                        <span class="text-[var(--c-text-sub)]">{{ t('adminNodes.memory') }}:</span>
+                        <span class="font-mono font-500">{{
+                          formatPercent(s.system?.memory_percent)
+                        }}</span>
+                      </div>
+                      <div class="flex justify-between gap-4">
+                        <span class="text-[var(--c-text-sub)]"
+                          >{{ t('adminNodes.bandwidth') }}:</span
+                        >
+                        <span class="font-mono font-500"
+                          >↓{{ formatBytes(s.system?.net_speed_in) }}/s ↑{{
+                            formatBytes(s.system?.net_speed_out)
+                          }}/s</span
+                        >
+                      </div>
+                      <div class="flex justify-between gap-4">
+                        <span class="text-[var(--c-text-sub)]"
+                          >{{ t('adminNodes.connections') }}:</span
+                        >
+                        <span class="font-mono font-500">{{ s.system?.connections ?? 0 }}</span>
+                      </div>
+                      <div v-if="s.system?.uptime" class="flex justify-between gap-4">
+                        <span class="text-[var(--c-text-sub)]">{{ t('adminNodes.uptime') }}:</span>
+                        <span class="font-mono font-500"
+                          >{{ Math.floor(s.system.uptime / 3600) }}h
+                          {{ Math.floor((s.system.uptime % 3600) / 60) }}m</span
+                        >
+                      </div>
+                    </div>
+                  </n-popover>
+                  <span
+                    v-else
+                    class="inline-flex items-center gap-1 text-12 text-[var(--c-text-sub)]"
+                  >
+                    <span class="h-1.5 w-1.5 rounded-full bg-gray-400"></span>
+                    {{ t('adminNodes.offline') }}
+                  </span>
+                </div>
               </td>
               <td>
                 <StatusBadge :type="s.is_show ? 'success' : 'neutral'">
@@ -172,16 +245,19 @@ const {
               </td>
               <td>
                 <div class="flex gap-2">
-                  <button class="btn-soft-primary h-7 px-3 text-14" @click="openNodeEdit(s)">
+                  <button class="btn-soft-primary h-7 px-2.5 text-14" @click="openInstallDialog(s)">
+                    {{ t('adminNodes.install') }}
+                  </button>
+                  <button class="btn-soft-primary h-7 px-2.5 text-14" @click="openNodeEdit(s)">
                     {{ t('adminNodes.edit') }}
                   </button>
-                  <button class="btn-soft-neutral h-7 px-3 text-14" @click="copyNode(s)">
+                  <button class="btn-soft-neutral h-7 px-2.5 text-14" @click="copyNode(s)">
                     {{ t('adminNodes.copy') }}
                   </button>
-                  <button class="btn-soft-neutral h-7 px-3 text-14" @click="resetNodeKey(s)">
+                  <button class="btn-soft-neutral h-7 px-2.5 text-14" @click="resetNodeKey(s)">
                     {{ t('adminNodes.resetKey') }}
                   </button>
-                  <button class="btn-danger h-7 px-3 text-14" @click="removeNode(s)">
+                  <button class="btn-danger h-7 px-2.5 text-14" @click="removeNode(s)">
                     {{ t('adminNodes.delete') }}
                   </button>
                 </div>
@@ -274,5 +350,8 @@ const {
       @move="moveSortItem"
       @save="saveSort"
     />
+
+    <!-- F17 节点一键部署与配置弹窗 -->
+    <NodeInstallDialog v-model:show="installModal" :node="installingNode" />
   </div>
 </template>

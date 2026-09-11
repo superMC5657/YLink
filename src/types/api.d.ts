@@ -574,6 +574,21 @@ export interface AdminServerGroupReq {
   sort?: number
 }
 
+export interface NodeSystemStats {
+  cpu_percent: number
+  memory_percent: number
+  disk_percent: number
+  net_speed_in: number
+  net_speed_out: number
+  connections: number
+  uptime: number
+}
+
+export interface NodeSettings {
+  install_script_url: string
+  install_command_template: string
+}
+
 export interface AdminServerItem {
   id: number
   group_id: number
@@ -588,6 +603,9 @@ export interface AdminServerItem {
   is_show: boolean
   sort: number
   node_key: string
+  is_online?: boolean
+  last_heartbeat_at?: number | null
+  system?: NodeSystemStats | null
 }
 
 export interface AdminServerReq {

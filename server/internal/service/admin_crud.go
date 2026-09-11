@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 
 	"gorm.io/gorm"
 
@@ -131,7 +132,7 @@ func fenPtr(yuan *float64) *int64 {
 
 // ---- 管理端 · 节点 CRUD ----
 
-// ListAllServers GET /admin/servers（含隐藏,展开 group_id/host/port/config/tags）。
+// ListAllServers GET /admin/servers（含隐藏,展开 group_id/host/port/config/tags,聚合 Redis 在线状态与探针）。
 func (s *AdminService) ListAllServers(ctx context.Context) ([]model.AdminServerView, error) {
 	list, err := s.repos.Server.ListAll(s.db)
 	if err != nil {
@@ -140,6 +141,36 @@ func (s *AdminService) ListAllServers(ctx context.Context) ([]model.AdminServerV
 	views := make([]model.AdminServerView, 0, len(list))
 	for _, srv := range list {
 		views = append(views, toServerView(&srv))
+	}
+	// 聚合 Redis 中的实时心跳与系统探针负载数据
+	if s.rdb != nil && len(views) > 0 {
+		hbKeys := make([]string, len(views))
+		statKeys := make([]string, len(views))
+		for i, v := range views {
+			hbKeys[i] = fmt.Sprintf("node:heartbeat:%d", v.ID)
+			statKeys[i] = fmt.Sprintf("node:stats:%d", v.ID)
+		}
+		hbVals, _ := s.rdb.MGet(ctx, hbKeys...).Result()
+		statVals, _ := s.rdb.MGet(ctx, statKeys...).Result()
+
+		for i := range views {
+			if i < len(hbVals) && hbVals[i] != nil {
+				if tsStr, ok := hbVals[i].(string); ok {
+					if ts, err := strconv.ParseInt(tsStr, 10, 64); err == nil {
+						views[i].IsOnline = true
+						views[i].LastHeartbeatAt = &ts
+					}
+				}
+			}
+			if i < len(statVals) && statVals[i] != nil {
+				if statStr, ok := statVals[i].(string); ok {
+					var sys model.NodeSystemStats
+					if err := json.Unmarshal([]byte(statStr), &sys); err == nil {
+						views[i].System = &sys
+					}
+				}
+			}
+		}
 	}
 	return views, nil
 }

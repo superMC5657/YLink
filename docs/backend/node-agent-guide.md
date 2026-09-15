@@ -28,7 +28,7 @@ VPS 节点 agent（自研脚本/程序）                        ▼
 |---|---|
 | 面板 API 地址 | 即 `APP_BASE_URL`，如 `https://panel.example.com/api/v1`；节点需能访问该域名 |
 | 节点密钥 `node_key` | 管理端「节点」列表查看/重置（`POST /admin/servers/{id}/node-key/reset`，重置后旧密钥立即失效）。32 位十六进制字符串 |
-| `per_user_credentials` | 节点 `servers.config` 需为 `true`，订阅端才会下发每用户独立凭证 `users.uuid`（模式 A 归因依据）。**先在节点配发好每用户 client，再开启该开关**，否则存量用户订阅刷新会断连 |
+| 每用户凭证 | 订阅端统一向客户端下发 `users.uuid` 作为独立凭证，节点 inbound 依据 `GET /node/users` 下发的用户凭证区分用户并归因流量 |
 | Xray | 已安装并可由 agent 控制配置与重载（systemd 托管更稳妥） |
 
 ---
@@ -250,8 +250,8 @@ resp, _ := client.GetStats(ctx, &statsCmd.GetStatsRequest{
 
 ## 7. 常见问题（FAQ）
 
-**Q：为什么开启 `per_user_credentials` 后客户端订阅刷新会断连？**
-A：开关打开后，订阅下发会把共享密码/uuid 换成 `users.uuid`（每用户独立凭证）。若节点 inbound 还没配发好这些每用户 client，客户端就无凭证可用。正确顺序：**先在节点配发每用户 client → 再开 `per_user_credentials: true`**。
+**Q：节点如何识别并验证用户订阅？**
+A：面板统一向用户端下发每用户独立凭证 `users.uuid`，节点启动及定时调用 `GET /node/users` 获取当前有效用户列表并动态同步至 inbound client 配置中。
 
 **Q：上报返回 `skipped` 要不要重试？**
 A：`unknown_user` / `not_subscribed` 说明该 uuid 当前不属于本节点有效用户，无需重试（可能是刚退订/过期/封禁，拉取 `/node/users` 后按列表上报即可）。`duplicate_uuid` 是请求内重复，检查去重逻辑。

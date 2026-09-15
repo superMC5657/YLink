@@ -80,38 +80,7 @@ async function flushPending(): Promise<void> {
   }
 }
 
-/** 旧 WebView localStorage → plugin-store 一次性迁移完成标记(key 带 app: 前缀) */
-const MIGRATED_KEY = PREFIX + '_legacy:migrated:v1'
-
-/**
- * 一次性迁移:迁移前 Tauri 用户的 token/设置存在 WebView localStorage(app: 前缀)。
- * 预载 plugin-store 后,把 plugin-store 缺失的旧键导入并落盘;plugin-store 已有同键时
- * 保留新值不覆盖。迁移完成写标记,避免每次启动重复遍历(见 docs/reviews/review-0.6.0.md P2)。
- */
-async function migrateLegacyLocalStorage(): Promise<void> {
-  if (cache.has(MIGRATED_KEY)) return
-  try {
-    const legacyKeys: string[] = []
-    for (let i = 0; i < window.localStorage.length; i++) {
-      const k = window.localStorage.key(i)
-      if (k && k.startsWith(PREFIX)) legacyKeys.push(k)
-    }
-    for (const k of legacyKeys) {
-      if (cache.has(k)) continue // plugin-store 已有同键,不覆盖新值
-      const v = window.localStorage.getItem(k)
-      if (v === null) continue
-      const ok = await persistToStore(k, v)
-      if (!ok) return // 落盘失败:不写标记,下次启动重试,避免旧键永久不可达
-      cache.set(k, v)
-    }
-    cache.set(MIGRATED_KEY, '1')
-    await persistToStore(MIGRATED_KEY, '1')
-  } catch {
-    // 迁移失败静默:不写标记,下次启动重试
-  }
-}
-
-/** 启动时调用一次:预载 plugin-store 到内存并迁移旧存储(仅 Tauri;Web 端 no-op)。 */
+/** 启动时调用一次:预载 plugin-store 到内存(仅 Tauri;Web 端 no-op)。 */
 export async function initStorage(): Promise<void> {
   if (!isTauri()) return
   try {
@@ -121,7 +90,6 @@ export async function initStorage(): Promise<void> {
       const v = await tauriStore.get(k)
       if (v !== undefined && v !== null) cache.set(k, JSON.stringify(v))
     }
-    await migrateLegacyLocalStorage()
   } catch {
     // 预载失败静默:后续 setItem 仍会尝试落盘
     tauriStore = null
@@ -149,28 +117,6 @@ function rawRemove(key: string): void {
     return
   }
   window.localStorage.removeItem(key)
-}
-
-/** plugin-store 直接落盘单键(仅供一次性迁移使用,业务写走防抖批量队列)。返回是否成功。 */
-async function persistToStore(key: string, value: string): Promise<boolean> {
-  if (!tauriStore) return false
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(value)
-  } catch {
-    parsed = value
-  }
-  const op = saveQueue.then(async () => {
-    await tauriStore!.set(key, parsed)
-  })
-  // 队列吞错避免断链(前一次失败不应阻塞后续写);本次结果单独取
-  saveQueue = op.catch(() => {})
-  try {
-    await op
-    return true
-  } catch {
-    return false
-  }
 }
 
 /** 供 persistedstate 使用的同步适配(storage.ts 统一前缀 'app:') */

@@ -15,7 +15,7 @@ const REFRESH_MAX_AGE = 30 * 24 * 60 * 60 * 1000
 interface PersistedAuth {
   refreshToken: string
   user: UserBrief | null
-  /** 最近一次令牌写入时间,用于过期清理 */
+  /** 最近一次令牌写入时间,当前态必填:缺失视为过期脏数据,恢复时丢弃并强制重新登录(类型保留可选仅为容忍历史 JSON 解析) */
   savedAt?: number
 }
 
@@ -53,7 +53,7 @@ export function getRefreshToken(): string {
 export function restorePersisted(): { refreshToken: string; user: UserBrief | null } {
   const auth = getItem<PersistedAuth>('auth')
   if (!auth?.refreshToken) return { refreshToken: '', user: null }
-  if (auth.savedAt && Date.now() - auth.savedAt > REFRESH_MAX_AGE) {
+  if (!auth.savedAt || Date.now() - auth.savedAt > REFRESH_MAX_AGE) {
     removeItem('auth')
     return { refreshToken: '', user: null }
   }

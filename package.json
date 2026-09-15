@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.33.0",
   "description": "代理订阅售卖系统 · 用户端(响应式 Web + Tauri 2)",
   "engines": {
     "node": ">=20"

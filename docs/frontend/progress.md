@@ -8,7 +8,7 @@
 | 项 | 状态 |
 |---|---|
 | 质量门禁 | `pnpm lint`(ESLint 0 warning)/ `pnpm lint:css`(Stylelint)/ `pnpm typecheck`(vue-tsc)/ `pnpm format:check` 全部通过 |
-| 单测 | `pnpm test`(Vitest + jsdom)**79 用例**全绿 |
+| 单测 | `pnpm test`(Vitest + jsdom)全绿 |
 | E2E | `pnpm e2e`(Playwright,桌面 1280 + 移动 390 双 project)全量通过 |
 | 构建 | `pnpm build` 成功(含 PWA 产物);`cargo check`(src-tauri)通过 |
 
@@ -32,11 +32,11 @@ Vue 3.5 + TS + Vite 6 + pnpm(`<script setup>`,Node ≥ 20);UnoCSS(presetUno/Attr
 
 ### 2.5 桌面端(Tauri 2)
 
-Rust 工程 + 10 插件最小授权(http scope 限 https/localhost);平台适配层 `utils/platform.ts`(Web 自动降级,动态 import 保护);http 走 plugin-http 原生栈(不受 CORS 限制);深链接 `ylink://`(单实例转发已有实例)+ Android intent-filter;自动更新(updater 插件 + pubkey + Release 流水线产出 latest.json + 更新浮动卡片);本地通知(支付成功/工单回复/订阅到期,Tauri 与 Web Notification 降级);托盘 + 单实例;存储适配 plugin-store(localStorage 一次性迁移);NSIS 仅 Windows 打包(installer-hooks.nsh 必须保留,否则打包失败)。
+Rust 工程 + 10 插件最小授权(http scope 限 https/localhost);平台适配层 `utils/platform.ts`(Web 自动降级,动态 import 保护);http 走 plugin-http 原生栈(不受 CORS 限制);深链接 `ylink://`(单实例转发已有实例)+ Android intent-filter;自动更新(updater 插件 + pubkey + Release 流水线产出 latest.json + 更新浮动卡片);本地通知(支付成功/工单回复/订阅到期,Tauri 与 Web Notification 降级);托盘 + 单实例;存储适配 plugin-store(预载与异步防抖落盘);NSIS 仅 Windows 打包(installer-hooks.nsh 必须保留,否则打包失败)。
 
 ### 2.6 工程化与质量门禁
 
-ESLint 9 flat config + Prettier 3 + Stylelint 17(接入 lint-staged);husky pre-commit/commit-msg(Conventional Commits);Vitest 63 用例(含 i18n 消息编译回归锁);Playwright E2E 双 project(webServer 固定 `.env.e2e` Mock);CI 仅 tag 触发 3 job(frontend-quality / frontend-e2e / rust);Release 流水线(Windows NSIS + 签名 + 公开产物仓库);PWA(manifest + Workbox 离线壳,dev 不启用);**错误 toast 单一出口约定**(http 封装层是唯一 toast 出口,组件 catch 禁止转发错误 message;`scripts/check-error-toast.mjs` 串入 `pnpm lint` 守护,详见 data-layer.md §1.1/§7)。
+ESLint 9 flat config + Prettier 3 + Stylelint 17(接入 lint-staged);husky pre-commit/commit-msg(Conventional Commits);Vitest 单测(含 i18n 消息编译回归锁);Playwright E2E 双 project(webServer 固定 `.env.e2e` Mock);CI 仅 tag 触发 3 job(frontend-quality / frontend-e2e / rust);Release 流水线(Windows NSIS + 签名 + 公开产物仓库);PWA(manifest + Workbox 离线壳,dev 不启用);**错误 toast 单一出口约定**(http 封装层是唯一 toast 出口,组件 catch 禁止转发错误 message;`scripts/check-error-toast.mjs` 串入 `pnpm lint` 守护,详见 data-layer.md §1.1/§7)。
 
 ## 3. 未完成与已决策
 

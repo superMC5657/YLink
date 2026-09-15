@@ -66,7 +66,7 @@ func auditTargetKind(action string) string {
 	case "ban_user", "update_role", "adjust_balance", "reset_sub_token",
 		"agent_approve", "agent_reject", "withdraw_pay", "withdraw_reject":
 		return "user"
-	case "send_mail", "traffic_reset": // 新格式 target 为摘要 "batch:<count>"（完整 ID 列表在 detail），历史格式为 ID 列表 "[7 8 9]"
+	case "send_mail", "traffic_reset": // target 为摘要 "batch:<count>"（完整 ID 列表在 detail）
 		return "users"
 	case "reset_node_key", "copy_server":
 		return "server"
@@ -81,19 +81,12 @@ func auditTargetKind(action string) string {
 	}
 }
 
-// auditTargetIDs 解析 target 中的 ID 列表，兼容 "7"（单 ID）、
-// "[7 8 9]"（fmt.Sprint 切片）与 "7,8,9" 三种历史格式；非 ID 内容返回空。
+// auditTargetIDs 解析 target 中的单个 ID（当前格式为 fmt.Sprint(userID)）；非 ID 内容返回空。
 func auditTargetIDs(target string) []int64 {
-	fields := strings.FieldsFunc(target, func(r rune) bool {
-		return r == '[' || r == ']' || r == ' ' || r == ','
-	})
-	ids := make([]int64, 0, len(fields))
-	for _, f := range fields {
-		if id, err := strconv.ParseInt(f, 10, 64); err == nil {
-			ids = append(ids, id)
-		}
+	if id, err := strconv.ParseInt(target, 10, 64); err == nil {
+		return []int64{id}
 	}
-	return ids
+	return nil
 }
 
 // auditDetailEmail 从审计 detail JSON 中提取 email 字段（ban_user / update_role /

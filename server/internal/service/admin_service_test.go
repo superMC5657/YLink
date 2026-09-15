@@ -552,7 +552,7 @@ func TestAuditTargetDisplay(t *testing.T) {
 	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT`)).WillReturnRows(auditLogRows([]model.AdminAuditLogItem{
 		{ID: 7, AdminID: 1, AdminEmail: "admin@y.link", Action: "adjust_balance", Target: strPtr("99"),
 			Detail: strPtr(`{"email":"deleted@y.link","amount":100}`), CreatedAt: time.Now()}, // 用户 99 已删除
-		{ID: 6, AdminID: 1, AdminEmail: "admin@y.link", Action: "send_mail", Target: strPtr("[7 8 9]"), CreatedAt: time.Now()},
+		{ID: 6, AdminID: 1, AdminEmail: "admin@y.link", Action: "send_mail", Target: strPtr("batch:3"), CreatedAt: time.Now()},
 		{ID: 5, AdminID: 1, AdminEmail: "admin@y.link", Action: "copy_server", Target: strPtr("5"), CreatedAt: time.Now()},
 		{ID: 4, AdminID: 1, AdminEmail: "admin@y.link", Action: "create_knowledge_category", Target: strPtr("3"), CreatedAt: time.Now()},
 		{ID: 3, AdminID: 1, AdminEmail: "admin@y.link", Action: "refund", Target: strPtr("ORD20260828001"), CreatedAt: time.Now()},
@@ -577,10 +577,10 @@ func TestAuditTargetDisplay(t *testing.T) {
 		assert.Equal(t, "user", *list[0].TargetKind)
 		assert.Equal(t, "deleted@y.link", *list[0].TargetDisplay)
 	}
-	// users 列表 "[7 8 9]"：9 已不存在，只展示查到的邮箱
+	// 批量摘要 "batch:<count>"：直接透出摘要，不反查实体
 	if assert.NotNil(t, list[1].TargetKind) && assert.NotNil(t, list[1].TargetDisplay) {
 		assert.Equal(t, "users", *list[1].TargetKind)
-		assert.Equal(t, "u7@y.link, u8@y.link", *list[1].TargetDisplay)
+		assert.Equal(t, "batch:3", *list[1].TargetDisplay)
 	}
 	// 节点 → 节点名
 	if assert.NotNil(t, list[2].TargetKind) && assert.NotNil(t, list[2].TargetDisplay) {

@@ -165,14 +165,6 @@ func (s *SubscribeService) Generate(ctx context.Context, token, flag, userAgent 
 		// 契约 §15：token 无效/用户封禁 → 401 纯文本
 		return nil, errs.ErrUnauthorized
 	}
-	// 每用户凭证兜底：迁移前注册的老用户若 uuid 为空则懒生成(正常路径注册即生成)
-	if user.UUID == "" {
-		user.UUID = newUUID()
-		if err := s.repos.User.Update(s.db, user); err != nil {
-			return nil, err
-		}
-	}
-
 	gen := pickGenerator(flag, userAgent)
 
 	subUser := &subscribe.User{
@@ -294,36 +286,20 @@ func (s *SubscribeService) userInfo(ctx context.Context, user *model.User) (stri
 }
 
 // toNode 将 servers 行转换为订阅节点;cred 为每用户凭证(users.uuid)。
-// 仅当节点 config 显式开启 per_user_credentials 时使用,否则保留 config 中的共享凭证,
-// 避免存量节点 inbound 尚未配发每用户凭证时订阅刷新即断连。
 func toNode(srv model.Server, groupName, cred string) subscribe.Node {
 	var conf struct {
-		Password           string `json:"password"`
-		UUID               string `json:"uuid"`
-		ID                 string `json:"id"`
-		Method             string `json:"method"`
-		Cipher             string `json:"cipher"`
-		SNI                string `json:"sni"`
-		Network            string `json:"network"`
-		Security           string `json:"security"`
-		Alpn               string `json:"alpn"`
-		Path               string `json:"path"`
-		PerUserCredentials bool   `json:"per_user_credentials"`
+		Method   string `json:"method"`
+		Cipher   string `json:"cipher"`
+		SNI      string `json:"sni"`
+		Network  string `json:"network"`
+		Security string `json:"security"`
+		Alpn     string `json:"alpn"`
+		Path     string `json:"path"`
 	}
 	_ = json.Unmarshal([]byte(srv.Config), &conf)
 	name := srv.Name
 	if groupName != "" {
 		name = groupName + " " + srv.Name
-	}
-	if !conf.PerUserCredentials {
-		// 存量节点默认使用 config 共享凭证;升级时先配发 inbound,再开启 per_user_credentials。
-		cred = conf.Password
-		if cred == "" {
-			cred = conf.UUID
-		}
-		if cred == "" {
-			cred = conf.ID
-		}
 	}
 	method := conf.Method
 	if method == "" {

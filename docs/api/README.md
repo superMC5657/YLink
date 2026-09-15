@@ -262,7 +262,7 @@
                          "created_at": "2026-08-28T10:00:00+08:00" } ] } }
 ```
 
-活跃会话列表（refresh 白名单维度，Redis 元数据）。`jti` 为会话标识；`current` 标记当前会话；升级前登录的历史会话 `ip`/`user_agent` 可能为空，`created_at` 为 **null**（无元数据时后端不透出零值时间，前端降级显示「--」）。
+活跃会话列表（refresh 白名单维度，Redis 元数据）。`jti` 为会话标识；`current` 标记当前会话；条目恒带 `ip`/`user_agent`/`created_at`（白名单值为签发时写入的 `{ip,ua,ts}`；缺失或解析失败的条目直接跳过，不透出零值时间）。
 
 `DELETE /user/sessions/{jti}` — 踢下线指定会话：删除 refresh 白名单并写入踢下线标记，该会话 access **立即失效**，其余会话不受影响；当前会话不可自行踢除（40000），会话不存在返回 40400。
 
@@ -606,9 +606,7 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 
 本接口不走 envelope 格式；独立限流（如 10 次/分钟/token）。
 
-下发配置中的密码/uuid 字段由节点 `servers.config.per_user_credentials` 决定：
-- `true`：下发**每用户独立凭证**（`users.uuid`，注册时生成），同一节点对不同用户下发不同凭证，节点侧据此区分用户流量（模式 A 上报的归因依据）。
-- `false`/缺省：继续下发 `servers.config` 中的共享密码/uuid，保持存量节点 inbound 未配发前订阅不因刷新断连。
+各协议下发配置中的密码/uuid 统一为**每用户独立凭证**（`users.uuid`，注册时生成），同一节点对不同用户下发不同凭证，节点侧据此区分用户流量（模式 A 上报的归因依据）。
 
 ---
 
@@ -642,7 +640,7 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 ### 16.1 管理端响应字段约定
 
 - `GET /admin/plans` 返回 `{list: AdminPlanView[]}`：价格字段（`month_price`/`quarter_price`/`half_year_price`/`year_price`/`onetime_price`）**单位为元**（`null` 表示未开放该周期），并展开 `group_ids: number[]`、`is_show`、`sort`、`traffic_gb`、`speed_limit`、`device_limit`。请求体 `AdminPlanReq` 同字段，价格传元。
-- `GET /admin/servers` 返回 `{list: AdminServerView[]}`：展开用户端隐藏的 `group_id`/`host`/`port`/`config`/`is_show`/`sort`，`tags: string[]`，`node_key`（节点上报密钥，见 §17），以及机器监控字段（F17）：`is_online`（布尔值，基于 Redis 心跳 90s TTL 判定）、`last_heartbeat_at`（最近心跳 RFC3339 时间戳，离线为 null）、`system`（硬件实时快照对象：`cpu_percent`/`mem_total`/`mem_used`/`mem_percent`/`disk_total`/`disk_used`/`disk_percent`/`net_rx_rate`/`net_tx_rate`/`tcp_conns`/`udp_conns`/`uptime_sec`/`updated_at`，无探针数据为 null）。请求体 `AdminServerReq` 中 `type ∈ {shadowsocks,vmess,vless,trojan,hysteria2,tuic}`、`status ∈ {1=正常,2=拥挤,3=维护}`、`config` 为协议私有参数 JSON 字符串（配发每用户 inbound 后加 `"per_user_credentials": true`）；新建节点服务端自动生成 `node_key`（请求体不传）。
+- `GET /admin/servers` 返回 `{list: AdminServerView[]}`：展开用户端隐藏的 `group_id`/`host`/`port`/`config`/`is_show`/`sort`，`tags: string[]`，`node_key`（节点上报密钥，见 §17），以及机器监控字段（F17）：`is_online`（布尔值，基于 Redis 心跳 90s TTL 判定）、`last_heartbeat_at`（最近心跳 RFC3339 时间戳，离线为 null）、`system`（硬件实时快照对象：`cpu_percent`/`mem_total`/`mem_used`/`mem_percent`/`disk_total`/`disk_used`/`disk_percent`/`net_rx_rate`/`net_tx_rate`/`tcp_conns`/`udp_conns`/`uptime_sec`/`updated_at`，无探针数据为 null）。请求体 `AdminServerReq` 中 `type ∈ {shadowsocks,vmess,vless,trojan,hysteria2,tuic}`、`status ∈ {1=正常,2=拥挤,3=维护}`、`config` 为协议私有参数 JSON 字符串；新建节点服务端自动生成 `node_key`（请求体不传）。
 - `GET /admin/users` 分页返回 `{list,total,page,page_size}`，`balance`/`commission_balance` 单位为元；`PUT /admin/users/{id}` 请求体 `{role?, banned?}`（`role ∈ {0,1,2}`）；`POST /admin/users/{id}/balance` 请求体 `{amount(元，可正可负), remark?}`。
 - `GET /admin/users/export`（F05）：CSV 流式导出（与列表同一 `keyword` 筛选，UTF-8 BOM，每批 500 分批写防内存峰值）。列：`id,email,balance,commission_balance,plan,expired_at,transfer_bytes,u_bytes,d_bytes,created_at,inviter_email`（金额元；流量字节；时间 RFC3339）。
 - `POST /admin/users/batch`（F05）：请求体 `{action ∈ {ban,unban,adjust_balance}, ids(1..500), amount?(元, adjust_balance 必填), remark?}`；逐个执行（复用单用户状态机与负值保护），返回 `{success, failed: [{id, reason}]}`；ban/unban 会 bump 会话版本号踢下线。
@@ -650,7 +648,7 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 - `POST /admin/users/{id}/sub-token/reset`（F05）：管理端重置订阅 token（无需用户密码），旧订阅链接立即失效（清 `sub:userinfo`/`sub:rl` 缓存），返回 `{subscribe_url}`，写审计（`reset_sub_token`）。
 - `GET /admin/audit-logs`（F08）：审计日志只读查询。Query：`admin_id?/action?/target?/from?/to?`（日期 YYYY-MM-DD，含 to 当天）+ 分页；返回 `{list, total, page, page_size, actions}`，条目含 `admin_email`（联表操作人）与 `detail`（jsonb 原始字符串）；`actions` 为去重动作列表供筛选。
   - **可读化增强**：条目新增 `target_kind`（`user`/`users`/`server`/`knowledge_category`/`order`/`mail_template`，按 action 分派；未收录动作或空 target 为 `null`）与 `target_display`（target 反查的可读名称：用户邮箱 / 节点名 / 分类名；订单号与邮件模板名原样透出；多用户列表取前 3 个邮箱，超出显示 `…(+N)`）。**用户类目标一律以邮箱表示**；用户已被删除（users 表查不到）时用 detail 里留痕的 `email` 兜底（`ban_user`/`update_role`/`adjust_balance`/`reset_sub_token` 写入时留痕）。反查与兜底均失败时字段为 `null`，由前端回退显示原始 target；展示增强失败不影响主查询。筛选参数仍使用原始 `action`/`target` 值。
-  - **批量动作 target 为摘要（安全修复）**：`send_mail`/`traffic_reset` 等 ID 列表类批量动作的 target 写入 `batch:<count>` 摘要（target 列 VARCHAR(128)，完整 ID 列表超长会导致审计插入失败、操作成功但审计静默丢失），完整 ID 列表留痕在 detail JSON（`ids`/`user_ids`）；可读化对 `batch:` 前缀直接透出摘要不再反查实体。历史数据的 ID 列表格式（`"7"`/`"[7 8 9]"`/`"7,8,9"`）仍兼容解析。
+  - **批量动作 target 为摘要（安全修复）**：`send_mail`/`traffic_reset` 等 ID 列表类批量动作的 target 写入 `batch:<count>` 摘要（target 列 VARCHAR(128)，完整 ID 列表超长会导致审计插入失败、操作成功但审计静默丢失），完整 ID 列表留痕在 detail JSON（`ids`/`user_ids`）；可读化对 `batch:` 前缀直接透出摘要不再反查实体。
 - `GET /admin/orders` 分页返回 `{list,total,page,page_size}`，`status ∈ {0=待支付,1=已完成,2=已取消,3=已退款}`，金额单位为元；列表项含 `commission_amount`（该订单产生的佣金，元；无佣金记录为 `null`，余额支付订单恒为 `null`）。
 - `GET /admin/coupons` 返回 `{list: AdminCouponView[]}`：展开 `type ∈ {1=固定金额,2=百分比}`、`value`（type=1 为元、type=2 为百分比数值，如 10 表示 10%）、`min_spend` 单位为元、`limit_per_user`/`total_limit`/`used_count`、`valid_periods: string[]`（仅限可用周期）、`plan_ids: number[]`（仅限可用套餐，空=全部）、`started_at`/`ended_at`（null=不限）、`is_enable`、`created_at`。请求体 `AdminCouponReq` 同字段（`valid_periods`/`plan_ids` 传数组）。
 - `GET /admin/notices` 返回 `{list: AdminNoticeItem[]}`（含隐藏，倒序）：`id/title/content/is_show/sort/created_at`。请求体 `AdminNoticeReq`：`title/content` 必填、`is_show?`、`sort?`。
@@ -693,7 +691,7 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 
 `GET /node/users`
 
-返回该节点分组下所有**有效订阅**用户（当前套餐 `group_ids` 含本节点分组且未过期；节点侧据此配置 inbound 每用户凭证并做本地限速掐断；未开启 `per_user_credentials` 的存量节点仍用 config 共享凭证，先完成 inbound 配发再开启开关）。
+返回该节点分组下所有**有效订阅**用户（当前套餐 `group_ids` 含本节点分组且未过期；节点侧据此配置 inbound 每用户凭证并做本地限速掐断）。
 
 ```json
 { "code": 0, "message": "ok",
@@ -702,7 +700,7 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
                  "transfer_enable": 107374182400, "expired_at": 1767225600 } ] } }
 ```
 
-- `uuid`：用户订阅凭证（vmess/vless/tuic 即 uuid；shadowsocks/trojan/hysteria2 作为密码下发），节点 inbound 按此区分用户；仅当该节点开启 `per_user_credentials` 时订阅端才使用此值。
+- `uuid`：用户订阅凭证（vmess/vless/tuic 即 uuid；shadowsocks/trojan/hysteria2 作为密码下发），节点 inbound 按此区分用户。
 - `u`/`d`/`transfer_enable`：字节；`expired_at`：unix 秒（null=不限期，如 onetime）。
 - 用户侧 `u/d` 由面板累加（含倍率），节点仅作本地掐断参考。
 

@@ -139,7 +139,7 @@ coupon_usages：id、coupon_id、user_id、order_no，唯一索引 `(coupon_id, 
 
 server_groups：id、name、sort。
 servers：id、group_id INDEX、name、type（`shadowsocks/vmess/vless/trojan/hysteria2/tuic`）、host、port、config JSONB（协议私有参数：密码/SNI/ALPN 等）、rate DECIMAL(3,1) DEFAULT 1.0（流量倍率）、tags JSONB、status SMALLINT（1=正常 2=拥挤 3=维护）、is_show、sort、node_key CHAR(32) UNIQUE NOT NULL（节点上报密钥，迁移 0004 新增；管理端可重置）。
-说明：host/port/config 仅用于订阅生成，`GET /servers` 用户接口只输出 name/type/rate/status/tags；`config` 为协议私有参数 JSON，可含 `per_user_credentials: true` 开启每用户凭证。未开启时订阅继续使用 config 中的共享密码/uuid（存量节点兼容）；开启后改为每用户 `users.uuid`（config 中的密码/uuid 不再下发给用户）。
+说明：host/port/config 仅用于订阅生成，`GET /servers` 用户接口只输出 name/type/rate/status/tags；`config` 为协议私有参数 JSON（SNI/ALPN/Path/Network/Security 等）；各协议订阅节点凭证一律使用每用户独立凭证 `users.uuid`。
 
 ### 2.9 notices（公告）/ knowledges（知识库）/ knowledge_categories（分类，F15）
 
@@ -263,7 +263,7 @@ audit_logs：id、admin_id、action（如 `adjust_balance/refund/ban_user`）、
 |---|---|---|
 | `captcha:email:{type}:{email}` | String，10min | 邮箱验证码；type=register/forgot |
 | `captcha:rate:{email}` / `captcha:rate:ip:{ip}` | String，60s / String，24h | 发送限频与每日上限 |
-| `refresh:{user_id}:{jti}` | String(JSON)，14d | refresh token 白名单（登出/改密即删）；值为会话元数据 `{ip, ua, ts}` 供 F14 会话列表展示（历史版本为字符串 "1"，降级展示） |
+| `refresh:{user_id}:{jti}` | String(JSON)，14d | refresh token 白名单（登出/改密即删）；值为会话元数据 `{ip, ua, ts}` 供 F14 会话列表展示（字段语义见 [api README](../api/README.md) §5.7） |
 | `auth:kill:{user_id}` | Hash(field=jti)，14d | F14 踢下线标记：用户端踢下线指定会话写入，Auth 中间件 HExists 命中即 401（单会话 access 立即失效，不影响其余会话） |
 | `login:fail:{email}` | String+INCR，10min | 登录失败锁定计数 |
 | `tg:bind:code:{code}` | String(user_id)，10min | F12 Telegram 绑定验证码（单次有效，GetDel 消费） |

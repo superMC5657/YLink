@@ -12,10 +12,16 @@ Five canonical roles mapped to label strings: `needs-triage`, `needs-info`, `rea
 
 ### Domain docs
 
-Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root. 本仓暂未创建这两者，按需惰性生成（缺失时的处理约定见 `docs/agents/domain.md`）。
+Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root（已创建：词汇与文档地图见 `CONTEXT.md`，跨轮决策见 `docs/adr/`；缺失时的处理约定见 `docs/agents/domain.md`）。
 
 ## Notes
 
 - 每次完成更新后需要你将完成的工作同步到需求和过程文档里，确保用户知道哪些工作做了，哪些未完成：完成的需求在 spec 标题栏打上 ✅，不再需要的功能用删除线标识（删除线仅表示「不做」，不要挪作他用）。
 - 文档只维护「当前态」，过时的修改记录从原文档删除（历史交给 git log 与 docs/reviews/）：实施细节写进 progress 与契约文档，不堆进 spec 正文；progress.md 只记录能力清单、未完成项与前置条件，禁止追加式流水账。
 - 同一事实只在一处维护（接口契约在 docs/api、表结构在 data-model、面向访客的功能清单在根 README、需求状态台账在各 spec），其余位置用链接指向，不要复制内容。
+- 文档同步检查表（每次改完代码后逐项过一遍）：
+  - 改契约（端点/字段/语义）→ 必改 `docs/api/README.md`，再对齐 mock、`types/api.d.ts`、Swagger。
+  - 改表/Redis Key → 必改 `docs/backend/data-model.md`。
+  - 改行为 → grep docs 内旧关键词（如被删的兼容格式/字段名），删除过时描述，不留“历史版本…”句式。
+  - 只改实现不改契约 → 只动两份 progress.md 的能力行；不记测试数量（只写全绿），不写流水账。
+  - 跨轮架构决策（如收敛位置选后端还是前端）→ 记一条 `docs/adr/`，spec 里只留状态行。

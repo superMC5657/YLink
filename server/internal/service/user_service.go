@@ -102,7 +102,7 @@ func (s *UserService) ChangePassword(ctx context.Context, userID int64, jti stri
 // ---- 会话管理（F14） ----
 
 // ListSessions GET /user/sessions 活跃会话列表（refresh 白名单维度，Redis SCAN）。
-// currentJTI 标记当前会话；历史版本白名单值（"1"）解析失败按未知设备降级展示。
+// 白名单值恒为 issueSession 写入的 JSON {ip,ua,ts}；currentJTI 标记当前会话。
 func (s *UserService) ListSessions(ctx context.Context, userID int64, currentJTI string) ([]model.UserSessionItem, error) {
 	pattern := redispkg.Key("refresh", fmt.Sprint(userID), "*")
 	iter := s.rdb.Scan(ctx, 0, pattern, 100).Iterator()
@@ -113,23 +113,22 @@ func (s *UserService) ListSessions(ctx context.Context, userID int64, currentJTI
 		if jti == "" {
 			continue
 		}
-		item := model.UserSessionItem{JTI: jti, Current: jti == currentJTI}
-		if raw, err := s.rdb.Get(ctx, key).Result(); err == nil {
-			var meta struct {
-				IP        string    `json:"ip"`
-				UserAgent string    `json:"ua"`
-				CreatedAt time.Time `json:"ts"`
-			}
-			if json.Unmarshal([]byte(raw), &meta) == nil {
-				item.IP = meta.IP
-				item.UserAgent = meta.UserAgent
-				// 无元数据（解析失败/无时间戳）保持 nil → JSON null，前端显示「--」，
-				// 不透出 Go 零值时间（会被渲染成 0001/1/1）
-				if !meta.CreatedAt.IsZero() {
-					item.CreatedAt = &meta.CreatedAt
-				}
-			}
+		raw, err := s.rdb.Get(ctx, key).Result()
+		if err != nil {
+			continue
 		}
+		var meta struct {
+			IP        string    `json:"ip"`
+			UserAgent string    `json:"ua"`
+			CreatedAt time.Time `json:"ts"`
+		}
+		if json.Unmarshal([]byte(raw), &meta) != nil {
+			continue
+		}
+		item := model.UserSessionItem{JTI: jti, Current: jti == currentJTI}
+		item.IP = meta.IP
+		item.UserAgent = meta.UserAgent
+		item.CreatedAt = &meta.CreatedAt
 		out = append(out, item)
 	}
 	return out, iter.Err()

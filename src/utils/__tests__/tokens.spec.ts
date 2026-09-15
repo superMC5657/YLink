@@ -27,7 +27,11 @@ describe('tokens 最小持久面', () => {
 
   it('restorePersisted:恢复 refresh 与 user,不恢复 access', () => {
     // 模拟刷新后:内存令牌已失,持久化仍在
-    setItem('auth', { refreshToken: 'refresh-1', user: { id: 1, email: 'a@b.c', role: 1 } })
+    setItem('auth', {
+      refreshToken: 'refresh-1',
+      user: { id: 1, email: 'a@b.c', role: 1 },
+      savedAt: Date.now(),
+    })
     const restored = restorePersisted()
     expect(restored.refreshToken).toBe('refresh-1')
     expect(restored.user?.email).toBe('a@b.c')
@@ -43,9 +47,12 @@ describe('tokens 最小持久面', () => {
     expect(getItem('auth')).toBeNull()
   })
 
-  it('无 savedAt 的旧格式数据兼容恢复(不强制重登录)', () => {
+  it('无 savedAt 视为过期脏数据:恢复时丢弃并清持久化(需重新登录)', () => {
     setItem('auth', { refreshToken: 'legacy', user: null })
-    expect(restorePersisted().refreshToken).toBe('legacy')
+    const restored = restorePersisted()
+    expect(restored.refreshToken).toBe('')
+    expect(restored.user).toBeNull()
+    expect(getItem('auth')).toBeNull()
   })
 
   it('clearTokens 清内存与持久化;setMemoryTokens 不写持久化', () => {

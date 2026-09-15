@@ -8,7 +8,7 @@
 | 项 | 状态 |
 |---|---|
 | 构建/静态检查 | `go build ./...`、`go vet ./...`、`gofmt -l` 全部通过 |
-| 测试 | `go test ./... -count=1` 全绿,**145 个测试函数** |
+| 测试 | `go test ./... -count=1` 全绿 |
 | 契约对齐 | [docs/api/README.md](../api/README.md) 全量端点已实现(含 §16 管理端与批次新增模块) |
 | 迁移 | `migrations/0001` ~ `0009`(golang-migrate,均含 down) |
 | 代码结构 | 管理端 handler 按业务域拆分为 `internal/handler/admin/` 子包;service 层超大文件按域续拆(`admin_service` + `admin_audit/admin_order/admin_ticket/admin_crud`,`order_service` + `order_coupon/order_payment/order_fulfill`) |
@@ -47,7 +47,7 @@ handler 按业务域组织于 `internal/handler/admin/` 子包:`admin.go`(Admin 
 
 ### 2.8 节点上报与探针(流量模式 A + F17 机器管理)
 
-`X-Node-Key` 鉴权(Redis 缓存 60s);`GET /node/users` 按节点分组下发有效订阅用户;`POST /node/report` **累计值差分**幂等(重复上报差分 0;累计回退视为节点重启)→ ×rate → 事务内 `users.u/d` 原子累加 + `traffic_logs` 增量聚合;套餐分组校验(非本分组 `not_subscribed`)与重复 UUID 整体拒绝(`duplicate_uuid`);每用户订阅凭证(节点 config 显式开启 `per_user_credentials` 才下发,存量节点共享凭证不断连);**高频心跳与系统探针(F17)**:上报携带 `system` 硬件指标(CPU/内存/磁盘/网络速率/连接数/开机时长),写入 Redis `node:heartbeat:{id}`(TTL 90s)与 `node:stats:{id}`(TTL 180s),不刷写 PostgreSQL;管理端聚合接口 `MGet` 毫秒级批量反查;探针 agent `cmd/node-agent`(读取 Linux `/proc` 与跨平台 fallback)+ 一键部署脚本 `deploy/install-agent.sh`。
+`X-Node-Key` 鉴权(Redis 缓存 60s);`GET /node/users` 按节点分组下发有效订阅用户;`POST /node/report` **累计值差分**幂等(重复上报差分 0;累计回退视为节点重启)→ ×rate → 事务内 `users.u/d` 原子累加 + `traffic_logs` 增量聚合;套餐分组校验(非本分组 `not_subscribed`)与重复 UUID 整体拒绝(`duplicate_uuid`);每用户订阅凭证(各协议统一按 users.uuid 下发用户独立凭证);**高频心跳与系统探针(F17)**:上报携带 `system` 硬件指标(CPU/内存/磁盘/网络速率/连接数/开机时长),写入 Redis `node:heartbeat:{id}`(TTL 90s)与 `node:stats:{id}`(TTL 180s),不刷写 PostgreSQL;管理端聚合接口 `MGet` 毫秒级批量反查;探针 agent `cmd/node-agent`(读取 Linux `/proc` 与跨平台 fallback)+ 一键部署脚本 `deploy/install-agent.sh`。
 
 ### 2.9 可观测性
 

@@ -160,8 +160,9 @@ func TestListAndRevokeSessions(t *testing.T) {
 	e := newTestEnv(t)
 	ctx := context.Background()
 	metaA, _ := json.Marshal(map[string]any{"ip": "1.2.3.4", "ua": "Chrome", "ts": time.Now()})
+	metaB, _ := json.Marshal(map[string]any{"ip": "5.6.7.8", "ua": "Firefox", "ts": time.Now()})
 	e.mr.Set("refresh:7:sess-a", string(metaA))
-	e.mr.Set("refresh:7:sess-b", "1") // 历史版本值（升级前的白名单）
+	e.mr.Set("refresh:7:sess-b", string(metaB))
 
 	// 构造 UserService（走 AuthService 的 cfg）
 	svc := NewUserService(e.db, e.rdb, &repo.Repos{}, e.svc)
@@ -177,10 +178,9 @@ func TestListAndRevokeSessions(t *testing.T) {
 			assert.Equal(t, "1.2.3.4", it.IP)
 			assert.NotNil(t, it.CreatedAt, "有元数据的会话应返回登录时间")
 		} else {
-			// 历史会话（白名单值 "1"）无元数据：CreatedAt 必须为 nil（JSON null），
-			// 不得透出 Go 零值时间（会被渲染成 0001/1/1）
-			assert.Nil(t, it.CreatedAt)
 			assert.Equal(t, "sess-b", it.JTI)
+			assert.Equal(t, "5.6.7.8", it.IP)
+			assert.NotNil(t, it.CreatedAt, "有元数据的会话应返回登录时间")
 		}
 	}
 	assert.Equal(t, 1, current)

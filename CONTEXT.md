@@ -6,7 +6,7 @@
 
 | 事实 | 唯一来源 | 其余位置只放链接 |
 |---|---|---|
-| 接口契约（端点/错误码/字段语义） | `docs/api/README.md` | mock、`types/api.d.ts`、Swagger 与之对齐 |
+| 接口契约（端点/错误码/字段语义） | `docs/api/README.md`（管理端形状另归 `dto_admin.go`，见 ADR-002） | mock、types 由生成与审计对齐（ADR-002），Swagger 与之对齐 |
 | 表结构与 Redis Key | `docs/backend/data-model.md` | progress 只提能力，不复述结构 |
 | 业务状态机与核心流程 | `docs/backend/core-flows.md` | — |
 | 需求状态台账 | `.scratch/<feature>/spec.md`（✅=完成，删除线=不做） | spec 正文不堆实施细节 |

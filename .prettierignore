@@ -7,3 +7,5 @@ src-tauri/target
 server
 pnpm-lock.yaml
 *.md
+# 机器快照(canonical 形式归生成器所有,由 check-admin-contract 字节级守护)
+docs/api/admin-contract.json

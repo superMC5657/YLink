@@ -56,6 +56,8 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
       viteMockServe({
         mockPath: 'mock',
         enable: useMock,
+        // 生成骨架(mock/*.generated.ts)非路由模块,排除以免被当 mock 文件加载
+        ignore: /\.generated\.ts$/,
         // mock 请求日志仅在开发模式打印,build/preview 不出噪音
         logger: mode === 'development',
       }),

@@ -55,7 +55,7 @@ views/ 页面 ──► components/ 业务组件 ──► composables/ 逻辑�
 
 分层约束：
 1. **页面不直接发请求**：views 只读写 store；store 调 api 模块；api 模块只依赖 http 封装与契约类型。
-2. **接口类型集中**：`types/api.d.ts` 与契约文档一一对应，后端字段变更先改契约再改类型。
+2. **接口类型集中**：`types/api.d.ts` 与契约文档一一对应，后端字段变更先改契约再改类型（管理端 DTO 形状走 `contract:gen` 生成，见 ADR-002）。
 3. **平台能力适配层**：`utils/platform.ts` 暴露 `copyText / openExternal / importToClient` 等能力，内部按 Tauri/浏览器自动降级，业务代码不感知平台差异。
 
 ## 4. 目录结构

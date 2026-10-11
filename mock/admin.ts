@@ -1,5 +1,6 @@
 import type { MockMethod } from 'vite-plugin-mock'
 import { verifyAdmin } from './auth'
+import { AdminSkeletons } from './admin.skeletons.generated'
 
 function ok(data: unknown) {
   return { code: 0, message: 'ok', data }
@@ -10,9 +11,13 @@ function forbidden() {
   return { code: 40300, message: '无权限操作', data: null }
 }
 
-// 管理端 Mock(契约 docs/api/README.md §16);vite-plugin-mock 按文件独立编译,
-// 模块级状态不跨文件共享,故数据为纯静态。
+// 管理端 Mock(契约 owner:server/internal/model/dto_admin.go + docs/api/README.md §16,
+// 决策见 ADR-002);vite-plugin-mock 按文件独立编译,模块级状态不跨文件共享,
+// 故数据为纯静态。
+// 形状来源:各条目以 {...AdminSkeletons.<DTO>} 打底(DTO 新增字段自动带零值),
+// 覆盖值均为手填语义值——分支/断言依赖的打 HAND-VALUE 标记,其余为演示填充。
 const overview = {
+  ...AdminSkeletons.AdminOverviewResp,
   user_count: 128,
   agent_count: 6,
   order_count: 342,
@@ -25,6 +30,7 @@ const overview = {
 
 const users = [
   {
+    ...AdminSkeletons.AdminUserItem,
     id: 10086,
     email: '2734921923@qq.com',
     role: 0,
@@ -40,6 +46,8 @@ const users = [
     created_at: '2026-05-20T10:00:00+08:00',
   },
   {
+    // HAND-VALUE:role=1 管理员分支(守卫/菜单/403 fixtures 依赖该身份)
+    ...AdminSkeletons.AdminUserItem,
     id: 1,
     email: 'admin@example.com',
     role: 1,
@@ -55,6 +63,8 @@ const users = [
     created_at: '2026-05-01T08:00:00+08:00',
   },
   {
+    // HAND-VALUE:role=2 代理分支(佣金/提现 fixtures 依赖该身份)
+    ...AdminSkeletons.AdminUserItem,
     id: 2,
     email: 'agent@example.com',
     role: 2,
@@ -73,6 +83,8 @@ const users = [
 
 const plans = [
   {
+    // HAND-VALUE:各周期价格/分组/上下架演示值(套餐购买试算与可见性分支依赖)
+    ...AdminSkeletons.AdminPlanView,
     id: 1,
     name: '白羊座',
     content: '**入门之选** · 50GB 流量',
@@ -89,6 +101,7 @@ const plans = [
     sort: 1,
   },
   {
+    ...AdminSkeletons.AdminPlanView,
     id: 2,
     name: '金牛座',
     content: '**进阶之选** · 200GB 流量',
@@ -105,6 +118,8 @@ const plans = [
     sort: 2,
   },
   {
+    // HAND-VALUE:is_show=false 下架分支 + group_ids=[] 空分组(可见性过滤依赖)
+    ...AdminSkeletons.AdminPlanView,
     id: 3,
     name: '隐藏套餐',
     content: '下架中的套餐',
@@ -123,14 +138,17 @@ const plans = [
 ]
 
 const serverGroups = [
+  // HAND-VALUE:分组名演示值;形状 owner 为表结构 model.ServerGroup(审计 ADHOC),非 dto_admin.go
   { id: 1, name: '香港', sort: 1 },
   { id: 2, name: '美国', sort: 2 },
   { id: 3, name: '日本', sort: 3 },
 ]
 
 // ---------- F16 重置记录演示数据 ----------
+// HAND-VALUE:mode 两档各一(clear_usage/reset_quota 标签分支依赖)
 const trafficResets = [
   {
+    ...AdminSkeletons.AdminTrafficResetLogItem,
     id: 1,
     user_id: 10086,
     user_email: '2734921923@qq.com',
@@ -142,6 +160,7 @@ const trafficResets = [
     created_at: '2026-08-28T10:00:00+08:00',
   },
   {
+    ...AdminSkeletons.AdminTrafficResetLogItem,
     id: 2,
     user_id: 2,
     user_email: 'agent@example.com',
@@ -155,8 +174,10 @@ const trafficResets = [
 ]
 
 // ---------- F08 审计日志演示数据(action/target 对齐后端真实写入格式,含 target 可读化字段) ----------
+// HAND-VALUE:target 摘要形(batch:<count>)/可读化三元组(action→target_kind→target_display,筛选依赖)
 const auditLogs = [
   {
+    ...AdminSkeletons.AdminAuditLogItem,
     id: 6,
     admin_id: 1,
     admin_email: 'admin@example.com',
@@ -169,6 +190,7 @@ const auditLogs = [
     created_at: '2026-08-28T10:05:00+08:00',
   },
   {
+    ...AdminSkeletons.AdminAuditLogItem,
     id: 5,
     admin_id: 1,
     admin_email: 'admin@example.com',
@@ -181,6 +203,7 @@ const auditLogs = [
     created_at: '2026-08-27T18:40:00+08:00',
   },
   {
+    ...AdminSkeletons.AdminAuditLogItem,
     id: 4,
     admin_id: 1,
     admin_email: 'admin@example.com',
@@ -193,6 +216,7 @@ const auditLogs = [
     created_at: '2026-08-26T09:12:00+08:00',
   },
   {
+    ...AdminSkeletons.AdminAuditLogItem,
     id: 3,
     admin_id: 1,
     admin_email: 'admin@example.com',
@@ -205,6 +229,7 @@ const auditLogs = [
     created_at: '2026-08-25T15:30:00+08:00',
   },
   {
+    ...AdminSkeletons.AdminAuditLogItem,
     id: 2,
     admin_id: 1,
     admin_email: 'admin@example.com',
@@ -217,6 +242,7 @@ const auditLogs = [
     created_at: '2026-08-21T11:00:00+08:00',
   },
   {
+    ...AdminSkeletons.AdminAuditLogItem,
     id: 1,
     admin_id: 1,
     admin_email: 'admin@example.com',
@@ -231,6 +257,7 @@ const auditLogs = [
 ]
 
 // ---------- F04 报表演示数据(近 30 天逐日) ----------
+// HAND-VALUE:逐日补零序列与 TopN 榜单均为手算演示值(绘图分支依赖;形状见 AdminStat*Resp 骨架)
 function lastDays(n: number): string[] {
   const out: string[] = []
   const base = new Date('2026-08-28T00:00:00+08:00')
@@ -242,6 +269,7 @@ function lastDays(n: number): string[] {
 }
 
 const statOrders = {
+  ...AdminSkeletons.AdminStatOrdersResp,
   days: 30,
   items: lastDays(30).map((date, i) => ({
     date,
@@ -255,6 +283,7 @@ const statOrders = {
 }
 
 const statUsers = {
+  ...AdminSkeletons.AdminStatUsersResp,
   days: 30,
   register_trend: lastDays(30).map((date, i) => ({
     date,
@@ -268,6 +297,7 @@ const statUsers = {
 }
 
 const statTraffic = {
+  ...AdminSkeletons.AdminStatTrafficResp,
   days: 30,
   user_top: [
     { user_id: 2, email: 'agent@example.com', total_bytes: 536870912000 },
@@ -284,6 +314,8 @@ const statTraffic = {
 
 const servers = [
   {
+    // HAND-VALUE:在线节点全字段(system 探针有值分支;node_key/心跳语义见 §17)
+    ...AdminSkeletons.AdminServerView,
     id: 1,
     group_id: 1,
     name: '香港 01',
@@ -310,6 +342,8 @@ const servers = [
     },
   },
   {
+    // HAND-VALUE:离线节点(tags:null/system:null/last_heartbeat_at:null 三分支)
+    ...AdminSkeletons.AdminServerView,
     id: 2,
     group_id: 2,
     name: '美国 01',
@@ -331,6 +365,8 @@ const servers = [
 
 const orders = [
   {
+    // HAND-VALUE:commission_amount=null 语义(余额支付不产生佣金,佣金列回退依赖)
+    ...AdminSkeletons.AdminOrderItem,
     order_no: '20260628000000000000021',
     user_id: 10086,
     user_email: '2734921923@qq.com',
@@ -347,6 +383,7 @@ const orders = [
     created_at: '2026-06-28T00:55:00+08:00',
   },
   {
+    ...AdminSkeletons.AdminOrderItem,
     order_no: '20260701000000000000022',
     user_id: 10086,
     user_email: '2734921923@qq.com',
@@ -363,6 +400,8 @@ const orders = [
     created_at: '2026-07-01T11:58:00+08:00',
   },
   {
+    // HAND-VALUE:在线支付佣金值(40%/50% 两档,佣金回滚/退款分支依赖)
+    ...AdminSkeletons.AdminOrderItem,
     order_no: '20260715000000000000023',
     user_id: 10087,
     user_email: 'user3@example.com',
@@ -379,6 +418,7 @@ const orders = [
     created_at: '2026-07-15T18:28:00+08:00',
   },
   {
+    ...AdminSkeletons.AdminOrderItem,
     order_no: '20260720000000000000024',
     user_id: 10088,
     user_email: 'user6@example.com',
@@ -398,6 +438,7 @@ const orders = [
 
 const tickets = [
   {
+    ...AdminSkeletons.AdminTicketItem,
     id: 1,
     user_id: 10086,
     user_email: '2734921923@qq.com',
@@ -410,6 +451,7 @@ const tickets = [
     created_at: '2026-07-10T09:28:00+08:00',
   },
   {
+    ...AdminSkeletons.AdminTicketItem,
     id: 2,
     user_id: 10086,
     user_email: '2734921923@qq.com',
@@ -423,6 +465,8 @@ const tickets = [
   },
   // 提现工单(F02):列表透出 type=1 打标,详情走审核闭环(pay/reject),直接关单后端 14003
   {
+    // HAND-VALUE:type=1 提现工单(id=3 触发 14003 关单拦截,pay/reject 闭环依赖)
+    ...AdminSkeletons.AdminTicketItem,
     id: 3,
     user_id: 10086,
     user_email: '2734921923@qq.com',
@@ -437,6 +481,7 @@ const tickets = [
 ]
 
 const ticketDetail = {
+  // HAND-VALUE:线型=model.TicketDetailResp(审计 ADHOC);对话流消息体为手写演示文案
   id: 1,
   subject: '无法导入订阅链接',
   level: 1,
@@ -461,6 +506,7 @@ const ticketDetail = {
 }
 
 // 提现工单详情(F02):附带结构化提现信息,审核入口据 withdraw.status 展示
+// HAND-VALUE:withdraw 金额/方式/账号三元组(审核闭环断言依赖)
 const ticketWithdrawDetail = {
   id: 3,
   subject: '佣金提现申请',
@@ -493,6 +539,8 @@ const ticketWithdrawDetail = {
 // ---------- 二期模块(契约 docs/api/README.md §16.1) ----------
 const coupons = [
   {
+    // HAND-VALUE:type=2 百分比券 + valid_periods/plan_ids 适用域(试算分支依赖)
+    ...AdminSkeletons.AdminCouponView,
     id: 1,
     code: 'WELCOME10',
     type: 2,
@@ -509,6 +557,8 @@ const coupons = [
     created_at: '2026-06-01T10:00:00+08:00',
   },
   {
+    // HAND-VALUE:type=1 固定金额券 + min_spend 门槛(试算分支依赖)
+    ...AdminSkeletons.AdminCouponView,
     id: 2,
     code: 'VIP50',
     type: 1,
@@ -529,6 +579,7 @@ const coupons = [
 // ---------- 知识库 ----------
 const knowledges = [
   {
+    ...AdminSkeletons.AdminKnowledgeItem,
     id: 1,
     category: '入门指南',
     title: '如何导入订阅链接',
@@ -539,6 +590,7 @@ const knowledges = [
     updated_at: '2026-06-15T10:00:00+08:00',
   },
   {
+    ...AdminSkeletons.AdminKnowledgeItem,
     id: 2,
     category: '常见问题',
     title: '连接不上节点怎么办',
@@ -549,6 +601,7 @@ const knowledges = [
     updated_at: '2026-06-20T14:00:00+08:00',
   },
   {
+    ...AdminSkeletons.AdminKnowledgeItem,
     id: 3,
     category: 'Getting Started',
     title: 'How to import subscription',
@@ -562,6 +615,8 @@ const knowledges = [
 
 const agentApplies = [
   {
+    // HAND-VALUE:status 三态 0/1/2 各一(审批列表筛选与 approve/reject 分支依赖)
+    ...AdminSkeletons.AdminAgentApplyItem,
     id: 1,
     user_id: 10086,
     user_email: '2734921923@qq.com',
@@ -570,6 +625,7 @@ const agentApplies = [
     created_at: '2026-07-10T09:30:00+08:00',
   },
   {
+    ...AdminSkeletons.AdminAgentApplyItem,
     id: 2,
     user_id: 2,
     user_email: 'agent@example.com',
@@ -578,6 +634,7 @@ const agentApplies = [
     created_at: '2026-06-01T09:00:00+08:00',
   },
   {
+    ...AdminSkeletons.AdminAgentApplyItem,
     id: 3,
     user_id: 9,
     user_email: 'rejected@example.com',
@@ -589,6 +646,8 @@ const agentApplies = [
 
 const commissionLogs = [
   {
+    // HAND-VALUE:status 三态 + confirmed_at 有无(佣金徽章分支依赖;type 由骨架补 0=订单佣金)
+    ...AdminSkeletons.AdminCommissionItem,
     id: 1,
     invite_user_id: 10086,
     invite_email: '2734921923@qq.com',
@@ -603,6 +662,7 @@ const commissionLogs = [
     created_at: '2026-07-15T18:30:00+08:00',
   },
   {
+    ...AdminSkeletons.AdminCommissionItem,
     id: 2,
     invite_user_id: 2,
     invite_email: 'agent@example.com',
@@ -617,6 +677,7 @@ const commissionLogs = [
     created_at: '2026-06-01T10:00:00+08:00',
   },
   {
+    ...AdminSkeletons.AdminCommissionItem,
     id: 3,
     invite_user_id: 10086,
     invite_email: '2734921923@qq.com',
@@ -633,6 +694,7 @@ const commissionLogs = [
 ]
 
 const settings = [
+  // HAND-VALUE:各 settings 键 JSON 全为手填语义值(站点/支付/邀请/代理/节点脚本键,设置页回显依赖)
   {
     key: 'site',
     value: JSON.stringify({
@@ -949,13 +1011,7 @@ export default [
   {
     url: '/api/v1/admin/tickets/:id',
     method: 'get',
-    response: ({
-      headers,
-      query,
-    }: {
-      headers: Record<string, string>
-      query: { id?: string }
-    }) => {
+    response: ({ headers, query }: { headers: Record<string, string>; query: { id?: string } }) => {
       if (!verifyAdmin(headers)) return forbidden()
       // 提现工单走审核闭环详情(含 withdraw),普通工单走通用详情
       if (query.id === '3') return ok(ticketWithdrawDetail)
@@ -973,13 +1029,7 @@ export default [
   {
     url: '/api/v1/admin/tickets/:id/close',
     method: 'post',
-    response: ({
-      headers,
-      query,
-    }: {
-      headers: Record<string, string>
-      query: { id?: string }
-    }) => {
+    response: ({ headers, query }: { headers: Record<string, string>; query: { id?: string } }) => {
       if (!verifyAdmin(headers)) return forbidden()
       // 提现工单须经 pay/reject 审核闭环,直接关单后端 14003(与后端 guardAdminCloseWithdraw 一致)
       if (query.id === '3') return { code: 14003, message: '提现工单不可手动关闭', data: null }
@@ -1453,6 +1503,7 @@ export default [
   },
 
   // ---------- 邮件模板（F11） ----------
+  // HAND-VALUE:模板正文/占位符清单手填(Go template 语法,预览渲染断言依赖)
   {
     url: '/api/v1/admin/mail-templates',
     method: 'get',
@@ -1517,6 +1568,7 @@ export default [
   },
 
   // ---------- 订阅模板（F10） ----------
+  // HAND-VALUE:模板正文/变量清单手填(预览渲染断言依赖)
   {
     url: '/api/v1/admin/subscription-templates',
     method: 'get',
@@ -1602,6 +1654,7 @@ export default [
   },
 
   // ---------- 版本检查（F20） ----------
+  // HAND-VALUE:latest/has_update/notes 全 null 分支(未配置更新源语义)
   {
     url: '/api/v1/admin/version',
     method: 'get',

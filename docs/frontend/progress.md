@@ -28,7 +28,7 @@ Vue 3.5 + TS + Vite 6 + pnpm(`<script setup>`,Node ≥ 20);UnoCSS(presetUno/Attr
 
 ### 2.4 管理后台
 
-独立 `AdminLayout` + `AdminSidebar`(唯一菜单源,移动端汉堡抽屉),登录落点按角色分流(`/portal`);模块全量:总览(统计卡 + 按运营频率分组的 8 快捷入口，含余额合计 `total_balance`，类型与 mock 已对账)、用户管理(多选批量/CSV 导出/发邮件/重置订阅)、套餐、节点管理(多选批量/复制/排序/node_key/机器在线状态与硬件探针气泡卡片/一键安装与中台脚本配置 F17)、订单(本地化枚举文案/退款)、工单(提现工单审核 F02，详情 `type`/`reopen_count` 已对账，提现单关闭按钮隐藏只能 pay/reject，直接調接口与管理端直接關同样 14003)、优惠券(含一键公告)、公告/知识库(排序弹窗/分类管理 F15)、代理审批、佣金日志(提现流水徽章)、流量管理(导入/重置/重置记录三标签 F16)、统计报表(ECharts 五图 + 余额四系列 F04)、审计日志(可读化 target，批量摘要 `batch:<count>` 与 mock 同形)、站点设置(含 telegram 与节点部署脚本键)、邮件模板(F11)、订阅模板(F10)、版本检查(F20)。管理端列表机械收敛(仅逻辑,视觉不动):多选与批量汇总同源 `useAdminSelection`、分页钳制与 `batch:<count>` 摘要同源 `utils/adminList`（视图无手写钳制，统一走 api 层）、角色/节点状态标签同源 `format.ts`、佣金/代理/工单/订单各域状态小表同域收敛（工单徽标两端统一 success）、locales 中英键经脚本审计零缺失、mock 审计 target 与后端摘要同形。
+独立 `AdminLayout` + `AdminSidebar`(唯一菜单源,移动端汉堡抽屉),登录落点按角色分流(`/portal`);模块全量:总览(统计卡 + 按运营频率分组的 8 快捷入口，含余额合计 `total_balance`，类型与 mock 已对账)、用户管理(多选批量/CSV 导出/发邮件/重置订阅)、套餐、节点管理(多选批量/复制/排序/node_key/机器在线状态与硬件探针气泡卡片/一键安装与中台脚本配置 F17)、订单(本地化枚举文案/退款)、工单(提现工单审核 F02，详情 `type`/`reopen_count` 已对账，提现单关闭按钮隐藏只能 pay/reject，直接調接口与管理端直接關同样 14003)、优惠券(含一键公告)、公告/知识库(排序弹窗/分类管理 F15)、代理审批、佣金日志(提现流水徽章)、流量管理(导入/重置/重置记录三标签 F16)、统计报表(ECharts 五图 + 余额四系列 F04)、审计日志(可读化 target，批量摘要 `batch:<count>` 与 mock 同形)、站点设置(含 telegram 与节点部署脚本键)、邮件模板(F11)、订阅模板(F10)、版本检查(F20)。管理端列表机械收敛(仅逻辑,视觉不动):多选与批量汇总同源 `useAdminSelection`、分页钳制与 `batch:<count>` 摘要同源 `utils/adminList`（视图无手写钳制，统一走 api 层）、角色/节点状态标签同源 `format.ts`、佣金/代理/工单/订单各域状态小表同域收敛（工单徽标两端统一 success）、locales 中英键经脚本审计零缺失、mock 审计 target 与后端摘要同形。管理端契约 single-owner（形状归 `dto_admin.go`、语义归契约 §16，经 `pnpm contract:gen` 发射 TS 片段/mock 骨架/机器快照，`check-admin-contract` 串入 lint 守护，ADR-002）。
 
 ### 2.5 桌面端(Tauri 2)
 
@@ -68,7 +68,7 @@ ESLint 9 flat config + Prettier 3 + Stylelint 17(接入 lint-staged);husky pre-c
 
 ### 4.3 对接真实后端
 
-`.env.development` 设 `VITE_USE_MOCK=false`;`VITE_API_BASE_URL=https://{host}/api/v1`(运行时也可在设置入口改并持久化);浏览器端需后端 CORS 放行 Web 域名(Tauri 版原生栈不受限);全容器联调直接用 `scripts/dev-docker.sh`(Caddy 同域反代,无需 CORS);浏览器若持久化过旧 `app:apiBase`,在登录页点「重置后端接口地址」。契约变更流程:先改 docs/api/README.md → 再改 `src/types/api.d.ts` → api 模块。
+`.env.development` 设 `VITE_USE_MOCK=false`;`VITE_API_BASE_URL=https://{host}/api/v1`(运行时也可在设置入口改并持久化);浏览器端需后端 CORS 放行 Web 域名(Tauri 版原生栈不受限);全容器联调直接用 `scripts/dev-docker.sh`(Caddy 同域反代,无需 CORS);浏览器若持久化过旧 `app:apiBase`,在登录页点「重置后端接口地址」。契约变更流程:先改 docs/api/README.md → 再改 `src/types/api.d.ts` → api 模块(管理端 DTO 形状走 `pnpm contract:gen` 生成,见 ADR-002)。
 
 ### 4.4 设计令牌维护(重要)
 

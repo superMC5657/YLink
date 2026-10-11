@@ -24,7 +24,7 @@ export const createOrder = (body: CreateOrderReq) => http.post<CreateOrderResp>(
 ```
 
 - api 模块只做参数拼装与类型标注，不写业务逻辑；
-- 所有类型在 `types/api.d.ts` 定义，与契约文档保持同步（契约变更先改类型）。
+- 所有类型在 `types/api.d.ts` 定义，与契约文档保持同步（契约变更先改类型；管理端 DTO 形状走 `contract:gen` 生成，见 ADR-002）。
 
 ## 2. 状态管理（Pinia）
 

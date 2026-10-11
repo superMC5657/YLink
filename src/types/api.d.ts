@@ -1,6 +1,10 @@
 /**
  * 接口契约类型 —— 与 docs/api/README.md 一一对应(前后端唯一事实来源)。
  * 契约变更流程:先改文档 → 评审 → 再改本文件。
+ * 管理端 DTO 形状另有机器 owner:server/internal/model/dto_admin.go;
+ * 生成片段见 src/types/admin.generated.d.ts,一致性由 scripts/check-admin-contract.mjs
+ * 逐字段审计(串入 pnpm lint,决策见 ADR-002);本文件管理端接口的新增手工字段
+ * 须先落 DTO,确属前端扩展的在该脚本 EXTENSIONS 登记。
  *
  * 单位约定:金额 number 元(两位小数);流量 integer 字节;时间 RFC3339。
  */

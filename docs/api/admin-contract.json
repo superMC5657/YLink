@@ -1,0 +1,3317 @@
+{
+  "generated_by": "node scripts/gen-admin-contract.mjs",
+  "owner": [
+    "server/internal/model/dto_admin.go",
+    "docs/api/README.md §16"
+  ],
+  "source": {
+    "file": "server/internal/model/dto_admin.go",
+    "sha256": "70b280957148a29ca26c2cc9cdb6bc426671f98a4cc8f96109239d0ae1adcf70"
+  },
+  "structs": {
+    "AdminOverviewResp": {
+      "fields": [
+        {
+          "field": "UserCount",
+          "json": "user_count",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "AgentCount",
+          "json": "agent_count",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "OrderCount",
+          "json": "order_count",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "CompletedOrders",
+          "json": "completed_orders",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "TotalRevenue",
+          "json": "total_revenue",
+          "go": "float64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "TodayRevenue",
+          "json": "today_revenue",
+          "go": "float64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "TotalBalance",
+          "json": "total_balance",
+          "go": "float64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "PlanCount",
+          "json": "plan_count",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminPlanView": {
+      "fields": [
+        {
+          "field": "ID",
+          "json": "id",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Name",
+          "json": "name",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Content",
+          "json": "content",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "MonthPrice",
+          "json": "month_price",
+          "go": "*float64",
+          "ts": "number | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "QuarterPrice",
+          "json": "quarter_price",
+          "go": "*float64",
+          "ts": "number | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "HalfYearPrice",
+          "json": "half_year_price",
+          "go": "*float64",
+          "ts": "number | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "YearPrice",
+          "json": "year_price",
+          "go": "*float64",
+          "ts": "number | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "OnetimePrice",
+          "json": "onetime_price",
+          "go": "*float64",
+          "ts": "number | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "TrafficGB",
+          "json": "traffic_gb",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "SpeedLimit",
+          "json": "speed_limit",
+          "go": "*int",
+          "ts": "number | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "DeviceLimit",
+          "json": "device_limit",
+          "go": "*int",
+          "ts": "number | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "GroupIDs",
+          "json": "group_ids",
+          "go": "[]int64",
+          "ts": "number[] | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "IsShow",
+          "json": "is_show",
+          "go": "bool",
+          "ts": "boolean",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Sort",
+          "json": "sort",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "NodeSystemStats": {
+      "fields": [
+        {
+          "field": "CPUPercent",
+          "json": "cpu_percent",
+          "go": "float64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "MemoryPercent",
+          "json": "memory_percent",
+          "go": "float64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "DiskPercent",
+          "json": "disk_percent",
+          "go": "float64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "NetSpeedIn",
+          "json": "net_speed_in",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "NetSpeedOut",
+          "json": "net_speed_out",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Connections",
+          "json": "connections",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Uptime",
+          "json": "uptime",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminServerView": {
+      "fields": [
+        {
+          "field": "ID",
+          "json": "id",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "GroupID",
+          "json": "group_id",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Name",
+          "json": "name",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Type",
+          "json": "type",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Host",
+          "json": "host",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Port",
+          "json": "port",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Config",
+          "json": "config",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Rate",
+          "json": "rate",
+          "go": "float64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Tags",
+          "json": "tags",
+          "go": "[]string",
+          "ts": "string[] | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Status",
+          "json": "status",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "IsShow",
+          "json": "is_show",
+          "go": "bool",
+          "ts": "boolean",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Sort",
+          "json": "sort",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "NodeKey",
+          "json": "node_key",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "IsOnline",
+          "json": "is_online",
+          "go": "bool",
+          "ts": "boolean",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "LastHeartbeatAt",
+          "json": "last_heartbeat_at",
+          "go": "*int64",
+          "ts": "number | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "System",
+          "json": "system",
+          "go": "*NodeSystemStats",
+          "ts": "NodeSystemStats | null",
+          "optional": true,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminUserItem": {
+      "fields": [
+        {
+          "field": "ID",
+          "json": "id",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Email",
+          "json": "email",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Role",
+          "json": "role",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Balance",
+          "json": "balance",
+          "go": "float64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "CommissionBalance",
+          "json": "commission_balance",
+          "go": "float64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "IsBanned",
+          "json": "is_banned",
+          "go": "bool",
+          "ts": "boolean",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "InviteByID",
+          "json": "invite_by_id",
+          "go": "*int64",
+          "ts": "number | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "PlanID",
+          "json": "plan_id",
+          "go": "*int64",
+          "ts": "number | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "ExpiredAt",
+          "json": "expired_at",
+          "go": "*time.Time",
+          "ts": "string | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "TransferEnable",
+          "json": "transfer_enable",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "U",
+          "json": "u",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "D",
+          "json": "d",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "CreatedAt",
+          "json": "created_at",
+          "go": "time.Time",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminUpdateUserReq": {
+      "fields": [
+        {
+          "field": "Role",
+          "json": "role",
+          "go": "*int",
+          "ts": "number | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "omitempty,oneof=0 1 2",
+          "required": false
+        },
+        {
+          "field": "Banned",
+          "json": "banned",
+          "go": "*bool",
+          "ts": "boolean | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdjustBalanceReq": {
+      "fields": [
+        {
+          "field": "Amount",
+          "json": "amount",
+          "go": "float64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "required",
+          "required": true
+        },
+        {
+          "field": "Remark",
+          "json": "remark",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminPlanReq": {
+      "fields": [
+        {
+          "field": "Name",
+          "json": "name",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "required",
+          "required": true
+        },
+        {
+          "field": "Content",
+          "json": "content",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "MonthPrice",
+          "json": "month_price",
+          "go": "*float64",
+          "ts": "number | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "QuarterPrice",
+          "json": "quarter_price",
+          "go": "*float64",
+          "ts": "number | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "HalfYearPrice",
+          "json": "half_year_price",
+          "go": "*float64",
+          "ts": "number | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "YearPrice",
+          "json": "year_price",
+          "go": "*float64",
+          "ts": "number | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "OnetimePrice",
+          "json": "onetime_price",
+          "go": "*float64",
+          "ts": "number | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "TrafficGB",
+          "json": "traffic_gb",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "required",
+          "required": true
+        },
+        {
+          "field": "SpeedLimit",
+          "json": "speed_limit",
+          "go": "*int",
+          "ts": "number | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "DeviceLimit",
+          "json": "device_limit",
+          "go": "*int",
+          "ts": "number | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "GroupIDs",
+          "json": "group_ids",
+          "go": "*[]int64",
+          "ts": "number[] | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "IsShow",
+          "json": "is_show",
+          "go": "*bool",
+          "ts": "boolean | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Sort",
+          "json": "sort",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminServerGroupReq": {
+      "fields": [
+        {
+          "field": "Name",
+          "json": "name",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "required",
+          "required": true
+        },
+        {
+          "field": "Sort",
+          "json": "sort",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminServerReq": {
+      "fields": [
+        {
+          "field": "GroupID",
+          "json": "group_id",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "required",
+          "required": true
+        },
+        {
+          "field": "Name",
+          "json": "name",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "required",
+          "required": true
+        },
+        {
+          "field": "Type",
+          "json": "type",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "required,oneof=shadowsocks vmess vless trojan hysteria2 tuic",
+          "required": true
+        },
+        {
+          "field": "Host",
+          "json": "host",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "required",
+          "required": true
+        },
+        {
+          "field": "Port",
+          "json": "port",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "required",
+          "required": true
+        },
+        {
+          "field": "Config",
+          "json": "config",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "required",
+          "required": true
+        },
+        {
+          "field": "Rate",
+          "json": "rate",
+          "go": "float64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Tags",
+          "json": "tags",
+          "go": "*[]string",
+          "ts": "string[] | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Status",
+          "json": "status",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "omitempty,oneof=1 2 3",
+          "required": false
+        },
+        {
+          "field": "IsShow",
+          "json": "is_show",
+          "go": "*bool",
+          "ts": "boolean | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Sort",
+          "json": "sort",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminOrderItem": {
+      "fields": [
+        {
+          "field": "OrderNo",
+          "json": "order_no",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "UserID",
+          "json": "user_id",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "UserEmail",
+          "json": "user_email",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "PlanName",
+          "json": "plan_name",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Period",
+          "json": "period",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Amount",
+          "json": "amount",
+          "go": "float64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "DiscountAmount",
+          "json": "discount_amount",
+          "go": "float64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "BalanceUsed",
+          "json": "balance_used",
+          "go": "float64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "PayAmount",
+          "json": "pay_amount",
+          "go": "float64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "CommissionAmount",
+          "json": "commission_amount",
+          "go": "*float64",
+          "ts": "number | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Status",
+          "json": "status",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "PayMethod",
+          "json": "pay_method",
+          "go": "*string",
+          "ts": "string | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "PaidAt",
+          "json": "paid_at",
+          "go": "*time.Time",
+          "ts": "string | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "CreatedAt",
+          "json": "created_at",
+          "go": "time.Time",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "RefundReq": {
+      "fields": [
+        {
+          "field": "Remark",
+          "json": "remark",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "GatewayRefundID",
+          "json": "gateway_refund_id",
+          "go": "string",
+          "ts": "string",
+          "optional": true,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminCouponReq": {
+      "fields": [
+        {
+          "field": "Code",
+          "json": "code",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "required",
+          "required": true
+        },
+        {
+          "field": "Type",
+          "json": "type",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "required,oneof=1 2",
+          "required": true
+        },
+        {
+          "field": "Value",
+          "json": "value",
+          "go": "float64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "required",
+          "required": true
+        },
+        {
+          "field": "MinSpend",
+          "json": "min_spend",
+          "go": "float64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "LimitPerUser",
+          "json": "limit_per_user",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "TotalLimit",
+          "json": "total_limit",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "ValidPeriods",
+          "json": "valid_periods",
+          "go": "[]string",
+          "ts": "string[] | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "PlanIDs",
+          "json": "plan_ids",
+          "go": "[]int64",
+          "ts": "number[] | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "StartedAt",
+          "json": "started_at",
+          "go": "*time.Time",
+          "ts": "string | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "EndedAt",
+          "json": "ended_at",
+          "go": "*time.Time",
+          "ts": "string | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "IsEnable",
+          "json": "is_enable",
+          "go": "*bool",
+          "ts": "boolean | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminCouponView": {
+      "fields": [
+        {
+          "field": "ID",
+          "json": "id",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Code",
+          "json": "code",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Type",
+          "json": "type",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Value",
+          "json": "value",
+          "go": "float64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "MinSpend",
+          "json": "min_spend",
+          "go": "float64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "LimitPerUser",
+          "json": "limit_per_user",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "TotalLimit",
+          "json": "total_limit",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "UsedCount",
+          "json": "used_count",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "ValidPeriods",
+          "json": "valid_periods",
+          "go": "[]string",
+          "ts": "string[] | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "PlanIDs",
+          "json": "plan_ids",
+          "go": "[]int64",
+          "ts": "number[] | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "StartedAt",
+          "json": "started_at",
+          "go": "*time.Time",
+          "ts": "string | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "EndedAt",
+          "json": "ended_at",
+          "go": "*time.Time",
+          "ts": "string | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "IsEnable",
+          "json": "is_enable",
+          "go": "bool",
+          "ts": "boolean",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "CreatedAt",
+          "json": "created_at",
+          "go": "time.Time",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminNoticeItem": {
+      "fields": [
+        {
+          "field": "ID",
+          "json": "id",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Title",
+          "json": "title",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Content",
+          "json": "content",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "IsShow",
+          "json": "is_show",
+          "go": "bool",
+          "ts": "boolean",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Sort",
+          "json": "sort",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "CreatedAt",
+          "json": "created_at",
+          "go": "time.Time",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminKnowledgeItem": {
+      "fields": [
+        {
+          "field": "ID",
+          "json": "id",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Category",
+          "json": "category",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Title",
+          "json": "title",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Body",
+          "json": "body",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Language",
+          "json": "language",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "IsShow",
+          "json": "is_show",
+          "go": "bool",
+          "ts": "boolean",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Sort",
+          "json": "sort",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "UpdatedAt",
+          "json": "updated_at",
+          "go": "time.Time",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminNoticeReq": {
+      "fields": [
+        {
+          "field": "Title",
+          "json": "title",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "required",
+          "required": true
+        },
+        {
+          "field": "Content",
+          "json": "content",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "required",
+          "required": true
+        },
+        {
+          "field": "IsShow",
+          "json": "is_show",
+          "go": "*bool",
+          "ts": "boolean | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Sort",
+          "json": "sort",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminKnowledgeReq": {
+      "fields": [
+        {
+          "field": "Category",
+          "json": "category",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "required",
+          "required": true
+        },
+        {
+          "field": "CategoryID",
+          "json": "category_id",
+          "go": "*int64",
+          "ts": "number | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Title",
+          "json": "title",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "required",
+          "required": true
+        },
+        {
+          "field": "Body",
+          "json": "body",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "required",
+          "required": true
+        },
+        {
+          "field": "Language",
+          "json": "language",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "omitempty,oneof=zh-CN en-US",
+          "required": false
+        },
+        {
+          "field": "IsShow",
+          "json": "is_show",
+          "go": "*bool",
+          "ts": "boolean | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Sort",
+          "json": "sort",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminTicketItem": {
+      "fields": [
+        {
+          "field": "ID",
+          "json": "id",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "UserID",
+          "json": "user_id",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "UserEmail",
+          "json": "user_email",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Subject",
+          "json": "subject",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Level",
+          "json": "level",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Type",
+          "json": "type",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Status",
+          "json": "status",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "ReopenCount",
+          "json": "reopen_count",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "LastReplyAt",
+          "json": "last_reply_at",
+          "go": "*time.Time",
+          "ts": "string | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "CreatedAt",
+          "json": "created_at",
+          "go": "time.Time",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminReplyReq": {
+      "fields": [
+        {
+          "field": "Message",
+          "json": "message",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "required",
+          "required": true
+        }
+      ]
+    },
+    "AdminAgentApplyItem": {
+      "fields": [
+        {
+          "field": "ID",
+          "json": "id",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "UserID",
+          "json": "user_id",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "UserEmail",
+          "json": "user_email",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "ValidInvites",
+          "json": "valid_invites",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Status",
+          "json": "status",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "CreatedAt",
+          "json": "created_at",
+          "go": "time.Time",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminApproveReq": {
+      "fields": [
+        {
+          "field": "Remark",
+          "json": "remark",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminCommissionItem": {
+      "fields": [
+        {
+          "field": "ID",
+          "json": "id",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "InviteUserID",
+          "json": "invite_user_id",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "InviteEmail",
+          "json": "invite_email",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "FromUserID",
+          "json": "from_user_id",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "FromEmail",
+          "json": "from_email",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "OrderNo",
+          "json": "order_no",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "OrderAmount",
+          "json": "order_amount",
+          "go": "float64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Rate",
+          "json": "rate",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Amount",
+          "json": "amount",
+          "go": "float64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Type",
+          "json": "type",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Status",
+          "json": "status",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "ConfirmedAt",
+          "json": "confirmed_at",
+          "go": "*time.Time",
+          "ts": "string | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "CreatedAt",
+          "json": "created_at",
+          "go": "time.Time",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "TrafficImportItem": {
+      "fields": [
+        {
+          "field": "UserID",
+          "json": "user_id",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "required",
+          "required": true
+        },
+        {
+          "field": "Date",
+          "json": "date",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "required",
+          "required": true
+        },
+        {
+          "field": "U",
+          "json": "u",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "D",
+          "json": "d",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "TrafficImportReq": {
+      "fields": [
+        {
+          "field": "Items",
+          "json": "items",
+          "go": "[]TrafficImportItem",
+          "ts": "TrafficImportItem[] | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "required,min=1",
+          "required": true
+        }
+      ]
+    },
+    "AdminSettingsReq": {
+      "fields": [
+        {
+          "field": "Key",
+          "json": "key",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "required",
+          "required": true
+        },
+        {
+          "field": "Value",
+          "json": "value",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "required",
+          "required": true
+        }
+      ]
+    },
+    "AdminSettingsResp": {
+      "fields": [
+        {
+          "field": "Key",
+          "json": "key",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Value",
+          "json": "value",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminAuditLogItem": {
+      "fields": [
+        {
+          "field": "ID",
+          "json": "id",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "AdminID",
+          "json": "admin_id",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "AdminEmail",
+          "json": "admin_email",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Action",
+          "json": "action",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Target",
+          "json": "target",
+          "go": "*string",
+          "ts": "string | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "TargetKind",
+          "json": "target_kind",
+          "go": "*string",
+          "ts": "string | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "TargetDisplay",
+          "json": "target_display",
+          "go": "*string",
+          "ts": "string | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Detail",
+          "json": "detail",
+          "go": "*string",
+          "ts": "string | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "IP",
+          "json": "ip",
+          "go": "*string",
+          "ts": "string | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "CreatedAt",
+          "json": "created_at",
+          "go": "time.Time",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminBatchServerReq": {
+      "fields": [
+        {
+          "field": "Action",
+          "json": "action",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "required,oneof=delete update",
+          "required": true
+        },
+        {
+          "field": "IDs",
+          "json": "ids",
+          "go": "[]int64",
+          "ts": "number[] | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "required,min=1,max=500",
+          "required": true
+        },
+        {
+          "field": "Status",
+          "json": "status",
+          "go": "*int",
+          "ts": "number | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "omitempty,oneof=1 2 3",
+          "required": false
+        },
+        {
+          "field": "IsShow",
+          "json": "is_show",
+          "go": "*bool",
+          "ts": "boolean | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "GroupID",
+          "json": "group_id",
+          "go": "*int64",
+          "ts": "number | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Rate",
+          "json": "rate",
+          "go": "*float64",
+          "ts": "number | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminBatchServerResp": {
+      "fields": [
+        {
+          "field": "Success",
+          "json": "success",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Failed",
+          "json": "failed",
+          "go": "[]AdminBatchFailedItem",
+          "ts": "AdminBatchFailedItem[] | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminSortServerReq": {
+      "fields": [
+        {
+          "field": "Items",
+          "json": "items",
+          "go": "[]AdminSortItem",
+          "ts": "AdminSortItem[] | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "required,min=1,max=500,dive",
+          "required": true
+        }
+      ]
+    },
+    "AdminSortItem": {
+      "fields": [
+        {
+          "field": "ID",
+          "json": "id",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "required",
+          "required": true
+        },
+        {
+          "field": "Sort",
+          "json": "sort",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminTrafficResetReq": {
+      "fields": [
+        {
+          "field": "UserIDs",
+          "json": "user_ids",
+          "go": "[]int64",
+          "ts": "number[] | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "required,min=1,max=500",
+          "required": true
+        },
+        {
+          "field": "Mode",
+          "json": "mode",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "required,oneof=clear_usage reset_quota",
+          "required": true
+        }
+      ]
+    },
+    "AdminTrafficResetResp": {
+      "fields": [
+        {
+          "field": "Success",
+          "json": "success",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Failed",
+          "json": "failed",
+          "go": "[]AdminBatchFailedItem",
+          "ts": "AdminBatchFailedItem[] | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminTrafficResetLogItem": {
+      "fields": [
+        {
+          "field": "ID",
+          "json": "id",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "UserID",
+          "json": "user_id",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "UserEmail",
+          "json": "user_email",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Mode",
+          "json": "mode",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "BeforeU",
+          "json": "before_u",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "BeforeD",
+          "json": "before_d",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "BeforeTransferEnable",
+          "json": "before_transfer_enable",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "AfterTransferEnable",
+          "json": "after_transfer_enable",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "CreatedAt",
+          "json": "created_at",
+          "go": "time.Time",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminStatOrderPoint": {
+      "fields": [
+        {
+          "field": "Date",
+          "json": "date",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "OrderCount",
+          "json": "order_count",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "CompletedCount",
+          "json": "completed_count",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Revenue",
+          "json": "revenue",
+          "go": "float64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Refunded",
+          "json": "refunded",
+          "go": "float64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "BalanceUsed",
+          "json": "balance_used",
+          "go": "float64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "BalanceRefunded",
+          "json": "balance_refunded",
+          "go": "float64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminStatOrdersResp": {
+      "fields": [
+        {
+          "field": "Days",
+          "json": "days",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Items",
+          "json": "items",
+          "go": "[]AdminStatOrderPoint",
+          "ts": "AdminStatOrderPoint[] | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminStatUserPoint": {
+      "fields": [
+        {
+          "field": "Date",
+          "json": "date",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Count",
+          "json": "count",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminStatPlanSlice": {
+      "fields": [
+        {
+          "field": "PlanID",
+          "json": "plan_id",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "PlanName",
+          "json": "plan_name",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Users",
+          "json": "users",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminStatUsersResp": {
+      "fields": [
+        {
+          "field": "Days",
+          "json": "days",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "RegisterTrend",
+          "json": "register_trend",
+          "go": "[]AdminStatUserPoint",
+          "ts": "AdminStatUserPoint[] | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "PlanDistribution",
+          "json": "plan_distribution",
+          "go": "[]AdminStatPlanSlice",
+          "ts": "AdminStatPlanSlice[] | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminStatUserTraffic": {
+      "fields": [
+        {
+          "field": "UserID",
+          "json": "user_id",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Email",
+          "json": "email",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "TotalBytes",
+          "json": "total_bytes",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminStatNodeTraffic": {
+      "fields": [
+        {
+          "field": "ServerID",
+          "json": "server_id",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Name",
+          "json": "name",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Bytes",
+          "json": "bytes",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminStatTrafficResp": {
+      "fields": [
+        {
+          "field": "Days",
+          "json": "days",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "UserTop",
+          "json": "user_top",
+          "go": "[]AdminStatUserTraffic",
+          "ts": "AdminStatUserTraffic[] | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "NodeTop",
+          "json": "node_top",
+          "go": "[]AdminStatNodeTraffic",
+          "ts": "AdminStatNodeTraffic[] | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminBatchUserReq": {
+      "fields": [
+        {
+          "field": "Action",
+          "json": "action",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "required,oneof=ban unban adjust_balance",
+          "required": true
+        },
+        {
+          "field": "IDs",
+          "json": "ids",
+          "go": "[]int64",
+          "ts": "number[] | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "required,min=1,max=500",
+          "required": true
+        },
+        {
+          "field": "Amount",
+          "json": "amount",
+          "go": "*float64",
+          "ts": "number | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Remark",
+          "json": "remark",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminBatchFailedItem": {
+      "fields": [
+        {
+          "field": "ID",
+          "json": "id",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Reason",
+          "json": "reason",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminBatchUserResp": {
+      "fields": [
+        {
+          "field": "Success",
+          "json": "success",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Failed",
+          "json": "failed",
+          "go": "[]AdminBatchFailedItem",
+          "ts": "AdminBatchFailedItem[] | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminSendMailReq": {
+      "fields": [
+        {
+          "field": "IDs",
+          "json": "ids",
+          "go": "[]int64",
+          "ts": "number[] | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "required,min=1,max=100",
+          "required": true
+        },
+        {
+          "field": "Subject",
+          "json": "subject",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "required,max=200",
+          "required": true
+        },
+        {
+          "field": "Body",
+          "json": "body",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "required,max=10000",
+          "required": true
+        }
+      ]
+    },
+    "AdminSendMailResp": {
+      "fields": [
+        {
+          "field": "Sent",
+          "json": "sent",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Failed",
+          "json": "failed",
+          "go": "[]AdminBatchFailedItem",
+          "ts": "AdminBatchFailedItem[] | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminSortReq": {
+      "fields": [
+        {
+          "field": "Items",
+          "json": "items",
+          "go": "[]AdminSortItem",
+          "ts": "AdminSortItem[] | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "required,min=1,max=500,dive",
+          "required": true
+        }
+      ]
+    },
+    "AdminKnowledgeCategoryItem": {
+      "fields": [
+        {
+          "field": "ID",
+          "json": "id",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Language",
+          "json": "language",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Name",
+          "json": "name",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Sort",
+          "json": "sort",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "KnowledgeCount",
+          "json": "knowledge_count",
+          "go": "int64",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminKnowledgeCategoryReq": {
+      "fields": [
+        {
+          "field": "Language",
+          "json": "language",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "required,max=10",
+          "required": true
+        },
+        {
+          "field": "Name",
+          "json": "name",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "required,max=64",
+          "required": true
+        },
+        {
+          "field": "Sort",
+          "json": "sort",
+          "go": "*int",
+          "ts": "number | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminKnowledgeCategoryUpdateReq": {
+      "fields": [
+        {
+          "field": "Name",
+          "json": "name",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "required,max=64",
+          "required": true
+        },
+        {
+          "field": "Sort",
+          "json": "sort",
+          "go": "*int",
+          "ts": "number | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminMailTemplateItem": {
+      "fields": [
+        {
+          "field": "Name",
+          "json": "name",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Subject",
+          "json": "subject",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Body",
+          "json": "body",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "IsCustom",
+          "json": "is_custom",
+          "go": "bool",
+          "ts": "boolean",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Placeholders",
+          "json": "placeholders",
+          "go": "[]string",
+          "ts": "string[] | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Remark",
+          "json": "remark",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "UpdatedAt",
+          "json": "updated_at",
+          "go": "*time.Time",
+          "ts": "string | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminMailTemplateReq": {
+      "fields": [
+        {
+          "field": "Subject",
+          "json": "subject",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "required,max=255",
+          "required": true
+        },
+        {
+          "field": "Body",
+          "json": "body",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "required",
+          "required": true
+        }
+      ]
+    },
+    "AdminMailTemplateTestReq": {
+      "fields": [
+        {
+          "field": "ToEmail",
+          "json": "to_email",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "required,email",
+          "required": true
+        }
+      ]
+    },
+    "AdminVersionResp": {
+      "fields": [
+        {
+          "field": "Version",
+          "json": "version",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Latest",
+          "json": "latest",
+          "go": "*string",
+          "ts": "string | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "HasUpdate",
+          "json": "has_update",
+          "go": "*bool",
+          "ts": "boolean | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Notes",
+          "json": "notes",
+          "go": "*string",
+          "ts": "string | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminSubscriptionTemplateItem": {
+      "fields": [
+        {
+          "field": "Name",
+          "json": "name",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Content",
+          "json": "content",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "IsCustom",
+          "json": "is_custom",
+          "go": "bool",
+          "ts": "boolean",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Variables",
+          "json": "variables",
+          "go": "[]string",
+          "ts": "string[] | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Remark",
+          "json": "remark",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "UpdatedAt",
+          "json": "updated_at",
+          "go": "*time.Time",
+          "ts": "string | null",
+          "optional": false,
+          "nullable": true,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminSubscriptionTemplateReq": {
+      "fields": [
+        {
+          "field": "Content",
+          "json": "content",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "required",
+          "required": true
+        }
+      ]
+    },
+    "AdminSubscriptionTemplatePreviewResp": {
+      "fields": [
+        {
+          "field": "Name",
+          "json": "name",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Content",
+          "json": "content",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "TelegramBindCodeResp": {
+      "fields": [
+        {
+          "field": "Code",
+          "json": "code",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "BotUsername",
+          "json": "bot_username",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "TTLMinutes",
+          "json": "ttl_minutes",
+          "go": "int",
+          "ts": "number",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    },
+    "AdminTelegramWebhookSetupResp": {
+      "fields": [
+        {
+          "field": "WebhookURL",
+          "json": "webhook_url",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        },
+        {
+          "field": "Message",
+          "json": "message",
+          "go": "string",
+          "ts": "string",
+          "optional": false,
+          "nullable": false,
+          "binding": "",
+          "required": false
+        }
+      ]
+    }
+  }
+}

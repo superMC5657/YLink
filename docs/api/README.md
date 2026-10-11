@@ -613,6 +613,8 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 ## 16. 管理端 API 附录（`/api/v1/admin`，role=admin）
 
 > （F22）路径段 `admin` 可经 `security.admin_path`（config.yaml / `APP_SECURITY_ADMIN_PATH`）定制，前端以 `VITE_ADMIN_PATH` 同步；默认 `admin` 不变。
+>
+> 单一事实来源：本节字段形状以 `server/internal/model/dto_admin.go` 为 owner，语义以本节为准；TS 片段（`src/types/admin.generated.d.ts`）、mock 骨架（`mock/admin.skeletons.generated.ts`）、机器快照（`docs/api/admin-contract.json`）由 `pnpm contract:gen` 生成，`pnpm contract:check`（串入 `pnpm lint`）守护漂移，决策见 ADR-002。
 
 用户端 App 不调用；供管理后台使用（前端 18 个管理页面全部实现，清单见 docs/frontend/pages.md §3.14）。响应走统一信封。
 
@@ -741,7 +743,8 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 
 1. 任何端点新增/字段变更先提本文档 PR，标注 `Added/Changed/Deprecated`，双方评审通过后实现。
 2. 破坏性变更（删字段、改语义）走版本化：并行暴露 `/api/v2/...`，v1 保留至少一个版本周期。
-3. 后端 Swagger 注解与本文档同步更新；CI 校验 Swagger 可构建。前端 `types/api.d.ts` 与本文档同步更新。
+3. 后端 Swagger 注解与本文档同步更新；CI 校验 Swagger 可构建。前端 `types/api.d.ts` 与本文档同步更新（管理端 DTO 部分由生成与脚本审计保障，见 §16 与 ADR-002）。
+4. 管理端字段变更走 DTO 单一事实来源：先改 `server/internal/model/dto_admin.go` + 本文档 §16 → 跑 `pnpm contract:gen` 同步三处生成产物（TS 片段/mock 骨架/机器快照）→ `pnpm contract:check` 全绿；跳过生成即漂移失败，不做人工全量对账。
 
 ## 19. Telegram Webhook（F12，`POST /api/v1/telegram/webhook`，免登录）
 

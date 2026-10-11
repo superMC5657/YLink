@@ -8,7 +8,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useTicketStore } from '@/stores/ticket'
 import { useMessage, useDialog } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
-import { formatTime, ticketLevelLabel, ticketStatusLabel } from '@/utils/format'
+import { formatTime, ticketLevelLabel, ticketStatusBadge, ticketStatusLabel } from '@/utils/format'
 
 const ticket = useTicketStore()
 const route = useRoute()
@@ -24,6 +24,10 @@ const listRef = ref<HTMLElement | null>(null)
 
 const detail = computed(() => ticket.detail)
 const isClosed = computed(() => detail.value?.status === 2)
+/** 工单状态徽标：与管理端同域同形（待回复警告/已回复成功/已关闭中性） */
+function statusType(status: number): 'warning' | 'success' | 'neutral' {
+  return ticketStatusBadge(status)
+}
 /** 提现工单（type=1）：生命周期由管理员审核闭环，用户不可关闭/重开（后端 14003） */
 const isWithdraw = computed(() => detail.value?.type === 1)
 
@@ -94,10 +98,7 @@ onMounted(async () => {
         <h1 class="truncate text-16 font-600 text-[var(--c-text)]">{{ detail?.subject }}</h1>
         <div class="flex items-center gap-2 text-14 text-[var(--c-text-sub)]">
           <span>{{ t('ticket.level') }}:{{ ticketLevelLabel(detail?.level ?? 0) }}</span>
-          <StatusBadge
-            v-if="detail"
-            :type="detail.status === 2 ? 'neutral' : detail.status === 1 ? 'success' : 'warning'"
-          >
+          <StatusBadge v-if="detail" :type="statusType(detail.status)">
             {{ ticketStatusLabel(detail.status) }}
           </StatusBadge>
         </div>

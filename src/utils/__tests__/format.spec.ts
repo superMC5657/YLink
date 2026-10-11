@@ -22,6 +22,7 @@ import {
   periodLabel,
   serverStatusMeta,
   ticketLevelLabel,
+  ticketStatusBadge,
   ticketStatusLabel,
 } from '../format'
 import dayjs from 'dayjs'
@@ -163,11 +164,21 @@ describe('标签映射', () => {
     expect(adminTicketStatusLabel(1)).toBe('已回复')
     expect(adminTicketStatusLabel(2)).toBe('已关闭')
     expect(adminTicketStatusBadge(0)).toBe('warning')
-    expect(adminTicketStatusBadge(1)).toBe('primary')
+    expect(adminTicketStatusBadge(1)).toBe('success')
     expect(adminTicketStatusBadge(2)).toBe('neutral')
     expect(adminTicketLevelLabel(2)).toBe('高')
     expect(adminTicketLevelBadge(0)).toBe('neutral')
     expect(adminTicketLevelBadge(1)).toBe('warning')
     expect(adminTicketLevelBadge(2)).toBe('danger')
+  })
+  it('ticketStatusBadge: 与管理端同域同形（待回复警告/已回复成功/已关闭中性）', () => {
+    expect(ticketStatusBadge(0)).toBe('warning')
+    expect(ticketStatusBadge(1)).toBe('success')
+    expect(ticketStatusBadge(2)).toBe('neutral')
+    expect(ticketStatusBadge(99)).toBe('neutral')
+    // 两端同形：已回复态用户端与管理端一致
+    expect(ticketStatusBadge(1)).toBe(adminTicketStatusBadge(1))
+    expect(ticketStatusBadge(0)).toBe(adminTicketStatusBadge(0))
+    expect(ticketStatusBadge(2)).toBe(adminTicketStatusBadge(2))
   })
 })

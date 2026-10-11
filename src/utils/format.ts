@@ -215,9 +215,9 @@ export function adminTicketStatusLabel(status: number): string {
   return map[status] ? tt(map[status]) : tt('common.unknown')
 }
 
-/** 管理端工单状态 → 徽标色（待回复警告/已回复主色/已关闭中性，用户端 success 色不同意图不硬合） */
-export function adminTicketStatusBadge(status: number): 'warning' | 'primary' | 'neutral' {
-  return status === 0 ? 'warning' : status === 1 ? 'primary' : 'neutral'
+/** 管理端工单状态 → 徽标色（待回复警告/已回复成功/已关闭中性，与用户端同域同形） */
+export function adminTicketStatusBadge(status: number): 'warning' | 'success' | 'neutral' {
+  return status === 0 ? 'warning' : status === 1 ? 'success' : 'neutral'
 }
 
 /** 管理端工单级别 → 文案 */
@@ -243,6 +243,16 @@ export function ticketStatusLabel(status: number): string {
     2: 'ticket.closed',
   }
   return map[status] ? tt(map[status]) : tt('common.unknown')
+}
+
+/** 工单状态 → 徽标色（待回复警告/已回复成功/已关闭中性，与管理端同域同形） */
+export function ticketStatusBadge(status: number): 'warning' | 'success' | 'neutral' {
+  const map: Record<number, 'warning' | 'success' | 'neutral'> = {
+    0: 'warning',
+    1: 'success',
+    2: 'neutral',
+  }
+  return map[status] ?? 'neutral'
 }
 
 /** 工单级别 → 文案 */

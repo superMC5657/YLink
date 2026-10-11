@@ -8,7 +8,7 @@ import { useRouter } from 'vue-router'
 import { useTicketStore } from '@/stores/ticket'
 import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
-import { formatTime, ticketLevelLabel, ticketStatusLabel } from '@/utils/format'
+import { formatTime, ticketLevelLabel, ticketStatusBadge, ticketStatusLabel } from '@/utils/format'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import type { TicketLevel } from '@/types/api'
 
@@ -27,13 +27,9 @@ const levelOptions = [
   { label: t('ticket.high'), value: 2 },
 ]
 
+/** 工单状态徽标：与详情页、管理端同域同形（待回复警告/已回复成功/已关闭中性） */
 function statusType(status: number) {
-  const map: Record<number, 'success' | 'warning' | 'neutral'> = {
-    0: 'warning',
-    1: 'success',
-    2: 'neutral',
-  }
-  return map[status] ?? 'neutral'
+  return ticketStatusBadge(status)
 }
 
 const canCreate = computed(

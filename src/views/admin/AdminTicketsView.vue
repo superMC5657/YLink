@@ -36,7 +36,7 @@ const replyText = ref('')
 const sending = ref(false)
 const msgListRef = ref<HTMLElement | null>(null)
 
-// 机械收敛:工单域小表（文案与徽标同源；用户端 success 色不同意图，不硬合）
+// 工单域小表（文案分域、徽标两端统一 success；文案键用户端 ticket.* 与管理端 adminTickets.* 不同域不混用）
 function levelText(level: TicketLevel): string {
   return adminTicketLevelLabel(level)
 }
@@ -49,7 +49,7 @@ function statusText(status: TicketStatus): string {
   return adminTicketStatusLabel(status)
 }
 
-function statusType(status: TicketStatus): 'warning' | 'primary' | 'neutral' {
+function statusType(status: TicketStatus): 'warning' | 'success' | 'neutral' {
   return adminTicketStatusBadge(status)
 }
 

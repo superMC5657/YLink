@@ -275,6 +275,8 @@ audit_logs：id、admin_id、action（如 `adjust_balance/refund/ban_user`）、
 | `cache:settings` / `cache:plans` / `cache:servers` | JSON，60–300s | 热数据缓存，变更即失效 |
 | `sub:userinfo:{token}` | Hash，30s | 订阅 userinfo 缓存，防客户端高频拉取打库（节点上报后主动删除，客户端立即可见新用量） |
 | `node:key:{node_key}` | String(server_id)，60s | 节点密钥 → 节点 id 缓存（X-Node-Key 鉴权；重置密钥即删） |
+| `node:heartbeat:{id}` | String(unix 秒)，90s | 在线状态深 Module 写 seam：节点上报心跳；存在即在线，过期即离线（形状/TTL 的 owner 见 `node_presence.go`） |
+| `node:stats:{id}` | String(NodeSystemStats JSON)，180s | 在线状态深 Module 写 seam：负载快照（`model.NodeSystemStats` 形状唯一来源）；解析失败读端降级 nil |
 | `cron:lock:{job}` | String+NX | 定时任务分布式锁 |
 
 ## 4. 初始化数据

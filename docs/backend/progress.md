@@ -47,7 +47,7 @@ handler 按业务域组织于 `internal/handler/admin/` 子包:`admin.go`(Admin 
 
 ### 2.8 节点上报与探针(流量模式 A + F17 机器管理)
 
-`X-Node-Key` 鉴权(Redis 缓存 60s);`GET /node/users` 按节点分组下发有效订阅用户;`POST /node/report` **累计值差分**幂等(重复上报差分 0;累计回退视为节点重启)→ ×rate → 事务内 `users.u/d` 原子累加 + `traffic_logs` 增量聚合;套餐分组校验(非本分组 `not_subscribed`)与重复 UUID 整体拒绝(`duplicate_uuid`);每用户订阅凭证(各协议统一按 users.uuid 下发用户独立凭证);**高频心跳与系统探针(F17)**:上报携带 `system` 硬件指标(CPU/内存/磁盘/网络速率/连接数/开机时长),写入 Redis `node:heartbeat:{id}`(TTL 90s)与 `node:stats:{id}`(TTL 180s),不刷写 PostgreSQL;管理端聚合接口 `MGet` 毫秒级批量反查;探针 agent `cmd/node-agent`(读取 Linux `/proc` 与跨平台 fallback)+ 一键部署脚本 `deploy/install-agent.sh`。
+`X-Node-Key` 鉴权(Redis 缓存 60s);`GET /node/users` 按节点分组下发有效订阅用户;`POST /node/report` **累计值差分**幂等(重复上报差分 0;累计回退视为节点重启)→ ×rate → 事务内 `users.u/d` 原子累加 + `traffic_logs` 增量聚合;套餐分组校验(非本分组 `not_subscribed`)与重复 UUID 整体拒绝(`duplicate_uuid`);每用户订阅凭证(各协议统一按 users.uuid 下发用户独立凭证);**在线状态深 Module**(写端只报原始心跳，读端只问在线/负载，Key 形状与 TTL 唯一 owner):上报携带 `system` 硬件指标(CPU/内存/磁盘/网络速率/连接数/开机时长),写入 Redis `node:heartbeat:{id}`(TTL 90s)与 `node:stats:{id}`(TTL 180s),不刷写 PostgreSQL;管理端聚合接口 `MGet` 毫秒级批量反查，mock 与契约同形;探针 agent `cmd/node-agent`(读取 Linux `/proc` 与跨平台 fallback)+ 一键部署脚本 `deploy/install-agent.sh`。
 
 ### 2.9 可观测性
 

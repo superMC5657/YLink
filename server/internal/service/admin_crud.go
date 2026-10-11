@@ -5,8 +5,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
-	"strconv"
 
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/errs"
@@ -156,36 +154,9 @@ func (m *adminCatalogModule) ListAllServers(ctx context.Context) ([]model.AdminS
 	for _, srv := range list {
 		views = append(views, toServerView(&srv))
 	}
-	// 聚合 Redis 中的实时心跳与系统探针负载数据
-	if m.rdb != nil && len(views) > 0 {
-		hbKeys := make([]string, len(views))
-		statKeys := make([]string, len(views))
-		for i, v := range views {
-			hbKeys[i] = fmt.Sprintf("node:heartbeat:%d", v.ID)
-			statKeys[i] = fmt.Sprintf("node:stats:%d", v.ID)
-		}
-		hbVals, _ := m.rdb.MGet(ctx, hbKeys...).Result()
-		statVals, _ := m.rdb.MGet(ctx, statKeys...).Result()
-
-		for i := range views {
-			if i < len(hbVals) && hbVals[i] != nil {
-				if tsStr, ok := hbVals[i].(string); ok {
-					if ts, err := strconv.ParseInt(tsStr, 10, 64); err == nil {
-						views[i].IsOnline = true
-						views[i].LastHeartbeatAt = &ts
-					}
-				}
-			}
-			if i < len(statVals) && statVals[i] != nil {
-				if statStr, ok := statVals[i].(string); ok {
-					var sys model.NodeSystemStats
-					if err := json.Unmarshal([]byte(statStr), &sys); err == nil {
-						views[i].System = &sys
-					}
-				}
-			}
-		}
-	}
+	// 聚合实时心跳与系统探针负载：经在线状态深 Module 的读 seam
+	// （MGet 批量反查 + 在线富化，毫秒级）。
+	presenceEnrich(ctx, m.rdb, views)
 	return views, nil
 }
 

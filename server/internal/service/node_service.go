@@ -2,11 +2,8 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"math"
-	"strconv"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -133,18 +130,9 @@ func (s *NodeService) Report(ctx context.Context, serverID int64, req *NodeRepor
 		return nil, errs.ErrNotFound
 	}
 
-	// 探针心跳与系统负载写入 Redis 缓存(心跳 TTL 90s,负载快照保留 180s)
-	if s.rdb != nil {
-		now := time.Now().Unix()
-		pipe := s.rdb.Pipeline()
-		pipe.Set(ctx, fmt.Sprintf("node:heartbeat:%d", serverID), strconv.FormatInt(now, 10), 90*time.Second)
-		if req.System != nil {
-			if b, err := json.Marshal(req.System); err == nil {
-				pipe.Set(ctx, fmt.Sprintf("node:stats:%d", serverID), string(b), 180*time.Second)
-			}
-		}
-		_, _ = pipe.Exec(ctx)
-	}
+	// 探针心跳与系统负载写入缓存：经在线状态深 Module 的写 seam
+	// （Key 形状 + TTL 90s/180s 的 owner，不刷写 PostgreSQL）。
+	presenceReport(ctx, s.rdb, serverID, req.System)
 
 	items, skipped := dedupeReportItems(req.Data)
 	resp := &NodeReportResp{Skipped: skipped}

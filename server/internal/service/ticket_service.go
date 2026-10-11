@@ -46,20 +46,9 @@ func (s *TicketService) List(ctx context.Context, userID int64, page, pageSize i
 	return out, total, nil
 }
 
-// ticketWithdrawInfo 提现工单附带的结构化提现信息（非提现工单返回 nil，查询失败降级为 nil 不阻断详情）。
+// ticketWithdrawInfo 薄 adapter：转发到提现工单生命周期深 Module 的读 seam。
 func ticketWithdrawInfo(db *gorm.DB, t *model.Ticket) *model.TicketWithdrawInfo {
-	if t.Type != model.TicketTypeWithdraw {
-		return nil
-	}
-	w, err := (repo.WithdrawRepo{}).GetByTicketID(db, t.ID)
-	if err != nil {
-		return nil
-	}
-	return &model.TicketWithdrawInfo{
-		ID: w.ID, UserID: w.UserID, Amount: model.FenToYuan(w.Amount),
-		Method: w.Method, Account: w.Account, Status: w.Status,
-		ReviewRemark: w.ReviewRemark, ReviewedAt: w.ReviewedAt, CreatedAt: w.CreatedAt,
-	}
+	return withdrawInfo(db, t)
 }
 
 // Create POST /tickets（首条消息为用户发送）。
@@ -132,15 +121,14 @@ func (s *TicketService) Reply(ctx context.Context, userID int64, id int64, messa
 }
 
 // Close POST /tickets/{id}/close。
-// 提现工单（type=1）不可由用户关闭：其生命周期由管理员 pay/reject 审核闭环
-// （提交即扣减佣金），用户关闭后管理端审核入口被禁用，佣金将长期停留在已扣减状态。
+// 不变式收敛于生命周期深 Module：提现工单不可由用户关闭（审核闭环，防佣金卡住）。
 func (s *TicketService) Close(ctx context.Context, userID int64, id int64) (*model.TicketListItem, error) {
 	t, err := s.repos.Ticket.GetByIDAndUser(s.db, id, userID)
 	if err != nil {
 		return nil, errs.ErrNotFound
 	}
-	if t.Type == model.TicketTypeWithdraw {
-		return nil, errs.ErrTicketWithdrawClose
+	if err := guardUserCloseWithdraw(t); err != nil {
+		return nil, err
 	}
 	if t.Status == 2 {
 		return nil, errs.ErrTicketClosed
@@ -157,14 +145,14 @@ func (s *TicketService) Close(ctx context.Context, userID int64, id int64) (*mod
 
 // Reopen POST /tickets/{id}/reopen:已关闭的工单可重开一次(core-flows §7)。
 // 重开后状态回「待回复」,reopen_count+1;已重开过或未关闭则拒绝。
-// 提现工单（type=1）同样不可重开:审核完成（pay/reject）后资金闭环,重开只会误导管理端。
+// 不变式收敛于生命周期深 Module：提现工单不可重开（资金已闭环）。
 func (s *TicketService) Reopen(ctx context.Context, userID int64, id int64) (*model.TicketListItem, error) {
 	t, err := s.repos.Ticket.GetByIDAndUser(s.db, id, userID)
 	if err != nil {
 		return nil, errs.ErrNotFound
 	}
-	if t.Type == model.TicketTypeWithdraw {
-		return nil, errs.ErrTicketWithdrawClose
+	if err := guardUserReopenWithdraw(t); err != nil {
+		return nil, err
 	}
 	if t.Status != 2 {
 		return nil, errs.ErrConflict

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"time"
 
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
@@ -14,7 +13,6 @@ import (
 	"ylink-backend/internal/config"
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/errs"
-	"ylink-backend/internal/pkg/sanitize"
 	"ylink-backend/internal/repo"
 )
 
@@ -221,54 +219,12 @@ func (s *InviteService) SubmitWithdraw(ctx context.Context, userID int64, req *m
 	}
 	var out *model.WithdrawItem
 	err := repo.WithTx(s.db, func(tx *gorm.DB) error {
-		user, err := s.repos.User.GetByIDForUpdate(tx, userID)
+		// 生命周期深 Module 拥有提交四写（行锁→身份→余额→扣减→四写同序）
+		item, err := submitWithdrawTx(tx, s.repos, userID, amountFen, req.Method, req.Account)
 		if err != nil {
-			return errs.ErrNotFound
-		}
-		if user.Role != model.RoleAgent {
-			return errs.ErrWithdrawForbidden
-		}
-		if user.CommissionBalance < amountFen {
-			return errs.ErrCommissionInsufficient
-		}
-		// 提交即扣减：重复提交相同金额受余额拦截（防双花）
-		user.CommissionBalance -= amountFen
-		if err := s.repos.User.Save(tx, user); err != nil {
 			return err
 		}
-		now := time.Now()
-		ticket := &model.Ticket{
-			UserID: userID, Subject: "佣金提现申请", Level: 0, Type: model.TicketTypeWithdraw,
-			Status: 0, LastReplyAt: &now,
-		}
-		if err := s.repos.Ticket.Create(tx, ticket); err != nil {
-			return err
-		}
-		method := sanitize.Text(req.Method)
-		account := sanitize.Text(req.Account)
-		msg := fmt.Sprintf("【佣金提现申请】\n提现方式：%s\n收款账号：%s\n金额：%.2f 元",
-			method, account, model.FenToYuan(amountFen))
-		if err := s.repos.Ticket.CreateMessage(tx, &model.TicketMessage{
-			TicketID: ticket.ID, SenderType: 0, SenderID: userID, Message: msg,
-		}); err != nil {
-			return err
-		}
-		w := &model.CommissionWithdraw{
-			UserID: userID, TicketID: ticket.ID, Amount: amountFen,
-			Method: method, Account: account, Status: model.WithdrawPending,
-		}
-		if err := s.repos.Withdraw.Create(tx, w); err != nil {
-			return err
-		}
-		// 提现流水入账（order_no='w<提现单ID>'；仅 biz_type=0 受订单号唯一约束）
-		if err := s.repos.Commission.Create(tx, &model.CommissionLog{
-			InviteUserID: userID, FromUserID: userID,
-			OrderNo: fmt.Sprintf("w%d", w.ID), Amount: amountFen,
-			BizType: model.CommissionBizWithdraw, Status: model.WithdrawPending,
-		}); err != nil {
-			return err
-		}
-		out = toWithdrawItem(w)
+		out = item
 		return nil
 	})
 	if err != nil {

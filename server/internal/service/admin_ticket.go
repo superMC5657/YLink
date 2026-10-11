@@ -85,10 +85,15 @@ func (m *adminTicketModule) ReplyTicket(ctx context.Context, adminID, id int64, 
 }
 
 // CloseTicket POST /admin/tickets/{id}/close。
+// 不变式收敛于生命周期深 Module：提现工单必须走 pay/reject 审核闭环，
+// 直接關单被拒（否则被扣佣金无处可去）。
 func (m *adminTicketModule) CloseTicket(ctx context.Context, id int64) error {
 	t, err := m.repos.Ticket.GetByID(m.db, id)
 	if err != nil {
 		return errs.ErrNotFound
+	}
+	if err := guardAdminCloseWithdraw(t); err != nil {
+		return err
 	}
 	if t.Status == 2 {
 		return errs.ErrTicketClosed

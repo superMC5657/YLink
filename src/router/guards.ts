@@ -3,10 +3,10 @@ import { useAuthStore } from '@/stores/auth'
 import { i18n } from '@/i18n'
 
 /**
- * 登录守卫:
+ * 登录守卫(只读会话接口,不写任何会话状态):
  * - guest 页:已登录 → 管理员 /portal / 普通用户 /dashboard
  * - 其余:未登录 → /login?redirect=原路径
- * - meta.admin:先向服务端核实 role(每会话一次,防持久化 user 过期),
+ * - meta.admin:经会话模块核实 role(每代会话一次,防持久化 user 过期),
  *   非管理员访问 /admin/* 进 /403;门户分流页保持仪表板兜底(A6)。
  */
 export function setupGuards(router: Router): void {

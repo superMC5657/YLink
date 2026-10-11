@@ -1,10 +1,19 @@
 /**
- * HTTP 客户端封装 —— 统一通道 / 鉴权注入 / envelope 解包 / 401 静默刷新。
+ * HTTP 传输适配 —— 统一通道 / 鉴权注入 / envelope 解包 / 401 静默刷新。
+ * 在会话模块 seam 内只承担传输适配:令牌读写与刷新状态机收口于会话模块,
+ * 本模块注入刷新传输实现,不直写存储键。
  * 规范见 docs/frontend/data-layer.md §1 与 docs/api/README.md §1。
  */
 import type { ApiEnvelope, ApiError } from '@/types/api'
 import { getItem } from '@/utils/storage'
-import { applyTokens, clearTokens, getAccessToken, getRefreshToken } from '@/utils/tokens'
+import {
+  applyTokens,
+  clearTokens,
+  getAccessToken,
+  getRefreshToken,
+  refreshSessionVia,
+  terminateSession,
+} from '@/utils/tokens'
 import { clientTag, isTauri } from '@/utils/platform'
 import { i18n } from '@/i18n'
 
@@ -53,47 +62,43 @@ export function setHttpLanguage(lang: string): void {
   language = lang
 }
 
-// ---------- 401 静默刷新(single-flight) ----------
+// ---------- 401 静默刷新(状态机收口于会话模块,本模块只提供传输适配) ----------
 
-let refreshing: Promise<boolean> | null = null
-
-async function doRefresh(): Promise<boolean> {
+/**
+ * 刷新传输适配:经 Tauri/浏览器通道 POST /auth/refresh。
+ * 线路语义不变:body 键仍为 refresh_token(白名单 refresh:{uid}:{jti} 与 SV 语义由后端持有,前端只透传)。
+ * 成功解析出令牌对即返回;失败(无 refresh/网络错/业务码/空 data)返回 null 不抛错,
+ * 调用方按 false 走失效分支。
+ */
+async function fetchRefreshedPair(): Promise<RefreshTokens | null> {
+  const refreshToken = getRefreshToken()
+  if (!refreshToken) return null
   try {
-    const tokens = readTokens()
-    if (!tokens?.refreshToken) return false
     const fetcher = await resolveFetcher()
     const resp = await fetcher(`${resolveApiBase()}/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: tokens.refreshToken }),
+      body: JSON.stringify({ refresh_token: refreshToken }),
     })
     const json = (await resp.json()) as ApiEnvelope<{
       access_token: string
       refresh_token: string
     }>
-    if (!resp.ok || json.code !== 0 || !json.data) return false
-    writeTokens({
-      accessToken: json.data.access_token,
-      refreshToken: json.data.refresh_token,
-    })
-    window.dispatchEvent(new CustomEvent('auth:refreshed'))
-    return true
+    if (!resp.ok || json.code !== 0 || !json.data) return null
+    return { accessToken: json.data.access_token, refreshToken: json.data.refresh_token }
   } catch {
-    return false
+    return null
   }
 }
 
+/** 经会话模块单飞刷新,并发请求共用一次换新;成功时模块内已更新令牌/刷盘并派发 auth:refreshed */
 function refreshTokens(): Promise<boolean> {
-  if (!refreshing) {
-    refreshing = doRefresh().finally(() => {
-      refreshing = null
-    })
-  }
-  return refreshing
+  return refreshSessionVia(fetchRefreshedPair)
 }
 
 function redirectToLogin(): void {
-  clearTokens()
+  // 失效终结走会话模块同一 seam(清令牌+清持久化+代际+1+集中刷盘,不等待落盘即跳转)
+  void terminateSession()
   // 应用使用 hash 路由(createWebHashHistory):跳转必须落在 hash 内,
   // 否则 Tauri 自定义协议下 /login 不是真实文件,会出现空白页。
   const current = window.location.hash.slice(1) || '/'
@@ -124,7 +129,7 @@ export class ApiErrorImpl extends Error implements ApiError {
 
 let toastFn: ((message: string, type?: 'error' | 'warning' | 'success') => void) | null = null
 
-/** 由 main.ts 注入全局 toast(naive-ui message),避免 http 层依赖组件库 */
+/** 由 main.ts 注入全局 toast(naive-ui message),避免传输适配依赖视图模块 */
 export function setToastProvider(fn: typeof toastFn): void {
   toastFn = fn
 }

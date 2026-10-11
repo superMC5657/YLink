@@ -2,7 +2,10 @@
  * 持久化适配层:浏览器 → localStorage;Tauri → @tauri-apps/plugin-store(app-settings.json)。
  * 见 docs/frontend/data-layer.md §3。
  *
- * persistedstate(同步 StorageLike 接口)与 plugin-store(异步 API)冲突,这里用
+ * 在会话模块 seam 内只承担存储适配:会话建立/终结/刷新成功后的刷盘由会话模块集中触发,
+ * 调用方不自行拼 flush 时序;本模块只暴露同步读写 facade 与 flushStorage 落盘语义。
+ *
+ * persistedstate(同步 StorageLike 接口)与 plugin-store(异步接口)冲突,这里用
  * 「同步 facade + 异步落盘」桥接:
  *   - 启动时 `initStorage()` 预载 plugin-store 全部键到内存 Map(getItem/setItem 同步走内存);
  *   - setItem/removeItem 同步更新内存,再排队异步写回 plugin-store(防抖由插件 autoSave 处理);

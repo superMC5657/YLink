@@ -46,7 +46,7 @@ export const createOrder = (body: CreateOrderReq) => http.post<CreateOrderResp>(
 约定：
 - store 是唯一允许调用 api 模块的地方；页面组件读写 store，不直接发请求。
 - 轮询/定时器句柄存放在对应 store，路由离开时统一清理（`$reset` 或显式 stop）。
-- 例外（务实决策）：管理后台视图（`views/admin/*`）直接调用 `apiAdmin` 不经 store 中转——管理端数据一次性拉取、无跨页共享状态；用户端业务视图一律经 store（Profile / 下单弹窗已按此约定收敛）。
+- 例外（务实决策）：管理后台视图（`views/admin/*`）直接调用 `apiAdmin`（纯适配缝，实现归 `stores/admin/*` 各域传输核，ADR-0003）不经 store 中转——管理端数据一次性拉取、无跨页共享状态；用户端业务视图一律经 store（Profile / 下单弹窗已按此约定收敛）。
 
 ## 3. 持久化适配（`utils/storage.ts`）
 

@@ -1,6 +1,6 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { apiAdmin } from '@/api/admin'
+import { nodesTransport } from '@/stores/admin/nodes'
 import type {
   AdminBatchServerResp,
   AdminServerGroupItem,
@@ -10,20 +10,41 @@ import type {
 } from '@/types/api'
 import { useMessage, useDialog } from 'naive-ui'
 import { serverStatusMeta } from '@/utils/format'
-import { reportBatchResult, useAdminSelection } from './useAdminSelection'
+import { useAdminList } from './useAdminList'
 
 /**
  * 节点管理数据域(F09):节点/分组 CRUD、多选与批量操作、复制/排序。
  * 纯逻辑与状态;弹窗呈现拆在 components/admin/*Dialog.vue,表格留在视图。
+ * 列表骨架(取数/多选/批量汇总)归 useAdminList,本域只留语义(C3 收敛)。
  */
 export function useAdminNodes() {
   const { t } = useI18n()
   const message = useMessage()
   const dialog = useDialog()
 
-  const loading = ref(false)
-  const servers = ref<AdminServerItem[]>([])
   const groups = ref<AdminServerGroupItem[]>([])
+
+  // 列表骨架:节点与分组同取(分组经闭包旁路,视图分页键不消费);多选/批量汇总经深模块
+  const {
+    loading,
+    list: servers,
+    load,
+    selectedIds,
+    isSelected,
+    toggleRow,
+    toggleAll,
+    clearSelection,
+    allChecked,
+    reportBatch: reportListBatch,
+  } = useAdminList<AdminServerItem, Record<string, unknown>>({
+    fetch: async () => {
+      const [s, g] = await Promise.all([nodesTransport.servers(), nodesTransport.serverGroups()])
+      groups.value = g.list
+      return { list: s.list }
+    },
+    notify: message,
+    failedWord: () => t('adminNodes.batchFailed'),
+  })
 
   // 节点新建/编辑
   const nodeModal = ref(false)
@@ -79,17 +100,6 @@ export function useAdminNodes() {
     return (id: number) => map.get(id) ?? t('adminNodes.groupFallback', { id })
   })
 
-  async function load() {
-    loading.value = true
-    try {
-      const [s, g] = await Promise.all([apiAdmin.servers(), apiAdmin.serverGroups()])
-      servers.value = s.list
-      groups.value = g.list
-    } finally {
-      loading.value = false
-    }
-  }
-
   function openNodeCreate() {
     editingNode.value = null
     Object.assign(nodeForm, {
@@ -138,10 +148,10 @@ export function useAdminNodes() {
     nodeSaving.value = true
     try {
       if (editingNode.value === null) {
-        await apiAdmin.createServer({ ...nodeForm })
+        await nodesTransport.createServer({ ...nodeForm })
         message.success(t('adminNodes.nodeCreated'))
       } else {
-        await apiAdmin.updateServer(editingNode.value, { ...nodeForm })
+        await nodesTransport.updateServer(editingNode.value, { ...nodeForm })
         message.success(t('adminNodes.nodeUpdated'))
       }
       nodeModal.value = false
@@ -158,7 +168,7 @@ export function useAdminNodes() {
       positiveText: t('adminNodes.delete'),
       negativeText: t('common.cancel'),
       onPositiveClick: async () => {
-        await apiAdmin.deleteServer(srv.id)
+        await nodesTransport.deleteServer(srv.id)
         message.success(t('adminNodes.deleted'))
         void load()
       },
@@ -172,7 +182,7 @@ export function useAdminNodes() {
       positiveText: t('adminNodes.resetKeyBtn'),
       negativeText: t('common.cancel'),
       onPositiveClick: async () => {
-        const { node_key: key } = await apiAdmin.resetServerNodeKey(srv.id)
+        const { node_key: key } = await nodesTransport.resetServerNodeKey(srv.id)
         message.success(t('adminNodes.resetKeySuccess', { key }))
         void load()
       },
@@ -180,13 +190,10 @@ export function useAdminNodes() {
   }
 
   // ---- F09: 多选 / 批量操作 / 复制 / 排序 ----
-  // 机械收敛:多选状态与批量汇总经共享 hook(行为与文案不变)
-  const { selectedIds, isSelected, toggleRow, toggleAll, clearSelection, allChecked } =
-    useAdminSelection(servers)
 
   /** 批量结果汇总提示:成功 n,失败列出原因(与用户端批量同风格) */
   function reportBatch(resp: AdminBatchServerResp) {
-    reportBatchResult(message, t('adminNodes.batchDone'), resp, t('adminNodes.batchFailed'))
+    reportListBatch(t('adminNodes.batchDone'), resp)
   }
 
   const batchSaving = ref(false)
@@ -201,7 +208,7 @@ export function useAdminNodes() {
       onPositiveClick: async () => {
         batchSaving.value = true
         try {
-          const resp = await apiAdmin.batchServers({ action: 'delete', ids })
+          const resp = await nodesTransport.batchServers({ action: 'delete', ids })
           reportBatch(resp)
           clearSelection()
           void load()
@@ -215,7 +222,7 @@ export function useAdminNodes() {
   async function batchShow(isShow: boolean) {
     batchSaving.value = true
     try {
-      const resp = await apiAdmin.batchServers({
+      const resp = await nodesTransport.batchServers({
         action: 'update',
         ids: [...selectedIds.value],
         is_show: isShow,
@@ -271,7 +278,7 @@ export function useAdminNodes() {
     }
     batchSaving.value = true
     try {
-      const resp = await apiAdmin.batchServers(payload)
+      const resp = await nodesTransport.batchServers(payload)
       reportBatch(resp)
       batchModal.value = false
       clearSelection()
@@ -288,7 +295,7 @@ export function useAdminNodes() {
       positiveText: t('adminNodes.copy'),
       negativeText: t('common.cancel'),
       onPositiveClick: async () => {
-        await apiAdmin.copyServer(srv.id)
+        await nodesTransport.copyServer(srv.id)
         message.success(t('adminNodes.copied', { name: srv.name }))
         void load()
       },
@@ -318,7 +325,7 @@ export function useAdminNodes() {
   async function saveSort() {
     sortSaving.value = true
     try {
-      await apiAdmin.sortServers({
+      await nodesTransport.sortServers({
         items: sortItems.value.map((s, i) => ({ id: s.id, sort: i })),
       })
       message.success(t('adminNodes.sortSaved'))
@@ -351,10 +358,10 @@ export function useAdminNodes() {
     groupSaving.value = true
     try {
       if (editingGroup.value === null) {
-        await apiAdmin.createServerGroup({ name: groupName.value, sort: groupSort.value })
+        await nodesTransport.createServerGroup({ name: groupName.value, sort: groupSort.value })
         message.success(t('adminNodes.groupCreated'))
       } else {
-        await apiAdmin.updateServerGroup(editingGroup.value, {
+        await nodesTransport.updateServerGroup(editingGroup.value, {
           name: groupName.value,
           sort: groupSort.value,
         })
@@ -374,7 +381,7 @@ export function useAdminNodes() {
       positiveText: t('adminNodes.delete'),
       negativeText: t('common.cancel'),
       onPositiveClick: async () => {
-        await apiAdmin.deleteServerGroup(g.id)
+        await nodesTransport.deleteServerGroup(g.id)
         message.success(t('adminNodes.deleted'))
         void load()
       },

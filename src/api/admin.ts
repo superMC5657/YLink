@@ -1,236 +1,138 @@
-import { download, http } from '@/utils/http'
-import { withPage } from '@/utils/adminList'
-import type {
-  AdjustBalanceReq,
-  AdminAgentApplyItem,
-  AdminApproveReq,
-  AdminAuditLogsResp,
-  AdminBatchServerReq,
-  AdminBatchServerResp,
-  AdminBatchUserReq,
-  AdminBatchUserResp,
-  AdminSendMailReq,
-  AdminSendMailResp,
-  AdminCommissionItem,
-  AdminCouponItem,
-  AdminKnowledgeCategoryItem,
-  AdminKnowledgeCategoryReq,
-  AdminKnowledgeCategoryUpdateReq,
-  AdminCouponReq,
-  AdminKnowledgeItem,
-  AdminKnowledgeReq,
-  AdminNoticeItem,
-  AdminNoticeReq,
-  AdminOrderItem,
-  AdminOverviewResp,
-  AdminPlanItem,
-  AdminPlanReq,
-  AdminReplyReq,
-  AdminServerGroupItem,
-  AdminServerGroupReq,
-  AdminServerItem,
-  AdminMailTemplateItem,
-  AdminMailTemplateReq,
-  AdminMailTemplateTestReq,
-  AdminSubscriptionTemplateItem,
-  AdminSubscriptionTemplatePreviewResp,
-  AdminSubscriptionTemplateReq,
-  AdminTelegramWebhookSetupResp,
-  AdminServerReq,
-  AdminSettingsItem,
-  AdminSettingsReq,
-  AdminSortReq,
-  AdminSortServerReq,
-  AdminStatOrdersResp,
-  AdminStatTrafficResp,
-  AdminStatUsersResp,
-  AdminTicketDetail,
-  AdminTicketItem,
-  AdminTrafficResetLogItem,
-  AdminTrafficResetReq,
-  AdminTrafficResetResp,
-  AdminUpdateUserReq,
-  AdminUserItem,
-  AdminVersionResp,
-  PageResult,
-  RefundReq,
-  TrafficImportReq,
-} from '@/types/api'
-
 /**
- * 管理端 API 路径段(F22 security.admin_path)。
- * 后端经 config.yaml security.admin_path 或 APP_SECURITY_ADMIN_PATH 定制;
- * 前端部署同步设置 VITE_ADMIN_PATH 重新构建,默认 admin 保持两端一致。
+ * 适配缝（C3 transport-core 收敛）：既有引入路径与导出名保持可用，实现归属各域传输核。
+ * 新调用方直接用 `@/stores/admin/<domain>` 传输核或组合式函数；本文件不新增逻辑。
+ * 各域归属：overview/users/plans/nodes/orders/tickets(admin)/content/agent/system，决策见 ADR-0003。
  */
-const ADMIN_PATH = (import.meta.env.VITE_ADMIN_PATH as string | undefined) || 'admin'
-const ap = (path: string) => `/${ADMIN_PATH}/${path}`
+import { overviewTransport } from '@/stores/admin/overview'
+import { usersTransport } from '@/stores/admin/users'
+import { plansTransport } from '@/stores/admin/plans'
+import { nodesTransport } from '@/stores/admin/nodes'
+import { ordersTransport } from '@/stores/admin/orders'
+import { adminTicketsTransport } from '@/stores/admin/tickets'
+import { contentTransport } from '@/stores/admin/content'
+import { agentAdminTransport } from '@/stores/admin/agent'
+import { systemTransport } from '@/stores/admin/system'
 
 /** 管理端 API(role=admin,契约见 docs/api/README.md 第 16 节) */
 export const apiAdmin = {
   // 总览
-  overview: () => http.get<AdminOverviewResp>(ap('stat/overview')),
+  overview: overviewTransport.overview,
 
   // 用户
-  users: (query: { page?: number; page_size?: number; keyword?: string }) =>
-    http.get<PageResult<AdminUserItem>>(ap('users'), { query: withPage(query) }),
-  updateUser: (id: number, body: AdminUpdateUserReq) => http.put<null>(ap(`users/${id}`), { body }),
-  adjustBalance: (id: number, body: AdjustBalanceReq) =>
-    http.post<null>(ap(`users/${id}/balance`), { body }),
+  users: usersTransport.users,
+  updateUser: usersTransport.updateUser,
+  adjustBalance: usersTransport.adjustBalance,
 
   // 用户管理增强(F05)
-  exportUsersCSV: (query: { keyword?: string }) => download(ap('users/export'), query), // CSV 直下(blob)
-  batchUsers: (body: AdminBatchUserReq) =>
-    http.post<AdminBatchUserResp>(ap('users/batch'), { body }),
-  sendMail: (body: AdminSendMailReq) => http.post<AdminSendMailResp>(ap('users/mail'), { body }),
-  resetUserSubToken: (id: number) =>
-    http.post<{ subscribe_url: string }>(ap(`users/${id}/sub-token/reset`)),
+  exportUsersCSV: usersTransport.exportUsersCSV,
+  batchUsers: usersTransport.batchUsers,
+  sendMail: usersTransport.sendMail,
+  resetUserSubToken: usersTransport.resetUserSubToken,
 
   // 套餐
-  plans: () => http.get<{ list: AdminPlanItem[] }>(ap('plans')),
-  createPlan: (body: AdminPlanReq) => http.post<AdminPlanItem>(ap('plans'), { body }),
-  updatePlan: (id: number, body: AdminPlanReq) => http.put<null>(ap(`plans/${id}`), { body }),
-  deletePlan: (id: number) => http.delete<null>(ap(`plans/${id}`)),
+  plans: plansTransport.plans,
+  createPlan: plansTransport.createPlan,
+  updatePlan: plansTransport.updatePlan,
+  deletePlan: plansTransport.deletePlan,
 
   // 节点
-  servers: () => http.get<{ list: AdminServerItem[] }>(ap('servers')),
-  createServer: (body: AdminServerReq) => http.post<AdminServerItem>(ap('servers'), { body }),
-  updateServer: (id: number, body: AdminServerReq) => http.put<null>(ap(`servers/${id}`), { body }),
-  deleteServer: (id: number) => http.delete<null>(ap(`servers/${id}`)),
-  resetServerNodeKey: (id: number) =>
-    http.post<{ node_key: string }>(ap(`servers/${id}/node-key/reset`)),
+  servers: nodesTransport.servers,
+  createServer: nodesTransport.createServer,
+  updateServer: nodesTransport.updateServer,
+  deleteServer: nodesTransport.deleteServer,
+  resetServerNodeKey: nodesTransport.resetServerNodeKey,
 
   // 节点批量 / 复制 / 排序（F09）
-  batchServers: (body: AdminBatchServerReq) =>
-    http.post<AdminBatchServerResp>(ap('servers/batch'), { body }),
-  copyServer: (id: number) => http.post<AdminServerItem>(ap(`servers/${id}/copy`)),
-  sortServers: (body: AdminSortServerReq) => http.post<null>(ap('servers/sort'), { body }),
-  serverGroups: () => http.get<{ list: AdminServerGroupItem[] }>(ap('server-groups')),
-  createServerGroup: (body: AdminServerGroupReq) =>
-    http.post<AdminServerGroupItem>(ap('server-groups'), { body }),
-  updateServerGroup: (id: number, body: AdminServerGroupReq) =>
-    http.put<null>(ap(`server-groups/${id}`), { body }),
-  deleteServerGroup: (id: number) => http.delete<null>(ap(`server-groups/${id}`)),
+  batchServers: nodesTransport.batchServers,
+  copyServer: nodesTransport.copyServer,
+  sortServers: nodesTransport.sortServers,
+  serverGroups: nodesTransport.serverGroups,
+  createServerGroup: nodesTransport.createServerGroup,
+  updateServerGroup: nodesTransport.updateServerGroup,
+  deleteServerGroup: nodesTransport.deleteServerGroup,
 
   // 订单
-  orders: (query: { page?: number; page_size?: number; status?: number | '' }) =>
-    http.get<PageResult<AdminOrderItem>>(ap('orders'), { query: withPage(query) }),
-  refund: (orderNo: string, body: RefundReq) =>
-    http.post<null>(ap(`orders/${orderNo}/refund`), { body }),
-  closeOrder: (orderNo: string, body: RefundReq) =>
-    http.post<null>(ap(`orders/${orderNo}/close`), { body }),
+  orders: ordersTransport.orders,
+  refund: ordersTransport.refund,
+  closeOrder: ordersTransport.closeOrder,
 
   // 工单
-  tickets: (query: { page?: number; page_size?: number }) =>
-    http.get<PageResult<AdminTicketItem>>(ap('tickets'), { query: withPage(query) }),
-  ticketDetail: (id: number) => http.get<AdminTicketDetail>(ap(`tickets/${id}`)),
-  replyTicket: (id: number, body: AdminReplyReq) =>
-    http.post<null>(ap(`tickets/${id}/reply`), { body }),
-  closeTicket: (id: number) => http.post<null>(ap(`tickets/${id}/close`)),
+  tickets: adminTicketsTransport.tickets,
+  ticketDetail: adminTicketsTransport.ticketDetail,
+  replyTicket: adminTicketsTransport.replyTicket,
+  closeTicket: adminTicketsTransport.closeTicket,
   // 佣金提现审核（F02）
-  withdrawPay: (id: number, body: AdminApproveReq) =>
-    http.post<null>(ap(`tickets/${id}/withdraw/pay`), { body }),
-  withdrawReject: (id: number, body: AdminApproveReq) =>
-    http.post<null>(ap(`tickets/${id}/withdraw/reject`), { body }),
+  withdrawPay: adminTicketsTransport.withdrawPay,
+  withdrawReject: adminTicketsTransport.withdrawReject,
 
   // 优惠券
-  coupons: () => http.get<{ list: AdminCouponItem[] }>(ap('coupons')),
-  createCoupon: (body: AdminCouponReq) => http.post<AdminCouponItem>(ap('coupons'), { body }),
-  updateCoupon: (id: number, body: AdminCouponReq) => http.put<null>(ap(`coupons/${id}`), { body }),
-  deleteCoupon: (id: number) => http.delete<null>(ap(`coupons/${id}`)),
+  coupons: contentTransport.coupons,
+  createCoupon: contentTransport.createCoupon,
+  updateCoupon: contentTransport.updateCoupon,
+  deleteCoupon: contentTransport.deleteCoupon,
 
   // 公告
-  notices: () => http.get<{ list: AdminNoticeItem[] }>(ap('notices')),
-  createNotice: (body: AdminNoticeReq) => http.post<AdminNoticeItem>(ap('notices'), { body }),
-  sortNotices: (body: AdminSortReq) => http.post<null>(ap('notices/sort'), { body }),
-  updateNotice: (id: number, body: AdminNoticeReq) => http.put<null>(ap(`notices/${id}`), { body }),
-  deleteNotice: (id: number) => http.delete<null>(ap(`notices/${id}`)),
+  notices: contentTransport.notices,
+  createNotice: contentTransport.createNotice,
+  sortNotices: contentTransport.sortNotices,
+  updateNotice: contentTransport.updateNotice,
+  deleteNotice: contentTransport.deleteNotice,
 
   // 知识库
-  knowledges: () => http.get<{ list: AdminKnowledgeItem[] }>(ap('knowledges')),
-  createKnowledge: (body: AdminKnowledgeReq) =>
-    http.post<AdminKnowledgeItem>(ap('knowledges'), { body }),
-  sortKnowledges: (body: AdminSortReq) => http.post<null>(ap('knowledges/sort'), { body }),
-  updateKnowledge: (id: number, body: AdminKnowledgeReq) =>
-    http.put<null>(ap(`knowledges/${id}`), { body }),
-  deleteKnowledge: (id: number) => http.delete<null>(ap(`knowledges/${id}`)),
+  knowledges: contentTransport.knowledges,
+  createKnowledge: contentTransport.createKnowledge,
+  sortKnowledges: contentTransport.sortKnowledges,
+  updateKnowledge: contentTransport.updateKnowledge,
+  deleteKnowledge: contentTransport.deleteKnowledge,
 
   // 知识库分类（F15）
-  knowledgeCategories: (query: { language?: string }) =>
-    http.get<{ list: AdminKnowledgeCategoryItem[] }>(ap('knowledge-categories'), { query }),
-  createKnowledgeCategory: (body: AdminKnowledgeCategoryReq) =>
-    http.post<AdminKnowledgeCategoryItem>(ap('knowledge-categories'), { body }),
-  updateKnowledgeCategory: (id: number, body: AdminKnowledgeCategoryUpdateReq) =>
-    http.put<null>(ap(`knowledge-categories/${id}`), { body }),
-  deleteKnowledgeCategory: (id: number) => http.delete<null>(ap(`knowledge-categories/${id}`)),
+  knowledgeCategories: contentTransport.knowledgeCategories,
+  createKnowledgeCategory: contentTransport.createKnowledgeCategory,
+  updateKnowledgeCategory: contentTransport.updateKnowledgeCategory,
+  deleteKnowledgeCategory: contentTransport.deleteKnowledgeCategory,
 
   // 代理审批
-  agentApplies: (query: { page?: number; page_size?: number; status?: number | '' }) =>
-    http.get<PageResult<AdminAgentApplyItem>>(ap('agent/applies'), { query: withPage(query) }),
-  approveAgent: (id: number, body: AdminApproveReq) =>
-    http.post<null>(ap(`agent/applies/${id}/approve`), { body }),
-  rejectAgent: (id: number, body: AdminApproveReq) =>
-    http.post<null>(ap(`agent/applies/${id}/reject`), { body }),
+  agentApplies: agentAdminTransport.agentApplies,
+  approveAgent: agentAdminTransport.approveAgent,
+  rejectAgent: agentAdminTransport.rejectAgent,
 
   // 佣金日志
-  commissionLogs: (query: { page?: number; page_size?: number; status?: number | '' }) =>
-    http.get<PageResult<AdminCommissionItem>>(ap('commission-logs'), { query: withPage(query) }),
+  commissionLogs: agentAdminTransport.commissionLogs,
 
   // 审计日志(F08 只读)
-  auditLogs: (query: {
-    page?: number
-    page_size?: number
-    admin_id?: number | ''
-    action?: string
-    target?: string
-    from?: string
-    to?: string
-  }) => http.get<AdminAuditLogsResp>(ap('audit-logs'), { query: withPage(query) }),
+  auditLogs: systemTransport.auditLogs,
 
   // 流量导入(模式 B)
-  importTraffic: (body: TrafficImportReq) => http.post<null>(ap('traffic/import'), { body }),
+  importTraffic: systemTransport.importTraffic,
 
   // 流量重置(F16)
-  resetTraffic: (body: AdminTrafficResetReq) =>
-    http.post<AdminTrafficResetResp>(ap('traffic/reset'), { body }),
-  trafficResets: (query: { page?: number; page_size?: number; user_id?: number | '' }) =>
-    http.get<PageResult<AdminTrafficResetLogItem>>(ap('traffic/resets'), {
-      query: withPage(query),
-    }),
+  resetTraffic: systemTransport.resetTraffic,
+  trafficResets: systemTransport.trafficResets,
 
   // 统计报表(F04)
-  statOrders: (query: { days?: number }) =>
-    http.get<AdminStatOrdersResp>(ap('stat/orders'), { query }),
-  statUsers: (query: { days?: number }) =>
-    http.get<AdminStatUsersResp>(ap('stat/users'), { query }),
-  statTraffic: (query: { days?: number }) =>
-    http.get<AdminStatTrafficResp>(ap('stat/traffic'), { query }),
+  statOrders: overviewTransport.statOrders,
+  statUsers: overviewTransport.statUsers,
+  statTraffic: overviewTransport.statTraffic,
 
   // 邮件模板（F11）
-  mailTemplates: () => http.get<{ list: AdminMailTemplateItem[] }>(ap('mail-templates')),
-  saveMailTemplate: (name: string, body: AdminMailTemplateReq) =>
-    http.put<null>(ap(`mail-templates/${name}`), { body }),
-  resetMailTemplate: (name: string) => http.delete<null>(ap(`mail-templates/${name}`)),
-  testMailTemplate: (name: string, body: AdminMailTemplateTestReq) =>
-    http.post<null>(ap(`mail-templates/${name}/test`), { body }),
+  mailTemplates: systemTransport.mailTemplates,
+  saveMailTemplate: systemTransport.saveMailTemplate,
+  resetMailTemplate: systemTransport.resetMailTemplate,
+  testMailTemplate: systemTransport.testMailTemplate,
 
   // 订阅模板（F10）
-  subscriptionTemplates: () =>
-    http.get<{ list: AdminSubscriptionTemplateItem[] }>(ap('subscription-templates')),
-  saveSubscriptionTemplate: (name: string, body: AdminSubscriptionTemplateReq) =>
-    http.put<null>(ap(`subscription-templates/${name}`), { body }),
-  resetSubscriptionTemplate: (name: string) =>
-    http.delete<null>(ap(`subscription-templates/${name}`)),
-  previewSubscriptionTemplate: (name: string) =>
-    http.post<AdminSubscriptionTemplatePreviewResp>(ap(`subscription-templates/${name}/preview`)),
+  subscriptionTemplates: systemTransport.subscriptionTemplates,
+  saveSubscriptionTemplate: systemTransport.saveSubscriptionTemplate,
+  resetSubscriptionTemplate: systemTransport.resetSubscriptionTemplate,
+  previewSubscriptionTemplate: systemTransport.previewSubscriptionTemplate,
 
   // Telegram（F12）
-  setupTelegramWebhook: () =>
-    http.post<AdminTelegramWebhookSetupResp>(ap('telegram/webhook/setup')),
+  setupTelegramWebhook: systemTransport.setupTelegramWebhook,
 
   // 版本检查（F20）
-  version: () => http.get<AdminVersionResp>(ap('version')),
+  version: systemTransport.version,
 
   // 站点设置
-  settings: () => http.get<{ list: AdminSettingsItem[] }>(ap('settings')),
-  saveSetting: (body: AdminSettingsReq) => http.put<null>(ap('settings'), { body }),
+  settings: systemTransport.settings,
+  saveSetting: systemTransport.saveSetting,
 }

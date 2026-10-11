@@ -6,6 +6,7 @@
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { apiAdmin } from '@/api/admin'
+import { useAdminList } from '@/composables/useAdminList'
 import type { AdminCommissionItem, CommissionStatus } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import {
@@ -16,12 +17,14 @@ import {
 } from '@/utils/format'
 
 const { t } = useI18n()
-const loading = ref(false)
-const list = ref<AdminCommissionItem[]>([])
-const total = ref(0)
-const page = ref(1)
-const pageSize = 10
 const statusFilter = ref<'' | CommissionStatus>('')
+// 列表骨架归 useAdminList(C3 收敛);筛选值留视图,模板不动
+const { loading, list, total, page, pageSize, load, applyFilters, onPageChange } = useAdminList<
+  AdminCommissionItem,
+  { status: '' | CommissionStatus }
+>({
+  fetch: (q) => apiAdmin.commissionLogs(q),
+})
 
 function statusText(status: CommissionStatus): string {
   // 机械收敛:同域小表（文案与徽标同源，不跨域复用）
@@ -32,32 +35,11 @@ function statusType(status: CommissionStatus): 'warning' | 'success' | 'danger' 
   return commissionStatusBadge(status)
 }
 
-async function load() {
-  loading.value = true
-  try {
-    const res = await apiAdmin.commissionLogs({
-      page: page.value,
-      page_size: pageSize,
-      status: statusFilter.value,
-    })
-    list.value = res.list
-    total.value = res.total
-  } finally {
-    loading.value = false
-  }
-}
-
 function onFilter() {
-  page.value = 1
-  void load()
+  void applyFilters({ status: statusFilter.value })
 }
 
-function onPageChange(p: number) {
-  page.value = p
-  void load()
-}
-
-onMounted(() => void load())
+onMounted(() => void applyFilters({ status: statusFilter.value }))
 </script>
 
 <template>

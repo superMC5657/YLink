@@ -251,7 +251,7 @@ DashboardPage
 - 订阅模板 `/admin/subscription-templates`：按客户端类型编辑/预览/恢复内置。
 - 版本检查 `/admin/version`：当前/最新版本、检查更新、变更日志展示。
 
-- 数据来源：`api/admin.ts` 按契约第 16 节封装全量端点；管理后台视图直调 `apiAdmin` 不经 store（文档化例外，见 data-layer.md §2）。
+- 数据来源：`stores/admin/*` 各域传输核按契约第 16 节拥有 URL 与形态，`api/admin.ts` 为纯适配缝；管理后台视图直调 `apiAdmin` 不经 store（文档化例外，见 data-layer.md §2）。
 
 ## 4. 弹窗与全局组件清单
 

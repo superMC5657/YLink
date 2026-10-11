@@ -8,6 +8,7 @@
 import { computed, onMounted, ref, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { apiAdmin } from '@/api/admin'
+import { useAdminList } from '@/composables/useAdminList'
 import type { AdminTicketDetail, AdminTicketItem, TicketLevel, TicketStatus } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import {
@@ -22,11 +23,13 @@ const { t } = useI18n()
 const message = useMessage()
 const dialog = useDialog()
 
-const loading = ref(false)
-const list = ref<AdminTicketItem[]>([])
-const total = ref(0)
-const page = ref(1)
-const pageSize = 10
+// 列表骨架归 useAdminList(C3 收敛);详情/回复/审核语义留视图,模板不动
+const { loading, list, total, page, pageSize, load, onPageChange } = useAdminList<
+  AdminTicketItem,
+  Record<string, unknown>
+>({
+  fetch: (q) => apiAdmin.tickets(q),
+})
 
 // 详情弹窗
 const modalVisible = ref(false)
@@ -51,22 +54,6 @@ function statusText(status: TicketStatus): string {
 
 function statusType(status: TicketStatus): 'warning' | 'success' | 'neutral' {
   return adminTicketStatusBadge(status)
-}
-
-async function load() {
-  loading.value = true
-  try {
-    const res = await apiAdmin.tickets({ page: page.value, page_size: pageSize })
-    list.value = res.list
-    total.value = res.total
-  } finally {
-    loading.value = false
-  }
-}
-
-function onPageChange(p: number) {
-  page.value = p
-  void load()
 }
 
 function scrollToBottom() {

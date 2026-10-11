@@ -8,17 +8,41 @@
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { apiAdmin } from '@/api/admin'
-import type { AdminAuditLogItem } from '@/types/api'
+import { useAdminList } from '@/composables/useAdminList'
+import type { AdminAuditLogItem, AdminAuditLogsResp } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { formatTime, localDateKey } from '@/utils/format'
 
 const { t, te } = useI18n()
-const loading = ref(false)
-const list = ref<AdminAuditLogItem[]>([])
-const total = ref(0)
-const page = ref(1)
-const pageSize = ref(20)
 const actions = ref<string[]>([])
+// 列表骨架归 useAdminList(C3 收敛);actions 聚合经 onResponse 旁路,模板不动
+const {
+  loading,
+  list,
+  total,
+  page,
+  pageSize,
+  load,
+  applyFilters,
+  onPageChange,
+  setPageSize: onPageSizeChange,
+} = useAdminList<
+  AdminAuditLogItem,
+  {
+    admin_id: number | ''
+    action: string
+    target: string
+    from: string
+    to: string
+  }
+>({
+  fetch: (q) => apiAdmin.auditLogs(q),
+  pageSize: 20,
+  onResponse: (res) => {
+    const acts = (res as AdminAuditLogsResp).actions
+    if (acts?.length) actions.value = acts
+  },
+})
 
 /** 动作代码 → 人类可读文案(未收录的动作回退显示原始代码) */
 function actionLabel(action: string): string {
@@ -63,43 +87,21 @@ function openDetail(log: AdminAuditLogItem) {
   detailModal.value = true
 }
 
-function onPageSizeChange(ps: number) {
-  pageSize.value = ps
-  page.value = 1
-  void load()
-}
-
-async function load() {
-  loading.value = true
-  try {
-    const res = await apiAdmin.auditLogs({
-      page: page.value,
-      page_size: pageSize.value,
-      admin_id: adminIdFilter.value ?? '',
-      action: actionFilter.value ?? '',
-      target: targetFilter.value || '',
-      from: rangeFilter.value ? localDateKey(rangeFilter.value[0]) : '',
-      to: rangeFilter.value ? localDateKey(rangeFilter.value[1]) : '',
-    })
-    list.value = res.list
-    total.value = res.total
-    if (res.actions?.length) actions.value = res.actions
-  } finally {
-    loading.value = false
+function currentFilters() {
+  return {
+    admin_id: adminIdFilter.value ?? ('' as number | ''),
+    action: actionFilter.value ?? '',
+    target: targetFilter.value || '',
+    from: rangeFilter.value ? localDateKey(rangeFilter.value[0]) : '',
+    to: rangeFilter.value ? localDateKey(rangeFilter.value[1]) : '',
   }
 }
 
 function onFilter() {
-  page.value = 1
-  void load()
+  void applyFilters(currentFilters())
 }
 
-function onPageChange(p: number) {
-  page.value = p
-  void load()
-}
-
-onMounted(() => void load())
+onMounted(() => void applyFilters(currentFilters()))
 </script>
 
 <template>

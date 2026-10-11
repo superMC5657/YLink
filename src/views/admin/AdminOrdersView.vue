@@ -6,6 +6,7 @@
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { apiAdmin } from '@/api/admin'
+import { useAdminList } from '@/composables/useAdminList'
 import type { AdminOrderItem, OrderStatus } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { orderStatusBadge, orderStatusLabel, payMethodLabel, periodLabel } from '@/utils/format'
@@ -15,12 +16,14 @@ const { t } = useI18n()
 const message = useMessage()
 const dialog = useDialog()
 
-const loading = ref(false)
-const list = ref<AdminOrderItem[]>([])
-const total = ref(0)
-const page = ref(1)
-const pageSize = 10
 const statusFilter = ref<'' | OrderStatus>('')
+// 列表骨架归 useAdminList(C3 收敛);筛选值留视图,模板不动
+const { loading, list, total, page, pageSize, load, applyFilters, onPageChange } = useAdminList<
+  AdminOrderItem,
+  { status: '' | OrderStatus }
+>({
+  fetch: (q) => apiAdmin.orders(q),
+})
 
 function statusText(status: OrderStatus): string {
   // 机械收敛:订单域小表（用户端同形，不跨域复用）
@@ -31,29 +34,8 @@ function statusType(status: OrderStatus): 'warning' | 'success' | 'neutral' | 'd
   return orderStatusBadge(status)
 }
 
-async function load() {
-  loading.value = true
-  try {
-    const res = await apiAdmin.orders({
-      page: page.value,
-      page_size: pageSize,
-      status: statusFilter.value,
-    })
-    list.value = res.list
-    total.value = res.total
-  } finally {
-    loading.value = false
-  }
-}
-
 function onFilter() {
-  page.value = 1
-  void load()
-}
-
-function onPageChange(p: number) {
-  page.value = p
-  void load()
+  void applyFilters({ status: statusFilter.value })
 }
 
 // 退款弹窗状态:退款仅余额原路退回;现金部分需线下在网关侧退款并回填外部单号(审计)
@@ -113,7 +95,7 @@ function closeOrder(o: AdminOrderItem) {
   })
 }
 
-onMounted(() => void load())
+onMounted(() => void applyFilters({ status: statusFilter.value }))
 </script>
 
 <template>

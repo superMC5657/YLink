@@ -1,16 +1,17 @@
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { apiAdmin } from '@/api/admin'
+import { usersTransport } from '@/stores/admin/users'
 import { useAuthStore } from '@/stores/auth'
 import type { AdminRole, AdminUserItem } from '@/types/api'
 import { useMessage, useDialog } from 'naive-ui'
 import { adminRoleLabel, maskUrl } from '@/utils/format'
 import { copyText } from '@/utils/platform'
-import { reportBatchResult, useAdminSelection } from './useAdminSelection'
+import { useAdminList } from './useAdminList'
 
 /**
  * 用户管理数据域(F05):搜索/分页、封禁/角色/余额、多选批量、导出/发邮件/重置订阅。
  * 纯逻辑与状态;弹窗呈现拆在 components/admin/*Dialog.vue,表格留在视图。
+ * 列表骨架(取数/分页/多选/批量汇总)归 useAdminList,本域只留语义(C3 收敛)。
  */
 export function useAdminUsers() {
   const { t } = useI18n()
@@ -18,12 +19,30 @@ export function useAdminUsers() {
   const dialog = useDialog()
   const auth = useAuthStore()
 
-  const loading = ref(false)
-  const list = ref<AdminUserItem[]>([])
-  const total = ref(0)
-  const page = ref(1)
-  const pageSize = 10
   const keyword = ref('')
+
+  // 列表骨架:取数/分页/多选/批量汇总经深模块(行为与文案不变)
+  const {
+    loading,
+    list,
+    total,
+    page,
+    pageSize,
+    load,
+    applyFilters,
+    onPageChange,
+    selectedIds,
+    isSelected,
+    toggleRow,
+    toggleAll,
+    clearSelection,
+    allChecked,
+    reportBatch: reportListBatch,
+  } = useAdminList<AdminUserItem, { keyword?: string }>({
+    fetch: (q) => usersTransport.users(q),
+    notify: message,
+    failedWord: () => t('adminUsers.failed'),
+  })
 
   // 调余额弹窗
   const balanceModal = ref(false)
@@ -38,29 +57,8 @@ export function useAdminUsers() {
   const roleValue = ref<AdminRole>(0)
   const roleSaving = ref(false)
 
-  async function load() {
-    loading.value = true
-    try {
-      const res = await apiAdmin.users({
-        page: page.value,
-        page_size: pageSize,
-        keyword: keyword.value,
-      })
-      list.value = res.list
-      total.value = res.total
-    } finally {
-      loading.value = false
-    }
-  }
-
   function onSearch() {
-    page.value = 1
-    void load()
-  }
-
-  function onPageChange(p: number) {
-    page.value = p
-    void load()
+    void applyFilters({ keyword: keyword.value })
   }
 
   function toggleBan(u: AdminUserItem) {
@@ -76,7 +74,7 @@ export function useAdminUsers() {
       positiveText: t('adminUsers.ok'),
       negativeText: t('common.cancel'),
       onPositiveClick: async () => {
-        await apiAdmin.updateUser(u.id, { banned: !u.is_banned })
+        await usersTransport.updateUser(u.id, { banned: !u.is_banned })
         message.success(t('adminUsers.updated'))
         void load()
       },
@@ -97,7 +95,7 @@ export function useAdminUsers() {
     if (!roleTarget.value) return
     roleSaving.value = true
     try {
-      await apiAdmin.updateUser(roleTarget.value.id, { role: roleValue.value })
+      await usersTransport.updateUser(roleTarget.value.id, { role: roleValue.value })
       message.success(t('adminUsers.roleUpdated'))
       roleModal.value = false
       void load()
@@ -122,7 +120,7 @@ export function useAdminUsers() {
     if (!balanceTarget.value || balanceAmount.value === null) return
     balanceSaving.value = true
     try {
-      await apiAdmin.adjustBalance(balanceTarget.value.id, {
+      await usersTransport.adjustBalance(balanceTarget.value.id, {
         amount: balanceAmount.value,
         remark: balanceRemark.value,
       })
@@ -135,16 +133,13 @@ export function useAdminUsers() {
   }
 
   // ---- F05:多选 / 批量操作 / 导出 / 发邮件 / 重置订阅 ----
-  // 机械收敛:多选状态与批量汇总经共享 hook(行为与文案不变)
-  const { selectedIds, isSelected, toggleRow, toggleAll, clearSelection, allChecked } =
-    useAdminSelection(list)
 
   /** 批量结果汇总提示:成功 n,失败列出原因 */
   function reportBatch(
     title: string,
     resp: { success: number; failed: { id: number; reason: string }[] },
   ) {
-    reportBatchResult(message, title, resp, t('adminUsers.failed'))
+    reportListBatch(title, resp)
   }
 
   const batchSaving = ref(false)
@@ -163,7 +158,7 @@ export function useAdminUsers() {
       onPositiveClick: async () => {
         batchSaving.value = true
         try {
-          const resp = await apiAdmin.batchUsers({ action: banned ? 'ban' : 'unban', ids })
+          const resp = await usersTransport.batchUsers({ action: banned ? 'ban' : 'unban', ids })
           reportBatch(t('adminUsers.batchDone'), resp)
           clearSelection()
           void load()
@@ -189,7 +184,7 @@ export function useAdminUsers() {
     if (batchBalanceAmount.value === null) return
     batchSaving.value = true
     try {
-      const resp = await apiAdmin.batchUsers({
+      const resp = await usersTransport.batchUsers({
         action: 'adjust_balance',
         ids: [...selectedIds.value],
         amount: batchBalanceAmount.value,
@@ -220,7 +215,7 @@ export function useAdminUsers() {
     if (!mailSubject.value || !mailBody.value) return
     mailSaving.value = true
     try {
-      const resp = await apiAdmin.sendMail({
+      const resp = await usersTransport.sendMail({
         ids: [...selectedIds.value],
         subject: mailSubject.value,
         body: mailBody.value,
@@ -247,7 +242,7 @@ export function useAdminUsers() {
   async function exportCSV() {
     exporting.value = true
     try {
-      const blob = await apiAdmin.exportUsersCSV({ keyword: keyword.value || '' })
+      const blob = await usersTransport.exportUsersCSV({ keyword: keyword.value || '' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -267,7 +262,7 @@ export function useAdminUsers() {
       positiveText: t('adminUsers.ok'),
       negativeText: t('common.cancel'),
       onPositiveClick: async () => {
-        const resp = await apiAdmin.resetUserSubToken(u.id)
+        const resp = await usersTransport.resetUserSubToken(u.id)
         dialog.info({
           title: t('adminUsers.resetSubDone'),
           // 订阅链接掩码展示:原文含令牌,不整体进弹窗文本;复制按钮复制完整原文

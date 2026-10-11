@@ -9,6 +9,7 @@
 import { reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { apiAdmin } from '@/api/admin'
+import { useAdminList } from '@/composables/useAdminList'
 import type { AdminTrafficResetLogItem, TrafficImportItem, TrafficResetMode } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { useMessage, useDialog } from 'naive-ui'
@@ -120,32 +121,22 @@ function submitReset() {
 }
 
 // ---- F16 重置记录 ----
-
-const logs = ref<AdminTrafficResetLogItem[]>([])
-const logTotal = ref(0)
-const logPage = ref(1)
-const logPageSize = 10
+// 列表骨架归 useAdminList(C3 收敛);模板绑定名经解构别名保持不动
 const logUserId = ref<number | null>(null)
-const logsLoading = ref(false)
-
-async function loadLogs() {
-  logsLoading.value = true
-  try {
-    const res = await apiAdmin.trafficResets({
-      page: logPage.value,
-      page_size: logPageSize,
-      user_id: logUserId.value ?? '',
-    })
-    logs.value = res.list
-    logTotal.value = res.total
-  } finally {
-    logsLoading.value = false
-  }
-}
+const {
+  list: logs,
+  total: logTotal,
+  page: logPage,
+  pageSize: logPageSize,
+  loading: logsLoading,
+  load: loadLogs,
+  applyFilters: applyLogFilters,
+} = useAdminList<AdminTrafficResetLogItem, { user_id: number | '' }>({
+  fetch: (q) => apiAdmin.trafficResets(q),
+})
 
 function searchLogs() {
-  logPage.value = 1
-  void loadLogs()
+  void applyLogFilters({ user_id: logUserId.value ?? '' })
 }
 
 function modeText(mode: TrafficResetMode): string {
@@ -154,7 +145,7 @@ function modeText(mode: TrafficResetMode): string {
     : t('adminTrafficImport.modeClearUsage')
 }
 
-void loadLogs()
+void applyLogFilters({ user_id: logUserId.value ?? '' })
 </script>
 
 <template>

@@ -19,6 +19,7 @@ const overview = {
   completed_orders: 210,
   total_revenue: 8642.5,
   today_revenue: 128.6,
+  total_balance: 5120.75,
   plan_count: 4,
 }
 
@@ -402,7 +403,9 @@ const tickets = [
     user_email: '2734921923@qq.com',
     subject: '无法导入订阅链接',
     level: 1,
+    type: 0,
     status: 0,
+    reopen_count: 0,
     last_reply_at: '2026-07-10T09:30:00+08:00',
     created_at: '2026-07-10T09:28:00+08:00',
   },
@@ -412,7 +415,9 @@ const tickets = [
     user_email: '2734921923@qq.com',
     subject: '流量统计不准',
     level: 0,
+    type: 0,
     status: 1,
+    reopen_count: 0,
     last_reply_at: '2026-07-12T14:00:00+08:00',
     created_at: '2026-07-12T13:50:00+08:00',
   },
@@ -422,7 +427,9 @@ const ticketDetail = {
   id: 1,
   subject: '无法导入订阅链接',
   level: 1,
+  type: 0,
   status: 0,
+  reopen_count: 0,
   created_at: '2026-07-10T09:28:00+08:00',
   messages: [
     {

@@ -640,7 +640,7 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 ### 16.1 管理端响应字段约定
 
 - `GET /admin/plans` 返回 `{list: AdminPlanView[]}`：价格字段（`month_price`/`quarter_price`/`half_year_price`/`year_price`/`onetime_price`）**单位为元**（`null` 表示未开放该周期），并展开 `group_ids: number[]`、`is_show`、`sort`、`traffic_gb`、`speed_limit`、`device_limit`。请求体 `AdminPlanReq` 同字段，价格传元。
-- `GET /admin/servers` 返回 `{list: AdminServerView[]}`：展开用户端隐藏的 `group_id`/`host`/`port`/`config`/`is_show`/`sort`，`tags: string[]`，`node_key`（节点上报密钥，见 §17），以及机器监控字段（F17）：`is_online`（布尔值，基于 Redis 心跳 90s TTL 判定）、`last_heartbeat_at`（最近心跳 RFC3339 时间戳，离线为 null）、`system`（硬件实时快照对象：`cpu_percent`/`mem_total`/`mem_used`/`mem_percent`/`disk_total`/`disk_used`/`disk_percent`/`net_rx_rate`/`net_tx_rate`/`tcp_conns`/`udp_conns`/`uptime_sec`/`updated_at`，无探针数据为 null）。请求体 `AdminServerReq` 中 `type ∈ {shadowsocks,vmess,vless,trojan,hysteria2,tuic}`、`status ∈ {1=正常,2=拥挤,3=维护}`、`config` 为协议私有参数 JSON 字符串；新建节点服务端自动生成 `node_key`（请求体不传）。
+- `GET /admin/servers` 返回 `{list: AdminServerView[]}`：展开用户端隐藏的 `group_id`/`host`/`port`/`config`/`is_show`/`sort`，`tags: string[]`，`node_key`（节点上报密钥，见 §17），以及机器监控字段（F17）：`is_online`（布尔值，基于 Redis 心跳 90s TTL 判定）、`last_heartbeat_at`（最近心跳 unix 秒，离线为 null）、`system`（硬件实时快照对象：`cpu_percent`/`memory_percent`/`disk_percent`/`net_speed_in`/`net_speed_out`（瞬时上下行 B/s）/`connections`（TCP 连接数）/`uptime`（开机秒数），无探针数据为 null）。请求体 `AdminServerReq` 中 `type ∈ {shadowsocks,vmess,vless,trojan,hysteria2,tuic}`、`status ∈ {1=正常,2=拥挤,3=维护}`、`config` 为协议私有参数 JSON 字符串；新建节点服务端自动生成 `node_key`（请求体不传）。
 - `GET /admin/users` 分页返回 `{list,total,page,page_size}`，`balance`/`commission_balance` 单位为元；`PUT /admin/users/{id}` 请求体 `{role?, banned?}`（`role ∈ {0,1,2}`）；`POST /admin/users/{id}/balance` 请求体 `{amount(元，可正可负), remark?}`。
 - `GET /admin/users/export`（F05）：CSV 流式导出（与列表同一 `keyword` 筛选，UTF-8 BOM，每批 500 分批写防内存峰值）。列：`id,email,balance,commission_balance,plan,expired_at,transfer_bytes,u_bytes,d_bytes,created_at,inviter_email`（金额元；流量字节；时间 RFC3339）。
 - `POST /admin/users/batch`（F05）：请求体 `{action ∈ {ban,unban,adjust_balance}, ids(1..500), amount?(元, adjust_balance 必填), remark?}`；逐个执行（复用单用户状态机与负值保护），返回 `{success, failed: [{id, reason}]}`；ban/unban 会 bump 会话版本号踢下线。
@@ -713,17 +713,12 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
   "data": [ { "uuid": "5f2b7c9e-...", "u": 2147483648, "d": 21474836480 } ],
   "system": {
     "cpu_percent": 12.5,
-    "mem_total": 8589934592,
-    "mem_used": 2147483648,
-    "mem_percent": 25.0,
-    "disk_total": 107374182400,
-    "disk_used": 21474836480,
+    "memory_percent": 25.0,
     "disk_percent": 20.0,
-    "net_rx_rate": 1048576,
-    "net_tx_rate": 2097152,
-    "tcp_conns": 56,
-    "udp_conns": 12,
-    "uptime_sec": 360000
+    "net_speed_in": 1048576,
+    "net_speed_out": 2097152,
+    "connections": 56,
+    "uptime": 360000
   }
 }
 ```

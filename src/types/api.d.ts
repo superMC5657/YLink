@@ -499,6 +499,7 @@ export interface AdminOverviewResp {
   completed_orders: number
   total_revenue: number
   today_revenue: number
+  /** 全体用户余额合计（元，后端 SUM(balance) 实算） */
   total_balance: number
   plan_count: number
 }
@@ -603,8 +604,10 @@ export interface AdminServerItem {
   is_show: boolean
   sort: number
   node_key: string
-  is_online?: boolean
-  last_heartbeat_at?: number | null
+  /** 后端恒返回（无 omitempty）：心跳存在即在线 */
+  is_online: boolean
+  /** 后端恒返回：最近心跳 unix 秒，离线为 null */
+  last_heartbeat_at: number | null
   system?: NodeSystemStats | null
 }
 
@@ -666,6 +669,8 @@ export interface AdminTicketDetail {
   /** 0=普通 1=佣金提现(F02) */
   type: number
   status: TicketStatus
+  /** 已重开次数（0/1，后端恒返回） */
+  reopen_count: number
   created_at: string
   messages: TicketMessage[]
   withdraw?: TicketWithdrawInfo | null

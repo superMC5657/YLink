@@ -3,8 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"strings"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -145,7 +144,8 @@ type GenerateResult struct {
 	Filename    string
 }
 
-// Generate GET /client/subscribe/{token}。
+// Generate GET /client/subscribe/{token}：深模块缝线唯一入口，
+// 格式分辨、节点构建、提示收口、渲染回退、用户信息均收敛于 subscribe 模块内。
 func (s *SubscribeService) Generate(ctx context.Context, token, flag, userAgent string) (*GenerateResult, error) {
 	// 独立限流：10 次/分钟/token
 	rlKey := redispkg.Key("sub", "rl", token)
@@ -167,25 +167,22 @@ func (s *SubscribeService) Generate(ctx context.Context, token, flag, userAgent 
 	}
 	gen := pickGenerator(flag, userAgent)
 
-	subUser := &subscribe.User{
-		Name:          "YLink",
-		TrafficEnable: user.TransferEnable,
-		U:             user.U,
-		D:             user.D,
-		SpeedLimit:    user.SpeedLimit,
-	}
+	var expireUnix int64
+	var expireText string
 	if user.ExpiredAt != nil {
-		subUser.ExpiredUnix = user.ExpiredAt.Unix()
-		subUser.ExpiredText = user.ExpiredAt.Format("2006-01-02")
+		expireUnix = user.ExpiredAt.Unix()
+		expireText = user.ExpiredAt.Format("2006-01-02")
 	}
+	subUser := subscribe.NewUser("YLink", user.TransferEnable, user.U, user.D, expireUnix, expireText, user.SpeedLimit)
 
 	var nodes []subscribe.Node
-	// 无订阅 → 仅提示节点
+	var hints []string
+	// 无订阅 → 仅提示文案，由模块内收口为提示节点
 	if user.PlanID == nil {
-		nodes = []subscribe.Node{subscribe.HintNode("未购买套餐，请回站选购")}
+		hints = []string{"未购买套餐，请回站选购"}
 	} else {
 		nodes = s.buildNodes(user)
-		// 到期或流量用尽 → 注入提示节点
+		// 到期或流量用尽 → 注入提示文案
 		now := time.Now()
 		exhausted := user.TransferEnable > 0 && (user.U+user.D) >= user.TransferEnable
 		if (user.ExpiredAt != nil && user.ExpiredAt.Before(now)) || exhausted {
@@ -193,7 +190,7 @@ func (s *SubscribeService) Generate(ctx context.Context, token, flag, userAgent 
 			if exhausted {
 				text = "流量已用尽，请回站续费"
 			}
-			nodes = append(nodes, subscribe.HintNode(text))
+			hints = append(hints, text)
 		}
 	}
 
@@ -202,8 +199,8 @@ func (s *SubscribeService) Generate(ctx context.Context, token, flag, userAgent 
 	if err != nil {
 		return nil, err
 	}
-	// F10：自定义订阅模板优先，缺失/渲染失败回退内置生成器（验收：模板错误不导致订阅 500）
-	content, err := s.renderSubscription(gen, subUser, nodes, s.cfg.App.Name, ui)
+	// F10：自定义订阅模板优先，缺失/渲染失败回退内置模块渲染（验收：模板错误不导致订阅 500）
+	content, err := s.renderWithHints(gen, subUser, nodes, hints, s.cfg.App.Name, ui)
 	if err != nil {
 		return nil, err
 	}
@@ -215,32 +212,40 @@ func (s *SubscribeService) Generate(ctx context.Context, token, flag, userAgent 
 	}, nil
 }
 
-// renderSubscription 生成订阅内容：自定义模板（subscription_templates 表）优先；
-// 自定义缺失/渲染失败回退内置生成器并记 warn（spec F10 验收要点：模板语法错误不导致订阅 500）。
+// renderSubscription 历史缝线 adapter：兼容既有调用，内部经由模块 Renderer 单缝线回退。
 func (s *SubscribeService) renderSubscription(gen subscribe.Generator, u *subscribe.User, nodes []subscribe.Node, siteName, userInfo string) ([]byte, error) {
-	builtin, err := gen.Build(u, nodes)
-	if err != nil {
-		return nil, err
-	}
+	return s.renderWithHints(gen, u, nodes, nil, siteName, userInfo)
+}
+
+// renderWithHints 渲染 adapter：取自定义模板文本后经由模块 Renderer 一次调用完成，
+// 回退只在模块内发生一次，adapter 侧对 fellBack 做一次 warn。
+func (s *SubscribeService) renderWithHints(gen subscribe.Generator, u *subscribe.User, nodes []subscribe.Node, hints []string, siteName, userInfo string) ([]byte, error) {
 	format := gen.Format()
 	custom, err := (repo.SubscriptionTemplateRepo{}).Get(s.db, format)
-	if err != nil || strings.TrimSpace(custom.Content) == "" {
-		return builtin, nil
+	customContent := ""
+	if err == nil && custom != nil {
+		customContent = custom.Content
 	}
-	data, derr := subscribe.BuildTemplateData(format, u, nodes, siteName, userInfo)
-	if derr != nil {
-		logger.L().Warn("订阅模板数据构造失败，回退内置生成器", zapS("format", format), zapE(derr))
-		return builtin, nil
+	out, fellBack, rerr := subscribe.Render(subscribe.RenderInput{
+		Format:         format,
+		User:           u,
+		Nodes:          nodes,
+		Hints:          hints,
+		SiteName:       siteName,
+		UserInfo:       userInfo,
+		CustomTemplate: customContent,
+	})
+	if rerr != nil {
+		return nil, rerr
 	}
-	out, terr := subscribe.RenderTemplate(format, custom.Content, data)
-	if terr != nil {
-		logger.L().Warn("自定义订阅模板渲染失败，回退内置生成器", zapS("format", format), zapE(terr))
-		return builtin, nil
+	if fellBack {
+		logger.L().Warn("自定义订阅模板渲染失败，回退内置模块渲染", zapS("format", format))
 	}
 	return out, nil
 }
 
-// buildNodes 组装用户套餐可见节点。
+// buildNodes 组装用户套餐可见节点 adapter：取库行后经由模块 BuildNodes 转换，
+// 配置解析失败的行显式丢弃并记 warn，不再静默下发空加密方式。
 func (s *SubscribeService) buildNodes(user *model.User) []subscribe.Node {
 	if user.PlanID == nil {
 		return nil
@@ -250,7 +255,8 @@ func (s *SubscribeService) buildNodes(user *model.User) []subscribe.Node {
 		return nil
 	}
 	var groupIDs []int64
-	if json.Unmarshal([]byte(plan.GroupIDs), &groupIDs) != nil || len(groupIDs) == 0 {
+	if err := json.Unmarshal([]byte(plan.GroupIDs), &groupIDs); err != nil || len(groupIDs) == 0 {
+		logger.L().Warn("套餐分组解析失败，返回空节点", zapS("plan", plan.Name), zapE(err))
 		return nil
 	}
 	servers, err := s.repos.Server.ListByGroupIDs(s.db, groupIDs)
@@ -262,15 +268,27 @@ func (s *SubscribeService) buildNodes(user *model.User) []subscribe.Node {
 	for _, g := range groups {
 		groupName[g.ID] = g.Name
 	}
-	nodes := make([]subscribe.Node, 0, len(servers))
+	specs := make([]subscribe.ServerSpec, 0, len(servers))
 	for _, srv := range servers {
-		// 每用户独立凭证(契约 §15):同一节点对不同用户下发不同凭证,节点按此归因流量
-		nodes = append(nodes, toNode(srv, groupName[srv.GroupID], user.UUID))
+		specs = append(specs, subscribe.ServerSpec{
+			Name:      srv.Name,
+			Type:      srv.Type,
+			Host:      srv.Host,
+			Port:      srv.Port,
+			Config:    srv.Config,
+			Rate:      srv.Rate,
+			GroupName: groupName[srv.GroupID],
+		})
 	}
-	return nodes
+	// 每用户独立凭证(契约 §15):同一节点对不同用户下发不同凭证,节点按此归因流量
+	res := subscribe.BuildNodes(specs, user.UUID)
+	if res.Dropped > 0 {
+		logger.L().Warn("节点配置解析失败，已显式丢弃", zapS("dropped", strconv.Itoa(res.Dropped)))
+	}
+	return res.Nodes
 }
 
-// userInfo 读取/生成 subscription-userinfo（读缓存 30s）。
+// userInfo 读取/生成 subscription-userinfo（读缓存 30s），装配收口于模块内。
 func (s *SubscribeService) userInfo(ctx context.Context, user *model.User) (string, error) {
 	cacheKey := redispkg.Key("sub", "userinfo", user.SubToken)
 	if v, err := s.rdb.Get(ctx, cacheKey).Result(); err == nil && v != "" {
@@ -280,77 +298,47 @@ func (s *SubscribeService) userInfo(ctx context.Context, user *model.User) (stri
 	if user.ExpiredAt != nil {
 		expire = user.ExpiredAt.Unix()
 	}
-	ui := fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", user.U, user.D, user.TransferEnable, expire)
+	ui := subscribe.FormatUserInfo(user.U, user.D, user.TransferEnable, expire)
 	s.rdb.Set(ctx, cacheKey, ui, 30*time.Second)
 	return ui, nil
 }
 
-// toNode 将 servers 行转换为订阅节点;cred 为每用户凭证(users.uuid)。
+// toNode 历史缝线 adapter：将 servers 行转换为订阅节点;cred 为每用户凭证(users.uuid)。
+// 解析失败时返回空加密方式的显式回退；新链路经由模块 BuildNodes 显式丢弃，不再走此静默路径。
 func toNode(srv model.Server, groupName, cred string) subscribe.Node {
-	var conf struct {
-		Method   string `json:"method"`
-		Cipher   string `json:"cipher"`
-		SNI      string `json:"sni"`
-		Network  string `json:"network"`
-		Security string `json:"security"`
-		Alpn     string `json:"alpn"`
-		Path     string `json:"path"`
+	n, err := subscribe.NodeFromSpec(subscribe.ServerSpec{
+		Name:      srv.Name,
+		Type:      srv.Type,
+		Host:      srv.Host,
+		Port:      srv.Port,
+		Config:    srv.Config,
+		Rate:      srv.Rate,
+		GroupName: groupName,
+	}, cred)
+	if err != nil {
+		name := srv.Name
+		if groupName != "" {
+			name = groupName + " " + srv.Name
+		}
+		return subscribe.Node{
+			Name:     name,
+			Type:     srv.Type,
+			Host:     srv.Host,
+			Port:     srv.Port,
+			Password: cred,
+			Rate:     srv.Rate,
+		}
 	}
-	_ = json.Unmarshal([]byte(srv.Config), &conf)
-	name := srv.Name
-	if groupName != "" {
-		name = groupName + " " + srv.Name
-	}
-	method := conf.Method
-	if method == "" {
-		method = conf.Cipher
-	}
-	return subscribe.Node{
-		Name:     name,
-		Type:     srv.Type,
-		Host:     srv.Host,
-		Port:     srv.Port,
-		Password: cred,
-		Method:   method,
-		SNI:      conf.SNI,
-		Network:  conf.Network,
-		Security: conf.Security,
-		Alpn:     conf.Alpn,
-		Path:     conf.Path,
-		Rate:     srv.Rate,
-	}
+	return n
 }
 
-// pickGenerator 按 flag 或 UA 嗅探选择生成器。
+// pickGenerator 按 flag 或 UA 嗅探选择生成器 adapter，收口于模块 ResolveFormat。
 func pickGenerator(flag, ua string) subscribe.Generator {
-	ua = strings.ToLower(ua)
-	switch flag {
-	case "clash":
-		return subscribe.Clash{}
-	case "sing-box":
-		return subscribe.SingBox{}
-	case "v2ray":
-		return subscribe.V2ray{}
-	}
-	switch {
-	case strings.Contains(ua, "clash"):
-		return subscribe.Clash{}
-	case strings.Contains(ua, "sing-box"):
-		return subscribe.SingBox{}
-	default:
-		return subscribe.V2ray{}
-	}
+	return subscribe.GeneratorFor(subscribe.ResolveFormat(flag, ua))
 }
 
 func contentType(gen subscribe.Generator) string {
-	switch gen.Format() {
-	case "clash":
-		return "text/yaml; charset=utf-8"
-	case "sing-box":
-		return "application/json; charset=utf-8"
-	default:
-		return "text/plain; charset=utf-8"
-	}
+	return subscribe.ContentTypeFor(gen.Format())
 }
 
 func newUUID() string {

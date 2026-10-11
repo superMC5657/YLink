@@ -1,6 +1,6 @@
 // F10 订阅模板：按客户端类型的 Go text/template 全文档模板。
 // 节点列表以预渲染块变量注入（NodeBlock/Outbounds/Links），模板作者只重排外围结构、
-// 无法破坏节点语法；自定义模板渲染失败由 service 层回退内置生成器。
+// 无法破坏节点语法；自定义模板渲染失败由模块内 Renderer 回退内置模板。
 package subscribe
 
 import (

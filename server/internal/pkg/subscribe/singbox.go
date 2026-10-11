@@ -30,13 +30,9 @@ type transportConfig struct {
 	Path string `json:"path,omitempty"`
 }
 
-// Build 渲染内置 sing-box 模板（F10 重构：模板文本见 template.go，输出与原硬编码一致）。
+// Build 渲染内置 sing-box 模板（深模块缝线：经由 RenderBuiltin，输出与原硬编码一致）。
 func (SingBox) Build(u *User, nodes []Node) ([]byte, error) {
-	data, err := BuildTemplateData("sing-box", u, nodes, "", "")
-	if err != nil {
-		return nil, err
-	}
-	return RenderTemplate("sing-box", BuiltinTemplate("sing-box"), data)
+	return RenderBuiltin("sing-box", u, nodes)
 }
 
 func buildOutbounds(nodes []Node) ([]outbound, error) {

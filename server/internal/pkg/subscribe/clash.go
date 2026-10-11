@@ -11,13 +11,9 @@ type Clash struct{}
 
 func (Clash) Format() string { return "clash" }
 
-// Build 渲染内置 Clash 模板（F10 重构：模板文本见 template.go，输出与原硬编码一致）。
+// Build 渲染内置 Clash 模板（深模块缝线：经由 RenderBuiltin，输出与原硬编码一致）。
 func (Clash) Build(u *User, nodes []Node) ([]byte, error) {
-	data, err := BuildTemplateData("clash", u, nodes, "", "")
-	if err != nil {
-		return nil, err
-	}
-	return RenderTemplate("clash", BuiltinTemplate("clash"), data)
+	return RenderBuiltin("clash", u, nodes)
 }
 
 func proxyYAML(n Node) string {

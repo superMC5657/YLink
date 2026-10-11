@@ -1,4 +1,8 @@
-// Package subscribe 订阅配置生成器：Clash YAML / sing-box JSON / v2ray base64 分享链接。
+// Package subscribe 订阅渲染深模块：节点构建 / 渲染 / 用户信息集中一处。
+//
+// 深模块的唯一窄缝是 Renderer interface：一次 Render 调用承载订阅生成，
+// 内部收敛格式分辨、节点规格解析、提示收口与模板回退。adapter 侧只保留
+// 薄封装（取库行、取缓存、取自定义模板文本），不做渲染决策。
 package subscribe
 
 // Node 订阅节点（脱敏后仅含生成配置所需字段）。
@@ -16,6 +20,7 @@ type Node struct {
 	Alpn     string
 	Path     string
 	Rate     float64 // 流量倍率
+	IsHint   bool    // 提示节点标记：由模块内收口构造，渲染侧显式可辨
 }
 
 // User 生成订阅所需的用户信息（不含敏感字段）。
@@ -29,20 +34,14 @@ type User struct {
 	SpeedLimit    *int
 }
 
-// Generator 生成器接口。
+// Generator 生成器接口（历史缝线：保留以兼容既有调用，新增调用走 Renderer）。
 type Generator interface {
 	Format() string // clash / sing-box / v2ray
 	Build(u *User, nodes []Node) ([]byte, error)
 }
 
-// HintNode 构造「到期/流量耗尽提示节点」（引导回站续费）。
+// HintNode 构造提示节点（历史缝线：保留以兼容既有调用；
+// 新链路改传 hints 字符串，由模块内 hintNode 收口构造，不再经由调用方拼假节点）。
 func HintNode(text string) Node {
-	return Node{
-		Name:     "⚠ " + text,
-		Type:     "trojan",
-		Host:     "127.0.0.1",
-		Port:     1,
-		Password: "invalid-hint-node",
-		Rate:     1,
-	}
+	return hintNode(text)
 }

@@ -12,13 +12,9 @@ type V2ray struct{}
 
 func (V2ray) Format() string { return "v2ray" }
 
-// Build 渲染内置 v2ray 模板（F10 重构：模板文本见 template.go，输出与原硬编码一致）。
+// Build 渲染内置 v2ray 模板（深模块缝线：经由 RenderBuiltin，输出与原硬编码一致）。
 func (V2ray) Build(u *User, nodes []Node) ([]byte, error) {
-	data, err := BuildTemplateData("v2ray", u, nodes, "", "")
-	if err != nil {
-		return nil, err
-	}
-	return RenderTemplate("v2ray", BuiltinTemplate("v2ray"), data)
+	return RenderBuiltin("v2ray", u, nodes)
 }
 
 // shareLink 单节点分享链接。

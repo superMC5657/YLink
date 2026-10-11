@@ -207,9 +207,9 @@ DashboardPage
 ### 3.11 我的工单 `/tickets` + 详情 `/tickets/:id`
 
 - 列表：卡片式表格（主题、状态徽章：待回复/已回复/已关闭、更新时间、操作）；右上「新建工单」主色按钮 → 弹窗（主题、优先级、内容）。
-- 详情：对话气泡流（用户右/客服左，头像 + 时间），底部回复输入框（已关闭置灰 + 「重新打开」入口），支持关闭工单。
+- 详情：对话气泡流（用户右/客服左，头像 + 时间），底部回复输入框（已关闭置灰 + 「重新打开」入口，仅普通工单可关/可重开；提现单关闭与重开入口隐藏，直接调接口返 14003）。
 - 移动端：详情页全屏，输入框贴底适配键盘。
-- 数据：`GET /tickets`、`POST /tickets`、`GET /tickets/:id`、`POST /tickets/:id/reply`、`POST /tickets/:id/close`。
+- 数据：`GET /tickets`、`POST /tickets`、`GET /tickets/:id`、`POST /tickets/:id/reply`、`POST /tickets/:id/close`（仅普通工单；提现单隐藏关闭入口）。
 
 ### 3.12 流量明细 `/traffic`
 
@@ -231,7 +231,7 @@ DashboardPage
 - 套餐 `/admin/plans`：CRUD（周期定价元/流量/设备/限速/节点分组/上架/排序）。
 - 节点 `/admin/nodes`：分组 CRUD + 节点 CRUD（6 协议/地址/配置 JSON/倍率/状态/标签）；多选批量/复制/排序、node_key 重置（F09，模式 A 配套）。
 - 订单 `/admin/orders`：状态筛选/分页、退款（余额退回+佣金回滚）、关闭待支付订单；佣金金额列与周期/支付方式文案本地化。
-- 工单 `/admin/tickets`：列表/详情、客服回复、关闭；提现工单确认打款/拒绝退回（F02）。
+- 工单 `/admin/tickets`：列表/详情、客服回复、关闭（仅普通工单；提现单关闭按钮隐藏，只能确认打款/拒绝退回 pay/reject，F02）。
 
 二期 7 模块：
 

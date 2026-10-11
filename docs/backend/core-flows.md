@@ -124,7 +124,7 @@ sequenceDiagram
 
 ## 7. 工单流转
 
-- 用户创建（status=0 待回复）→ 客服回复（status=1 已回复，last_reply_at 更新）→ 用户再回复（回到 0）→ 任一方关闭（status=2；**「只允许重开一次」**：关闭后用户可 `POST /tickets/{id}/reopen` 重开，状态回 0 且 `reopen_count+1`，整个工单生命周期最多一次，已重开返回 14002）。
+- 用户创建（status=0 待回复）→ 客服回复（status=1 已回复，last_reply_at 更新）→ 用户再回复（回到 0）→ 任一方关闭（status=2；**「只允许重开一次」**：关闭后用户可 `POST /tickets/{id}/reopen` 重开，状态回 0 且 `reopen_count+1`，整个工单生命周期最多一次，已重开返回 14002）。**提现例外（type=1）**：用户 close/reopen 与管理端直接 close 均返 14003，只能经 pay/reject 审核自动关单（拒绝自动退回佣金，防资金卡住）。
 - 用户侧轮询发现 status 变为「已回复」时触发本地通知（桌面端）/ 红点。
 
 ## 8. 流量数据来源（两种模式均已实现）

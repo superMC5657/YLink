@@ -83,7 +83,7 @@
 | 13005 | 400 | 金额无效或超出可处理范围（元→分转换溢出/精度防护，划转/提现共用） |
 | 14001 | 409 | 工单已关闭 |
 | 14002 | 409 | 工单仅可重开一次 |
-| 14003 | 409 | 提现工单不可手动关闭（用户 close/reopen type=1 工单，F02） |
+| 14003 | 409 | 提现工单不可手动关闭（用户 close/reopen、管理端 close 手动关 type=1 工单均 14003，F02） |
 | 15001 | 400 | 不满足代理申请条件 |
 | 15002 | 409 | 代理申请审核中，请勿重复提交 |
 
@@ -627,7 +627,7 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 | 订单 | `GET /admin/orders`、`POST /admin/orders/{no}/refund`（审计 + 佣金回滚；请求体 `{remark?, gateway_refund_id?}`，`gateway_refund_id` 为外部网关退款单号——系统仅原路退回余额，现金部分线下网关退款后回填留痕）、`POST /admin/orders/{no}/close`（关闭待支付订单，审计） |
 | 优惠券 | `GET/POST/PUT/DELETE /admin/coupons` |
 | 内容 | `GET/POST/PUT/DELETE /admin/notices`、`/admin/knowledges`、`POST /admin/notices/sort`（F15 排序）、`POST /admin/knowledges/sort`（F15 排序）、`GET/POST/PUT/DELETE /admin/knowledge-categories`（F15 分类管理） |
-| 工单 | `GET /admin/tickets`、`GET /admin/tickets/{id}`、`POST /admin/tickets/{id}/reply`、`/close`、`POST /admin/tickets/{id}/withdraw/pay`（F02 确认打款）、`POST /admin/tickets/{id}/withdraw/reject`（F02 拒绝退回） |
+| 工单 | `GET /admin/tickets`、`GET /admin/tickets/{id}`、`POST /admin/tickets/{id}/reply`、`/close`（仅普通工单；提现单直接关返 14003）、`POST /admin/tickets/{id}/withdraw/pay`（F02 确认打款）、`POST /admin/tickets/{id}/withdraw/reject`（F02 拒绝退回） |
 | 代理 | `GET /admin/agent/applies`、`POST /admin/agent/applies/{id}/approve|reject` |
 | 佣金 | `GET /admin/commission-logs`（含订单佣金与提现流水，`type` 区分） |
 | 邮件模板 | `GET /admin/mail-templates`、`PUT/DELETE /admin/mail-templates/{name}`、`POST /admin/mail-templates/{name}/test`（F11） |
@@ -665,7 +665,7 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 - `GET /admin/stat/users?days=`（F04）：返回 `{days, register_trend: [{date, count}], plan_distribution: [{plan_id, plan_name, users}]}`；注册按 `created_at` 逐日补零，套餐分布为当前生效订阅（`plan_id` 非空）按套餐聚合、按人数降序。
 - `GET /admin/stat/traffic?days=`（F04）：返回 `{days, user_top: [{user_id, email, total_bytes}], node_top: [{server_id, name, bytes}]}` 各 Top10；`user_top` 按 `traffic_logs` 日明细 `u+d` 合计（受 `days` 限定），`node_top` 按 `node_user_stats` 上报累计值合计（未乘倍率，节点全周期，无时间维度）。
 - `GET /admin/settings` 返回 `{list: [{key, value}]}`，`value` 为配置项 JSON 字符串（`site`/`payment`/`invite`/`agent`/`order`/`node`）；`PUT /admin/settings` 请求体 `{key, value}`（单 key 保存，写后失效配置缓存）。`site` 支持品牌键：`primary_color`（Hex 主色，空=默认）与 `background_url`（背景图 URL，空=默认），经 `GET /config` 下发（F19）；`node` 支持节点部署脚本键：`deploy_script_url` 与 `command_template`（支持 `{script_url}`/`{api_url}`/`{node_id}`/`{node_key}` 占位符，F17）。
-- `POST /admin/tickets/{id}/withdraw/pay` / `withdraw/reject`（F02）：提现工单（type=1）审核。pay=确认打款（线下打款由管理员线下执行，系统内将提现流水记为完成并关闭工单）；reject=拒绝并**自动退回**佣金（写 `withdraw_refund` 三态流水）后关闭工单。请求体 `{remark?}` 可选备注（回写工单系统消息与提现单 `review_remark`）。仅处理中的提现单可审（否则 13004），两类操作均写审计（`withdraw_pay`/`withdraw_reject`）。
+- `POST /admin/tickets/{id}/withdraw/pay` / `withdraw/reject`（F02）：提现工单（type=1）审核。pay=确认打款（线下打款由管理员线下执行，系统内将提现流水记为完成并关闭工单）；reject=拒绝并**自动退回**佣金（写 `withdraw_refund` 三态流水）后关闭工单。请求体 `{remark?}` 可选备注（回写工单系统消息与提现单 `review_remark`）。仅处理中的提现单可审（否则 13004），两类操作均写审计（`withdraw_pay`/`withdraw_reject`）。管理端直接调 `/close` 关提现单同样返 14003，只能经 pay/reject 自动关单。
 - `GET /admin/tickets` 与 `GET /admin/tickets/{id}`（F02）：列表项与详情含 `type ∈ {0=普通,1=佣金提现}`；详情对提现工单附 `withdraw` 提现单信息（`id/user_id/amount(元)/method/account/status/review_remark/reviewed_at/created_at`）。
 - `POST /admin/notices/sort`、`POST /admin/knowledges/sort`（F15）：请求体 `{items: [{id, sort}]}`（1..500 项），单事务按传入 sort 值更新，写审计（`sort_notice`/`sort_knowledge`）；用户端公告按 `sort ASC` 展示、知识库分组顺序按分类 `sort`。
 - `GET /admin/knowledge-categories?language=`（F15）：分类列表（language 空=全部），条目 `{id, language, name, sort, knowledge_count}`。`POST /admin/knowledge-categories` 请求体 `{language, name, sort?}`；`PUT /admin/knowledge-categories/{id}` 请求体 `{name, sort?}`（改名级联同步知识文档展示分类）；`DELETE /admin/knowledge-categories/{id}`（分类下仍有文档拒绝 40000）。知识保存（`AdminKnowledgeReq`）支持 `category_id?` 显式归类，仅传 `category` 时按（language, name）自动归并/建行。

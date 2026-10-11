@@ -9,7 +9,7 @@
 |---|---|
 | 质量门禁 | `pnpm lint`(ESLint 0 warning)/ `pnpm lint:css`(Stylelint)/ `pnpm typecheck`(vue-tsc)/ `pnpm format:check` 全部通过 |
 | 单测 | `pnpm test`(Vitest + jsdom)全绿 |
-| E2E | `pnpm e2e`(Playwright,桌面 1280 + 移动 390 双 project)全量通过 |
+| E2E | `pnpm e2e`(Playwright,桌面 1280 + 移动 390 双 project)全量通过（desktop 32/32，含新增 withdraw.spec 3 用例：用户提交+关入口隐藏、管理端 pay、模板预览保存） |
 | 构建 | `pnpm build` 成功(含 PWA 产物);`cargo check`(src-tauri)通过 |
 
 ## 2. 已完成能力
@@ -24,11 +24,11 @@ Vue 3.5 + TS + Vite 6 + pnpm(`<script setup>`,Node ≥ 20);UnoCSS(presetUno/Attr
 
 ### 2.3 用户端页面
 
-仪表板(统计卡/订阅卡/公告 markdown + 优惠码高亮复制/快捷操作)、使用文档(搜索/分类分组/markdown)、我的订单(表格/卡片双视图/详情弹窗/待支付轮询)、套餐购买(周期切换/优惠券试算与点选/可用券列表/收银台二维码/余额直付)、一键导入(10 款客户端 scheme + 复制兜底)、邀请赚钱(统计卡/划转/邀请码/注册链接/提现入口与记录,F02)、申请代理、节点状态(60s 静默轮询,不暴露 host/port)、个人信息(改密/通知开关/Telegram 绑定卡片 F12/会话管理 F14/重置订阅)、工单(列表/对话流/回复关闭)、流量明细(ECharts)、门户分流页 `/portal`(管理员双卡分流,admin-console-split)。
+仪表板(统计卡/订阅卡/公告 markdown + 优惠码高亮复制/快捷操作)、使用文档(搜索/分类分组/markdown)、我的订单(表格/卡片双视图/详情弹窗/待支付轮询)、套餐购买(周期切换/优惠券试算与点选/可用券列表/收银台二维码/余额直付)、一键导入(10 款客户端 scheme + 复制兜底)、邀请赚钱(统计卡/划转/邀请码/注册链接/提现入口与记录,F02)、申请代理、节点状态(60s 静默轮询,不暴露 host/port)、个人信息(改密/通知开关/Telegram 绑定卡片 F12/会话管理 F14/重置订阅)、工单(列表/对话流/回复关闭，提现单关/重开入口隐藏）、流量明细(ECharts)、门户分流页 `/portal`(管理员双卡分流,admin-console-split)。
 
 ### 2.4 管理后台
 
-独立 `AdminLayout` + `AdminSidebar`(唯一菜单源,移动端汉堡抽屉),登录落点按角色分流(`/portal`);模块全量:总览(统计卡 + 按运营频率分组的 8 快捷入口，含余额合计 `total_balance`，类型与 mock 已对账)、用户管理(多选批量/CSV 导出/发邮件/重置订阅)、套餐、节点管理(多选批量/复制/排序/node_key/机器在线状态与硬件探针气泡卡片/一键安装与中台脚本配置 F17)、订单(本地化枚举文案/退款)、工单(提现工单审核 F02，详情 `type`/`reopen_count` 已对账)、优惠券(含一键公告)、公告/知识库(排序弹窗/分类管理 F15)、代理审批、佣金日志(提现流水徽章)、流量管理(导入/重置/重置记录三标签 F16)、统计报表(ECharts 五图 + 余额四系列 F04)、审计日志(可读化 target，批量摘要 `batch:<count>` 与 mock 同形)、站点设置(含 telegram 与节点部署脚本键)、邮件模板(F11)、订阅模板(F10)、版本检查(F20)。管理端列表机械收敛(仅逻辑,视觉不动):多选与批量汇总同源 `useAdminSelection`、分页钳制与 `batch:<count>` 摘要同源 `utils/adminList`（视图无手写钳制，统一走 api 层）、角色/节点状态标签同源 `format.ts`、佣金/代理/工单/订单各域状态小表同域收敛（用户端工单 success 与管理端 primary 色意图不同，不硬合）、locales 中英键经脚本审计零缺失、mock 审计 target 与后端摘要同形。
+独立 `AdminLayout` + `AdminSidebar`(唯一菜单源,移动端汉堡抽屉),登录落点按角色分流(`/portal`);模块全量:总览(统计卡 + 按运营频率分组的 8 快捷入口，含余额合计 `total_balance`，类型与 mock 已对账)、用户管理(多选批量/CSV 导出/发邮件/重置订阅)、套餐、节点管理(多选批量/复制/排序/node_key/机器在线状态与硬件探针气泡卡片/一键安装与中台脚本配置 F17)、订单(本地化枚举文案/退款)、工单(提现工单审核 F02，详情 `type`/`reopen_count` 已对账，提现单关闭按钮隐藏只能 pay/reject，直接調接口与管理端直接關同样 14003)、优惠券(含一键公告)、公告/知识库(排序弹窗/分类管理 F15)、代理审批、佣金日志(提现流水徽章)、流量管理(导入/重置/重置记录三标签 F16)、统计报表(ECharts 五图 + 余额四系列 F04)、审计日志(可读化 target，批量摘要 `batch:<count>` 与 mock 同形)、站点设置(含 telegram 与节点部署脚本键)、邮件模板(F11)、订阅模板(F10)、版本检查(F20)。管理端列表机械收敛(仅逻辑,视觉不动):多选与批量汇总同源 `useAdminSelection`、分页钳制与 `batch:<count>` 摘要同源 `utils/adminList`（视图无手写钳制，统一走 api 层）、角色/节点状态标签同源 `format.ts`、佣金/代理/工单/订单各域状态小表同域收敛（用户端工单 success 与管理端 primary 色意图不同，不硬合）、locales 中英键经脚本审计零缺失、mock 审计 target 与后端摘要同形。
 
 ### 2.5 桌面端(Tauri 2)
 

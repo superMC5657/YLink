@@ -13,7 +13,7 @@ import (
 // ---- 节点 ----
 
 func (h *Admin) ListServers(c *gin.Context) {
-	data, err := h.svc.ListAllServers(c.Request.Context())
+	data, err := h.catalog.ListAllServers(c.Request.Context())
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -27,7 +27,7 @@ func (h *Admin) CreateServer(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	data, err := h.svc.CreateServer(c.Request.Context(), &req)
+	data, err := h.catalog.CreateServer(c.Request.Context(), &req)
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -45,7 +45,7 @@ func (h *Admin) UpdateServer(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	if err := h.svc.UpdateServer(c.Request.Context(), id, &req); err != nil {
+	if err := h.catalog.UpdateServer(c.Request.Context(), id, &req); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -57,7 +57,7 @@ func (h *Admin) DeleteServer(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if err := h.svc.DeleteServer(c.Request.Context(), id); err != nil {
+	if err := h.catalog.DeleteServer(c.Request.Context(), id); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -77,7 +77,7 @@ func (h *Admin) ResetNodeKey(c *gin.Context) {
 	if !ok {
 		return
 	}
-	key, err := h.svc.ResetNodeKey(c.Request.Context(), h.adminID(c), id, c.ClientIP())
+	key, err := h.node.ResetNodeKey(c.Request.Context(), h.adminID(c), id, c.ClientIP())
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -102,7 +102,7 @@ func (h *Admin) BatchServers(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	data, err := h.svc.BatchServers(c.Request.Context(), h.adminID(c), &req, c.ClientIP())
+	data, err := h.node.BatchServers(c.Request.Context(), h.adminID(c), &req, c.ClientIP())
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -123,7 +123,7 @@ func (h *Admin) CopyServer(c *gin.Context) {
 	if !ok {
 		return
 	}
-	data, err := h.svc.CopyServer(c.Request.Context(), h.adminID(c), id, c.ClientIP())
+	data, err := h.node.CopyServer(c.Request.Context(), h.adminID(c), id, c.ClientIP())
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -146,7 +146,7 @@ func (h *Admin) SortServers(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	if err := h.svc.SortServers(c.Request.Context(), h.adminID(c), req.Items, c.ClientIP()); err != nil {
+	if err := h.node.SortServers(c.Request.Context(), h.adminID(c), req.Items, c.ClientIP()); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -156,7 +156,7 @@ func (h *Admin) SortServers(c *gin.Context) {
 // ---- 节点分组 ----
 
 func (h *Admin) ListServerGroups(c *gin.Context) {
-	data, err := h.svc.ListAllServerGroups(c.Request.Context())
+	data, err := h.catalog.ListAllServerGroups(c.Request.Context())
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -170,7 +170,7 @@ func (h *Admin) CreateServerGroup(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	data, err := h.svc.CreateServerGroup(c.Request.Context(), &req)
+	data, err := h.catalog.CreateServerGroup(c.Request.Context(), &req)
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -188,7 +188,7 @@ func (h *Admin) UpdateServerGroup(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	if err := h.svc.UpdateServerGroup(c.Request.Context(), id, &req); err != nil {
+	if err := h.catalog.UpdateServerGroup(c.Request.Context(), id, &req); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -200,7 +200,7 @@ func (h *Admin) DeleteServerGroup(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if err := h.svc.DeleteServerGroup(c.Request.Context(), id); err != nil {
+	if err := h.catalog.DeleteServerGroup(c.Request.Context(), id); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -224,7 +224,7 @@ func (h *Admin) ImportTraffic(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	if err := h.svc.ImportTraffic(c.Request.Context(), h.adminID(c), &req, c.ClientIP()); err != nil {
+	if err := h.traffic.ImportTraffic(c.Request.Context(), h.adminID(c), &req, c.ClientIP()); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -246,7 +246,7 @@ func (h *Admin) ResetTraffic(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	data, err := h.svc.ResetTraffic(c.Request.Context(), h.adminID(c), &req, c.ClientIP())
+	data, err := h.traffic.ResetTraffic(c.Request.Context(), h.adminID(c), &req, c.ClientIP())
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -275,7 +275,7 @@ func (h *Admin) ListTrafficResets(c *gin.Context) {
 		}
 		userID = &id
 	}
-	list, total, err := h.svc.ListTrafficResets(c.Request.Context(), userID, page, pageSize)
+	list, total, err := h.traffic.ListTrafficResets(c.Request.Context(), userID, page, pageSize)
 	if err != nil {
 		resp.Fail(c, err)
 		return

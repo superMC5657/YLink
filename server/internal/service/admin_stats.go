@@ -7,7 +7,7 @@ import (
 	"ylink-backend/internal/model"
 )
 
-// ---- 管理端 · 统计报表（F04） ----
+// 统计域 module：总览 + F04 三张报表。
 
 // clampStatDays 报表时间范围收敛：缺省 30 天，上限 365 天。
 func clampStatDays(days int) int {
@@ -32,27 +32,71 @@ func statDayRange(days int) (time.Time, []string) {
 	return since, dates
 }
 
+// Overview GET /admin/stat/overview。
+func (m *adminStatsModule) Overview(ctx context.Context) (*model.AdminOverviewResp, error) {
+	out := &model.AdminOverviewResp{}
+	today := time.Now().Format("2006-01-02")
+	var usr, agent, order, completed, plan int64
+	var revTotal, revToday, balance int64
+	if err := m.db.Model(&model.User{}).Count(&usr).Error; err != nil {
+		return nil, err
+	}
+	if err := m.db.Model(&model.User{}).Where("role = ?", model.RoleAgent).Count(&agent).Error; err != nil {
+		return nil, err
+	}
+	if err := m.db.Model(&model.Order{}).Count(&order).Error; err != nil {
+		return nil, err
+	}
+	if err := m.db.Model(&model.Order{}).Where("status = ?", model.OrderCompleted).Count(&completed).Error; err != nil {
+		return nil, err
+	}
+	if err := m.db.Model(&model.Plan{}).Count(&plan).Error; err != nil {
+		return nil, err
+	}
+	if err := m.db.Model(&model.Order{}).Where("status = ?", model.OrderCompleted).
+		Select("COALESCE(SUM(pay_amount),0)").Scan(&revTotal).Error; err != nil {
+		return nil, err
+	}
+	if err := m.db.Model(&model.Order{}).Where("status = ? AND paid_at::date = ?", model.OrderCompleted, today).
+		Select("COALESCE(SUM(pay_amount),0)").Scan(&revToday).Error; err != nil {
+		return nil, err
+	}
+	if err := m.db.Model(&model.User{}).
+		Select("COALESCE(SUM(balance),0)").Scan(&balance).Error; err != nil {
+		return nil, err
+	}
+	out.UserCount = usr
+	out.AgentCount = agent
+	out.OrderCount = order
+	out.CompletedOrders = completed
+	out.PlanCount = plan
+	out.TotalRevenue = model.FenToYuan(revTotal)
+	out.TodayRevenue = model.FenToYuan(revToday)
+	out.TotalBalance = model.FenToYuan(balance)
+	return out, nil
+}
+
 // StatOrders GET /admin/stat/orders：订单/营收/退款日趋势（含无数据日补零）。
-func (s *AdminService) StatOrders(ctx context.Context, days int) (*model.AdminStatOrdersResp, error) {
+func (m *adminStatsModule) StatOrders(ctx context.Context, days int) (*model.AdminStatOrdersResp, error) {
 	days = clampStatDays(days)
 	since, dates := statDayRange(days)
-	counts, err := s.repos.Stat.OrderCountByDay(s.db, since)
+	counts, err := m.repos.Stat.OrderCountByDay(m.db, since)
 	if err != nil {
 		return nil, err
 	}
-	revenues, err := s.repos.Stat.RevenueByDay(s.db, since)
+	revenues, err := m.repos.Stat.RevenueByDay(m.db, since)
 	if err != nil {
 		return nil, err
 	}
-	refunds, err := s.repos.Stat.RefundByDay(s.db, since)
+	refunds, err := m.repos.Stat.RefundByDay(m.db, since)
 	if err != nil {
 		return nil, err
 	}
-	balanceRevenues, err := s.repos.Stat.BalanceRevenueByDay(s.db, since)
+	balanceRevenues, err := m.repos.Stat.BalanceRevenueByDay(m.db, since)
 	if err != nil {
 		return nil, err
 	}
-	balanceRefunds, err := s.repos.Stat.BalanceRefundByDay(s.db, since)
+	balanceRefunds, err := m.repos.Stat.BalanceRefundByDay(m.db, since)
 	if err != nil {
 		return nil, err
 	}
@@ -74,10 +118,10 @@ func (s *AdminService) StatOrders(ctx context.Context, days int) (*model.AdminSt
 }
 
 // StatUsers GET /admin/stat/users：注册趋势（含无数据日补零）+ 套餐分布。
-func (s *AdminService) StatUsers(ctx context.Context, days int) (*model.AdminStatUsersResp, error) {
+func (m *adminStatsModule) StatUsers(ctx context.Context, days int) (*model.AdminStatUsersResp, error) {
 	days = clampStatDays(days)
 	since, dates := statDayRange(days)
-	registers, err := s.repos.Stat.RegisterByDay(s.db, since)
+	registers, err := m.repos.Stat.RegisterByDay(m.db, since)
 	if err != nil {
 		return nil, err
 	}
@@ -85,14 +129,14 @@ func (s *AdminService) StatUsers(ctx context.Context, days int) (*model.AdminSta
 	for _, d := range dates {
 		trend = append(trend, model.AdminStatUserPoint{Date: d, Count: registers[d]})
 	}
-	slices, err := s.repos.Stat.PlanDistribution(s.db)
+	slices, err := m.repos.Stat.PlanDistribution(m.db)
 	if err != nil {
 		return nil, err
 	}
 	dist := make([]model.AdminStatPlanSlice, 0, len(slices))
 	for _, r := range slices {
 		name := ""
-		if p, err := s.repos.Plan.GetByID(s.db, r.PlanID); err == nil {
+		if p, err := m.repos.Plan.GetByID(m.db, r.PlanID); err == nil {
 			name = p.Name
 		}
 		dist = append(dist, model.AdminStatPlanSlice{PlanID: r.PlanID, PlanName: name, Users: r.Users})
@@ -101,11 +145,11 @@ func (s *AdminService) StatUsers(ctx context.Context, days int) (*model.AdminSta
 }
 
 // StatTraffic GET /admin/stat/traffic：用户流量消耗 TopN（时间范围内）+ 节点流量分布 TopN。
-func (s *AdminService) StatTraffic(ctx context.Context, days int) (*model.AdminStatTrafficResp, error) {
+func (m *adminStatsModule) StatTraffic(ctx context.Context, days int) (*model.AdminStatTrafficResp, error) {
 	days = clampStatDays(days)
 	since, _ := statDayRange(days)
 	const topN = 10
-	userRows, err := s.repos.Stat.UserTrafficTop(s.db, since, topN)
+	userRows, err := m.repos.Stat.UserTrafficTop(m.db, since, topN)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +157,7 @@ func (s *AdminService) StatTraffic(ctx context.Context, days int) (*model.AdminS
 	for _, r := range userRows {
 		userTop = append(userTop, model.AdminStatUserTraffic{UserID: r.UserID, Email: r.Email, TotalBytes: r.Total})
 	}
-	nodeRows, err := s.repos.Stat.NodeTrafficTop(s.db, topN)
+	nodeRows, err := m.repos.Stat.NodeTrafficTop(m.db, topN)
 	if err != nil {
 		return nil, err
 	}

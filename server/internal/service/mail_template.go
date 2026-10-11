@@ -97,7 +97,7 @@ func sampleTemplateVars(name string) map[string]string {
 // ---- 管理端 · 邮件模板 CRUD ----
 
 // ListMailTemplates GET /admin/mail-templates：内置模板全量 + 自定义覆盖合并。
-func (s *AdminService) ListMailTemplates(ctx context.Context) ([]model.AdminMailTemplateItem, error) {
+func (m *adminContentModule) ListMailTemplates(ctx context.Context) ([]model.AdminMailTemplateItem, error) {
 	names := make([]string, 0, len(builtinMailTemplates))
 	for name := range builtinMailTemplates {
 		names = append(names, name)
@@ -110,7 +110,7 @@ func (s *AdminService) ListMailTemplates(ctx context.Context) ([]model.AdminMail
 			Name: name, Subject: def.Subject, Body: def.Body, IsCustom: false,
 			Placeholders: def.Placeholders, Remark: def.Remark,
 		}
-		if mt, err := s.repos.MailTemplate.Get(s.db, name); err == nil {
+		if mt, err := m.repos.MailTemplate.Get(m.db, name); err == nil {
 			item.Subject, item.Body, item.IsCustom = mt.Subject, mt.Body, true
 			item.UpdatedAt = &mt.UpdatedAt
 		}
@@ -121,52 +121,52 @@ func (s *AdminService) ListMailTemplates(ctx context.Context) ([]model.AdminMail
 
 // SaveMailTemplate PUT /admin/mail-templates/{name}：保存自定义模板（保存前校验模板可解析，
 // 防语法错误导致发送失败；渲染失败另有内置文案回退兜底）。
-func (s *AdminService) SaveMailTemplate(ctx context.Context, adminID int64, name string, req *model.AdminMailTemplateReq, ip string) error {
+func (m *adminContentModule) SaveMailTemplate(ctx context.Context, adminID int64, name string, req *model.AdminMailTemplateReq, ip string) error {
 	def, ok := builtinMailTemplates[name]
 	if !ok {
 		return errs.ErrNotFound
 	}
-	if _, _, err := renderMail(req.Subject, req.Body, s.cfg.App.Name, sampleTemplateVars(name)); err != nil {
+	if _, _, err := renderMail(req.Subject, req.Body, m.cfg.App.Name, sampleTemplateVars(name)); err != nil {
 		return errs.New(40000, "模板语法错误，无法解析: "+err.Error())
 	}
 	mt := &model.MailTemplate{Name: name, Subject: req.Subject, Body: req.Body, UpdatedAt: time.Now()}
-	if err := s.repos.MailTemplate.Upsert(s.db, mt); err != nil {
+	if err := m.repos.MailTemplate.Upsert(m.db, mt); err != nil {
 		return err
 	}
-	return s.audit(s.db, adminID, "edit_mail_template", name, ip, map[string]any{
+	return m.audit.write(m.db, adminID, "edit_mail_template", name, ip, map[string]any{
 		"placeholders": def.Placeholders,
 	})
 }
 
 // ResetMailTemplate DELETE /admin/mail-templates/{name}：删除自定义行，恢复内置默认文案。
-func (s *AdminService) ResetMailTemplate(ctx context.Context, adminID int64, name, ip string) error {
+func (m *adminContentModule) ResetMailTemplate(ctx context.Context, adminID int64, name, ip string) error {
 	if _, ok := builtinMailTemplates[name]; !ok {
 		return errs.ErrNotFound
 	}
-	if err := s.repos.MailTemplate.Delete(s.db, name); err != nil {
+	if err := m.repos.MailTemplate.Delete(m.db, name); err != nil {
 		return err
 	}
-	return s.audit(s.db, adminID, "reset_mail_template", name, ip, map[string]any{})
+	return m.audit.write(m.db, adminID, "reset_mail_template", name, ip, map[string]any{})
 }
 
 // TestMailTemplate POST /admin/mail-templates/{name}/test：按当前模板（自定义或默认）渲染
 // 示例内容并走真实 SMTP 发送，失败原因原样返回供前端展示。
-func (s *AdminService) TestMailTemplate(ctx context.Context, adminID int64, name, toEmail, ip string) error {
+func (m *adminContentModule) TestMailTemplate(ctx context.Context, adminID int64, name, toEmail, ip string) error {
 	if _, ok := builtinMailTemplates[name]; !ok {
 		return errs.ErrNotFound
 	}
-	subject, body, err := renderMailTemplate(s.db, s.cfg.App.Name, name, sampleTemplateVars(name))
+	subject, body, err := renderMailTemplate(m.db, m.cfg.App.Name, name, sampleTemplateVars(name))
 	if err != nil {
 		return err
 	}
-	if s.ml == nil {
+	if m.ml == nil {
 		return errs.New(40000, "邮件服务未配置，无法测试发送")
 	}
-	sendErr := s.ml.Send(toEmail, subject, body)
+	sendErr := m.ml.Send(toEmail, subject, body)
 	detail := map[string]any{"to": toEmail}
 	if sendErr != nil {
 		detail["error"] = sendErr.Error()
 	}
-	_ = s.audit(s.db, adminID, "test_mail_template", name, ip, detail)
+	_ = m.audit.write(m.db, adminID, "test_mail_template", name, ip, detail)
 	return sendErr
 }

@@ -20,7 +20,7 @@ func (h *Admin) ListOrders(c *gin.Context) {
 			status = &v
 		}
 	}
-	list, total, err := h.svc.ListOrders(c.Request.Context(), status, page, pageSize)
+	list, total, err := h.order.ListOrders(c.Request.Context(), status, page, pageSize)
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -44,7 +44,7 @@ func (h *Admin) CloseOrder(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	if err := h.svc.CloseOrder(c.Request.Context(), h.adminID(c), c.Param("order_no"), req.Remark, c.ClientIP()); err != nil {
+	if err := h.order.CloseOrder(c.Request.Context(), h.adminID(c), c.Param("order_no"), req.Remark, c.ClientIP()); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -67,7 +67,7 @@ func (h *Admin) Refund(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	if err := h.svc.Refund(c.Request.Context(), h.adminID(c), c.Param("order_no"), req.Remark, req.GatewayRefundID, c.ClientIP()); err != nil {
+	if err := h.order.Refund(c.Request.Context(), h.adminID(c), c.Param("order_no"), req.Remark, req.GatewayRefundID, c.ClientIP()); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -94,7 +94,7 @@ func (h *Admin) WithdrawPay(c *gin.Context) {
 	}
 	var req model.AdminApproveReq
 	_ = c.ShouldBindJSON(&req) // body 可选
-	if err := h.svc.ReviewWithdraw(c.Request.Context(), h.adminID(c), id, true, req.Remark, c.ClientIP()); err != nil {
+	if err := h.withdraw.ReviewWithdraw(c.Request.Context(), h.adminID(c), id, true, req.Remark, c.ClientIP()); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -119,7 +119,7 @@ func (h *Admin) WithdrawReject(c *gin.Context) {
 	}
 	var req model.AdminApproveReq
 	_ = c.ShouldBindJSON(&req) // body 可选
-	if err := h.svc.ReviewWithdraw(c.Request.Context(), h.adminID(c), id, false, req.Remark, c.ClientIP()); err != nil {
+	if err := h.withdraw.ReviewWithdraw(c.Request.Context(), h.adminID(c), id, false, req.Remark, c.ClientIP()); err != nil {
 		resp.Fail(c, err)
 		return
 	}

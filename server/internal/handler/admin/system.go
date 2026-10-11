@@ -11,7 +11,7 @@ import (
 // ---- 设置 ----
 
 func (h *Admin) ListSettings(c *gin.Context) {
-	data, err := h.svc.ListSettings(c.Request.Context())
+	data, err := h.system.ListSettings(c.Request.Context())
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -34,7 +34,7 @@ func (h *Admin) SaveSetting(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	if err := h.svc.SaveSetting(c.Request.Context(), req.Key, req.Value); err != nil {
+	if err := h.system.SaveSetting(c.Request.Context(), req.Key, req.Value); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -51,7 +51,7 @@ func (h *Admin) SaveSetting(c *gin.Context) {
 // @Success 200 {object} resp.Body{data=model.AdminVersionResp}
 // @Router /admin/version [get]
 func (h *Admin) Version(c *gin.Context) {
-	data, err := h.svc.VersionInfo(c.Request.Context())
+	data, err := h.version.VersionInfo(c.Request.Context())
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -69,7 +69,7 @@ func (h *Admin) Version(c *gin.Context) {
 // @Success 200 {object} resp.Body{data=model.AdminTelegramWebhookSetupResp}
 // @Router /admin/telegram/webhook/setup [post]
 func (h *Admin) SetupTelegramWebhook(c *gin.Context) {
-	data, err := h.svc.SetupTelegramWebhook(c.Request.Context(), h.adminID(c), c.ClientIP())
+	data, err := h.telegram.SetupTelegramWebhook(c.Request.Context(), h.adminID(c), c.ClientIP())
 	if err != nil {
 		resp.Fail(c, err)
 		return

@@ -18,7 +18,7 @@ import (
 // @Success 200 {object} resp.Body{data=[]model.AdminNoticeItem}
 // @Router /admin/notices [get]
 func (h *Admin) ListNotices(c *gin.Context) {
-	data, err := h.svc.ListAllNotices(c.Request.Context())
+	data, err := h.content.ListAllNotices(c.Request.Context())
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -32,7 +32,7 @@ func (h *Admin) CreateNotice(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	data, err := h.svc.CreateNotice(c.Request.Context(), &req)
+	data, err := h.content.CreateNotice(c.Request.Context(), &req)
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -50,7 +50,7 @@ func (h *Admin) UpdateNotice(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	if err := h.svc.UpdateNotice(c.Request.Context(), id, &req); err != nil {
+	if err := h.content.UpdateNotice(c.Request.Context(), id, &req); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -62,7 +62,7 @@ func (h *Admin) DeleteNotice(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if err := h.svc.DeleteNotice(c.Request.Context(), id); err != nil {
+	if err := h.content.DeleteNotice(c.Request.Context(), id); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -84,7 +84,7 @@ func (h *Admin) SortNotices(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	if err := h.svc.SortNotices(c.Request.Context(), h.adminID(c), req.Items, c.ClientIP()); err != nil {
+	if err := h.content.SortNotices(c.Request.Context(), h.adminID(c), req.Items, c.ClientIP()); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -101,7 +101,7 @@ func (h *Admin) SortNotices(c *gin.Context) {
 // @Success 200 {object} resp.Body{data=[]model.AdminKnowledgeItem}
 // @Router /admin/knowledges [get]
 func (h *Admin) ListKnowledges(c *gin.Context) {
-	data, err := h.svc.ListAllKnowledges(c.Request.Context())
+	data, err := h.content.ListAllKnowledges(c.Request.Context())
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -115,7 +115,7 @@ func (h *Admin) CreateKnowledge(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	data, err := h.svc.CreateKnowledge(c.Request.Context(), &req)
+	data, err := h.content.CreateKnowledge(c.Request.Context(), &req)
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -133,7 +133,7 @@ func (h *Admin) UpdateKnowledge(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	if err := h.svc.UpdateKnowledge(c.Request.Context(), id, &req); err != nil {
+	if err := h.content.UpdateKnowledge(c.Request.Context(), id, &req); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -145,7 +145,7 @@ func (h *Admin) DeleteKnowledge(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if err := h.svc.DeleteKnowledge(c.Request.Context(), id); err != nil {
+	if err := h.content.DeleteKnowledge(c.Request.Context(), id); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -167,7 +167,7 @@ func (h *Admin) SortKnowledges(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	if err := h.svc.SortKnowledges(c.Request.Context(), h.adminID(c), req.Items, c.ClientIP()); err != nil {
+	if err := h.content.SortKnowledges(c.Request.Context(), h.adminID(c), req.Items, c.ClientIP()); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -185,7 +185,7 @@ func (h *Admin) SortKnowledges(c *gin.Context) {
 // @Success 200 {object} resp.Body{data=object{list=[]model.AdminKnowledgeCategoryItem}}
 // @Router /admin/knowledge-categories [get]
 func (h *Admin) ListKnowledgeCategories(c *gin.Context) {
-	data, err := h.svc.ListKnowledgeCategories(c.Request.Context(), c.Query("language"))
+	data, err := h.content.ListKnowledgeCategories(c.Request.Context(), c.Query("language"))
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -208,7 +208,7 @@ func (h *Admin) CreateKnowledgeCategory(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	data, err := h.svc.CreateKnowledgeCategory(c.Request.Context(), h.adminID(c), &req, c.ClientIP())
+	data, err := h.content.CreateKnowledgeCategory(c.Request.Context(), h.adminID(c), &req, c.ClientIP())
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -236,7 +236,7 @@ func (h *Admin) UpdateKnowledgeCategory(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	if err := h.svc.UpdateKnowledgeCategory(c.Request.Context(), h.adminID(c), id, &req, c.ClientIP()); err != nil {
+	if err := h.content.UpdateKnowledgeCategory(c.Request.Context(), h.adminID(c), id, &req, c.ClientIP()); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -256,7 +256,7 @@ func (h *Admin) DeleteKnowledgeCategory(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if err := h.svc.DeleteKnowledgeCategory(c.Request.Context(), h.adminID(c), id, c.ClientIP()); err != nil {
+	if err := h.content.DeleteKnowledgeCategory(c.Request.Context(), h.adminID(c), id, c.ClientIP()); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -273,7 +273,7 @@ func (h *Admin) DeleteKnowledgeCategory(c *gin.Context) {
 // @Success 200 {object} resp.Body{data=object{list=[]model.AdminMailTemplateItem}}
 // @Router /admin/mail-templates [get]
 func (h *Admin) ListMailTemplates(c *gin.Context) {
-	data, err := h.svc.ListMailTemplates(c.Request.Context())
+	data, err := h.content.ListMailTemplates(c.Request.Context())
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -297,7 +297,7 @@ func (h *Admin) SaveMailTemplate(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	if err := h.svc.SaveMailTemplate(c.Request.Context(), h.adminID(c), c.Param("name"), &req, c.ClientIP()); err != nil {
+	if err := h.content.SaveMailTemplate(c.Request.Context(), h.adminID(c), c.Param("name"), &req, c.ClientIP()); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -313,7 +313,7 @@ func (h *Admin) SaveMailTemplate(c *gin.Context) {
 // @Success 200 {object} resp.Body
 // @Router /admin/mail-templates/{name} [delete]
 func (h *Admin) ResetMailTemplate(c *gin.Context) {
-	if err := h.svc.ResetMailTemplate(c.Request.Context(), h.adminID(c), c.Param("name"), c.ClientIP()); err != nil {
+	if err := h.content.ResetMailTemplate(c.Request.Context(), h.adminID(c), c.Param("name"), c.ClientIP()); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -336,7 +336,7 @@ func (h *Admin) TestMailTemplate(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	if err := h.svc.TestMailTemplate(c.Request.Context(), h.adminID(c), c.Param("name"), req.ToEmail, c.ClientIP()); err != nil {
+	if err := h.content.TestMailTemplate(c.Request.Context(), h.adminID(c), c.Param("name"), req.ToEmail, c.ClientIP()); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -353,7 +353,7 @@ func (h *Admin) TestMailTemplate(c *gin.Context) {
 // @Success 200 {object} resp.Body{data=object{list=[]model.AdminSubscriptionTemplateItem}}
 // @Router /admin/subscription-templates [get]
 func (h *Admin) ListSubscriptionTemplates(c *gin.Context) {
-	data, err := h.svc.ListSubscriptionTemplates(c.Request.Context())
+	data, err := h.content.ListSubscriptionTemplates(c.Request.Context())
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -377,7 +377,7 @@ func (h *Admin) SaveSubscriptionTemplate(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	if err := h.svc.SaveSubscriptionTemplate(c.Request.Context(), h.adminID(c), c.Param("name"), req.Content, c.ClientIP()); err != nil {
+	if err := h.content.SaveSubscriptionTemplate(c.Request.Context(), h.adminID(c), c.Param("name"), req.Content, c.ClientIP()); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -393,7 +393,7 @@ func (h *Admin) SaveSubscriptionTemplate(c *gin.Context) {
 // @Success 200 {object} resp.Body
 // @Router /admin/subscription-templates/{name} [delete]
 func (h *Admin) ResetSubscriptionTemplate(c *gin.Context) {
-	if err := h.svc.ResetSubscriptionTemplate(c.Request.Context(), h.adminID(c), c.Param("name"), c.ClientIP()); err != nil {
+	if err := h.content.ResetSubscriptionTemplate(c.Request.Context(), h.adminID(c), c.Param("name"), c.ClientIP()); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -409,7 +409,7 @@ func (h *Admin) ResetSubscriptionTemplate(c *gin.Context) {
 // @Success 200 {object} resp.Body{data=model.AdminSubscriptionTemplatePreviewResp}
 // @Router /admin/subscription-templates/{name}/preview [post]
 func (h *Admin) PreviewSubscriptionTemplate(c *gin.Context) {
-	content, err := h.svc.PreviewSubscriptionTemplate(c.Request.Context(), c.Param("name"))
+	content, err := h.content.PreviewSubscriptionTemplate(c.Request.Context(), c.Param("name"))
 	if err != nil {
 		resp.Fail(c, err)
 		return

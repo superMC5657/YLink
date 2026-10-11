@@ -11,7 +11,7 @@ import (
 // ---- 套餐 ----
 
 func (h *Admin) ListPlans(c *gin.Context) {
-	data, err := h.svc.ListAllPlans(c.Request.Context())
+	data, err := h.catalog.ListAllPlans(c.Request.Context())
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -25,7 +25,7 @@ func (h *Admin) CreatePlan(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	data, err := h.svc.CreatePlan(c.Request.Context(), &req)
+	data, err := h.catalog.CreatePlan(c.Request.Context(), &req)
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -43,7 +43,7 @@ func (h *Admin) UpdatePlan(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	if err := h.svc.UpdatePlan(c.Request.Context(), id, &req); err != nil {
+	if err := h.catalog.UpdatePlan(c.Request.Context(), id, &req); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -55,7 +55,7 @@ func (h *Admin) DeletePlan(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if err := h.svc.DeletePlan(c.Request.Context(), id); err != nil {
+	if err := h.catalog.DeletePlan(c.Request.Context(), id); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -65,7 +65,7 @@ func (h *Admin) DeletePlan(c *gin.Context) {
 // ---- 优惠券 ----
 
 func (h *Admin) ListCoupons(c *gin.Context) {
-	data, err := h.svc.ListAllCoupons(c.Request.Context())
+	data, err := h.catalog.ListAllCoupons(c.Request.Context())
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -79,7 +79,7 @@ func (h *Admin) CreateCoupon(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	data, err := h.svc.CreateCoupon(c.Request.Context(), &req)
+	data, err := h.catalog.CreateCoupon(c.Request.Context(), &req)
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -97,7 +97,7 @@ func (h *Admin) UpdateCoupon(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	if err := h.svc.UpdateCoupon(c.Request.Context(), id, &req); err != nil {
+	if err := h.catalog.UpdateCoupon(c.Request.Context(), id, &req); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -109,7 +109,7 @@ func (h *Admin) DeleteCoupon(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if err := h.svc.DeleteCoupon(c.Request.Context(), id); err != nil {
+	if err := h.catalog.DeleteCoupon(c.Request.Context(), id); err != nil {
 		resp.Fail(c, err)
 		return
 	}

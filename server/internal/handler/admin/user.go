@@ -19,7 +19,7 @@ import (
 func (h *Admin) ListUsers(c *gin.Context) {
 	page, pageSize := pageParams(c)
 	keyword := c.Query("keyword")
-	list, total, err := h.svc.ListUsers(c.Request.Context(), keyword, page, pageSize)
+	list, total, err := h.user.ListUsers(c.Request.Context(), keyword, page, pageSize)
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -37,7 +37,7 @@ func (h *Admin) UpdateUser(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	if err := h.svc.UpdateUser(c.Request.Context(), h.adminID(c), id, &req, c.ClientIP()); err != nil {
+	if err := h.user.UpdateUser(c.Request.Context(), h.adminID(c), id, &req, c.ClientIP()); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -64,7 +64,7 @@ func (h *Admin) AdjustBalance(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	if err := h.svc.AdjustBalance(c.Request.Context(), h.adminID(c), id, model.YuanToFen(req.Amount), req.Remark, c.ClientIP()); err != nil {
+	if err := h.user.AdjustBalance(c.Request.Context(), h.adminID(c), id, model.YuanToFen(req.Amount), req.Remark, c.ClientIP()); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -96,7 +96,7 @@ func (h *Admin) ExportUsersCSV(c *gin.Context) {
 	if err := cw.Write(header); err != nil {
 		return
 	}
-	err := h.svc.ExportUsers(c.Request.Context(), keyword, func(rows [][]string) error {
+	err := h.user.ExportUsers(c.Request.Context(), keyword, func(rows [][]string) error {
 		for _, r := range rows {
 			if err := cw.Write(r); err != nil {
 				return err
@@ -127,7 +127,7 @@ func (h *Admin) BatchUsers(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	data, err := h.svc.BatchUsers(c.Request.Context(), h.adminID(c), &req, c.ClientIP())
+	data, err := h.user.BatchUsers(c.Request.Context(), h.adminID(c), &req, c.ClientIP())
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -150,7 +150,7 @@ func (h *Admin) SendMail(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	data, err := h.svc.SendMail(c.Request.Context(), h.adminID(c), &req, c.ClientIP())
+	data, err := h.user.SendMail(c.Request.Context(), h.adminID(c), &req, c.ClientIP())
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -171,7 +171,7 @@ func (h *Admin) ResetUserSubToken(c *gin.Context) {
 	if !ok {
 		return
 	}
-	url, err := h.svc.ResetUserSubToken(c.Request.Context(), h.adminID(c), id, c.ClientIP())
+	url, err := h.user.ResetUserSubToken(c.Request.Context(), h.adminID(c), id, c.ClientIP())
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -211,7 +211,7 @@ func (h *Admin) ListAuditLogs(c *gin.Context) {
 		}
 		f.AdminID = &id
 	}
-	list, total, actions, err := h.svc.ListAuditLogs(c.Request.Context(), f, page, pageSize)
+	list, total, actions, err := h.audit.ListAuditLogs(c.Request.Context(), f, page, pageSize)
 	if err != nil {
 		resp.Fail(c, err)
 		return

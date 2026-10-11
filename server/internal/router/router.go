@@ -200,18 +200,33 @@ func registerUser(g *gin.RouterGroup, d Deps, a *app) {
 	authed.POST("/user/telegram/unbind", a.tgH.Unbind)
 }
 
-// registerAdmin 管理端 API（role=admin）。路径段由 security.admin_path 配置（F22，默认 admin）。
+// registerAdmin 管理端路由（role=admin）。路径段由 security.admin_path 配置（F22，默认 admin）。
+// 按域 module 拆分注册函数：单域路由变更集中一处，缺陷定位收敛到对应 module。
 func registerAdmin(g *gin.RouterGroup, d Deps, a *app) {
 	admin := g.Group("/" + d.Cfg.Security.AdminPathOrDefault())
 	admin.Use(middleware.Auth(d.JWT, d.Redis), middleware.RequireRole(1))
 
-	// 仪表盘
+	registerAdminStats(admin, a)
+	registerAdminUsers(admin, a)
+	registerAdminCatalog(admin, a)
+	registerAdminNodes(admin, a)
+	registerAdminOrders(admin, a)
+	registerAdminContent(admin, a)
+	registerAdminTickets(admin, a)
+	registerAdminTraffic(admin, a)
+	registerAdminSystem(admin, a)
+}
+
+// registerAdminStats 统计域路由：总览 + F04 三张报表（只读）。
+func registerAdminStats(admin *gin.RouterGroup, a *app) {
 	admin.GET("/stat/overview", a.adminH.Overview)
-	// 统计报表（F04 只读）
 	admin.GET("/stat/orders", a.adminH.StatOrders)
 	admin.GET("/stat/users", a.adminH.StatUsers)
 	admin.GET("/stat/traffic", a.adminH.StatTraffic)
-	// 用户
+}
+
+// registerAdminUsers 用户域路由 + 审计读 seam。
+func registerAdminUsers(admin *gin.RouterGroup, a *app) {
 	admin.GET("/users", a.adminH.ListUsers)
 	admin.GET("/users/export", a.adminH.ExportUsersCSV) // F05 CSV 导出（置于 :id 之前避免路由歧义）
 	admin.PUT("/users/:id", a.adminH.UpdateUser)
@@ -219,14 +234,23 @@ func registerAdmin(g *gin.RouterGroup, d Deps, a *app) {
 	admin.POST("/users/batch", a.adminH.BatchUsers)                      // F05 批量操作
 	admin.POST("/users/mail", a.adminH.SendMail)                         // F05 发送邮件
 	admin.POST("/users/:id/sub-token/reset", a.adminH.ResetUserSubToken) // F05 重置订阅密钥
-	// 审计日志（F08 只读）
-	admin.GET("/audit-logs", a.adminH.ListAuditLogs)
-	// 套餐
+	admin.GET("/audit-logs", a.adminH.ListAuditLogs)                     // F08 只读
+}
+
+// registerAdminCatalog 台账域路由：套餐 + 优惠券。
+func registerAdminCatalog(admin *gin.RouterGroup, a *app) {
 	admin.GET("/plans", a.adminH.ListPlans)
 	admin.POST("/plans", a.adminH.CreatePlan)
 	admin.PUT("/plans/:id", a.adminH.UpdatePlan)
 	admin.DELETE("/plans/:id", a.adminH.DeletePlan)
-	// 节点
+	admin.GET("/coupons", a.adminH.ListCoupons)
+	admin.POST("/coupons", a.adminH.CreateCoupon)
+	admin.PUT("/coupons/:id", a.adminH.UpdateCoupon)
+	admin.DELETE("/coupons/:id", a.adminH.DeleteCoupon)
+}
+
+// registerAdminNodes 节点域路由：基础 + 批量/复制/排序/密钥轮换 + 分组。
+func registerAdminNodes(admin *gin.RouterGroup, a *app) {
 	admin.GET("/servers", a.adminH.ListServers)
 	admin.POST("/servers", a.adminH.CreateServer)
 	admin.POST("/servers/batch", a.adminH.BatchServers) // F09 批量操作（POST 无 :id 路由，无歧义）
@@ -239,16 +263,17 @@ func registerAdmin(g *gin.RouterGroup, d Deps, a *app) {
 	admin.POST("/server-groups", a.adminH.CreateServerGroup)
 	admin.PUT("/server-groups/:id", a.adminH.UpdateServerGroup)
 	admin.DELETE("/server-groups/:id", a.adminH.DeleteServerGroup)
-	// 订单
+}
+
+// registerAdminOrders 订单域路由。
+func registerAdminOrders(admin *gin.RouterGroup, a *app) {
 	admin.GET("/orders", a.adminH.ListOrders)
 	admin.POST("/orders/:order_no/refund", a.adminH.Refund)
 	admin.POST("/orders/:order_no/close", a.adminH.CloseOrder)
-	// 优惠券
-	admin.GET("/coupons", a.adminH.ListCoupons)
-	admin.POST("/coupons", a.adminH.CreateCoupon)
-	admin.PUT("/coupons/:id", a.adminH.UpdateCoupon)
-	admin.DELETE("/coupons/:id", a.adminH.DeleteCoupon)
-	// 内容
+}
+
+// registerAdminContent 内容域路由：公告/知识/分类 + 模板。
+func registerAdminContent(admin *gin.RouterGroup, a *app) {
 	admin.GET("/notices", a.adminH.ListNotices)
 	admin.POST("/notices", a.adminH.CreateNotice)
 	admin.POST("/notices/sort", a.adminH.SortNotices) // F15 公告排序（置于 :id 之前避免歧义）
@@ -263,40 +288,43 @@ func registerAdmin(g *gin.RouterGroup, d Deps, a *app) {
 	admin.POST("/knowledge-categories", a.adminH.CreateKnowledgeCategory)
 	admin.PUT("/knowledge-categories/:id", a.adminH.UpdateKnowledgeCategory)
 	admin.DELETE("/knowledge-categories/:id", a.adminH.DeleteKnowledgeCategory)
-	// 工单
+	admin.GET("/mail-templates", a.adminH.ListMailTemplates) // F11
+	admin.PUT("/mail-templates/:name", a.adminH.SaveMailTemplate)
+	admin.DELETE("/mail-templates/:name", a.adminH.ResetMailTemplate)
+	admin.POST("/mail-templates/:name/test", a.adminH.TestMailTemplate)
+	admin.GET("/subscription-templates", a.adminH.ListSubscriptionTemplates) // F10
+	admin.PUT("/subscription-templates/:name", a.adminH.SaveSubscriptionTemplate)
+	admin.DELETE("/subscription-templates/:name", a.adminH.ResetSubscriptionTemplate)
+	admin.POST("/subscription-templates/:name/preview", a.adminH.PreviewSubscriptionTemplate)
+}
+
+// registerAdminTickets 工单与提现域路由：ticket-withdraw 经由 withdraw seam 收敛一处。
+func registerAdminTickets(admin *gin.RouterGroup, a *app) {
 	admin.GET("/tickets", a.adminH.ListTickets)
 	admin.GET("/tickets/:id", a.adminH.TicketDetail)
 	admin.POST("/tickets/:id/reply", a.adminH.ReplyTicket)
 	admin.POST("/tickets/:id/close", a.adminH.CloseTicket)
 	admin.POST("/tickets/:id/withdraw/pay", a.adminH.WithdrawPay)       // F02 确认打款
 	admin.POST("/tickets/:id/withdraw/reject", a.adminH.WithdrawReject) // F02 拒绝退回
-	// 代理
 	admin.GET("/agent/applies", a.adminH.ListAgentApplies)
 	admin.POST("/agent/applies/:id/approve", a.adminH.ApproveAgent)
 	admin.POST("/agent/applies/:id/reject", a.adminH.RejectAgent)
-	// 佣金
 	admin.GET("/commission-logs", a.adminH.ListCommissions)
-	// 流量
+}
+
+// registerAdminTraffic 流量域路由：模式 B 导入 + 重置 + 重置记录。
+func registerAdminTraffic(admin *gin.RouterGroup, a *app) {
 	admin.POST("/traffic/import", a.adminH.ImportTraffic)
 	admin.POST("/traffic/reset", a.adminH.ResetTraffic)      // F16 流量重置
 	admin.GET("/traffic/resets", a.adminH.ListTrafficResets) // F16 重置记录
-	// 设置
+}
+
+// registerAdminSystem 配置域路由：设置 + telegram adapter + 版本。
+func registerAdminSystem(admin *gin.RouterGroup, a *app) {
 	admin.GET("/settings", a.adminH.ListSettings)
 	admin.PUT("/settings", a.adminH.SaveSetting)
-	// 邮件模板（F11）
-	admin.GET("/mail-templates", a.adminH.ListMailTemplates)
-	admin.PUT("/mail-templates/:name", a.adminH.SaveMailTemplate)
-	admin.DELETE("/mail-templates/:name", a.adminH.ResetMailTemplate)
-	admin.POST("/mail-templates/:name/test", a.adminH.TestMailTemplate)
-	// 订阅模板（F10）
-	admin.GET("/subscription-templates", a.adminH.ListSubscriptionTemplates)
-	admin.PUT("/subscription-templates/:name", a.adminH.SaveSubscriptionTemplate)
-	admin.DELETE("/subscription-templates/:name", a.adminH.ResetSubscriptionTemplate)
-	admin.POST("/subscription-templates/:name/preview", a.adminH.PreviewSubscriptionTemplate)
-	// Telegram（F12）
-	admin.POST("/telegram/webhook/setup", a.adminH.SetupTelegramWebhook)
-	// 版本检查（F20）
-	admin.GET("/version", a.adminH.Version)
+	admin.POST("/telegram/webhook/setup", a.adminH.SetupTelegramWebhook) // F12
+	admin.GET("/version", a.adminH.Version)                              // F20
 }
 
 // registerClient 订阅下发端点：代理客户端直连，免登录、任意来源。

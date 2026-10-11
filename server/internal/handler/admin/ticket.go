@@ -12,7 +12,7 @@ import (
 
 func (h *Admin) ListTickets(c *gin.Context) {
 	page, pageSize := pageParams(c)
-	list, total, err := h.svc.ListTickets(c.Request.Context(), page, pageSize)
+	list, total, err := h.ticket.ListTickets(c.Request.Context(), page, pageSize)
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -25,7 +25,7 @@ func (h *Admin) TicketDetail(c *gin.Context) {
 	if !ok {
 		return
 	}
-	data, err := h.svc.GetTicketDetail(c.Request.Context(), id)
+	data, err := h.ticket.GetTicketDetail(c.Request.Context(), id)
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -43,7 +43,7 @@ func (h *Admin) ReplyTicket(c *gin.Context) {
 		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
 		return
 	}
-	if err := h.svc.ReplyTicket(c.Request.Context(), h.adminID(c), id, req.Message); err != nil {
+	if err := h.ticket.ReplyTicket(c.Request.Context(), h.adminID(c), id, req.Message); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -55,7 +55,7 @@ func (h *Admin) CloseTicket(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if err := h.svc.CloseTicket(c.Request.Context(), id); err != nil {
+	if err := h.ticket.CloseTicket(c.Request.Context(), id); err != nil {
 		resp.Fail(c, err)
 		return
 	}

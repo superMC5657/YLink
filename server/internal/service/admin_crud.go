@@ -5,23 +5,20 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strconv"
 
-	"gorm.io/gorm"
-
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/errs"
-	redispkg "ylink-backend/internal/pkg/redis"
 	"ylink-backend/internal/pkg/sanitize"
 )
 
-// ---- 管理端 · 套餐 CRUD ----
+// 台账域 module（crud 向量）：套餐/节点基础/分组/优惠券。
+// 节点批量/复制/排序/密钥轮换收敛于 node 批量 module；内容类收敛于 content module。
 
 // ListAllPlans GET /admin/plans（含隐藏,价格统一为元,展开 group_ids/is_show）。
-func (s *AdminService) ListAllPlans(ctx context.Context) ([]model.AdminPlanView, error) {
-	list, err := s.repos.Plan.ListAll(s.db)
+func (m *adminCatalogModule) ListAllPlans(ctx context.Context) ([]model.AdminPlanView, error) {
+	list, err := m.repos.Plan.ListAll(m.db)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +52,7 @@ func yuanPtr(fen *int64) *float64 {
 	return &v
 }
 
-func (s *AdminService) CreatePlan(ctx context.Context, req *model.AdminPlanReq) (*model.Plan, error) {
+func (m *adminCatalogModule) CreatePlan(ctx context.Context, req *model.AdminPlanReq) (*model.Plan, error) {
 	p := &model.Plan{
 		Name:        sanitize.Text(req.Name),
 		Content:     sanitize.Markdown(req.Content),
@@ -77,14 +74,14 @@ func (s *AdminService) CreatePlan(ctx context.Context, req *model.AdminPlanReq) 
 		b, _ := json.Marshal(req.GroupIDs)
 		p.GroupIDs = string(b)
 	}
-	if err := s.repos.Plan.Create(s.db, p); err != nil {
+	if err := m.repos.Plan.Create(m.db, p); err != nil {
 		return nil, err
 	}
 	return p, nil
 }
 
-func (s *AdminService) UpdatePlan(ctx context.Context, id int64, req *model.AdminPlanReq) error {
-	if _, err := s.repos.Plan.GetByID(s.db, id); err != nil {
+func (m *adminCatalogModule) UpdatePlan(ctx context.Context, id int64, req *model.AdminPlanReq) error {
+	if _, err := m.repos.Plan.GetByID(m.db, id); err != nil {
 		return errs.ErrNotFound
 	}
 	updates := map[string]any{
@@ -107,19 +104,19 @@ func (s *AdminService) UpdatePlan(ctx context.Context, id int64, req *model.Admi
 		b, _ := json.Marshal(req.GroupIDs)
 		updates["group_ids"] = string(b)
 	}
-	return s.repos.Plan.UpdateMap(s.db, id, updates)
+	return m.repos.Plan.UpdateMap(m.db, id, updates)
 }
 
-func (s *AdminService) DeletePlan(ctx context.Context, id int64) error {
+func (m *adminCatalogModule) DeletePlan(ctx context.Context, id int64) error {
 	// 有订单引用的套餐禁止物理删除（历史订单详情依赖套餐名）
-	n, err := s.repos.Order.CountByPlan(s.db, id)
+	n, err := m.repos.Order.CountByPlan(m.db, id)
 	if err != nil {
 		return err
 	}
 	if n > 0 {
 		return errs.ErrPlanInUse
 	}
-	return s.repos.Plan.Delete(s.db, id)
+	return m.repos.Plan.Delete(m.db, id)
 }
 
 func fenPtr(yuan *float64) *int64 {
@@ -130,11 +127,9 @@ func fenPtr(yuan *float64) *int64 {
 	return &v
 }
 
-// ---- 管理端 · 节点 CRUD ----
-
 // ListAllServers GET /admin/servers（含隐藏,展开 group_id/host/port/config/tags,聚合 Redis 在线状态与探针）。
-func (s *AdminService) ListAllServers(ctx context.Context) ([]model.AdminServerView, error) {
-	list, err := s.repos.Server.ListAll(s.db)
+func (m *adminCatalogModule) ListAllServers(ctx context.Context) ([]model.AdminServerView, error) {
+	list, err := m.repos.Server.ListAll(m.db)
 	if err != nil {
 		return nil, err
 	}
@@ -143,15 +138,15 @@ func (s *AdminService) ListAllServers(ctx context.Context) ([]model.AdminServerV
 		views = append(views, toServerView(&srv))
 	}
 	// 聚合 Redis 中的实时心跳与系统探针负载数据
-	if s.rdb != nil && len(views) > 0 {
+	if m.rdb != nil && len(views) > 0 {
 		hbKeys := make([]string, len(views))
 		statKeys := make([]string, len(views))
 		for i, v := range views {
 			hbKeys[i] = fmt.Sprintf("node:heartbeat:%d", v.ID)
 			statKeys[i] = fmt.Sprintf("node:stats:%d", v.ID)
 		}
-		hbVals, _ := s.rdb.MGet(ctx, hbKeys...).Result()
-		statVals, _ := s.rdb.MGet(ctx, statKeys...).Result()
+		hbVals, _ := m.rdb.MGet(ctx, hbKeys...).Result()
+		statVals, _ := m.rdb.MGet(ctx, statKeys...).Result()
 
 		for i := range views {
 			if i < len(hbVals) && hbVals[i] != nil {
@@ -188,47 +183,47 @@ func toServerView(srv *model.Server) model.AdminServerView {
 	return v
 }
 
-func (s *AdminService) ListAllServerGroups(ctx context.Context) ([]model.ServerGroup, error) {
-	return s.repos.Server.ListAllGroups(s.db)
+func (m *adminCatalogModule) ListAllServerGroups(ctx context.Context) ([]model.ServerGroup, error) {
+	return m.repos.Server.ListAllGroups(m.db)
 }
 
-func (s *AdminService) CreateServerGroup(ctx context.Context, req *model.AdminServerGroupReq) (*model.ServerGroup, error) {
+func (m *adminCatalogModule) CreateServerGroup(ctx context.Context, req *model.AdminServerGroupReq) (*model.ServerGroup, error) {
 	g := &model.ServerGroup{Name: sanitize.Text(req.Name), Sort: req.Sort}
-	if err := s.repos.Server.CreateGroup(s.db, g); err != nil {
+	if err := m.repos.Server.CreateGroup(m.db, g); err != nil {
 		return nil, err
 	}
 	return g, nil
 }
 
-func (s *AdminService) UpdateServerGroup(ctx context.Context, id int64, req *model.AdminServerGroupReq) error {
-	g, err := s.repos.Server.GetGroupByID(s.db, id)
+func (m *adminCatalogModule) UpdateServerGroup(ctx context.Context, id int64, req *model.AdminServerGroupReq) error {
+	g, err := m.repos.Server.GetGroupByID(m.db, id)
 	if err != nil {
 		return errs.ErrNotFound
 	}
 	g.Name = sanitize.Text(req.Name)
 	g.Sort = req.Sort
-	return s.repos.Server.UpdateGroup(s.db, g)
+	return m.repos.Server.UpdateGroup(m.db, g)
 }
 
-func (s *AdminService) DeleteServerGroup(ctx context.Context, id int64) error {
-	return s.repos.Server.DeleteGroup(s.db, id)
+func (m *adminCatalogModule) DeleteServerGroup(ctx context.Context, id int64) error {
+	return m.repos.Server.DeleteGroup(m.db, id)
 }
 
-func (s *AdminService) CreateServer(ctx context.Context, req *model.AdminServerReq) (*model.Server, error) {
+func (m *adminCatalogModule) CreateServer(ctx context.Context, req *model.AdminServerReq) (*model.Server, error) {
 	srv := srvFromReq(req)
 	srv.IsShow = true
 	if req.IsShow != nil {
 		srv.IsShow = *req.IsShow
 	}
 	srv.NodeKey = newNodeKey()
-	if err := s.repos.Server.Create(s.db, srv); err != nil {
+	if err := m.repos.Server.Create(m.db, srv); err != nil {
 		return nil, err
 	}
 	return srv, nil
 }
 
-func (s *AdminService) UpdateServer(ctx context.Context, id int64, req *model.AdminServerReq) error {
-	if _, err := s.repos.Server.GetByID(s.db, id); err != nil {
+func (m *adminCatalogModule) UpdateServer(ctx context.Context, id int64, req *model.AdminServerReq) error {
+	if _, err := m.repos.Server.GetByID(m.db, id); err != nil {
 		return errs.ErrNotFound
 	}
 	srv := srvFromReq(req)
@@ -247,30 +242,11 @@ func (s *AdminService) UpdateServer(ctx context.Context, id int64, req *model.Ad
 	if req.IsShow != nil {
 		updates["is_show"] = *req.IsShow
 	}
-	return s.repos.Server.UpdateMap(s.db, id, updates)
+	return m.repos.Server.UpdateMap(m.db, id, updates)
 }
 
-func (s *AdminService) DeleteServer(ctx context.Context, id int64) error {
-	return s.repos.Server.Delete(s.db, id)
-}
-
-// ResetNodeKey POST /admin/servers/{id}/node-key/reset 重置节点上报密钥(旧密钥立即失效)。
-func (s *AdminService) ResetNodeKey(ctx context.Context, adminID, serverID int64, ip string) (string, error) {
-	srv, err := s.repos.Server.GetByID(s.db, serverID)
-	if err != nil {
-		return "", errs.ErrNotFound
-	}
-	oldKey := srv.NodeKey
-	newKey := newNodeKey()
-	if err := s.repos.Server.UpdateMap(s.db, serverID, map[string]any{"node_key": newKey}); err != nil {
-		return "", err
-	}
-	_ = s.audit(s.db, adminID, "reset_node_key", fmt.Sprint(serverID), ip, map[string]any{})
-	// 旧密钥的鉴权缓存立即失效(NodeAuth 中间件 node:key:{k})
-	if oldKey != "" {
-		s.rdb.Del(ctx, redispkg.Key("node", "key", oldKey))
-	}
-	return newKey, nil
+func (m *adminCatalogModule) DeleteServer(ctx context.Context, id int64) error {
+	return m.repos.Server.Delete(m.db, id)
 }
 
 // newNodeKey 生成 32 位十六进制节点上报密钥。
@@ -302,11 +278,10 @@ func srvFromReq(req *model.AdminServerReq) *model.Server {
 	return s
 }
 
-// ---- 管理端 · 优惠券 CRUD ----
-
-func (s *AdminService) ListAllCoupons(ctx context.Context) ([]model.AdminCouponView, error) {
+// ListAllCoupons 优惠券列表。
+func (m *adminCatalogModule) ListAllCoupons(ctx context.Context) ([]model.AdminCouponView, error) {
 	var list []model.Coupon
-	if err := s.db.Order("id DESC").Find(&list).Error; err != nil {
+	if err := m.db.Order("id DESC").Find(&list).Error; err != nil {
 		return nil, err
 	}
 	out := make([]model.AdminCouponView, 0, len(list))
@@ -329,7 +304,7 @@ func (s *AdminService) ListAllCoupons(ctx context.Context) ([]model.AdminCouponV
 	return out, nil
 }
 
-func (s *AdminService) CreateCoupon(ctx context.Context, req *model.AdminCouponReq) (*model.Coupon, error) {
+func (m *adminCatalogModule) CreateCoupon(ctx context.Context, req *model.AdminCouponReq) (*model.Coupon, error) {
 	c := &model.Coupon{
 		Code: sanitize.Text(req.Code), Type: req.Type, Value: model.YuanToFen(req.Value),
 		MinSpend: model.YuanToFen(req.MinSpend), LimitPerUser: req.LimitPerUser, TotalLimit: req.TotalLimit,
@@ -348,15 +323,15 @@ func (s *AdminService) CreateCoupon(ctx context.Context, req *model.AdminCouponR
 		str := string(b)
 		c.PlanIDs = &str
 	}
-	if err := s.repos.Coupon.Create(s.db, c); err != nil {
+	if err := m.repos.Coupon.Create(m.db, c); err != nil {
 		return nil, err
 	}
 	return c, nil
 }
 
-func (s *AdminService) UpdateCoupon(ctx context.Context, id int64, req *model.AdminCouponReq) error {
+func (m *adminCatalogModule) UpdateCoupon(ctx context.Context, id int64, req *model.AdminCouponReq) error {
 	var exist model.Coupon
-	if err := s.db.First(&exist, id).Error; err != nil {
+	if err := m.db.First(&exist, id).Error; err != nil {
 		return errs.ErrNotFound
 	}
 	updates := map[string]any{
@@ -384,161 +359,9 @@ func (s *AdminService) UpdateCoupon(ctx context.Context, id int64, req *model.Ad
 		str := string(b)
 		updates["plan_ids"] = &str
 	}
-	return s.db.Model(&model.Coupon{}).Where("id = ?", id).Updates(updates).Error
+	return m.db.Model(&model.Coupon{}).Where("id = ?", id).Updates(updates).Error
 }
 
-func (s *AdminService) DeleteCoupon(ctx context.Context, id int64) error {
-	return s.repos.Coupon.Delete(s.db, id)
-}
-
-// ---- 管理端 · 公告 / 知识库 CRUD ----
-
-func (s *AdminService) CreateNotice(ctx context.Context, req *model.AdminNoticeReq) (*model.Notice, error) {
-	n := &model.Notice{
-		Title: sanitize.Text(req.Title), Content: sanitize.Markdown(req.Content), IsShow: true, Sort: req.Sort,
-	}
-	if req.IsShow != nil {
-		n.IsShow = *req.IsShow
-	}
-	if err := s.repos.Notice.Create(s.db, n); err != nil {
-		return nil, err
-	}
-	return n, nil
-}
-
-func (s *AdminService) UpdateNotice(ctx context.Context, id int64, req *model.AdminNoticeReq) error {
-	if _, err := s.repos.Notice.GetByID(s.db, id); err != nil {
-		return errs.ErrNotFound
-	}
-	updates := map[string]any{
-		"title":   sanitize.Text(req.Title),
-		"content": sanitize.Markdown(req.Content),
-		"sort":    req.Sort,
-	}
-	if req.IsShow != nil {
-		updates["is_show"] = *req.IsShow
-	}
-	return s.repos.Notice.UpdateMap(s.db, id, updates)
-}
-
-func (s *AdminService) DeleteNotice(ctx context.Context, id int64) error {
-	return s.repos.Notice.Delete(s.db, id)
-}
-
-// resolveKnowledgeCategory F15：按 (language, name) 找到或创建分类，返回分类 ID 与展示名。
-// 显式 categoryID 优先；无匹配 ID 时按名称归并（首次出现的新分类自动建行，存量数据兜底）。
-func (s *AdminService) resolveKnowledgeCategory(db *gorm.DB, language, name string, categoryID *int64) (catID *int64, displayName string, err error) {
-	displayName = name
-	if categoryID != nil && *categoryID > 0 {
-		if kc, e := s.repos.KnowledgeCat.GetByID(db, *categoryID); e == nil {
-			return &kc.ID, kc.Name, nil
-		}
-	}
-	if name == "" {
-		return nil, "", nil
-	}
-	if kc, e := s.repos.KnowledgeCat.GetByLanguageAndName(db, language, name); e == nil {
-		return &kc.ID, kc.Name, nil
-	} else if !errors.Is(e, gorm.ErrRecordNotFound) {
-		return nil, "", e
-	}
-	kc := &model.KnowledgeCategory{Language: language, Name: name}
-	if err := s.repos.KnowledgeCat.Create(db, kc); err != nil {
-		return nil, "", err
-	}
-	return &kc.ID, kc.Name, nil
-}
-
-func (s *AdminService) CreateKnowledge(ctx context.Context, req *model.AdminKnowledgeReq) (*model.Knowledge, error) {
-	lang := req.Language
-	if lang == "" {
-		lang = "zh-CN"
-	}
-	catName := sanitize.Text(req.Category)
-	catID, displayName, err := s.resolveKnowledgeCategory(s.db, lang, catName, req.CategoryID)
-	if err != nil {
-		return nil, err
-	}
-	k := &model.Knowledge{
-		Category: displayName, CategoryID: catID,
-		Title: sanitize.Text(req.Title),
-		Body:  sanitize.Markdown(req.Body), Language: lang, IsShow: true, Sort: req.Sort,
-	}
-	if req.IsShow != nil {
-		k.IsShow = *req.IsShow
-	}
-	if err := s.repos.Knowledge.Create(s.db, k); err != nil {
-		return nil, err
-	}
-	return k, nil
-}
-
-func (s *AdminService) UpdateKnowledge(ctx context.Context, id int64, req *model.AdminKnowledgeReq) error {
-	k, err := s.repos.Knowledge.GetByID(s.db, id)
-	if err != nil {
-		return errs.ErrNotFound
-	}
-	lang := req.Language
-	if lang == "" {
-		lang = k.Language
-	}
-	catName := sanitize.Text(req.Category)
-	// 未显式传 category_id 时沿用原归属（仅当分类名未变），避免改标题等字段丢失归类
-	var catIDArg *int64
-	if req.CategoryID != nil {
-		catIDArg = req.CategoryID
-	} else if catName == k.Category && k.CategoryID != nil {
-		catIDArg = k.CategoryID
-	}
-	catID, displayName, err := s.resolveKnowledgeCategory(s.db, lang, catName, catIDArg)
-	if err != nil {
-		return err
-	}
-	updates := map[string]any{
-		"category":    displayName,
-		"category_id": catID,
-		"title":       sanitize.Text(req.Title),
-		"body":        sanitize.Markdown(req.Body),
-		"language":    lang,
-		"sort":        req.Sort,
-	}
-	if req.IsShow != nil {
-		updates["is_show"] = *req.IsShow
-	}
-	return s.repos.Knowledge.UpdateMap(s.db, id, updates)
-}
-
-func (s *AdminService) DeleteKnowledge(ctx context.Context, id int64) error {
-	return s.repos.Knowledge.Delete(s.db, id)
-}
-
-// ListAllNotices GET /admin/notices（含隐藏,创建时间倒序）。
-func (s *AdminService) ListAllNotices(ctx context.Context) ([]model.AdminNoticeItem, error) {
-	var list []model.Notice
-	if err := s.db.Order("id DESC").Find(&list).Error; err != nil {
-		return nil, err
-	}
-	out := make([]model.AdminNoticeItem, 0, len(list))
-	for _, n := range list {
-		out = append(out, model.AdminNoticeItem{
-			ID: n.ID, Title: n.Title, Content: n.Content, IsShow: n.IsShow, Sort: n.Sort, CreatedAt: n.CreatedAt,
-		})
-	}
-	return out, nil
-}
-
-// ListAllKnowledges GET /admin/knowledges（含隐藏）。
-func (s *AdminService) ListAllKnowledges(ctx context.Context) ([]model.AdminKnowledgeItem, error) {
-	var list []model.Knowledge
-	if err := s.db.Order("id DESC").Find(&list).Error; err != nil {
-		return nil, err
-	}
-	out := make([]model.AdminKnowledgeItem, 0, len(list))
-	for _, k := range list {
-		out = append(out, model.AdminKnowledgeItem{
-			ID: k.ID, Category: k.Category, Title: k.Title, Body: k.Body,
-			Language: k.Language, IsShow: k.IsShow, Sort: k.Sort, UpdatedAt: k.UpdatedAt,
-		})
-	}
-	return out, nil
+func (m *adminCatalogModule) DeleteCoupon(ctx context.Context, id int64) error {
+	return m.repos.Coupon.Delete(m.db, id)
 }

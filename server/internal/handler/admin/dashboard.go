@@ -16,7 +16,7 @@ import (
 // @Success 200 {object} resp.Body{data=model.AdminOverviewResp}
 // @Router /admin/stat/overview [get]
 func (h *Admin) Overview(c *gin.Context) {
-	data, err := h.svc.Overview(c.Request.Context())
+	data, err := h.stats.Overview(c.Request.Context())
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -35,7 +35,7 @@ func (h *Admin) Overview(c *gin.Context) {
 // @Success 200 {object} resp.Body{data=model.AdminStatOrdersResp}
 // @Router /admin/stat/orders [get]
 func (h *Admin) StatOrders(c *gin.Context) {
-	data, err := h.svc.StatOrders(c.Request.Context(), statDays(c))
+	data, err := h.stats.StatOrders(c.Request.Context(), statDays(c))
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -52,7 +52,7 @@ func (h *Admin) StatOrders(c *gin.Context) {
 // @Success 200 {object} resp.Body{data=model.AdminStatUsersResp}
 // @Router /admin/stat/users [get]
 func (h *Admin) StatUsers(c *gin.Context) {
-	data, err := h.svc.StatUsers(c.Request.Context(), statDays(c))
+	data, err := h.stats.StatUsers(c.Request.Context(), statDays(c))
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -69,7 +69,7 @@ func (h *Admin) StatUsers(c *gin.Context) {
 // @Success 200 {object} resp.Body{data=model.AdminStatTrafficResp}
 // @Router /admin/stat/traffic [get]
 func (h *Admin) StatTraffic(c *gin.Context) {
-	data, err := h.svc.StatTraffic(c.Request.Context(), statDays(c))
+	data, err := h.stats.StatTraffic(c.Request.Context(), statDays(c))
 	if err != nil {
 		resp.Fail(c, err)
 		return

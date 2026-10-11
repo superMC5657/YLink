@@ -12,7 +12,7 @@ import (
 	redispkg "ylink-backend/internal/pkg/redis"
 )
 
-// ---- 管理端 · 版本检查 + 变更日志（F20 子集，自动执行升级不立项） ----
+// 版本域 module：当前版本 + 远端清单（F20 子集）。
 
 // versionManifest 更新源响应格式：{"version":"x.y.z","notes":"变更日志"}。
 type versionManifest struct {
@@ -25,22 +25,22 @@ const versionManifestCacheTTL = 10 * time.Minute
 // VersionInfo GET /admin/version：返回当前版本（app.version，部署注入）；
 // 配置了 update.manifest_url 时远端拉取最新版本与变更日志（3s 超时 + 10min 缓存），
 // 拉取失败 latest 保持空（前端展示「无法获取」），不影响接口成功。
-func (s *AdminService) VersionInfo(ctx context.Context) (*model.AdminVersionResp, error) {
-	current := s.cfg.App.Version
+func (m *adminVersionModule) VersionInfo(ctx context.Context) (*model.AdminVersionResp, error) {
+	current := m.cfg.App.Version
 	if current == "" {
 		current = "dev"
 	}
 	resp := &model.AdminVersionResp{Version: current}
-	if s.cfg.Update.ManifestURL == "" {
+	if m.cfg.Update.ManifestURL == "" {
 		return resp, nil
 	}
 	cacheKey := redispkg.Key("cache", "version", "manifest")
-	var m versionManifest
-	if raw, err := s.rdb.Get(ctx, cacheKey).Result(); err == nil && json.Unmarshal([]byte(raw), &m) == nil {
-		fillVersion(resp, current, m)
+	var manifest versionManifest
+	if raw, err := m.rdb.Get(ctx, cacheKey).Result(); err == nil && json.Unmarshal([]byte(raw), &manifest) == nil {
+		fillVersion(resp, current, manifest)
 		return resp, nil
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, s.cfg.Update.ManifestURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, m.cfg.Update.ManifestURL, nil)
 	if err != nil {
 		return resp, nil
 	}
@@ -53,23 +53,23 @@ func (s *AdminService) VersionInfo(ctx context.Context) (*model.AdminVersionResp
 	if httpResp.StatusCode != http.StatusOK {
 		return resp, nil
 	}
-	if err := json.NewDecoder(httpResp.Body).Decode(&m); err != nil || m.Version == "" {
+	if err := json.NewDecoder(httpResp.Body).Decode(&manifest); err != nil || manifest.Version == "" {
 		return resp, nil
 	}
-	if raw, err := json.Marshal(m); err == nil {
-		s.rdb.Set(ctx, cacheKey, string(raw), versionManifestCacheTTL)
+	if raw, err := json.Marshal(manifest); err == nil {
+		m.rdb.Set(ctx, cacheKey, string(raw), versionManifestCacheTTL)
 	}
-	fillVersion(resp, current, m)
+	fillVersion(resp, current, manifest)
 	return resp, nil
 }
 
-func fillVersion(resp *model.AdminVersionResp, current string, m versionManifest) {
-	latest := m.Version
+func fillVersion(resp *model.AdminVersionResp, current string, manifest versionManifest) {
+	latest := manifest.Version
 	resp.Latest = &latest
-	up := compareVersions(m.Version, current) > 0
+	up := compareVersions(manifest.Version, current) > 0
 	resp.HasUpdate = &up
-	if m.Notes != "" {
-		notes := m.Notes
+	if manifest.Notes != "" {
+		notes := manifest.Notes
 		resp.Notes = &notes
 	}
 }

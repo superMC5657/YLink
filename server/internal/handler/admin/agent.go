@@ -14,7 +14,7 @@ import (
 func (h *Admin) ListAgentApplies(c *gin.Context) {
 	page, pageSize := pageParams(c)
 	status, _ := strconv.Atoi(c.DefaultQuery("status", "-1"))
-	list, total, err := h.svc.ListAgentApplies(c.Request.Context(), status, page, pageSize)
+	list, total, err := h.agent.ListAgentApplies(c.Request.Context(), status, page, pageSize)
 	if err != nil {
 		resp.Fail(c, err)
 		return
@@ -29,7 +29,7 @@ func (h *Admin) ApproveAgent(c *gin.Context) {
 	}
 	var req model.AdminApproveReq
 	_ = c.ShouldBindJSON(&req)
-	if err := h.svc.ReviewAgentApply(c.Request.Context(), h.adminID(c), id, true, req.Remark, c.ClientIP()); err != nil {
+	if err := h.agent.ReviewAgentApply(c.Request.Context(), h.adminID(c), id, true, req.Remark, c.ClientIP()); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -43,7 +43,7 @@ func (h *Admin) RejectAgent(c *gin.Context) {
 	}
 	var req model.AdminApproveReq
 	_ = c.ShouldBindJSON(&req)
-	if err := h.svc.ReviewAgentApply(c.Request.Context(), h.adminID(c), id, false, req.Remark, c.ClientIP()); err != nil {
+	if err := h.agent.ReviewAgentApply(c.Request.Context(), h.adminID(c), id, false, req.Remark, c.ClientIP()); err != nil {
 		resp.Fail(c, err)
 		return
 	}
@@ -60,7 +60,7 @@ func (h *Admin) ListCommissions(c *gin.Context) {
 			status = &v
 		}
 	}
-	list, total, err := h.svc.ListCommissions(c.Request.Context(), status, page, pageSize)
+	list, total, err := h.agent.ListCommissions(c.Request.Context(), status, page, pageSize)
 	if err != nil {
 		resp.Fail(c, err)
 		return

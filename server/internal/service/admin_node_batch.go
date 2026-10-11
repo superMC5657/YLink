@@ -8,14 +8,16 @@ import (
 
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/errs"
+	redispkg "ylink-backend/internal/pkg/redis"
 	"ylink-backend/internal/repo"
 )
 
-// ---- 管理端 · 节点批量操作 / 复制 / 排序（F09） ----
+// 节点批量域 module：批量/复制/排序/密钥轮换（F09 + 密钥）。
+// 密钥轮换收敛于此，保证节点密钥相关变更集中一处。
 
 // BatchServers F09 节点批量操作：delete=删除；update=批量更新公共字段（status/is_show/group_id/rate）。
 // 整批单事务执行，逐节点记录成功/失败（不存在或更新失败记入 failed，不打断其余节点），整体写审计。
-func (s *AdminService) BatchServers(ctx context.Context, adminID int64, req *model.AdminBatchServerReq, ip string) (*model.AdminBatchServerResp, error) {
+func (m *adminNodeBatchModule) BatchServers(ctx context.Context, adminID int64, req *model.AdminBatchServerReq, ip string) (*model.AdminBatchServerResp, error) {
 	updates := map[string]any{}
 	if req.Action == "update" {
 		if req.Status != nil {
@@ -38,7 +40,7 @@ func (s *AdminService) BatchServers(ctx context.Context, adminID int64, req *mod
 		}
 	}
 	resp := &model.AdminBatchServerResp{Failed: make([]model.AdminBatchFailedItem, 0)}
-	err := repo.WithTx(s.db, func(tx *gorm.DB) error {
+	err := repo.WithTx(m.db, func(tx *gorm.DB) error {
 		for _, id := range req.IDs {
 			var res *gorm.DB
 			if req.Action == "delete" {
@@ -65,15 +67,15 @@ func (s *AdminService) BatchServers(ctx context.Context, adminID int64, req *mod
 	if req.Action == "delete" {
 		action = "batch_server_delete"
 	}
-	_ = s.audit(s.db, adminID, action, "", ip, map[string]any{
+	_ = m.audit.write(m.db, adminID, action, "", ip, map[string]any{
 		"ids": req.IDs, "success": resp.Success, "failed": len(resp.Failed), "updates": updates,
 	})
 	return resp, nil
 }
 
 // CopyServer F09 复制节点：除名称追加 -copy 外全字段复制，重新生成 node_key（不与源节点共享）。
-func (s *AdminService) CopyServer(ctx context.Context, adminID, serverID int64, ip string) (*model.AdminServerView, error) {
-	src, err := s.repos.Server.GetByID(s.db, serverID)
+func (m *adminNodeBatchModule) CopyServer(ctx context.Context, adminID, serverID int64, ip string) (*model.AdminServerView, error) {
+	src, err := m.repos.Server.GetByID(m.db, serverID)
 	if err != nil {
 		return nil, errs.ErrNotFound
 	}
@@ -81,10 +83,10 @@ func (s *AdminService) CopyServer(ctx context.Context, adminID, serverID int64, 
 	cp.ID = 0
 	cp.Name = truncateServerName(src.Name + "-copy")
 	cp.NodeKey = newNodeKey()
-	if err := s.repos.Server.Create(s.db, &cp); err != nil {
+	if err := m.repos.Server.Create(m.db, &cp); err != nil {
 		return nil, err
 	}
-	_ = s.audit(s.db, adminID, "copy_server", fmt.Sprint(serverID), ip, map[string]any{
+	_ = m.audit.write(m.db, adminID, "copy_server", fmt.Sprint(serverID), ip, map[string]any{
 		"new_id": cp.ID, "name": cp.Name,
 	})
 	view := toServerView(&cp)
@@ -101,13 +103,32 @@ func truncateServerName(name string) string {
 }
 
 // SortServers F09 节点排序：按传入 items 更新 sort（前端按展示顺序生成），单事务 + 审计。
-func (s *AdminService) SortServers(ctx context.Context, adminID int64, items []model.AdminSortItem, ip string) error {
-	return repo.WithTx(s.db, func(tx *gorm.DB) error {
+func (m *adminNodeBatchModule) SortServers(ctx context.Context, adminID int64, items []model.AdminSortItem, ip string) error {
+	return repo.WithTx(m.db, func(tx *gorm.DB) error {
 		for _, it := range items {
-			if err := s.repos.Server.UpdateMap(tx, it.ID, map[string]any{"sort": it.Sort}); err != nil {
+			if err := m.repos.Server.UpdateMap(tx, it.ID, map[string]any{"sort": it.Sort}); err != nil {
 				return err
 			}
 		}
-		return s.audit(tx, adminID, "sort_server", "", ip, map[string]any{"count": len(items)})
+		return m.audit.write(tx, adminID, "sort_server", "", ip, map[string]any{"count": len(items)})
 	})
+}
+
+// ResetNodeKey POST /admin/servers/{id}/node-key/reset 重置节点上报密钥(旧密钥立即失效)。
+func (m *adminNodeBatchModule) ResetNodeKey(ctx context.Context, adminID, serverID int64, ip string) (string, error) {
+	srv, err := m.repos.Server.GetByID(m.db, serverID)
+	if err != nil {
+		return "", errs.ErrNotFound
+	}
+	oldKey := srv.NodeKey
+	newKey := newNodeKey()
+	if err := m.repos.Server.UpdateMap(m.db, serverID, map[string]any{"node_key": newKey}); err != nil {
+		return "", err
+	}
+	_ = m.audit.write(m.db, adminID, "reset_node_key", fmt.Sprint(serverID), ip, map[string]any{})
+	// 旧密钥的鉴权缓存立即失效(NodeAuth 中间件 node:key:{k})
+	if oldKey != "" {
+		m.rdb.Del(ctx, redispkg.Key("node", "key", oldKey))
+	}
+	return newKey, nil
 }

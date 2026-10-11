@@ -8,12 +8,15 @@ import (
 	"strings"
 	"time"
 
+	"gorm.io/gorm"
+
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/errs"
 	"ylink-backend/internal/repo"
 )
 
-// ---- 审计日志（F08） ----
+// 审计域 module：写审计 + 列表查询 + 目标可读化。
+// 批量动作的 target 摘要保持 batch:<count>，完整 ID 列表放 detail JSON。
 
 // AuditLogFilter 审计日志筛选参数（handler 解析后的 query）。
 type AuditLogFilter struct {
@@ -24,8 +27,44 @@ type AuditLogFilter struct {
 	To      string // YYYY-MM-DD，可空（含当天）
 }
 
+// batchAuditTarget 批量动作的审计 target 摘要：audit_logs.target 为 VARCHAR(128)，
+// 完整 ID 列表可能超长导致审计写入失败、静默丢失——target 只存 batch:<count>，
+// 完整 ID 列表放 detail JSON 留痕（ids / user_ids）。
+func batchAuditTarget(n int) string { return fmt.Sprintf("batch:%d", n) }
+
+// write 写审计日志（各域 module 经由 seam 复用）。
+func (m *adminAuditModule) write(tx *gorm.DB, adminID int64, action, target, ip string, detail any) error {
+	var detailStr *string
+	if detail != nil {
+		if b, err := json.Marshal(detail); err == nil {
+			str := string(b)
+			detailStr = &str
+		}
+	}
+	ipStr := ip
+	return m.repos.Audit.Create(tx, &model.AuditLog{
+		AdminID: adminID, Action: action, Target: &target, Detail: detailStr, IP: &ipStr,
+	})
+}
+
+// emailsOf 批量取用户邮箱。
+func (m *adminAuditModule) emailsOf(ids []int64) map[int64]string {
+	out := map[int64]string{}
+	if len(ids) == 0 {
+		return out
+	}
+	var users []model.User
+	if err := m.db.Select("id, email").Where("id IN ?", ids).Find(&users).Error; err != nil {
+		return out
+	}
+	for _, u := range users {
+		out[u.ID] = u.Email
+	}
+	return out
+}
+
 // ListAuditLogs GET /admin/audit-logs：审计日志分页查询（只读，数据源为 audit_logs 表）。
-func (s *AdminService) ListAuditLogs(ctx context.Context, f AuditLogFilter, page, pageSize int) ([]model.AdminAuditLogItem, int64, []string, error) {
+func (m *adminAuditModule) ListAuditLogs(ctx context.Context, f AuditLogFilter, page, pageSize int) ([]model.AdminAuditLogItem, int64, []string, error) {
 	q := repo.AuditLogQuery{AdminID: f.AdminID, Action: f.Action, Target: f.Target}
 	parseDay := func(s string) (time.Time, error) {
 		return time.ParseInLocation("2006-01-02", s, time.Local)
@@ -45,22 +84,20 @@ func (s *AdminService) ListAuditLogs(ctx context.Context, f AuditLogFilter, page
 		t = t.AddDate(0, 0, 1) // 含 to 当天
 		q.To = &t
 	}
-	list, total, err := s.repos.Audit.ListByPage(s.db, q, page, pageSize)
+	list, total, err := m.repos.Audit.ListByPage(m.db, q, page, pageSize)
 	if err != nil {
 		return nil, 0, nil, err
 	}
-	s.enrichAuditTargets(list)
-	actions, err := s.repos.Audit.ListActions(s.db)
+	m.enrichAuditTargets(list)
+	actions, err := m.repos.Audit.ListActions(m.db)
 	if err != nil {
 		return list, total, nil, nil // 动作列表失败不阻断主查询
 	}
 	return list, total, actions, nil
 }
 
-// ---- 审计日志目标可读化（F08 增强）----
-
 // auditTargetKind 按 action 判定 target 指向的实体类型；空串表示无实体或未收录动作。
-// 与各写入点的 s.audit(...) 调用保持一致（admin_service / admin_crud / admin_node_batch 等）。
+// 与各写入点的 write(...) 调用保持一致（audit / catalog / node 批量等）。
 func auditTargetKind(action string) string {
 	switch action {
 	case "ban_user", "update_role", "adjust_balance", "reset_sub_token",
@@ -105,7 +142,7 @@ func auditDetailEmail(detail *string) string {
 
 // enrichAuditTargets 把本页日志的 target 翻译成实体类型 + 可读名称（用户邮箱/节点名/分类名）。
 // 纯展示增强：任何查询失败或实体已删除都静默跳过（TargetDisplay 保持 nil，前端回退原始 target），绝不影响主查询。
-func (s *AdminService) enrichAuditTargets(list []model.AdminAuditLogItem) {
+func (m *adminAuditModule) enrichAuditTargets(list []model.AdminAuditLogItem) {
 	idsByKind := map[string][]int64{}
 	for i := range list {
 		kind := auditTargetKind(list[i].Action)
@@ -131,9 +168,9 @@ func (s *AdminService) enrichAuditTargets(list []model.AdminAuditLogItem) {
 			list[i].TargetDisplay = &t
 		}
 	}
-	emails := s.emailsOf(idsByKind["user"])
-	servers := s.serverNamesOf(idsByKind["server"])
-	cats := s.categoryNamesOf(idsByKind["knowledge_category"])
+	emails := m.emailsOf(idsByKind["user"])
+	servers := m.serverNamesOf(idsByKind["server"])
+	cats := m.categoryNamesOf(idsByKind["knowledge_category"])
 	for i := range list {
 		if list[i].TargetKind == nil || list[i].TargetDisplay != nil || list[i].Target == nil {
 			continue
@@ -174,13 +211,13 @@ func (s *AdminService) enrichAuditTargets(list []model.AdminAuditLogItem) {
 }
 
 // serverNamesOf 批量查节点名（id → name），查询失败返回空 map（不阻断展示）。
-func (s *AdminService) serverNamesOf(ids []int64) map[int64]string {
+func (m *adminAuditModule) serverNamesOf(ids []int64) map[int64]string {
 	out := map[int64]string{}
 	if len(ids) == 0 {
 		return out
 	}
 	var servers []model.Server
-	if err := s.db.Select("id, name").Where("id IN ?", ids).Find(&servers).Error; err != nil {
+	if err := m.db.Select("id, name").Where("id IN ?", ids).Find(&servers).Error; err != nil {
 		return out
 	}
 	for _, sv := range servers {
@@ -190,13 +227,13 @@ func (s *AdminService) serverNamesOf(ids []int64) map[int64]string {
 }
 
 // categoryNamesOf 批量查知识分类名（id → name），查询失败返回空 map（不阻断展示）。
-func (s *AdminService) categoryNamesOf(ids []int64) map[int64]string {
+func (m *adminAuditModule) categoryNamesOf(ids []int64) map[int64]string {
 	out := map[int64]string{}
 	if len(ids) == 0 {
 		return out
 	}
 	var cats []model.KnowledgeCategory
-	if err := s.db.Select("id, name").Where("id IN ?", ids).Find(&cats).Error; err != nil {
+	if err := m.db.Select("id, name").Where("id IN ?", ids).Find(&cats).Error; err != nil {
 		return out
 	}
 	for _, c := range cats {

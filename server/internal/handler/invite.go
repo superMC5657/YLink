@@ -7,6 +7,7 @@ import (
 
 	"ylink-backend/internal/middleware"
 	"ylink-backend/internal/model"
+	"ylink-backend/internal/pkg/errs"
 	"ylink-backend/internal/pkg/resp"
 	"ylink-backend/internal/service"
 )
@@ -118,7 +119,12 @@ func (h *Invite) Transfer(c *gin.Context) {
 	if !resp.Bind(c, &req) {
 		return
 	}
-	data, err := h.svc.Transfer(c.Request.Context(), middleware.UserID(c), model.YuanToFen(req.Amount))
+	fen, ok := model.CheckedYuanToFen(req.Amount)
+	if !ok {
+		resp.Fail(c, errs.ErrAmountInvalid)
+		return
+	}
+	data, err := h.svc.Transfer(c.Request.Context(), middleware.UserID(c), fen)
 	if err != nil {
 		resp.Fail(c, err)
 		return

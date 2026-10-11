@@ -84,13 +84,17 @@ func (m *adminUserModule) UpdateUser(ctx context.Context, adminID, userID int64,
 
 // AdjustBalance POST /admin/users/{id}/balance（审计）。
 // 强约束：调整后 balance 不允许为负（佣金回滚减的是 commission_balance，不在此约束）。
+// 金额域经 money 深 Module 校验：绝对值超限（回绕）即拒绝。
 func (m *adminUserModule) AdjustBalance(ctx context.Context, adminID, userID int64, amountFen int64, remark, ip string) error {
+	if !model.ValidAdjustFen(amountFen) {
+		return errs.ErrAmountInvalid
+	}
 	return repo.WithTx(m.db, func(tx *gorm.DB) error {
 		user, err := m.repos.User.GetByIDForUpdate(tx, userID)
 		if err != nil {
 			return errs.ErrNotFound
 		}
-		if user.Balance+amountFen < 0 {
+		if !model.BalanceAfterValid(user.Balance, amountFen) {
 			return errs.New(40000, "调整后余额不能为负")
 		}
 		user.Balance += amountFen
@@ -183,7 +187,13 @@ func (m *adminUserModule) BatchUsers(ctx context.Context, adminID int64, req *mo
 			banned := false
 			err = m.UpdateUser(ctx, adminID, id, &model.AdminUpdateUserReq{Banned: &banned}, ip)
 		case "adjust_balance":
-			err = m.AdjustBalance(ctx, adminID, id, model.YuanToFen(*req.Amount), req.Remark, ip)
+			// 深 Module checked 入口：非法金额在入口即不可表达（回绕负值不得进入 AdjustBalance）。
+			amountFen, ok := model.CheckedAdjustYuanToFen(*req.Amount)
+			if !ok {
+				err = errs.ErrAmountInvalid
+			} else {
+				err = m.AdjustBalance(ctx, adminID, id, amountFen, req.Remark, ip)
+			}
 		}
 		if err != nil {
 			resp.Failed = append(resp.Failed, model.AdminBatchFailedItem{

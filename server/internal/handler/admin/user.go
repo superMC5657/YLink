@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 
 	"ylink-backend/internal/model"
+	"ylink-backend/internal/pkg/errs"
 	"ylink-backend/internal/pkg/logger"
 	"ylink-backend/internal/pkg/resp"
 	"ylink-backend/internal/service"
@@ -61,7 +62,13 @@ func (h *Admin) AdjustBalance(c *gin.Context) {
 	if !resp.Bind(c, &req) {
 		return
 	}
-	if err := h.user.AdjustBalance(c.Request.Context(), h.adminID(c), id, model.YuanToFen(req.Amount), req.Remark, c.ClientIP()); err != nil {
+	// 深 Module checked 入口：非法金额在入口即不可表达。
+	fen, ok := model.CheckedAdjustYuanToFen(req.Amount)
+	if !ok {
+		resp.Fail(c, errs.ErrAmountInvalid)
+		return
+	}
+	if err := h.user.AdjustBalance(c.Request.Context(), h.adminID(c), id, fen, req.Remark, c.ClientIP()); err != nil {
 		resp.Fail(c, err)
 		return
 	}

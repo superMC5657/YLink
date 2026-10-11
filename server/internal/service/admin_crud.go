@@ -53,6 +53,9 @@ func yuanPtr(fen *int64) *float64 {
 }
 
 func (m *adminCatalogModule) CreatePlan(ctx context.Context, req *model.AdminPlanReq) (*model.Plan, error) {
+	if err := checkPlanMoney(req); err != nil {
+		return nil, err
+	}
 	p := &model.Plan{
 		Name:        sanitize.Text(req.Name),
 		Content:     sanitize.Markdown(req.Content),
@@ -83,6 +86,9 @@ func (m *adminCatalogModule) CreatePlan(ctx context.Context, req *model.AdminPla
 func (m *adminCatalogModule) UpdatePlan(ctx context.Context, id int64, req *model.AdminPlanReq) error {
 	if _, err := m.repos.Plan.GetByID(m.db, id); err != nil {
 		return errs.ErrNotFound
+	}
+	if err := checkPlanMoney(req); err != nil {
+		return err
 	}
 	updates := map[string]any{
 		"name":            sanitize.Text(req.Name),
@@ -125,6 +131,19 @@ func fenPtr(yuan *float64) *int64 {
 	}
 	v := model.YuanToFen(*yuan)
 	return &v
+}
+
+// checkPlanMoney 套餐金额界校验：各周期价允许 nil/0，只拦截回绕超限。
+func checkPlanMoney(req *model.AdminPlanReq) error {
+	for _, y := range []*float64{req.MonthPrice, req.QuarterPrice, req.HalfYearPrice, req.YearPrice, req.OnetimePrice} {
+		if y == nil {
+			continue
+		}
+		if _, ok := model.CheckedBoundedYuanToFen(*y); !ok {
+			return errs.ErrAmountInvalid
+		}
+	}
+	return nil
 }
 
 // ListAllServers GET /admin/servers（含隐藏,展开 group_id/host/port/config/tags,聚合 Redis 在线状态与探针）。
@@ -305,9 +324,17 @@ func (m *adminCatalogModule) ListAllCoupons(ctx context.Context) ([]model.AdminC
 }
 
 func (m *adminCatalogModule) CreateCoupon(ctx context.Context, req *model.AdminCouponReq) (*model.Coupon, error) {
+	value, ok := model.CheckedBoundedYuanToFen(req.Value)
+	if !ok {
+		return nil, errs.ErrAmountInvalid
+	}
+	minSpend, ok := model.CheckedBoundedYuanToFen(req.MinSpend)
+	if !ok {
+		return nil, errs.ErrAmountInvalid
+	}
 	c := &model.Coupon{
-		Code: sanitize.Text(req.Code), Type: req.Type, Value: model.YuanToFen(req.Value),
-		MinSpend: model.YuanToFen(req.MinSpend), LimitPerUser: req.LimitPerUser, TotalLimit: req.TotalLimit,
+		Code: sanitize.Text(req.Code), Type: req.Type, Value: value,
+		MinSpend: minSpend, LimitPerUser: req.LimitPerUser, TotalLimit: req.TotalLimit,
 		StartedAt: req.StartedAt, EndedAt: req.EndedAt, IsEnable: true,
 	}
 	if req.IsEnable != nil {
@@ -334,11 +361,19 @@ func (m *adminCatalogModule) UpdateCoupon(ctx context.Context, id int64, req *mo
 	if err := m.db.First(&exist, id).Error; err != nil {
 		return errs.ErrNotFound
 	}
+	value, ok := model.CheckedBoundedYuanToFen(req.Value)
+	if !ok {
+		return errs.ErrAmountInvalid
+	}
+	minSpend, ok := model.CheckedBoundedYuanToFen(req.MinSpend)
+	if !ok {
+		return errs.ErrAmountInvalid
+	}
 	updates := map[string]any{
 		"code":           sanitize.Text(req.Code),
 		"type":           req.Type,
-		"value":          model.YuanToFen(req.Value),
-		"min_spend":      model.YuanToFen(req.MinSpend),
+		"value":          value,
+		"min_spend":      minSpend,
 		"limit_per_user": req.LimitPerUser,
 		"total_limit":    req.TotalLimit,
 		"started_at":     req.StartedAt,

@@ -167,13 +167,13 @@ func (s *InviteService) Records(ctx context.Context, userID int64, page, pageSiz
 
 // ---- 佣金划转 ----
 
-// maxMoneyFen 资金金额安全上限（分）= 2^52（约 4.5e13 元）。
+// maxMoneyFen 薄 adapter：安全上限收敛于 money 深 Module（model.MaxMoneyFen）。
 // 仅作 float64 元→分转换的溢出/精度防护：YuanToFen 对超大金额会回绕为负数
 // （负 fen 绕过「余额 < 金额」校验后反而增加余额），或精度丢失；非业务限额（spec F02 不引入限额设置）。
-const maxMoneyFen = int64(1) << 52
+const maxMoneyFen = model.MaxMoneyFen
 
-// validMoneyFen 校验元→分转换结果：> 0（拦截回绕出的负值/0）且在安全整数域内。
-func validMoneyFen(fen int64) bool { return fen > 0 && fen <= maxMoneyFen }
+// validMoneyFen 薄 adapter：转发到 money 深 Module，非法金额入口即不可表达。
+func validMoneyFen(fen int64) bool { return model.ValidMoneyFen(fen) }
 
 // Transfer POST /invite/transfer 佣金划转余额。
 // 金额转换（元→分）在 handler 完成，此处校验转换结果，防超大金额回绕成负 fen 绕过余额校验。
@@ -214,10 +214,9 @@ func (s *InviteService) Transfer(ctx context.Context, userID int64, amountFen in
 // 写 commission_logs 提现流水（biz_type=1, status=0）与 commission_withdraws 提现单；
 // 工单首条消息为结构化提现信息，管理员手动确认打款或拒绝退回。
 func (s *InviteService) SubmitWithdraw(ctx context.Context, userID int64, req *model.WithdrawCreateReq) (*model.WithdrawItem, error) {
-	// 溢出/精度防护：超大金额（约 > MaxInt64/100）元转分会回绕为负数，
-	// 「佣金余额 < 负金额」恒不成立，后续扣减反而增加余额造成资损
-	amountFen := model.YuanToFen(req.Amount)
-	if !validMoneyFen(amountFen) {
+	// 深 Module checked 入口：转换+校验一次完成，非法金额在此即不可表达。
+	amountFen, ok := model.CheckedYuanToFen(req.Amount)
+	if !ok {
 		return nil, errs.ErrAmountInvalid
 	}
 	var out *model.WithdrawItem

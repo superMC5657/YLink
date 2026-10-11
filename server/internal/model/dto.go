@@ -1,17 +1,17 @@
 package model
 
 import (
-	"math"
 	"time"
 )
 
 // ---- 通用 ----
 
-// FenToYuan 分 → 元（number，两位小数）。
-func FenToYuan(fen int64) float64 { return math.Round(float64(fen)) / 100 }
+// FenToYuan 分 → 元（number，两位小数）。薄 adapter：实现收敛于 money 深 Module。
+func FenToYuan(fen int64) float64 { return moneyFenToYuan(fen) }
 
-// YuanToFen 元 → 分（四舍五入到分）。
-func YuanToFen(yuan float64) int64 { return int64(math.Round(yuan * 100)) }
+// YuanToFen 元 → 分（四舍五入到分）。薄 adapter：动账入口请用 CheckedYuanToFen /
+// CheckedAdjustYuanToFen（转换+校验一次完成），不得裸调本函数再自写校验。
+func YuanToFen(yuan float64) int64 { return moneyYuanToFen(yuan) }
 
 // ---- 认证 ----
 

@@ -1,7 +1,7 @@
-import { http } from '@/utils/http'
-import type { Notice, PageQuery, PageResult } from '@/types/api'
+/**
+ * 适配缝：既有引入路径与签名保持可用，实现归属 notice module 的传输核。
+ * 新调用方只学 store 接口；本文件不新增逻辑。
+ */
+import { noticeTransport } from '@/stores/notice'
 
-export const apiNotice = {
-  fetch: (q: PageQuery = {}) =>
-    http.get<PageResult<Notice>>('/notices', { query: { page: q.page, page_size: q.page_size } }),
-}
+export const apiNotice = noticeTransport

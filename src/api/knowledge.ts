@@ -1,10 +1,7 @@
-import { http } from '@/utils/http'
-import type { KnowledgeDetail, KnowledgeListResp } from '@/types/api'
+/**
+ * 适配缝：既有引入路径与签名保持可用，实现归属 knowledge module 的传输核。
+ * 新调用方只学 store 接口；本文件不新增逻辑。
+ */
+import { knowledgeTransport } from '@/stores/knowledge'
 
-export const apiKnowledge = {
-  fetch: (params: { language?: string; keyword?: string } = {}) =>
-    http.get<KnowledgeListResp>('/knowledges', {
-      query: { language: params.language, keyword: params.keyword },
-    }),
-  detail: (id: number) => http.get<KnowledgeDetail>(`/knowledges/${id}`),
-}
+export const apiKnowledge = knowledgeTransport

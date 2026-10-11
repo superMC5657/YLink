@@ -1,7 +1,40 @@
 import { defineStore } from 'pinia'
-import { apiInvite } from '@/api/invite'
+import { http } from '@/utils/http'
 import { isTauri } from '@/utils/platform'
-import type { CommissionRecord, InviteCode, InviteSummary, WithdrawItem } from '@/types/api'
+import type {
+  CommissionRecord,
+  InviteCode,
+  InviteCodeListResp,
+  InviteSummary,
+  PageQuery,
+  PageResult,
+  TransferReq,
+  TransferResp,
+  WithdrawCreateReq,
+  WithdrawItem,
+} from '@/types/api'
+
+/**
+ * invite module 的传输核：本域 URL 与响应形态的唯一归属。
+ * store 动作与 `@/api/invite` 适配缝共用同一核（一处修改，N 处调用）。
+ */
+export const inviteTransport = {
+  summary: () => http.get<InviteSummary>('/invite/summary'),
+  codes: () => http.get<InviteCodeListResp>('/invite/codes'),
+  createCode: () => http.post<InviteCode>('/invite/codes'),
+  deleteCode: (code: string) => http.delete<void>(`/invite/codes/${encodeURIComponent(code)}`),
+  records: (q: PageQuery = {}) =>
+    http.get<PageResult<CommissionRecord>>('/invite/records', {
+      query: { page: q.page, page_size: q.page_size },
+    }),
+  transfer: (body: TransferReq) => http.post<TransferResp>('/invite/transfer', { body }),
+  // 佣金提现（F02，仅代理商）
+  withdraw: (body: WithdrawCreateReq) => http.post<WithdrawItem>('/invite/withdraw', { body }),
+  withdraws: (q: PageQuery = {}) =>
+    http.get<PageResult<WithdrawItem>>('/invite/withdraws', {
+      query: { page: q.page, page_size: q.page_size },
+    }),
+}
 
 /** 注册链接路径后缀(前端为 hash 路由;后端 register_url_prefix 契约占位返回同值) */
 const REGISTER_URL_SUFFIX = '/#/register?code='
@@ -49,30 +82,30 @@ export const useInviteStore = defineStore('invite', {
   },
   actions: {
     async fetchSummary() {
-      this.summary = await apiInvite.summary()
+      this.summary = await inviteTransport.summary()
     },
     async fetchCodes() {
-      const data = await apiInvite.codes()
+      const data = await inviteTransport.codes()
       this.codes = data?.list ?? []
       this.codeLimit = data.limit
       this.registerUrlPrefix = data.register_url_prefix
     },
     async createCode() {
-      const code = await apiInvite.createCode()
+      const code = await inviteTransport.createCode()
       this.codes.unshift(code)
       return code
     },
     async deleteCode(code: string) {
-      await apiInvite.deleteCode(code)
+      await inviteTransport.deleteCode(code)
       this.codes = this.codes.filter((c) => c.code !== code)
     },
     async fetchRecords(page = 1, pageSize = 10) {
-      const data = await apiInvite.records({ page, page_size: pageSize })
+      const data = await inviteTransport.records({ page, page_size: pageSize })
       this.records = data?.list ?? []
       this.recordsTotal = data.total
     },
     async transfer(amount: number) {
-      const data = await apiInvite.transfer({ amount })
+      const data = await inviteTransport.transfer({ amount })
       if (this.summary) {
         this.summary.commission_balance = data.commission_balance
       }
@@ -80,12 +113,12 @@ export const useInviteStore = defineStore('invite', {
     },
     // 佣金提现（F02，仅代理商）
     async fetchWithdraws(page = 1, pageSize = 10) {
-      const data = await apiInvite.withdraws({ page, page_size: pageSize })
+      const data = await inviteTransport.withdraws({ page, page_size: pageSize })
       this.withdraws = data?.list ?? []
       this.withdrawsTotal = data.total
     },
     async withdraw(body: { amount: number; method: string; account: string }) {
-      const item = await apiInvite.withdraw(body)
+      const item = await inviteTransport.withdraw(body)
       this.withdraws.unshift(item)
       // 提交即扣减佣金余额，同步刷新总览
       await this.fetchSummary()

@@ -1,6 +1,14 @@
 import { defineStore } from 'pinia'
-import { apiServer } from '@/api/server'
-import type { ServerGroup } from '@/types/api'
+import { http } from '@/utils/http'
+import type { ServerGroup, ServerListResp } from '@/types/api'
+
+/**
+ * server module 的传输核：本域 URL 与响应形态的唯一归属。
+ * store 动作与 `@/api/server` 适配缝共用同一核（一处修改，N 处调用）。
+ */
+export const serverTransport = {
+  fetch: () => http.get<ServerListResp>('/servers'),
+}
 
 interface ServerState {
   groups: ServerGroup[]
@@ -20,7 +28,7 @@ export const useServerStore = defineStore('server', {
     async fetch() {
       this.loading = true
       try {
-        const data = await apiServer.fetch()
+        const data = await serverTransport.fetch()
         // 兜底 null:后端空数据时避免模板 groups.length 崩溃
         this.groups = data?.groups ?? []
         this.lastUpdated = Date.now()

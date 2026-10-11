@@ -1,6 +1,18 @@
 import { defineStore } from 'pinia'
-import { apiKnowledge } from '@/api/knowledge'
-import type { KnowledgeDetail, KnowledgeGroup } from '@/types/api'
+import { http } from '@/utils/http'
+import type { KnowledgeDetail, KnowledgeGroup, KnowledgeListResp } from '@/types/api'
+
+/**
+ * knowledge module 的传输核：本域 URL 与响应形态的唯一归属。
+ * store 动作与 `@/api/knowledge` 适配缝共用同一核（一处修改，N 处调用）。
+ */
+export const knowledgeTransport = {
+  fetch: (params: { language?: string; keyword?: string } = {}) =>
+    http.get<KnowledgeListResp>('/knowledges', {
+      query: { language: params.language, keyword: params.keyword },
+    }),
+  detail: (id: number) => http.get<KnowledgeDetail>(`/knowledges/${id}`),
+}
 
 interface KnowledgeState {
   groups: KnowledgeGroup[]
@@ -24,7 +36,7 @@ export const useKnowledgeStore = defineStore('knowledge', {
       try {
         if (params.language !== undefined) this.language = params.language
         if (params.keyword !== undefined) this.keyword = params.keyword
-        const data = await apiKnowledge.fetch({
+        const data = await knowledgeTransport.fetch({
           language: this.language,
           keyword: this.keyword,
         })
@@ -36,7 +48,7 @@ export const useKnowledgeStore = defineStore('knowledge', {
       }
     },
     async fetchDetail(id: number) {
-      this.detail = await apiKnowledge.detail(id)
+      this.detail = await knowledgeTransport.detail(id)
       return this.detail
     },
   },

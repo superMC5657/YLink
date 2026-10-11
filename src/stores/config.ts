@@ -1,7 +1,15 @@
 import { defineStore } from 'pinia'
-import { apiConfig } from '@/api/user'
+import { http } from '@/utils/http'
 import type { SiteConfig } from '@/types/api'
 import { getItem, setItem } from '@/utils/storage'
+
+/**
+ * config module 的传输核：站点配置 URL 与响应形态的唯一归属。
+ * store 的 SWR 动作与 `@/api/user` 内 `apiConfig` 适配缝共用同一核（一处修改，N 处调用）。
+ */
+export const configTransport = {
+  fetch: () => http.get<SiteConfig>('/config', { silent: true }),
+}
 
 interface ConfigState {
   config: SiteConfig | null
@@ -50,7 +58,7 @@ export const useConfigStore = defineStore('config', {
       if (fresh) return
       if (cached?.config) {
         // SWR 后台再验证:不阻塞调用方,失败保留旧值
-        void apiConfig
+        void configTransport
           .fetch()
           .then((config) => {
             this.config = config
@@ -60,7 +68,7 @@ export const useConfigStore = defineStore('config', {
           .catch(() => {})
         return
       }
-      const config = await apiConfig.fetch()
+      const config = await configTransport.fetch()
       this.config = config
       this.loadedAt = Date.now()
       setItem('configCache', { config, loadedAt: this.loadedAt, version: CACHE_VERSION })

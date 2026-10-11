@@ -1,40 +1,10 @@
-import { http } from '@/utils/http'
-import type {
-  CaptchaSendReq,
-  CaptchaSendResp,
-  ChangePasswordReq,
-  ProfileResp,
-  ProfileUpdateReq,
-  SiteConfig,
-  SubscribeInfo,
-  TelegramBindCodeResp,
-  TrafficLog,
-  UserSessionItem,
-  UserStat,
-} from '@/types/api'
+/**
+ * 适配缝：既有引入路径与签名保持可用，实现分别归属 config / user module 的传输核。
+ * 新调用方只学 store 接口；本文件不新增逻辑。
+ */
+import { configTransport } from '@/stores/config'
+import { captchaTransport, userTransport } from '@/stores/user'
 
-export const apiConfig = {
-  fetch: () => http.get<SiteConfig>('/config', { silent: true }),
-}
-
-export const apiCaptcha = {
-  sendEmail: (body: CaptchaSendReq) => http.post<CaptchaSendResp>('/captcha/email', { body }),
-}
-
-export const apiUser = {
-  stat: () => http.get<UserStat>('/user/stat'),
-  profile: () => http.get<ProfileResp>('/user/profile'),
-  updateProfile: (body: ProfileUpdateReq) => http.put<ProfileResp>('/user/profile', { body }),
-  changePassword: (body: ChangePasswordReq) => http.post<null>('/user/password/change', { body }),
-  subscribe: () => http.get<SubscribeInfo>('/user/subscribe'),
-  resetSubscribe: (body: { password: string }) =>
-    http.post<{ subscribe_url: string }>('/user/subscribe/reset', { body }),
-  trafficLogs: (from: string, to: string) =>
-    http.get<{ list: TrafficLog[] }>('/user/traffic-logs', { query: { from, to } }),
-  // 会话管理（F14）
-  sessions: () => http.get<{ list: UserSessionItem[] }>('/user/sessions'),
-  revokeSession: (jti: string) => http.delete<null>(`/user/sessions/${jti}`),
-  // Telegram 绑定（F12）
-  telegramBindCode: () => http.post<TelegramBindCodeResp>('/user/telegram/bind-code'),
-  telegramUnbind: () => http.post<null>('/user/telegram/unbind'),
-}
+export const apiConfig = configTransport
+export const apiCaptcha = captchaTransport
+export const apiUser = userTransport

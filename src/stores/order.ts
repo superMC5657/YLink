@@ -1,15 +1,44 @@
 import { defineStore } from 'pinia'
-import { apiCoupon, apiOrder } from '@/api/order'
+import { http } from '@/utils/http'
 import type {
   CheckoutReq,
+  CheckoutResp,
+  CouponAvailableResp,
   CouponCheckReq,
+  CouponCheckResp,
   CouponItem,
   CreateOrderReq,
   Order,
   OrderStatus,
   PageQuery,
+  PageResult,
   PlanPeriod,
 } from '@/types/api'
+
+/**
+ * order module 的传输核：本域（含券核销）URL 与响应形态的唯一归属。
+ * store 动作与 `@/api/order` 适配缝共用同一核（一处修改，N 处调用）。
+ */
+export const couponTransport = {
+  check: (body: CouponCheckReq) => http.post<CouponCheckResp>('/coupons/check', { body }),
+  available: (q: { plan_id?: number; period?: PlanPeriod } = {}) =>
+    http.get<CouponAvailableResp>('/coupons/available', {
+      query: { plan_id: q.plan_id, period: q.period },
+    }),
+}
+
+export const orderTransport = {
+  create: (body: CreateOrderReq, idempotencyKey: string) =>
+    http.post<Order>('/orders', { body, headers: { 'Idempotency-Key': idempotencyKey } }),
+  fetch: (q: PageQuery & { status?: OrderStatus | '' } = {}) =>
+    http.get<PageResult<Order>>('/orders', {
+      query: { status: q.status, page: q.page, page_size: q.page_size },
+    }),
+  detail: (orderNo: string) => http.get<Order>(`/orders/${orderNo}`),
+  cancel: (orderNo: string) => http.post<Order>(`/orders/${orderNo}/cancel`),
+  checkout: (orderNo: string, body: CheckoutReq) =>
+    http.post<CheckoutResp>(`/orders/${orderNo}/checkout`, { body }),
+}
 
 interface OrderState {
   list: Order[]
@@ -38,7 +67,7 @@ export const useOrderStore = defineStore('order', {
     async fetch(query: PageQuery & { status?: OrderStatus | '' } & { append?: boolean } = {}) {
       this.loading = true
       try {
-        const data = await apiOrder.fetch({
+        const data = await orderTransport.fetch({
           page: query.page ?? this.page,
           page_size: query.page_size ?? this.pageSize,
           status: query.status,
@@ -52,28 +81,28 @@ export const useOrderStore = defineStore('order', {
       }
     },
     async fetchDetail(orderNo: string) {
-      this.detail = await apiOrder.detail(orderNo)
+      this.detail = await orderTransport.detail(orderNo)
       return this.detail
     },
     async create(body: CreateOrderReq, idempotencyKey: string) {
-      const order = await apiOrder.create(body, idempotencyKey)
+      const order = await orderTransport.create(body, idempotencyKey)
       this.list.unshift(order)
       return order
     },
     async checkout(orderNo: string, body: CheckoutReq) {
-      return apiOrder.checkout(orderNo, body)
+      return orderTransport.checkout(orderNo, body)
     },
     async checkCoupon(body: CouponCheckReq) {
-      return apiCoupon.check(body)
+      return couponTransport.check(body)
     },
     /** 拉取当前用户可用优惠券（按套餐/周期过滤） */
     async fetchAvailableCoupons(planID: number, period?: PlanPeriod) {
-      const data = await apiCoupon.available({ plan_id: planID, period })
+      const data = await couponTransport.available({ plan_id: planID, period })
       this.availableCoupons = data?.list ?? []
       return this.availableCoupons
     },
     async cancel(orderNo: string) {
-      const updated = await apiOrder.cancel(orderNo)
+      const updated = await orderTransport.cancel(orderNo)
       const idx = this.list.findIndex((o) => o.order_no === orderNo)
       if (idx >= 0) this.list[idx] = updated
       if (this.detail?.order_no === orderNo) this.detail = updated
@@ -86,7 +115,7 @@ export const useOrderStore = defineStore('order', {
         const pending = this.list.filter((o) => o.status === 0)
         for (const o of pending) {
           try {
-            const fresh = await apiOrder.detail(o.order_no)
+            const fresh = await orderTransport.detail(o.order_no)
             const idx = this.list.findIndex((x) => x.order_no === o.order_no)
             if (idx >= 0) this.list[idx] = fresh
             if (fresh.status === 1) cb?.(fresh)

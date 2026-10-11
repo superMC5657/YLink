@@ -1,31 +1,7 @@
-import { http } from '@/utils/http'
-import type {
-  CommissionRecord,
-  InviteCode,
-  InviteCodeListResp,
-  InviteSummary,
-  PageQuery,
-  PageResult,
-  TransferReq,
-  TransferResp,
-  WithdrawCreateReq,
-  WithdrawItem,
-} from '@/types/api'
+/**
+ * 适配缝：既有引入路径与签名保持可用，实现归属 invite module 的传输核。
+ * 新调用方只学 store 接口；本文件不新增逻辑。
+ */
+import { inviteTransport } from '@/stores/invite'
 
-export const apiInvite = {
-  summary: () => http.get<InviteSummary>('/invite/summary'),
-  codes: () => http.get<InviteCodeListResp>('/invite/codes'),
-  createCode: () => http.post<InviteCode>('/invite/codes'),
-  deleteCode: (code: string) => http.delete<void>(`/invite/codes/${encodeURIComponent(code)}`),
-  records: (q: PageQuery = {}) =>
-    http.get<PageResult<CommissionRecord>>('/invite/records', {
-      query: { page: q.page, page_size: q.page_size },
-    }),
-  transfer: (body: TransferReq) => http.post<TransferResp>('/invite/transfer', { body }),
-  // 佣金提现（F02，仅代理商）
-  withdraw: (body: WithdrawCreateReq) => http.post<WithdrawItem>('/invite/withdraw', { body }),
-  withdraws: (q: PageQuery = {}) =>
-    http.get<PageResult<WithdrawItem>>('/invite/withdraws', {
-      query: { page: q.page, page_size: q.page_size },
-    }),
-}
+export const apiInvite = inviteTransport

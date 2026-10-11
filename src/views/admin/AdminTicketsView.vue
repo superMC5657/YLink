@@ -5,7 +5,7 @@
  * 数据:GET /admin/tickets、GET /admin/tickets/{id}、POST reply|close、
  * POST tickets/{id}/withdraw/pay|reject(docs/api/README.md §16)
  */
-import { onMounted, ref, nextTick } from 'vue'
+import { computed, onMounted, ref, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { apiAdmin } from '@/api/admin'
 import type { AdminTicketDetail, AdminTicketItem, TicketLevel, TicketStatus } from '@/types/api'
@@ -89,6 +89,10 @@ async function openDetail(t: AdminTicketItem) {
 
 const isClosed = () => detail.value?.status === 2
 
+// 提现单判别（type=1 或附带 withdraw 结构化信息）：关闭按钮隐藏走审核，
+// 判别字段 types 已有，无需加类型
+const isWithdraw = computed(() => detail.value?.type === 1 || !!detail.value?.withdraw)
+
 async function sendReply() {
   if (sending.value || !detail.value || !replyText.value.trim() || isClosed()) return
   sending.value = true
@@ -108,6 +112,8 @@ async function sendReply() {
 
 function onClose() {
   if (!detail.value) return
+  // 提现单只能经确认打款/拒绝退回审核闭环，直接关单后端 14003，此处直接返回
+  if (isWithdraw.value) return
   dialog.warning({
     title: t('adminTickets.closeTitle'),
     content: t('adminTickets.closeConfirm'),
@@ -386,7 +392,13 @@ onMounted(() => void load())
               {{ t('adminTickets.withdrawPay') }}
             </button>
           </template>
-          <button class="btn-soft-danger h-9 px-4 text-14" :disabled="isClosed()" @click="onClose">
+          <!-- 提现单隐藏关闭按钮：请走确认打款/拒绝退回（后端直接关单 14003） -->
+          <button
+            v-if="!isWithdraw"
+            class="btn-soft-danger h-9 px-4 text-14"
+            :disabled="isClosed()"
+            @click="onClose"
+          >
             {{ isClosed() ? t('adminTickets.closedBtn') : t('adminTickets.closeTicket') }}
           </button>
           <button

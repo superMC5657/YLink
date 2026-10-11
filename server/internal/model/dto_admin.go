@@ -40,7 +40,7 @@ type NodeSystemStats struct {
 	DiskPercent   float64 `json:"disk_percent"`
 	NetSpeedIn    int64   `json:"net_speed_in"`  // 瞬时下行带宽(B/s)
 	NetSpeedOut   int64   `json:"net_speed_out"` // 瞬时上行带宽(B/s)
-	Connections   int     `json:"connections"`   // TCP 连接数
+	Connections   int     `json:"connections"`   // 主机级 TCP 表项近似值，含系统噪声，不代表代理在线用户，仅供负载参考
 	Uptime        int64   `json:"uptime"`        // 开机时长(秒)
 }
 

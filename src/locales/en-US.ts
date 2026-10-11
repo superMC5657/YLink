@@ -876,7 +876,7 @@ export default {
     probeTitle: 'Real-time Probe & Metrics',
     memory: 'Memory',
     bandwidth: 'Bandwidth',
-    connections: 'Active Conn',
+    connections: 'Host TCP Conn',
     uptime: 'Uptime',
   },
   adminPlans: {

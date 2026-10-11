@@ -868,7 +868,7 @@ export default {
     probeTitle: '实时探针与负载',
     memory: '内存',
     bandwidth: '实时带宽',
-    connections: '活跃连接',
+    connections: '主机 TCP 连接数',
     uptime: '运行时长',
   },
   adminPlans: {

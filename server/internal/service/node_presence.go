@@ -41,6 +41,7 @@ func presenceStatsKey(serverID int64) string {
 
 // presenceReport 写 seam：探针心跳与系统负载写入缓存（心跳 TTL 90s，负载 180s）。
 // 不刷 PostgreSQL；rdb 为空时 no-op。
+// 其中 Connections 为主机级 TCP 表项近似值，含系统噪声，不代表代理在线用户，仅供负载参考。
 func presenceReport(ctx context.Context, rdb *redis.Client, serverID int64, system *model.NodeSystemStats) {
 	if rdb == nil {
 		return

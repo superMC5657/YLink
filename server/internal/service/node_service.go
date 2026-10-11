@@ -108,7 +108,7 @@ type NodeReportItem struct {
 // NodeReportReq POST /node/report 请求。
 type NodeReportReq struct {
 	Data   []NodeReportItem       `json:"data" binding:"omitempty,max=1000,dive"`
-	System *model.NodeSystemStats `json:"system"`
+	System *model.NodeSystemStats `json:"system"` // 主机探针快照：Connections 为主机级 TCP 表项近似值，含系统噪声，不代表代理在线用户，仅供负载参考
 }
 
 // NodeSkipItem 跳过项及原因(unknown_user / not_subscribed / duplicate_uuid)。

@@ -15,6 +15,8 @@ export async function injectAuth(page: Page): Promise<void> {
       JSON.stringify({
         refreshToken: 'mock-refresh-e2e',
         user: { id: 10086, email: 'e2e@test.com', role: 0 },
+        // 会话恢复要求 savedAt 必填(缺失视为过期脏数据丢弃):E2E 预置须带当前时间
+        savedAt: Date.now(),
       }),
     )
   })

@@ -34,7 +34,15 @@ export const useAuthStore = defineStore('auth', {
     // 登录态只读会话模块单源:access 或 refresh 任一在即视为已登录。
     // 刷新后 access 不恢复(仅内存),靠持久化的 refresh 经首个请求 401 静默刷新补回,
     // 守卫据此放行;令牌不再存 pinia 双源,传输适配侧失效清令牌后此处即时可见。
-    isLoggedIn: () => !!(getAccessToken() || getRefreshToken()),
+    // 注意:pinia getter 按响应式依赖缓存,无状态依赖会首算后永不更新;
+    // 此处显式依赖 user/verifiedEpoch,并在会话换代未同步时判未登录,
+    // 否则登录后仍缓存 false,守卫把 /portal 弹回 /login?redirect=/portal。
+    isLoggedIn: (s) => {
+      void s.user
+      void s.verifiedEpoch
+      if (s.verifiedEpoch !== getSessionEpoch()) return false
+      return !!(getAccessToken() || getRefreshToken())
+    },
     /** 管理员(role=1):控制管理后台入口与路由守卫;同代已核实时以核实结果优先 */
     isAdmin: (s) =>
       (s.verifiedEpoch === getSessionEpoch() ? (s.verifiedRole ?? s.user?.role) : s.user?.role) ===

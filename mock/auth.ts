@@ -26,7 +26,10 @@ export function issueTokensFor(userId: number) {
 
 export function verifyAccess(headers: Record<string, string>): number | null {
   const auth = headers?.authorization ?? headers?.Authorization ?? ''
-  if (!auth.startsWith('Bearer mock-access-')) return null
+  // 管理员 token(mock-admin-access-*)同样是有效会话:用户域接口(含守卫用的
+  // /user/profile)须放行,否则管理端每次导航都触发一次无效静默刷新。
+  if (!auth.startsWith('Bearer mock-access-') && !auth.startsWith('Bearer mock-admin-access-'))
+    return null
   return 10086
 }
 

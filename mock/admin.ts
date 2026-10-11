@@ -160,7 +160,7 @@ const auditLogs = [
     admin_id: 1,
     admin_email: 'admin@example.com',
     action: 'traffic_reset',
-    target: '[10086 10087]',
+    target: 'batch:2',
     target_kind: 'users',
     target_display: 'alice@example.com, bob@example.com',
     detail: '{"mode":"clear_usage","success":2,"failed":0}',

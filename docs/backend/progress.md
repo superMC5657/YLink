@@ -43,7 +43,7 @@
 
 契约 §16 全量端点:概览(含全体用户余额)、用户(CSV 流式导出/批量操作/发邮件 mail_logs 留痕/重置订阅密钥)、套餐、节点(批量/复制/排序/node-key 重置/在线与硬件探针聚合)、订单(佣金列/退款)、优惠券、公告/知识库(排序/分类管理)、工单(提现审核)、代理审批、佣金日志、流量(导入/重置/重置记录)、审计日志(只读查询 + target 可读化)、站点与节点部署设置(F17)、邮件模板(编辑/测试发送/恢复默认,失败回退内置文案)、订阅模板(编辑/预览/恢复内置)、版本检查(`GET /admin/version` 语义化比较)、Telegram webhook 注册。
 
-handler 按业务域组织于 `internal/handler/admin/` 子包:`admin.go`(Admin 结构体+helper)、`dashboard.go`、`user.go`、`plan.go`、`server.go`、`order.go`、`content.go`、`ticket.go`、`agent.go`、`system.go`。
+handler 按业务域组织于 `internal/handler/admin/` 子包:`admin.go`(Admin 结构体+helper)、`dashboard.go`、`user.go`、`plan.go`、`server.go`、`order.go`、`content.go`、`ticket.go`、`agent.go`、`system.go`。param 解析唯一 owner 收敛于 `internal/handler/helper.go`（`PageParams`/`IDParam`），admin 侧仅留薄 adapter。
 
 ### 2.8 节点上报与探针(流量模式 A + F17 机器管理)
 

@@ -180,6 +180,16 @@ export function ticketLevelLabel(level: number): string {
   return map[level] ? tt(map[level]) : tt('ticket.low')
 }
 
+/** 管理端角色 → 文案(用户/代理/管理员三态,与 useAdminUsers.roleLabel 同源) */
+export function adminRoleLabel(role: number): string {
+  const map: Record<number, string> = {
+    1: 'adminUsers.roleAdmin',
+    2: 'adminUsers.roleAgent',
+    0: 'adminUsers.roleNormal',
+  }
+  return map[role] ? tt(map[role]) : tt('adminUsers.roleNormal')
+}
+
 /** 节点状态 → 文案与色 */
 export function serverStatusMeta(status: number): { label: string; color: string } {
   const map: Record<number, { labelKey: string; color: string }> = {

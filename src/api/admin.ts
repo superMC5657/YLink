@@ -1,4 +1,5 @@
 import { download, http } from '@/utils/http'
+import { withPage } from '@/utils/adminList'
 import type {
   AdjustBalanceReq,
   AdminAgentApplyItem,
@@ -71,7 +72,7 @@ export const apiAdmin = {
 
   // 用户
   users: (query: { page?: number; page_size?: number; keyword?: string }) =>
-    http.get<PageResult<AdminUserItem>>(ap('users'), { query }),
+    http.get<PageResult<AdminUserItem>>(ap('users'), { query: withPage(query) }),
   updateUser: (id: number, body: AdminUpdateUserReq) => http.put<null>(ap(`users/${id}`), { body }),
   adjustBalance: (id: number, body: AdjustBalanceReq) =>
     http.post<null>(ap(`users/${id}/balance`), { body }),
@@ -112,7 +113,7 @@ export const apiAdmin = {
 
   // 订单
   orders: (query: { page?: number; page_size?: number; status?: number | '' }) =>
-    http.get<PageResult<AdminOrderItem>>(ap('orders'), { query }),
+    http.get<PageResult<AdminOrderItem>>(ap('orders'), { query: withPage(query) }),
   refund: (orderNo: string, body: RefundReq) =>
     http.post<null>(ap(`orders/${orderNo}/refund`), { body }),
   closeOrder: (orderNo: string, body: RefundReq) =>
@@ -120,7 +121,7 @@ export const apiAdmin = {
 
   // 工单
   tickets: (query: { page?: number; page_size?: number }) =>
-    http.get<PageResult<AdminTicketItem>>(ap('tickets'), { query }),
+    http.get<PageResult<AdminTicketItem>>(ap('tickets'), { query: withPage(query) }),
   ticketDetail: (id: number) => http.get<AdminTicketDetail>(ap(`tickets/${id}`)),
   replyTicket: (id: number, body: AdminReplyReq) =>
     http.post<null>(ap(`tickets/${id}/reply`), { body }),
@@ -164,7 +165,7 @@ export const apiAdmin = {
 
   // 代理审批
   agentApplies: (query: { page?: number; page_size?: number; status?: number | '' }) =>
-    http.get<PageResult<AdminAgentApplyItem>>(ap('agent/applies'), { query }),
+    http.get<PageResult<AdminAgentApplyItem>>(ap('agent/applies'), { query: withPage(query) }),
   approveAgent: (id: number, body: AdminApproveReq) =>
     http.post<null>(ap(`agent/applies/${id}/approve`), { body }),
   rejectAgent: (id: number, body: AdminApproveReq) =>
@@ -172,7 +173,7 @@ export const apiAdmin = {
 
   // 佣金日志
   commissionLogs: (query: { page?: number; page_size?: number; status?: number | '' }) =>
-    http.get<PageResult<AdminCommissionItem>>(ap('commission-logs'), { query }),
+    http.get<PageResult<AdminCommissionItem>>(ap('commission-logs'), { query: withPage(query) }),
 
   // 审计日志(F08 只读)
   auditLogs: (query: {
@@ -183,7 +184,7 @@ export const apiAdmin = {
     target?: string
     from?: string
     to?: string
-  }) => http.get<AdminAuditLogsResp>(ap('audit-logs'), { query }),
+  }) => http.get<AdminAuditLogsResp>(ap('audit-logs'), { query: withPage(query) }),
 
   // 流量导入(模式 B)
   importTraffic: (body: TrafficImportReq) => http.post<null>(ap('traffic/import'), { body }),
@@ -192,7 +193,9 @@ export const apiAdmin = {
   resetTraffic: (body: AdminTrafficResetReq) =>
     http.post<AdminTrafficResetResp>(ap('traffic/reset'), { body }),
   trafficResets: (query: { page?: number; page_size?: number; user_id?: number | '' }) =>
-    http.get<PageResult<AdminTrafficResetLogItem>>(ap('traffic/resets'), { query }),
+    http.get<PageResult<AdminTrafficResetLogItem>>(ap('traffic/resets'), {
+      query: withPage(query),
+    }),
 
   // 统计报表(F04)
   statOrders: (query: { days?: number }) =>

@@ -6,8 +6,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"ylink-backend/internal/handler"
 	"ylink-backend/internal/middleware"
-	"ylink-backend/internal/pkg/resp"
 	"ylink-backend/internal/service"
 )
 
@@ -43,18 +43,13 @@ func NewAdmin(svc *service.AdminService) *Admin {
 func (h *Admin) adminID(c *gin.Context) int64 { return middleware.UserID(c) }
 
 func idParam(c *gin.Context) (int64, bool) {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: id 不合法")
-		return 0, false
-	}
-	return id, true
+	// 薄 adapter：实现收敛于 handler param 唯一 owner。
+	return handler.IDParam(c)
 }
 
 func pageParams(c *gin.Context) (int, int) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
-	return page, pageSize
+	// 薄 adapter：实现收敛于 handler param 唯一 owner。
+	return handler.PageParams(c)
 }
 
 func statDays(c *gin.Context) int {

@@ -1,11 +1,12 @@
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { apiAdmin } from '@/api/admin'
 import { useAuthStore } from '@/stores/auth'
 import type { AdminRole, AdminUserItem } from '@/types/api'
 import { useMessage, useDialog } from 'naive-ui'
-import { maskUrl } from '@/utils/format'
+import { adminRoleLabel, maskUrl } from '@/utils/format'
 import { copyText } from '@/utils/platform'
+import { reportBatchResult, useAdminSelection } from './useAdminSelection'
 
 /**
  * 用户管理数据域(F05):搜索/分页、封禁/角色/余额、多选批量、导出/发邮件/重置订阅。
@@ -113,11 +114,8 @@ export function useAdminUsers() {
   }
 
   function roleLabel(role: AdminRole): string {
-    return role === 1
-      ? t('adminUsers.roleAdmin')
-      : role === 2
-        ? t('adminUsers.roleAgent')
-        : t('adminUsers.roleNormal')
+    // 机械收敛:format.ts 同源标签映射,输出与收敛前逐字一致
+    return adminRoleLabel(role)
   }
 
   async function saveBalance() {
@@ -137,46 +135,16 @@ export function useAdminUsers() {
   }
 
   // ---- F05:多选 / 批量操作 / 导出 / 发邮件 / 重置订阅 ----
-
-  const selectedIds = ref<number[]>([])
-
-  function isSelected(id: number): boolean {
-    return selectedIds.value.includes(id)
-  }
-
-  function toggleRow(id: number, checked: boolean) {
-    if (checked) {
-      if (!selectedIds.value.includes(id)) selectedIds.value = [...selectedIds.value, id]
-    } else {
-      selectedIds.value = selectedIds.value.filter((v) => v !== id)
-    }
-  }
-
-  const allChecked = computed(
-    () => list.value.length > 0 && list.value.every((u) => selectedIds.value.includes(u.id)),
-  )
-
-  function toggleAll(checked: boolean) {
-    selectedIds.value = checked ? list.value.map((u) => u.id) : []
-  }
-
-  function clearSelection() {
-    selectedIds.value = []
-  }
+  // 机械收敛:多选状态与批量汇总经共享 hook(行为与文案不变)
+  const { selectedIds, isSelected, toggleRow, toggleAll, clearSelection, allChecked } =
+    useAdminSelection(list)
 
   /** 批量结果汇总提示:成功 n,失败列出原因 */
   function reportBatch(
     title: string,
     resp: { success: number; failed: { id: number; reason: string }[] },
   ) {
-    if (resp.failed.length === 0) {
-      message.success(`${title}: ${resp.success}`)
-    } else {
-      const detail = resp.failed.map((f) => `#${f.id} ${f.reason}`).join('; ')
-      message.warning(
-        `${title}: ${resp.success} / ${t('adminUsers.failed')} ${resp.failed.length} — ${detail}`,
-      )
-    }
+    reportBatchResult(message, title, resp, t('adminUsers.failed'))
   }
 
   const batchSaving = ref(false)

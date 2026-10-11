@@ -9,6 +9,8 @@ import type {
   ServerStatus,
 } from '@/types/api'
 import { useMessage, useDialog } from 'naive-ui'
+import { serverStatusMeta } from '@/utils/format'
+import { reportBatchResult, useAdminSelection } from './useAdminSelection'
 
 /**
  * 节点管理数据域(F09):节点/分组 CRUD、多选与批量操作、复制/排序。
@@ -57,18 +59,19 @@ export function useAdminNodes() {
     installModal.value = true
   }
 
-  const STATUS_KEY: Record<ServerStatus, string> = {
-    1: 'node.normal',
-    2: 'node.busy',
-    3: 'node.maintenance',
-  }
-
   function statusText(status: ServerStatus): string {
-    return t(STATUS_KEY[status])
+    // 机械收敛:format.ts 同源标签映射,输出与收敛前逐字一致
+    return serverStatusMeta(status).label
   }
 
   function statusType(status: ServerStatus): 'success' | 'warning' | 'neutral' {
-    return status === 1 ? 'success' : status === 2 ? 'warning' : 'neutral'
+    // 机械收敛:成功/警告/其余中性,与收敛前映射一致
+    const { color } = serverStatusMeta(status)
+    return color === 'var(--c-success)'
+      ? 'success'
+      : color === 'var(--c-warning)'
+        ? 'warning'
+        : 'neutral'
   }
 
   const groupNameOf = computed(() => {
@@ -177,44 +180,13 @@ export function useAdminNodes() {
   }
 
   // ---- F09: 多选 / 批量操作 / 复制 / 排序 ----
-
-  const selectedIds = ref<number[]>([])
-
-  function isSelected(id: number): boolean {
-    return selectedIds.value.includes(id)
-  }
-
-  function toggleRow(id: number, checked: boolean) {
-    if (checked) {
-      if (!selectedIds.value.includes(id)) selectedIds.value = [...selectedIds.value, id]
-    } else {
-      selectedIds.value = selectedIds.value.filter((v) => v !== id)
-    }
-  }
-
-  const allChecked = computed(
-    () => servers.value.length > 0 && servers.value.every((s) => selectedIds.value.includes(s.id)),
-  )
-
-  function toggleAll(checked: boolean) {
-    selectedIds.value = checked ? servers.value.map((s) => s.id) : []
-  }
-
-  function clearSelection() {
-    selectedIds.value = []
-  }
+  // 机械收敛:多选状态与批量汇总经共享 hook(行为与文案不变)
+  const { selectedIds, isSelected, toggleRow, toggleAll, clearSelection, allChecked } =
+    useAdminSelection(servers)
 
   /** 批量结果汇总提示:成功 n,失败列出原因(与用户端批量同风格) */
   function reportBatch(resp: AdminBatchServerResp) {
-    const title = t('adminNodes.batchDone')
-    if (resp.failed.length === 0) {
-      message.success(`${title}: ${resp.success}`)
-    } else {
-      const detail = resp.failed.map((f) => `#${f.id} ${f.reason}`).join('; ')
-      message.warning(
-        `${title}: ${resp.success} / ${t('adminNodes.batchFailed')} ${resp.failed.length} — ${detail}`,
-      )
-    }
+    reportBatchResult(message, t('adminNodes.batchDone'), resp, t('adminNodes.batchFailed'))
   }
 
   const batchSaving = ref(false)

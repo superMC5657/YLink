@@ -1,49 +1,17 @@
-// Package validate 提供参数校验辅助：binding 错误统一转换为 40000 + 字段级文案。
+// Package validate 为历史 seam，现为 resp 的薄 adapter。
+// 校验文案的 canonical 实现已收敛在 resp module（Messages/Engine），此处仅委托，
+// 保证既有引用路径仍可用；新 handler 直接用 resp.Bind，不再学此 interface。
+// 用语：module 指内聚单元，interface/seam 指窄契约，adapter 指薄委托。
 package validate
 
 import (
-	"errors"
-	"strings"
-
-	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
+
+	"ylink-backend/internal/pkg/resp"
 )
 
-var v = binding.Validator.Engine().(*validator.Validate)
+// Messages 将 binding/validator 错误转换为用户可读文案，委托到 resp seam。
+func Messages(err error) string { return resp.Messages(err) }
 
-// Messages 将 binding/validator 错误转换为用户可读文案（无内部细节）。
-func Messages(err error) string {
-	if err == nil {
-		return ""
-	}
-	var ve validator.ValidationErrors
-	if errors.As(err, &ve) {
-		parts := make([]string, 0, len(ve))
-		for _, fe := range ve {
-			parts = append(parts, fieldMessage(fe))
-		}
-		return strings.Join(parts, "; ")
-	}
-	return "请求参数不合法"
-}
-
-func fieldMessage(fe validator.FieldError) string {
-	field := fe.Field()
-	switch fe.Tag() {
-	case "required":
-		return field + " 不能为空"
-	case "email":
-		return field + " 格式不正确"
-	case "min":
-		return field + " 长度/数值不符合要求"
-	case "max":
-		return field + " 长度/数值超出限制"
-	case "oneof":
-		return field + " 取值不合法"
-	default:
-		return field + " 校验失败(" + fe.Tag() + ")"
-	}
-}
-
-// Engine 暴露底层 validator，供自定义校验注册。
-func Engine() *validator.Validate { return v }
+// Engine 暴露底层 validator，委托到 resp seam。
+func Engine() *validator.Validate { return resp.Engine() }

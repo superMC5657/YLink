@@ -10,7 +10,6 @@ import (
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/logger"
 	"ylink-backend/internal/pkg/resp"
-	"ylink-backend/internal/pkg/validate"
 	"ylink-backend/internal/service"
 )
 
@@ -33,8 +32,7 @@ func (h *Admin) UpdateUser(c *gin.Context) {
 		return
 	}
 	var req model.AdminUpdateUserReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	if err := h.user.UpdateUser(c.Request.Context(), h.adminID(c), id, &req, c.ClientIP()); err != nil {
@@ -60,8 +58,7 @@ func (h *Admin) AdjustBalance(c *gin.Context) {
 		return
 	}
 	var req model.AdjustBalanceReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	if err := h.user.AdjustBalance(c.Request.Context(), h.adminID(c), id, model.YuanToFen(req.Amount), req.Remark, c.ClientIP()); err != nil {
@@ -123,8 +120,7 @@ func (h *Admin) ExportUsersCSV(c *gin.Context) {
 // @Router /admin/users/batch [post]
 func (h *Admin) BatchUsers(c *gin.Context) {
 	var req model.AdminBatchUserReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	data, err := h.user.BatchUsers(c.Request.Context(), h.adminID(c), &req, c.ClientIP())
@@ -146,8 +142,7 @@ func (h *Admin) BatchUsers(c *gin.Context) {
 // @Router /admin/users/mail [post]
 func (h *Admin) SendMail(c *gin.Context) {
 	var req model.AdminSendMailReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	data, err := h.user.SendMail(c.Request.Context(), h.adminID(c), &req, c.ClientIP())

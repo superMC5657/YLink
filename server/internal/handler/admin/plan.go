@@ -5,7 +5,6 @@ import (
 
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/resp"
-	"ylink-backend/internal/pkg/validate"
 )
 
 // ---- 套餐 ----
@@ -21,8 +20,7 @@ func (h *Admin) ListPlans(c *gin.Context) {
 
 func (h *Admin) CreatePlan(c *gin.Context) {
 	var req model.AdminPlanReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	data, err := h.catalog.CreatePlan(c.Request.Context(), &req)
@@ -39,8 +37,7 @@ func (h *Admin) UpdatePlan(c *gin.Context) {
 		return
 	}
 	var req model.AdminPlanReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	if err := h.catalog.UpdatePlan(c.Request.Context(), id, &req); err != nil {
@@ -75,8 +72,7 @@ func (h *Admin) ListCoupons(c *gin.Context) {
 
 func (h *Admin) CreateCoupon(c *gin.Context) {
 	var req model.AdminCouponReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	data, err := h.catalog.CreateCoupon(c.Request.Context(), &req)
@@ -93,8 +89,7 @@ func (h *Admin) UpdateCoupon(c *gin.Context) {
 		return
 	}
 	var req model.AdminCouponReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	if err := h.catalog.UpdateCoupon(c.Request.Context(), id, &req); err != nil {

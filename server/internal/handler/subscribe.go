@@ -6,9 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"ylink-backend/internal/middleware"
-	"ylink-backend/internal/pkg/errs"
 	"ylink-backend/internal/pkg/resp"
-	"ylink-backend/internal/pkg/validate"
 	"ylink-backend/internal/service"
 )
 
@@ -50,8 +48,7 @@ type resetReq struct {
 // @Router /user/subscribe/reset [post]
 func (h *Subscribe) Reset(c *gin.Context) {
 	var req resetReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	url, err := h.svc.ResetSubscribe(c.Request.Context(), middleware.UserID(c), req.Password)
@@ -111,8 +108,7 @@ func (h *Subscribe) ClientSubscribe(c *gin.Context) {
 	ua := c.GetHeader("User-Agent")
 	result, err := h.svc.Generate(c.Request.Context(), token, flag, ua)
 	if err != nil {
-		e := errs.From(err)
-		c.String(e.HTTP, e.Message)
+		resp.FailPlain(c, err)
 		return
 	}
 	c.Header("subscription-userinfo", result.UserInfo)

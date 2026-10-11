@@ -5,7 +5,6 @@ import (
 
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/resp"
-	"ylink-backend/internal/pkg/validate"
 )
 
 // ---- 设置 ----
@@ -30,8 +29,7 @@ func (h *Admin) ListSettings(c *gin.Context) {
 // @Router /admin/settings [put]
 func (h *Admin) SaveSetting(c *gin.Context) {
 	var req model.AdminSettingsReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	if err := h.system.SaveSetting(c.Request.Context(), req.Key, req.Value); err != nil {

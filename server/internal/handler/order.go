@@ -11,7 +11,6 @@ import (
 	"ylink-backend/internal/pkg/logger"
 	"ylink-backend/internal/pkg/payment"
 	"ylink-backend/internal/pkg/resp"
-	"ylink-backend/internal/pkg/validate"
 	"ylink-backend/internal/service"
 )
 
@@ -50,8 +49,7 @@ func (h *Order) Plans(c *gin.Context) {
 // @Router /coupons/check [post]
 func (h *Order) CouponCheck(c *gin.Context) {
 	var req model.CouponCheckReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	data, err := h.svc.CouponCheck(c.Request.Context(), middleware.UserID(c), &req)
@@ -93,8 +91,7 @@ func (h *Order) CouponsAvailable(c *gin.Context) {
 // @Router /orders [post]
 func (h *Order) Create(c *gin.Context) {
 	var req model.CreateOrderReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	data, err := h.svc.CreateOrder(c.Request.Context(), middleware.UserID(c), c.GetHeader("Idempotency-Key"), &req)
@@ -179,8 +176,7 @@ func (h *Order) Cancel(c *gin.Context) {
 // @Router /orders/{order_no}/checkout [post]
 func (h *Order) Checkout(c *gin.Context) {
 	var req model.CheckoutReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	data, err := h.svc.Checkout(c.Request.Context(), middleware.UserID(c), c.Param("order_no"), req.Method)

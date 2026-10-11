@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 )
 
-func setupRouter(list any) (*gin.Engine, *httptest.ResponseRecorder) {
+func setupRouter[T any](list []T) (*gin.Engine, *httptest.ResponseRecorder) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	r.GET("/page", func(c *gin.Context) {
@@ -73,5 +74,67 @@ func TestPageOKEmptySliceKept(t *testing.T) {
 	}
 	if string(body.Data.List) != "[]" {
 		t.Fatalf("空切片应序列化为 [], 实际: %s", string(body.Data.List))
+	}
+}
+
+func TestBindInvalidWritesParamEnvelope(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.POST("/bind", func(c *gin.Context) {
+		var req struct {
+			Email string `json:"email" binding:"required,email"`
+		}
+		if !Bind(c, &req) {
+			return
+		}
+		OK(c, req)
+	})
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/bind", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+
+	var body struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("响应不是合法 JSON: %v", err)
+	}
+	if body.Code != 40000 {
+		t.Fatalf("绑定失败应返回 40000, 实际: %s", w.Body.String())
+	}
+	if !strings.HasPrefix(body.Message, "参数校验失败: ") {
+		t.Fatalf("绑定失败文案应带前缀, 实际: %q", body.Message)
+	}
+}
+
+func TestBindValidPassesThrough(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.POST("/bind", func(c *gin.Context) {
+		var req struct {
+			Email string `json:"email" binding:"required,email"`
+		}
+		if !Bind(c, &req) {
+			return
+		}
+		OK(c, req)
+	})
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/bind", strings.NewReader(`{"email":"a@b.com"}`))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+
+	var body struct {
+		Code int `json:"code"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("响应不是合法 JSON: %v", err)
+	}
+	if body.Code != 0 {
+		t.Fatalf("合法请求应返回 0, 实际: %s", w.Body.String())
 	}
 }

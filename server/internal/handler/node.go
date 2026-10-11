@@ -5,7 +5,6 @@ import (
 
 	"ylink-backend/internal/middleware"
 	"ylink-backend/internal/pkg/resp"
-	"ylink-backend/internal/pkg/validate"
 	"ylink-backend/internal/service"
 )
 
@@ -41,8 +40,7 @@ func (h *Node) Users(c *gin.Context) {
 // @Router /node/report [post]
 func (h *Node) Report(c *gin.Context) {
 	var req service.NodeReportReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	data, err := h.svc.Report(c.Request.Context(), middleware.ServerID(c), &req)

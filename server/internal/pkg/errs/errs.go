@@ -1,4 +1,6 @@
-// Package errs 定义业务错误类型与错误码（与 docs/api/README.md 第 2 节保持一致）。
+// Package errs 定义业务错误类型与错误码（与契约文档第 2 节保持一致）。
+// 错误码到 HTTP 状态的映射集中在此 module 的 conflictCodes 表 + 族段分支，resp 仅委托 From/Resolve。
+// 用语：module 指内聚单元，interface/seam 指窄契约，adapter 指薄委托。
 package errs
 
 import (
@@ -20,15 +22,28 @@ func New(code int, message string) *Error {
 	return &Error{Code: code, Message: message, HTTP: httpStatus(code)}
 }
 
-// httpStatus 依据契约文档第 2 节推导 HTTP 状态。
+// conflictCodes 为域冲突码到 409 的显式集合：
+// 11003 订单状态不允许该操作、14001 工单已关闭、14002 工单仅可重开一次、
+// 14003 提现工单不可手动关闭、15002 代理申请审核中，域语义均为“当前状态与操作冲突”，故统一 409。
+// 新增域冲突码时只在此表加一行，不改分支逻辑；映射语义与旧 switch 完全一致。
+var conflictCodes = map[int]struct{}{
+	11003: {},
+	14001: {},
+	14002: {},
+	14003: {},
+	15002: {},
+}
+
+// httpStatus 依据契约文档第 2 节推导 HTTP 状态，唯一收敛点。
 func httpStatus(code int) int {
-	switch code {
-	case 0:
+	if code == 0 {
 		return http.StatusOK
-	case 10003:
-		return http.StatusTooManyRequests
-	case 11003, 14001, 14002, 14003, 15002:
+	}
+	if _, ok := conflictCodes[code]; ok {
 		return http.StatusConflict
+	}
+	if code == 10003 {
+		return http.StatusTooManyRequests
 	}
 	switch code / 100 {
 	case 400:

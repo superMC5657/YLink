@@ -7,7 +7,6 @@ import (
 
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/resp"
-	"ylink-backend/internal/pkg/validate"
 )
 
 // ---- 节点 ----
@@ -23,8 +22,7 @@ func (h *Admin) ListServers(c *gin.Context) {
 
 func (h *Admin) CreateServer(c *gin.Context) {
 	var req model.AdminServerReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	data, err := h.catalog.CreateServer(c.Request.Context(), &req)
@@ -41,8 +39,7 @@ func (h *Admin) UpdateServer(c *gin.Context) {
 		return
 	}
 	var req model.AdminServerReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	if err := h.catalog.UpdateServer(c.Request.Context(), id, &req); err != nil {
@@ -98,8 +95,7 @@ func (h *Admin) ResetNodeKey(c *gin.Context) {
 // @Router /admin/servers/batch [post]
 func (h *Admin) BatchServers(c *gin.Context) {
 	var req model.AdminBatchServerReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	data, err := h.node.BatchServers(c.Request.Context(), h.adminID(c), &req, c.ClientIP())
@@ -142,8 +138,7 @@ func (h *Admin) CopyServer(c *gin.Context) {
 // @Router /admin/servers/sort [post]
 func (h *Admin) SortServers(c *gin.Context) {
 	var req model.AdminSortServerReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	if err := h.node.SortServers(c.Request.Context(), h.adminID(c), req.Items, c.ClientIP()); err != nil {
@@ -166,8 +161,7 @@ func (h *Admin) ListServerGroups(c *gin.Context) {
 
 func (h *Admin) CreateServerGroup(c *gin.Context) {
 	var req model.AdminServerGroupReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	data, err := h.catalog.CreateServerGroup(c.Request.Context(), &req)
@@ -184,8 +178,7 @@ func (h *Admin) UpdateServerGroup(c *gin.Context) {
 		return
 	}
 	var req model.AdminServerGroupReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	if err := h.catalog.UpdateServerGroup(c.Request.Context(), id, &req); err != nil {
@@ -220,8 +213,7 @@ func (h *Admin) DeleteServerGroup(c *gin.Context) {
 // @Router /admin/traffic/import [post]
 func (h *Admin) ImportTraffic(c *gin.Context) {
 	var req model.TrafficImportReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	if err := h.traffic.ImportTraffic(c.Request.Context(), h.adminID(c), &req, c.ClientIP()); err != nil {
@@ -242,8 +234,7 @@ func (h *Admin) ImportTraffic(c *gin.Context) {
 // @Router /admin/traffic/reset [post]
 func (h *Admin) ResetTraffic(c *gin.Context) {
 	var req model.AdminTrafficResetReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	data, err := h.traffic.ResetTraffic(c.Request.Context(), h.adminID(c), &req, c.ClientIP())

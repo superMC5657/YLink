@@ -5,7 +5,6 @@ import (
 
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/resp"
-	"ylink-backend/internal/pkg/validate"
 )
 
 // ---- 工单 ----
@@ -39,8 +38,7 @@ func (h *Admin) ReplyTicket(c *gin.Context) {
 		return
 	}
 	var req model.AdminReplyReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	if err := h.ticket.ReplyTicket(c.Request.Context(), h.adminID(c), id, req.Message); err != nil {

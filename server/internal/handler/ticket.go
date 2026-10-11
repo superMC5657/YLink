@@ -8,7 +8,6 @@ import (
 	"ylink-backend/internal/middleware"
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/resp"
-	"ylink-backend/internal/pkg/validate"
 	"ylink-backend/internal/service"
 )
 
@@ -50,8 +49,7 @@ func (h *Ticket) List(c *gin.Context) {
 // @Router /tickets [post]
 func (h *Ticket) Create(c *gin.Context) {
 	var req model.CreateTicketReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	data, err := h.svc.Create(c.Request.Context(), middleware.UserID(c), &req)
@@ -102,8 +100,7 @@ func (h *Ticket) Reply(c *gin.Context) {
 		return
 	}
 	var req model.ReplyTicketReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	if err := h.svc.Reply(c.Request.Context(), middleware.UserID(c), id, req.Message); err != nil {

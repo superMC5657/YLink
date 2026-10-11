@@ -5,7 +5,6 @@ import (
 
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/resp"
-	"ylink-backend/internal/pkg/validate"
 )
 
 // ---- 公告 ----
@@ -28,8 +27,7 @@ func (h *Admin) ListNotices(c *gin.Context) {
 
 func (h *Admin) CreateNotice(c *gin.Context) {
 	var req model.AdminNoticeReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	data, err := h.content.CreateNotice(c.Request.Context(), &req)
@@ -46,8 +44,7 @@ func (h *Admin) UpdateNotice(c *gin.Context) {
 		return
 	}
 	var req model.AdminNoticeReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	if err := h.content.UpdateNotice(c.Request.Context(), id, &req); err != nil {
@@ -80,8 +77,7 @@ func (h *Admin) DeleteNotice(c *gin.Context) {
 // @Router /admin/notices/sort [post]
 func (h *Admin) SortNotices(c *gin.Context) {
 	var req model.AdminSortReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	if err := h.content.SortNotices(c.Request.Context(), h.adminID(c), req.Items, c.ClientIP()); err != nil {
@@ -111,8 +107,7 @@ func (h *Admin) ListKnowledges(c *gin.Context) {
 
 func (h *Admin) CreateKnowledge(c *gin.Context) {
 	var req model.AdminKnowledgeReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	data, err := h.content.CreateKnowledge(c.Request.Context(), &req)
@@ -129,8 +124,7 @@ func (h *Admin) UpdateKnowledge(c *gin.Context) {
 		return
 	}
 	var req model.AdminKnowledgeReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	if err := h.content.UpdateKnowledge(c.Request.Context(), id, &req); err != nil {
@@ -163,8 +157,7 @@ func (h *Admin) DeleteKnowledge(c *gin.Context) {
 // @Router /admin/knowledges/sort [post]
 func (h *Admin) SortKnowledges(c *gin.Context) {
 	var req model.AdminSortReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	if err := h.content.SortKnowledges(c.Request.Context(), h.adminID(c), req.Items, c.ClientIP()); err != nil {
@@ -204,8 +197,7 @@ func (h *Admin) ListKnowledgeCategories(c *gin.Context) {
 // @Router /admin/knowledge-categories [post]
 func (h *Admin) CreateKnowledgeCategory(c *gin.Context) {
 	var req model.AdminKnowledgeCategoryReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	data, err := h.content.CreateKnowledgeCategory(c.Request.Context(), h.adminID(c), &req, c.ClientIP())
@@ -232,8 +224,7 @@ func (h *Admin) UpdateKnowledgeCategory(c *gin.Context) {
 		return
 	}
 	var req model.AdminKnowledgeCategoryUpdateReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	if err := h.content.UpdateKnowledgeCategory(c.Request.Context(), h.adminID(c), id, &req, c.ClientIP()); err != nil {
@@ -293,8 +284,7 @@ func (h *Admin) ListMailTemplates(c *gin.Context) {
 // @Router /admin/mail-templates/{name} [put]
 func (h *Admin) SaveMailTemplate(c *gin.Context) {
 	var req model.AdminMailTemplateReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	if err := h.content.SaveMailTemplate(c.Request.Context(), h.adminID(c), c.Param("name"), &req, c.ClientIP()); err != nil {
@@ -332,8 +322,7 @@ func (h *Admin) ResetMailTemplate(c *gin.Context) {
 // @Router /admin/mail-templates/{name}/test [post]
 func (h *Admin) TestMailTemplate(c *gin.Context) {
 	var req model.AdminMailTemplateTestReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	if err := h.content.TestMailTemplate(c.Request.Context(), h.adminID(c), c.Param("name"), req.ToEmail, c.ClientIP()); err != nil {
@@ -373,8 +362,7 @@ func (h *Admin) ListSubscriptionTemplates(c *gin.Context) {
 // @Router /admin/subscription-templates/{name} [put]
 func (h *Admin) SaveSubscriptionTemplate(c *gin.Context) {
 	var req model.AdminSubscriptionTemplateReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	if err := h.content.SaveSubscriptionTemplate(c.Request.Context(), h.adminID(c), c.Param("name"), req.Content, c.ClientIP()); err != nil {

@@ -8,7 +8,6 @@ import (
 	"ylink-backend/internal/middleware"
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/resp"
-	"ylink-backend/internal/pkg/validate"
 	"ylink-backend/internal/service"
 )
 
@@ -36,8 +35,7 @@ func ctxWithIP(c *gin.Context) context.Context {
 // @Router /captcha/email [post]
 func (h *Auth) CaptchaEmail(c *gin.Context) {
 	var req model.CaptchaReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	data, err := h.svc.SendCaptcha(ctxWithIP(c), req.Email, req.Type)
@@ -59,8 +57,7 @@ func (h *Auth) CaptchaEmail(c *gin.Context) {
 // @Router /auth/register [post]
 func (h *Auth) Register(c *gin.Context) {
 	var req model.AuthRegisterReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	data, err := h.svc.Register(ctxWithIP(c), &req)
@@ -82,8 +79,7 @@ func (h *Auth) Register(c *gin.Context) {
 // @Router /auth/login [post]
 func (h *Auth) Login(c *gin.Context) {
 	var req model.AuthLoginReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	data, err := h.svc.Login(ctxWithIP(c), &req)
@@ -105,8 +101,7 @@ func (h *Auth) Login(c *gin.Context) {
 // @Router /auth/refresh [post]
 func (h *Auth) Refresh(c *gin.Context) {
 	var req model.RefreshReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	data, err := h.svc.Refresh(ctxWithIP(c), req.RefreshToken)
@@ -128,8 +123,7 @@ func (h *Auth) Refresh(c *gin.Context) {
 // @Router /auth/forgot [post]
 func (h *Auth) Forgot(c *gin.Context) {
 	var req model.ForgotReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	if err := h.svc.Forgot(ctxWithIP(c), &req); err != nil {

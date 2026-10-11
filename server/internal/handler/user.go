@@ -6,7 +6,6 @@ import (
 	"ylink-backend/internal/middleware"
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/resp"
-	"ylink-backend/internal/pkg/validate"
 	"ylink-backend/internal/service"
 )
 
@@ -44,8 +43,7 @@ func (h *User) Stat(c *gin.Context) {
 // @Router /user/profile [put]
 func (h *User) UpdateProfile(c *gin.Context) {
 	var req model.UpdateProfileReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	data, err := h.svc.UpdateProfile(c.Request.Context(), middleware.UserID(c), &req)
@@ -84,8 +82,7 @@ func (h *User) Profile(c *gin.Context) {
 // @Router /user/password/change [post]
 func (h *User) ChangePassword(c *gin.Context) {
 	var req model.ChangePasswordReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	if err := h.svc.ChangePassword(c.Request.Context(), middleware.UserID(c), c.GetString("jti"), &req); err != nil {

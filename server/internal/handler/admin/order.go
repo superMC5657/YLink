@@ -7,7 +7,6 @@ import (
 
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/resp"
-	"ylink-backend/internal/pkg/validate"
 )
 
 // ---- 订单 ----
@@ -40,8 +39,7 @@ func (h *Admin) ListOrders(c *gin.Context) {
 // @Router /admin/orders/{order_no}/close [post]
 func (h *Admin) CloseOrder(c *gin.Context) {
 	var req model.RefundReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	if err := h.order.CloseOrder(c.Request.Context(), h.adminID(c), c.Param("order_no"), req.Remark, c.ClientIP()); err != nil {
@@ -63,8 +61,7 @@ func (h *Admin) CloseOrder(c *gin.Context) {
 // @Router /admin/orders/{order_no}/refund [post]
 func (h *Admin) Refund(c *gin.Context) {
 	var req model.RefundReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: "+validate.Messages(err))
+	if !resp.Bind(c, &req) {
 		return
 	}
 	if err := h.order.Refund(c.Request.Context(), h.adminID(c), c.Param("order_no"), req.Remark, req.GatewayRefundID, c.ClientIP()); err != nil {

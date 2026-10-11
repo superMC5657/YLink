@@ -102,7 +102,7 @@ func TestAdminRefundWithCommissionRollback(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	set := NewSettingService(e.db, e.rdb, repos)
-	svc := NewAdminService(e.db, e.rdb, repos, nil, set, nil)
+	svc := NewAdminSeams(e.db, e.rdb, repos, nil, set, nil)
 
 	now := time.Now()
 	payMethod := "epay_alipay"
@@ -139,7 +139,7 @@ func TestAdminRefundWithCommissionRollback(t *testing.T) {
 	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"audit_logs\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
-	err := svc.Refund(context.Background(), 1, "O1", "测试退款", "", "127.0.0.1")
+	err := svc.Order.Refund(context.Background(), 1, "O1", "测试退款", "", "127.0.0.1")
 	require.NoError(t, err)
 }
 
@@ -147,7 +147,7 @@ func TestAdminReviewAgentApprove(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	set := NewSettingService(e.db, e.rdb, repos)
-	svc := NewAdminService(e.db, e.rdb, repos, nil, set, nil)
+	svc := NewAdminSeams(e.db, e.rdb, repos, nil, set, nil)
 
 	now := time.Now()
 	// 事务：读申请 → 改角色 → 更新申请 → 审计
@@ -161,7 +161,7 @@ func TestAdminReviewAgentApprove(t *testing.T) {
 	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"audit_logs\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
-	err := svc.ReviewAgentApply(context.Background(), 1, 3, true, "", "127.0.0.1")
+	err := svc.Agent.ReviewAgentApply(context.Background(), 1, 3, true, "", "127.0.0.1")
 	require.NoError(t, err)
 }
 
@@ -169,7 +169,7 @@ func TestAdminListCoupons(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	set := NewSettingService(e.db, e.rdb, repos)
-	svc := NewAdminService(e.db, e.rdb, repos, nil, set, nil)
+	svc := NewAdminSeams(e.db, e.rdb, repos, nil, set, nil)
 
 	now := time.Now()
 	validPeriods := `["month","year"]`
@@ -187,7 +187,7 @@ func TestAdminListCoupons(t *testing.T) {
 		cp.ValidPeriods, cp.PlanIDs, nil, nil, cp.IsEnable, now, now)
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"coupons\"")).WillReturnRows(rows)
 
-	out, err := svc.ListAllCoupons(context.Background())
+	out, err := svc.Catalog.ListAllCoupons(context.Background())
 	require.NoError(t, err)
 	require.Len(t, out, 1)
 	assert.Equal(t, "WELCOME10", out[0].Code)
@@ -204,7 +204,7 @@ func TestAdminListNotices(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	set := NewSettingService(e.db, e.rdb, repos)
-	svc := NewAdminService(e.db, e.rdb, repos, nil, set, nil)
+	svc := NewAdminSeams(e.db, e.rdb, repos, nil, set, nil)
 
 	now := time.Now()
 	n := &model.Notice{ID: 1, Title: "维护公告", Content: "正文", IsShow: false, Sort: 2, CreatedAt: now}
@@ -212,7 +212,7 @@ func TestAdminListNotices(t *testing.T) {
 		AddRow(n.ID, n.Title, n.Content, n.IsShow, n.Sort, now, now)
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"notices\"")).WillReturnRows(rows)
 
-	out, err := svc.ListAllNotices(context.Background())
+	out, err := svc.Content.ListAllNotices(context.Background())
 	require.NoError(t, err)
 	require.Len(t, out, 1)
 	assert.Equal(t, "维护公告", out[0].Title)
@@ -224,7 +224,7 @@ func TestAdminListKnowledges(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	set := NewSettingService(e.db, e.rdb, repos)
-	svc := NewAdminService(e.db, e.rdb, repos, nil, set, nil)
+	svc := NewAdminSeams(e.db, e.rdb, repos, nil, set, nil)
 
 	now := time.Now()
 	k := &model.Knowledge{
@@ -236,7 +236,7 @@ func TestAdminListKnowledges(t *testing.T) {
 	}).AddRow(k.ID, k.Category, k.Title, k.Body, k.Language, k.IsShow, k.Sort, now, now)
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"knowledges\"")).WillReturnRows(rows)
 
-	out, err := svc.ListAllKnowledges(context.Background())
+	out, err := svc.Content.ListAllKnowledges(context.Background())
 	require.NoError(t, err)
 	require.Len(t, out, 1)
 	assert.Equal(t, "入门指南", out[0].Category)
@@ -248,7 +248,7 @@ func TestAdminAdjustBalanceNegativeRejected(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	set := NewSettingService(e.db, e.rdb, repos)
-	svc := NewAdminService(e.db, e.rdb, repos, nil, set, nil)
+	svc := NewAdminSeams(e.db, e.rdb, repos, nil, set, nil)
 
 	now := time.Now()
 	// 事务：行锁读用户（余额 0）→ 调 -100 → 服务层拒绝，回滚
@@ -257,7 +257,7 @@ func TestAdminAdjustBalanceNegativeRejected(t *testing.T) {
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"users\"")).WillReturnRows(userRow(u))
 	e.mock.ExpectRollback()
 
-	err := svc.AdjustBalance(context.Background(), 1, 5, -100, "扣款", "127.0.0.1")
+	err := svc.User.AdjustBalance(context.Background(), 1, 5, -100, "扣款", "127.0.0.1")
 	require.Error(t, err)
 	assert.Equal(t, 40000, codeOf(err))
 }
@@ -266,7 +266,7 @@ func TestAdminUpdateUserBanBumpsSessionVersion(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	set := NewSettingService(e.db, e.rdb, repos)
-	svc := NewAdminService(e.db, e.rdb, repos, nil, set, nil)
+	svc := NewAdminSeams(e.db, e.rdb, repos, nil, set, nil)
 
 	now := time.Now()
 	u := &model.User{ID: 5, Email: "u@b.com", Role: 0, IsBanned: false, CreatedAt: now, UpdatedAt: now}
@@ -280,7 +280,7 @@ func TestAdminUpdateUserBanBumpsSessionVersion(t *testing.T) {
 	e.mock.ExpectCommit()
 
 	banned := true
-	err := svc.UpdateUser(context.Background(), 1, 5, &model.AdminUpdateUserReq{Banned: &banned}, "127.0.0.1")
+	err := svc.User.UpdateUser(context.Background(), 1, 5, &model.AdminUpdateUserReq{Banned: &banned}, "127.0.0.1")
 	require.NoError(t, err)
 
 	// 会话版本号已 bump → 该用户旧 access token 立即失效
@@ -293,7 +293,7 @@ func TestAdminUpdateUserRoleBumpsSessionVersion(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	set := NewSettingService(e.db, e.rdb, repos)
-	svc := NewAdminService(e.db, e.rdb, repos, nil, set, nil)
+	svc := NewAdminSeams(e.db, e.rdb, repos, nil, set, nil)
 
 	now := time.Now()
 	u := &model.User{ID: 6, Email: "r@b.com", Role: 0, IsBanned: false, CreatedAt: now, UpdatedAt: now}
@@ -307,7 +307,7 @@ func TestAdminUpdateUserRoleBumpsSessionVersion(t *testing.T) {
 	e.mock.ExpectCommit()
 
 	role := 2
-	err := svc.UpdateUser(context.Background(), 1, 6, &model.AdminUpdateUserReq{Role: &role}, "127.0.0.1")
+	err := svc.User.UpdateUser(context.Background(), 1, 6, &model.AdminUpdateUserReq{Role: &role}, "127.0.0.1")
 	require.NoError(t, err)
 
 	n, err := e.rdb.Get(context.Background(), redispkg.SessionVersionKey(6)).Int64()
@@ -320,7 +320,7 @@ func TestAdminRefundRevokesOnetimeTraffic(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	set := NewSettingService(e.db, e.rdb, repos)
-	svc := NewAdminService(e.db, e.rdb, repos, nil, set, nil)
+	svc := NewAdminSeams(e.db, e.rdb, repos, nil, set, nil)
 
 	now := time.Now()
 	payMethod := "epay_alipay"
@@ -341,7 +341,7 @@ func TestAdminRefundRevokesOnetimeTraffic(t *testing.T) {
 	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"audit_logs\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
-	err := svc.Refund(context.Background(), 1, "O2", "退流量", "", "127.0.0.1")
+	err := svc.Order.Refund(context.Background(), 1, "O2", "退流量", "", "127.0.0.1")
 	require.NoError(t, err)
 }
 
@@ -350,7 +350,7 @@ func TestAdminRefundKeepsOtherPlanSubscription(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	set := NewSettingService(e.db, e.rdb, repos)
-	svc := NewAdminService(e.db, e.rdb, repos, nil, set, nil)
+	svc := NewAdminSeams(e.db, e.rdb, repos, nil, set, nil)
 
 	now := time.Now()
 	payMethod := "epay_alipay"
@@ -372,7 +372,7 @@ func TestAdminRefundKeepsOtherPlanSubscription(t *testing.T) {
 	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"audit_logs\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
-	err := svc.Refund(context.Background(), 1, "O3", "退其他套餐单", "", "127.0.0.1")
+	err := svc.Order.Refund(context.Background(), 1, "O3", "退其他套餐单", "", "127.0.0.1")
 	require.NoError(t, err)
 }
 
@@ -381,7 +381,7 @@ func TestAdminListOrdersCommission(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	set := NewSettingService(e.db, e.rdb, repos)
-	svc := NewAdminService(e.db, e.rdb, repos, &config.Config{}, set, nil)
+	svc := NewAdminSeams(e.db, e.rdb, repos, &config.Config{}, set, nil)
 	now := time.Now()
 	pm := "epay_alipay"
 	o := &model.Order{ID: 1, OrderNo: "O2026", UserID: 7, PlanID: 1, Period: "month",
@@ -419,7 +419,7 @@ func TestAdminListOrdersCommission(t *testing.T) {
 			p.CreatedAt, p.UpdatedAt))
 
 	status := 1
-	list, total, err := svc.ListOrders(context.Background(), &status, 1, 10)
+	list, total, err := svc.Order.ListOrders(context.Background(), &status, 1, 10)
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), total)
 	require.Len(t, list, 1)
@@ -433,7 +433,7 @@ func TestAdminListOrdersCommissionQueryError(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	set := NewSettingService(e.db, e.rdb, repos)
-	svc := NewAdminService(e.db, e.rdb, repos, &config.Config{}, set, nil)
+	svc := NewAdminSeams(e.db, e.rdb, repos, &config.Config{}, set, nil)
 	now := time.Now()
 	pm := "epay_alipay"
 	o := &model.Order{ID: 1, OrderNo: "O2026", UserID: 7, PlanID: 1, Period: "month",
@@ -457,14 +457,14 @@ func TestAdminListOrdersCommissionQueryError(t *testing.T) {
 		WillReturnError(assert.AnError)
 
 	status := 1
-	_, _, err := svc.ListOrders(context.Background(), &status, 1, 10)
+	_, _, err := svc.Order.ListOrders(context.Background(), &status, 1, 10)
 	require.Error(t, err, "佣金查询失败时 ListOrders 必须返回错误,不得静默成功")
 }
 
 func TestResetNodeKey(t *testing.T) {
 	e := newTestEnv(t)
 	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
-	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, nil, set, nil)
+	svc := NewAdminSeams(e.db, e.rdb, &repo.Repos{}, nil, set, nil)
 
 	// 节点存在 → 更新密钥(默认事务包裹) + 审计
 	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "servers"`)).WillReturnRows(serverRow(
@@ -477,16 +477,16 @@ func TestResetNodeKey(t *testing.T) {
 	e.mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "audit_logs"`)).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
-	key, err := svc.ResetNodeKey(context.Background(), 1, 5, "127.0.0.1")
+	key, err := svc.Node.ResetNodeKey(context.Background(), 1, 5, "127.0.0.1")
 	require.NoError(t, err)
 	assert.Len(t, key, 32, "新密钥为 32 位十六进制")
 	assert.NotEqual(t, "old-key-0000000000000000", key)
 
 	// 节点不存在 → 40400
 	e2 := newTestEnv(t)
-	svc2 := NewAdminService(e2.db, e2.rdb, &repo.Repos{}, nil, set, nil)
+	svc2 := NewAdminSeams(e2.db, e2.rdb, &repo.Repos{}, nil, set, nil)
 	e2.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "servers"`)).WillReturnError(gorm.ErrRecordNotFound)
-	_, err = svc2.ResetNodeKey(context.Background(), 1, 99, "127.0.0.1")
+	_, err = svc2.Node.ResetNodeKey(context.Background(), 1, 99, "127.0.0.1")
 	assert.Equal(t, 40400, codeOf(err))
 }
 
@@ -503,7 +503,7 @@ func auditLogRows(items []model.AdminAuditLogItem) *sqlmock.Rows {
 func TestListAuditLogs(t *testing.T) {
 	e := newTestEnv(t)
 	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
-	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, nil, set, nil)
+	svc := NewAdminSeams(e.db, e.rdb, &repo.Repos{}, nil, set, nil)
 	ctx := context.Background()
 
 	// 无筛选：count + 分页 + 目标可读化（users 反查）+ 动作列表
@@ -518,7 +518,7 @@ func TestListAuditLogs(t *testing.T) {
 	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT DISTINCT "action" FROM "audit_logs"`)).WillReturnRows(
 		sqlmock.NewRows([]string{"action"}).AddRow("ban_user").AddRow("adjust_balance"))
 
-	list, total, actions, err := svc.ListAuditLogs(ctx, AuditLogFilter{}, 1, 20)
+	list, total, actions, err := svc.Audit.ListAuditLogs(ctx, AuditLogFilter{}, 1, 20)
 	require.NoError(t, err)
 	assert.EqualValues(t, 2, total)
 	assert.Len(t, list, 2)
@@ -531,9 +531,9 @@ func TestListAuditLogs(t *testing.T) {
 	}
 
 	// 非法日期 → 40000
-	_, _, _, err = svc.ListAuditLogs(ctx, AuditLogFilter{From: "2026/08/28"}, 1, 20)
+	_, _, _, err = svc.Audit.ListAuditLogs(ctx, AuditLogFilter{From: "2026/08/28"}, 1, 20)
 	assert.Equal(t, 40000, codeOf(err))
-	_, _, _, err = svc.ListAuditLogs(ctx, AuditLogFilter{To: "bad-date"}, 1, 20)
+	_, _, _, err = svc.Audit.ListAuditLogs(ctx, AuditLogFilter{To: "bad-date"}, 1, 20)
 	assert.Equal(t, 40000, codeOf(err))
 }
 
@@ -543,7 +543,7 @@ func strPtr(s string) *string { return &s }
 func TestAuditTargetDisplay(t *testing.T) {
 	e := newTestEnv(t)
 	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
-	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, nil, set, nil)
+	svc := NewAdminSeams(e.db, e.rdb, &repo.Repos{}, nil, set, nil)
 	ctx := context.Background()
 
 	// count + 分页（7 条：含用户已删除但 detail 留痕邮箱）+ users/servers/knowledge_categories 批量反查 + 动作列表
@@ -568,7 +568,7 @@ func TestAuditTargetDisplay(t *testing.T) {
 	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT DISTINCT "action" FROM "audit_logs"`)).WillReturnRows(
 		sqlmock.NewRows([]string{"action"}).AddRow("send_mail"))
 
-	list, _, _, err := svc.ListAuditLogs(ctx, AuditLogFilter{}, 1, 20)
+	list, _, _, err := svc.Audit.ListAuditLogs(ctx, AuditLogFilter{}, 1, 20)
 	require.NoError(t, err)
 	require.Len(t, list, 7)
 
@@ -609,7 +609,7 @@ func TestAuditTargetDisplay(t *testing.T) {
 func TestBatchUsersBanAndMissing(t *testing.T) {
 	e := newTestEnv(t)
 	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
-	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, nil, set, nil)
+	svc := NewAdminSeams(e.db, e.rdb, &repo.Repos{}, nil, set, nil)
 	ctx := context.Background()
 
 	u7 := &model.User{ID: 7, Email: "u7@y.link", SubToken: "t7", UUID: "uuid-7"}
@@ -631,7 +631,7 @@ func TestBatchUsersBanAndMissing(t *testing.T) {
 	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
 		WillReturnError(gorm.ErrRecordNotFound)
 
-	resp, err := svc.BatchUsers(ctx, 1, &model.AdminBatchUserReq{Action: "ban", IDs: []int64{7, 8}}, "127.0.0.1")
+	resp, err := svc.User.BatchUsers(ctx, 1, &model.AdminBatchUserReq{Action: "ban", IDs: []int64{7, 8}}, "127.0.0.1")
 	require.NoError(t, err)
 	assert.EqualValues(t, 1, resp.Success, "用户 7 封禁成功")
 	require.Len(t, resp.Failed, 1)
@@ -642,7 +642,7 @@ func TestBatchUsersBanAndMissing(t *testing.T) {
 func TestBatchUsersAdjustBalanceNegativeGuard(t *testing.T) {
 	e := newTestEnv(t)
 	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
-	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, nil, set, nil)
+	svc := NewAdminSeams(e.db, e.rdb, &repo.Repos{}, nil, set, nil)
 	ctx := context.Background()
 
 	u := &model.User{ID: 7, Email: "u7@y.link", Balance: 100, SubToken: "t7", UUID: "uuid-7"}
@@ -653,7 +653,7 @@ func TestBatchUsersAdjustBalanceNegativeGuard(t *testing.T) {
 	e.mock.ExpectRollback()
 
 	amount := -99.0 // 调整后 100 分 - 9900 分 < 0
-	resp, err := svc.BatchUsers(ctx, 1, &model.AdminBatchUserReq{
+	resp, err := svc.User.BatchUsers(ctx, 1, &model.AdminBatchUserReq{
 		Action: "adjust_balance", IDs: []int64{7}, Amount: &amount,
 	}, "127.0.0.1")
 	require.NoError(t, err)
@@ -665,8 +665,8 @@ func TestBatchUsersAdjustBalanceNegativeGuard(t *testing.T) {
 func TestBatchUsersRequiresAmount(t *testing.T) {
 	e := newTestEnv(t)
 	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
-	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, nil, set, nil)
-	_, err := svc.BatchUsers(context.Background(), 1, &model.AdminBatchUserReq{
+	svc := NewAdminSeams(e.db, e.rdb, &repo.Repos{}, nil, set, nil)
+	_, err := svc.User.BatchUsers(context.Background(), 1, &model.AdminBatchUserReq{
 		Action: "adjust_balance", IDs: []int64{7},
 	}, "127.0.0.1")
 	assert.Equal(t, 40000, codeOf(err))
@@ -676,7 +676,7 @@ func TestSendMailLogsFailures(t *testing.T) {
 	e := newTestEnv(t)
 	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
 	ml := mailer.New(config.SMTPConfig{Host: "invalid.invalid", Port: 1}) // 不可达 SMTP
-	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, nil, set, ml)
+	svc := NewAdminSeams(e.db, e.rdb, &repo.Repos{}, nil, set, ml)
 	ctx := context.Background()
 
 	users := []model.User{
@@ -694,7 +694,7 @@ func TestSendMailLogsFailures(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
-	resp, err := svc.SendMail(ctx, 1, &model.AdminSendMailReq{
+	resp, err := svc.User.SendMail(ctx, 1, &model.AdminSendMailReq{
 		IDs: []int64{7}, Subject: "公告", Body: "<b>hello</b><script>alert(1)</script>",
 	}, "127.0.0.1")
 	require.NoError(t, err)
@@ -726,7 +726,7 @@ func (w argContains) Match(v driver.Value) bool {
 func TestSendMailAuditTargetSummary(t *testing.T) {
 	e := newTestEnv(t)
 	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
-	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, nil, set, nil) // 无 mailer
+	svc := NewAdminSeams(e.db, e.rdb, &repo.Repos{}, nil, set, nil) // 无 mailer
 
 	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE id IN`)).
 		WillReturnRows(userRows(nil))
@@ -737,7 +737,7 @@ func TestSendMailAuditTargetSummary(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
-	resp, err := svc.SendMail(context.Background(), 1, &model.AdminSendMailReq{
+	resp, err := svc.User.SendMail(context.Background(), 1, &model.AdminSendMailReq{
 		IDs: []int64{7, 8}, Subject: "hi", Body: "hi",
 	}, "127.0.0.1")
 	require.NoError(t, err)
@@ -747,7 +747,7 @@ func TestSendMailAuditTargetSummary(t *testing.T) {
 func TestSendMailMailerNotConfigured(t *testing.T) {
 	e := newTestEnv(t)
 	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
-	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, nil, set, nil) // 无 mailer
+	svc := NewAdminSeams(e.db, e.rdb, &repo.Repos{}, nil, set, nil) // 无 mailer
 
 	// 仍先查用户，再进入“未配置”分支：全部失败且留痕
 	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE id IN`)).
@@ -757,7 +757,7 @@ func TestSendMailMailerNotConfigured(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
-	resp, err := svc.SendMail(context.Background(), 1, &model.AdminSendMailReq{
+	resp, err := svc.User.SendMail(context.Background(), 1, &model.AdminSendMailReq{
 		IDs: []int64{7, 8}, Subject: "hi", Body: "hi",
 	}, "127.0.0.1")
 	require.NoError(t, err)
@@ -769,7 +769,7 @@ func TestSendMailMissingUser(t *testing.T) {
 	e := newTestEnv(t)
 	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
 	ml := mailer.New(config.SMTPConfig{Host: "invalid.invalid", Port: 1})
-	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, nil, set, ml)
+	svc := NewAdminSeams(e.db, e.rdb, &repo.Repos{}, nil, set, ml)
 
 	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE id IN`)).
 		WillReturnRows(userRows(nil))
@@ -778,7 +778,7 @@ func TestSendMailMissingUser(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
-	resp, err := svc.SendMail(context.Background(), 1, &model.AdminSendMailReq{
+	resp, err := svc.User.SendMail(context.Background(), 1, &model.AdminSendMailReq{
 		IDs: []int64{42}, Subject: "hi", Body: "hi",
 	}, "127.0.0.1")
 	require.NoError(t, err)
@@ -791,7 +791,7 @@ func TestResetUserSubTokenByAdmin(t *testing.T) {
 	cfg.App.BaseURL = "https://api.example.com"
 	e := newTestEnv(t)
 	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
-	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, cfg, set, nil)
+	svc := NewAdminSeams(e.db, e.rdb, &repo.Repos{}, cfg, set, nil)
 
 	u := &model.User{ID: 7, Email: "u7@y.link", SubToken: "old-token", UUID: "uuid-7"}
 	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
@@ -805,7 +805,7 @@ func TestResetUserSubTokenByAdmin(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
-	url, err := svc.ResetUserSubToken(context.Background(), 1, 7, "127.0.0.1")
+	url, err := svc.User.ResetUserSubToken(context.Background(), 1, 7, "127.0.0.1")
 	require.NoError(t, err)
 	assert.Contains(t, url, "https://api.example.com/api/v1/client/subscribe/")
 	assert.NotContains(t, url, "old-token", "新链接不得包含旧 token")
@@ -814,10 +814,10 @@ func TestResetUserSubTokenByAdmin(t *testing.T) {
 
 	// 用户不存在 → 40400
 	e2 := newTestEnv(t)
-	svc2 := NewAdminService(e2.db, e2.rdb, &repo.Repos{}, cfg, set, nil)
+	svc2 := NewAdminSeams(e2.db, e2.rdb, &repo.Repos{}, cfg, set, nil)
 	e2.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
 		WillReturnError(gorm.ErrRecordNotFound)
-	_, err = svc2.ResetUserSubToken(context.Background(), 1, 99, "127.0.0.1")
+	_, err = svc2.User.ResetUserSubToken(context.Background(), 1, 99, "127.0.0.1")
 	assert.Equal(t, 40400, codeOf(err))
 }
 
@@ -838,7 +838,7 @@ func userRows(users []model.User) *sqlmock.Rows {
 func TestExportUsersStreamsBatches(t *testing.T) {
 	e := newTestEnv(t)
 	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
-	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, nil, set, nil)
+	svc := NewAdminSeams(e.db, e.rdb, &repo.Repos{}, nil, set, nil)
 	ctx := context.Background()
 
 	mPrice := int64(1000)
@@ -861,7 +861,7 @@ func TestExportUsersStreamsBatches(t *testing.T) {
 		WillReturnRows(userRows(nil))
 
 	var got [][]string
-	err := svc.ExportUsers(ctx, "", func(rows [][]string) error {
+	err := svc.User.ExportUsers(ctx, "", func(rows [][]string) error {
 		got = append(got, rows...)
 		return nil
 	})

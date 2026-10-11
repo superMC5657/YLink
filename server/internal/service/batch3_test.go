@@ -93,10 +93,10 @@ func withdrawRows(w *model.CommissionWithdraw) *sqlmock.Rows {
 		w.ReviewRemark, w.ReviewedAt, w.CreatedAt, w.UpdatedAt)
 }
 
-// newWithdrawSvc 构造 AdminService（设置走 nil,审计写 audit_logs 由 mock 承接）。
-func newWithdrawAdminSvc(t *testing.T) (*testEnv, *AdminService) {
+// newWithdrawSvc 构造 AdminSeams（设置走 nil,审计写 audit_logs 由 mock 承接）。
+func newWithdrawAdminSvc(t *testing.T) (*testEnv, *AdminSeams) {
 	e := newTestEnv(t)
-	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, nil, nil, nil)
+	svc := NewAdminSeams(e.db, e.rdb, &repo.Repos{}, nil, nil, nil)
 	return e, svc
 }
 
@@ -119,7 +119,7 @@ func TestWithdrawRejectRefundsCommission(t *testing.T) {
 	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"audit_logs\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
-	require.NoError(t, svc.ReviewWithdraw(context.Background(), 1, 77, false, "账号有误", "1.2.3.4"))
+	require.NoError(t, svc.Withdraw.ReviewWithdraw(context.Background(), 1, 77, false, "账号有误", "1.2.3.4"))
 }
 
 func TestWithdrawPay(t *testing.T) {
@@ -138,7 +138,7 @@ func TestWithdrawPay(t *testing.T) {
 	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"audit_logs\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
-	require.NoError(t, svc.ReviewWithdraw(context.Background(), 1, 77, true, "", "1.2.3.4"))
+	require.NoError(t, svc.Withdraw.ReviewWithdraw(context.Background(), 1, 77, true, "", "1.2.3.4"))
 }
 
 func TestWithdrawReviewWrongTicketType(t *testing.T) {
@@ -150,7 +150,7 @@ func TestWithdrawReviewWrongTicketType(t *testing.T) {
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"tickets\"")).WillReturnRows(withdrawTicketRows(tk))
 	e.mock.ExpectRollback()
 
-	err := svc.ReviewWithdraw(context.Background(), 1, 78, true, "", "1.2.3.4")
+	err := svc.Withdraw.ReviewWithdraw(context.Background(), 1, 78, true, "", "1.2.3.4")
 	assert.Equal(t, 40900, codeOf(err))
 }
 
@@ -248,7 +248,7 @@ func TestSortNotices(t *testing.T) {
 	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"audit_logs\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
-	require.NoError(t, svc.SortNotices(context.Background(), 1, []model.AdminSortItem{
+	require.NoError(t, svc.Content.SortNotices(context.Background(), 1, []model.AdminSortItem{
 		{ID: 1, Sort: 0}, {ID: 2, Sort: 1},
 	}, "1.2.3.4"))
 }

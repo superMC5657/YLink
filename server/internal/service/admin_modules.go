@@ -15,8 +15,9 @@ import (
 // admin 深模块总装：按域拆分的 module 集合与小 interface 缝合点。
 //
 // 术语说明：下文用 module 指代按域内聚的实现单元，用 interface/seam 指代
-// module 对外暴露的窄契约，用 adapter 指代对 telegram 能力的委托封装。
-// 每个 module 只持有本域所需的最小依赖；跨域复用经由 seam 显式声明。
+// module 对外暴露的窄契约。每个 module 只持有本域所需的最小依赖；跨域复用
+// 经由 seam 显式声明。ica-A facade（AdminService）已退役：装配唯一入口为
+// NewAdminSeams，handler 与测试直取所需域，不再经转发层（ADR-0005）。
 // 审计 target 摘要保持 batch:<count> 写法；流量模式 clear_usage/reset_quota
 // 语义不变；节点上报走模式 A（X-Node-Key 鉴权），手工导入走模式 B。
 
@@ -127,15 +128,51 @@ type adminVersionModule struct {
 	cfg *config.Config
 }
 
-// adminTelegramAdapter telegram 能力 adapter：委托底层实现。
-// late 注入收敛于此 adapter 的 seam，装配期之后不再扩散。
-type adminTelegramAdapter struct {
-	tg *TelegramService
-}
-
 // newAdminKernel 收敛装配入参为 kernel。
 func newAdminKernel(db *gorm.DB, rdb *redis.Client, repos *repo.Repos, cfg *config.Config, set *SettingService, ml *mailer.Mailer) *adminKernel {
 	return &adminKernel{db: db, rdb: rdb, repos: repos, cfg: cfg, set: set, ml: ml}
+}
+
+// AdminSeams 管理端域 seam 总装：各域 module 的唯一装配点。
+// handler 按需取用对应域；测试同样直取所需域（转发层已随 facade 退役）。
+type AdminSeams struct {
+	Audit    AdminAuditSeam
+	User     AdminUserSeam
+	Agent    AdminAgentSeam
+	Order    AdminOrderSeam
+	Catalog  AdminCatalogSeam
+	Content  AdminContentSeam
+	Node     AdminNodeBatchSeam
+	Stats    AdminStatsSeam
+	Traffic  AdminTrafficSeam
+	Ticket   AdminTicketSeam
+	Withdraw AdminWithdrawSeam
+	System   AdminSystemSeam
+	Version  AdminVersionSeam
+}
+
+// NewAdminSeams 装配全部域 module（签名与退役的 NewAdminService 一致，调用方平移）。
+func NewAdminSeams(db *gorm.DB, rdb *redis.Client, repos *repo.Repos, cfg *config.Config, set *SettingService, ml *mailer.Mailer) *AdminSeams {
+	k := newAdminKernel(db, rdb, repos, cfg, set, ml)
+	audit := &adminAuditModule{db: k.db, repos: k.repos}
+	user := &adminUserModule{db: k.db, rdb: k.rdb, repos: k.repos, cfg: k.cfg, ml: k.ml, audit: audit}
+	agent := &adminAgentModule{db: k.db, rdb: k.rdb, repos: k.repos, audit: audit}
+	order := &adminOrderModule{db: k.db, repos: k.repos, audit: audit}
+	catalog := &adminCatalogModule{db: k.db, rdb: k.rdb, repos: k.repos}
+	content := &adminContentModule{db: k.db, repos: k.repos, cfg: k.cfg, ml: k.ml, audit: audit}
+	node := &adminNodeBatchModule{db: k.db, rdb: k.rdb, repos: k.repos, audit: audit}
+	stats := &adminStatsModule{db: k.db, repos: k.repos}
+	traffic := &adminTrafficModule{db: k.db, repos: k.repos, audit: audit}
+	withdraw := &adminWithdrawModule{db: k.db, repos: k.repos, audit: audit}
+	ticket := &adminTicketModule{db: k.db, repos: k.repos, withdraw: withdraw}
+	system := &adminSystemModule{db: k.db, repos: k.repos, set: k.set}
+	version := &adminVersionModule{rdb: k.rdb, cfg: k.cfg}
+	return &AdminSeams{
+		Audit: audit, User: user, Agent: agent, Order: order,
+		Catalog: catalog, Content: content, Node: node, Stats: stats,
+		Traffic: traffic, Ticket: ticket, Withdraw: withdraw,
+		System: system, Version: version,
+	}
 }
 
 // ---- 对外暴露的窄 interface（handler 仅依赖所需 seam） ----
@@ -261,10 +298,4 @@ type AdminSystemSeam interface {
 // AdminVersionSeam 版本域 seam。
 type AdminVersionSeam interface {
 	VersionInfo(ctx context.Context) (*model.AdminVersionResp, error)
-}
-
-// AdminTelegramSeam telegram adapter 缝合点。
-type AdminTelegramSeam interface {
-	SetupTelegramWebhook(ctx context.Context, adminID int64, ip string) (*model.AdminTelegramWebhookSetupResp, error)
-	SetTelegram(tg *TelegramService)
 }

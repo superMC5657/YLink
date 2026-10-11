@@ -85,30 +85,30 @@ func TestSubscriptionRenderBrokenCustomFallsBack(t *testing.T) {
 // 保存前校验：语法错误拒绝（40000），不写库。
 func TestSaveSubscriptionTemplateBadSyntax(t *testing.T) {
 	e := newTestEnv(t)
-	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, &config.Config{App: config.AppConfig{Name: "YLink"}}, nil, nil)
+	svc := NewAdminSeams(e.db, e.rdb, &repo.Repos{}, &config.Config{App: config.AppConfig{Name: "YLink"}}, nil, nil)
 
-	err := svc.SaveSubscriptionTemplate(context.Background(), 1, "clash", "{{.NodeBlock", "1.2.3.4")
+	err := svc.Content.SaveSubscriptionTemplate(context.Background(), 1, "clash", "{{.NodeBlock", "1.2.3.4")
 	assert.Equal(t, 40000, codeOf(err))
 
-	err = svc.SaveSubscriptionTemplate(context.Background(), 1, "unknown-format", "x", "1.2.3.4")
+	err = svc.Content.SaveSubscriptionTemplate(context.Background(), 1, "unknown-format", "x", "1.2.3.4")
 	assert.Equal(t, 40400, codeOf(err))
 }
 
 // 内置模板预览：示例数据渲染，clash 含节点块、v2ray 返回 base64 前文本。
 func TestPreviewSubscriptionTemplateBuiltin(t *testing.T) {
 	e := newTestEnv(t)
-	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, &config.Config{App: config.AppConfig{Name: "YLink"}}, nil, nil)
+	svc := NewAdminSeams(e.db, e.rdb, &repo.Repos{}, &config.Config{App: config.AppConfig{Name: "YLink"}}, nil, nil)
 
 	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "subscription_templates"`)).
 		WillReturnError(assert.AnError)
-	clash, err := svc.PreviewSubscriptionTemplate(context.Background(), "clash")
+	clash, err := svc.Content.PreviewSubscriptionTemplate(context.Background(), "clash")
 	require.NoError(t, err)
 	assert.Contains(t, clash, "proxies:")
 	assert.Contains(t, clash, "type: trojan")
 
 	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "subscription_templates"`)).
 		WillReturnError(assert.AnError)
-	v2, err := svc.PreviewSubscriptionTemplate(context.Background(), "v2ray")
+	v2, err := svc.Content.PreviewSubscriptionTemplate(context.Background(), "v2ray")
 	require.NoError(t, err)
 	assert.Contains(t, v2, "trojan://") // base64 解码后可读
 	if _, err := base64.StdEncoding.DecodeString(v2); err == nil {

@@ -42,7 +42,6 @@ type app struct {
 	subSvc     *service.SubscribeService
 	inviteSvc  *service.InviteService
 	ticketSvc  *service.TicketService
-	adminSvc   *service.AdminService
 	nodeSvc    *service.NodeService
 	tgSvc      *service.TelegramService
 
@@ -109,10 +108,9 @@ func newApp(d Deps) *app {
 	subSvc := service.NewSubscribeService(d.DB, d.Redis, repos, d.Cfg)
 	inviteSvc := service.NewInviteService(d.DB, d.Redis, repos, d.Cfg)
 	ticketSvc := service.NewTicketService(d.DB, d.Redis, repos)
-	adminSvc := service.NewAdminService(d.DB, d.Redis, repos, d.Cfg, settingSvc, d.Mailer)
+	adminSeams := service.NewAdminSeams(d.DB, d.Redis, repos, d.Cfg, settingSvc, d.Mailer)
 	nodeSvc := service.NewNodeService(d.DB, d.Redis, repos)
 	tgSvc := service.NewTelegramService(d.DB, d.Redis, repos, d.Cfg)
-	adminSvc.SetTelegram(tgSvc)
 	return &app{
 		repos:      repos,
 		authSvc:    authSvc,
@@ -123,7 +121,6 @@ func newApp(d Deps) *app {
 		subSvc:     subSvc,
 		inviteSvc:  inviteSvc,
 		ticketSvc:  ticketSvc,
-		adminSvc:   adminSvc,
 		nodeSvc:    nodeSvc,
 		tgSvc:      tgSvc,
 		authH:      handler.NewAuth(authSvc),
@@ -134,7 +131,7 @@ func newApp(d Deps) *app {
 		subH:       handler.NewSubscribe(subSvc),
 		inviteH:    handler.NewInvite(inviteSvc),
 		ticketH:    handler.NewTicket(ticketSvc),
-		adminH:     admin.NewAdmin(adminSvc),
+		adminH:     admin.NewAdmin(adminSeams, tgSvc),
 		nodeH:      handler.NewNode(nodeSvc),
 		tgH:        handler.NewTelegram(tgSvc),
 	}

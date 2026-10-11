@@ -38,12 +38,12 @@ func TestAdminCloseWithdrawTicketRejected(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	set := NewSettingService(e.db, e.rdb, repos)
-	svc := NewAdminService(e.db, e.rdb, repos, nil, set, nil)
+	svc := NewAdminSeams(e.db, e.rdb, repos, nil, set, nil)
 	now := time.Now()
 
 	wt := &model.Ticket{ID: 77, UserID: 9, Subject: "佣金提现申请", Level: 0, Type: model.TicketTypeWithdraw, Status: 0, CreatedAt: now}
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"tickets\"")).WillReturnRows(withdrawTicketRows(wt))
-	err := svc.CloseTicket(context.Background(), 77)
+	err := svc.Ticket.CloseTicket(context.Background(), 77)
 	assert.Equal(t, 14003, codeOf(err))
 
 	nt := &model.Ticket{ID: 78, UserID: 9, Subject: "普通", Level: 1, Type: model.TicketTypeNormal, Status: 1, CreatedAt: now}
@@ -51,5 +51,5 @@ func TestAdminCloseWithdrawTicketRejected(t *testing.T) {
 	e.mock.ExpectBegin()
 	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"tickets\"")).WillReturnResult(sqlmock.NewResult(0, 1))
 	e.mock.ExpectCommit()
-	require.NoError(t, svc.CloseTicket(context.Background(), 78))
+	require.NoError(t, svc.Ticket.CloseTicket(context.Background(), 78))
 }

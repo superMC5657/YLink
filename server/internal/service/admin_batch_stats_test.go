@@ -16,10 +16,10 @@ import (
 
 // ---- F09 节点批量操作 / 复制 / 排序 ----
 
-func newAdminSvc(t *testing.T) (*testEnv, *AdminService) {
+func newAdminSvc(t *testing.T) (*testEnv, *AdminSeams) {
 	e := newTestEnv(t)
 	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
-	svc := NewAdminService(e.db, e.rdb, &repo.Repos{}, nil, set, nil)
+	svc := NewAdminSeams(e.db, e.rdb, &repo.Repos{}, nil, set, nil)
 	return e, svc
 }
 
@@ -39,7 +39,7 @@ func TestBatchServersDeleteWithSummary(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
-	resp, err := svc.BatchServers(context.Background(), 1, &model.AdminBatchServerReq{
+	resp, err := svc.Node.BatchServers(context.Background(), 1, &model.AdminBatchServerReq{
 		Action: "delete", IDs: []int64{1, 2},
 	}, "127.0.0.1")
 	require.NoError(t, err)
@@ -53,14 +53,14 @@ func TestBatchServersUpdateRequiresFields(t *testing.T) {
 	_, svc := newAdminSvc(t)
 
 	// update 未提供任何字段 → 400
-	_, err := svc.BatchServers(context.Background(), 1, &model.AdminBatchServerReq{
+	_, err := svc.Node.BatchServers(context.Background(), 1, &model.AdminBatchServerReq{
 		Action: "update", IDs: []int64{1},
 	}, "127.0.0.1")
 	assert.Equal(t, 40000, codeOf(err))
 
 	// rate 非正数 → 400
 	rate := 0.0
-	_, err = svc.BatchServers(context.Background(), 1, &model.AdminBatchServerReq{
+	_, err = svc.Node.BatchServers(context.Background(), 1, &model.AdminBatchServerReq{
 		Action: "update", IDs: []int64{1}, Rate: &rate,
 	}, "127.0.0.1")
 	assert.Equal(t, 40000, codeOf(err))
@@ -79,7 +79,7 @@ func TestBatchServersUpdateCommonFields(t *testing.T) {
 	e.mock.ExpectCommit()
 
 	isShow := false
-	resp, err := svc.BatchServers(context.Background(), 1, &model.AdminBatchServerReq{
+	resp, err := svc.Node.BatchServers(context.Background(), 1, &model.AdminBatchServerReq{
 		Action: "update", IDs: []int64{1}, IsShow: &isShow,
 	}, "127.0.0.1")
 	require.NoError(t, err)
@@ -105,7 +105,7 @@ func TestCopyServerGeneratesNewNodeKey(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
-	view, err := svc.CopyServer(context.Background(), 1, 5, "127.0.0.1")
+	view, err := svc.Node.CopyServer(context.Background(), 1, 5, "127.0.0.1")
 	require.NoError(t, err)
 	assert.Equal(t, "香港 01-copy", view.Name)
 	assert.Equal(t, int64(6), view.ID)
@@ -127,7 +127,7 @@ func TestSortServersSingleTx(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
-	err := svc.SortServers(context.Background(), 1, []model.AdminSortItem{
+	err := svc.Node.SortServers(context.Background(), 1, []model.AdminSortItem{
 		{ID: 1, Sort: 0}, {ID: 2, Sort: 1},
 	}, "127.0.0.1")
 	require.NoError(t, err)
@@ -154,7 +154,7 @@ func TestResetTrafficClearUsageKeepsSnapshot(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
-	resp, err := svc.ResetTraffic(context.Background(), 1, &model.AdminTrafficResetReq{
+	resp, err := svc.Traffic.ResetTraffic(context.Background(), 1, &model.AdminTrafficResetReq{
 		UserIDs: []int64{7}, Mode: "clear_usage",
 	}, "127.0.0.1")
 	require.NoError(t, err)
@@ -186,7 +186,7 @@ func TestTrafficResetAuditTargetSummary(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
-	resp, err := svc.ResetTraffic(context.Background(), 1, &model.AdminTrafficResetReq{
+	resp, err := svc.Traffic.ResetTraffic(context.Background(), 1, &model.AdminTrafficResetReq{
 		UserIDs: []int64{7}, Mode: "clear_usage",
 	}, "127.0.0.1")
 	require.NoError(t, err)
@@ -206,7 +206,7 @@ func TestResetTrafficResetQuotaWithoutPlanFails(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
-	resp, err := svc.ResetTraffic(context.Background(), 1, &model.AdminTrafficResetReq{
+	resp, err := svc.Traffic.ResetTraffic(context.Background(), 1, &model.AdminTrafficResetReq{
 		UserIDs: []int64{8}, Mode: "reset_quota",
 	}, "127.0.0.1")
 	require.NoError(t, err)
@@ -238,7 +238,7 @@ func TestStatOrdersFillsZeroDays(t *testing.T) {
 	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT to_char(updated_at::date, 'YYYY-MM-DD') AS d, 0 AS c, COALESCE(SUM(balance_used),0) AS a`)).
 		WillReturnRows(sqlmock.NewRows([]string{"d", "c", "a"}).AddRow(today, 0, 200))
 
-	resp, err := svc.StatOrders(context.Background(), 3)
+	resp, err := svc.Stats.StatOrders(context.Background(), 3)
 	require.NoError(t, err)
 	assert.Equal(t, 3, resp.Days)
 	require.Len(t, resp.Items, 3, "无数据日补零")
@@ -263,7 +263,7 @@ func TestStatTrafficTopN(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"server_id", "name", "total"}).
 			AddRow(5, "香港 01", 2147483648))
 
-	resp, err := svc.StatTraffic(context.Background(), 30)
+	resp, err := svc.Stats.StatTraffic(context.Background(), 30)
 	require.NoError(t, err)
 	require.Len(t, resp.UserTop, 1)
 	assert.Equal(t, "u7@y.link", resp.UserTop[0].Email)

@@ -11,7 +11,7 @@
 | 测试 | `go test ./... -count=1` 全绿 |
 | 契约对齐 | [docs/api/README.md](../api/README.md) 全量端点已实现(含 §16 管理端与批次新增模块) |
 | 迁移 | `migrations/0001` ~ `0009`(golang-migrate,均含 down) |
-| 代码结构 | 管理端 handler 按业务域拆分为 `internal/handler/admin/` 子包;service 层超大文件按域续拆(`admin_service` + `admin_audit/admin_order/admin_ticket/admin_crud`,`order_service` + `order_coupon/order_payment/order_fulfill`) |
+| 代码结构 | 管理端 handler 按业务域拆分为 `internal/handler/admin/` 子包;service 层管理端按域拆分为 modules（`admin_modules` 装配 + 各域 module，facade 已退役 ADR-0005;`order_service` + `order_coupon/order_payment/order_fulfill`) |
 
 ## 2. 已完成能力
 

@@ -13,7 +13,7 @@ import (
 
 // Admin 管理端 module 总装：按域缝合的 handler 集合。
 // 每个域 handler 只依赖对应窄 seam（interface），便于单域变更集中一处。
-// 术语：下文用 module 指代域内聚单元，用 interface/seam 指代窄契约，用 adapter 指代 telegram 委托。
+// 装配经 service.AdminSeams 直取各域；telegram 能力由 router 直注（facade 已退役，见 ADR-0005）。
 type Admin struct {
 	audit    service.AdminAuditSeam
 	user     service.AdminUserSeam
@@ -28,15 +28,15 @@ type Admin struct {
 	withdraw service.AdminWithdrawSeam
 	system   service.AdminSystemSeam
 	version  service.AdminVersionSeam
-	telegram service.AdminTelegramSeam
+	telegram *service.TelegramService
 }
 
-func NewAdmin(svc *service.AdminService) *Admin {
+func NewAdmin(s *service.AdminSeams, tg *service.TelegramService) *Admin {
 	return &Admin{
-		audit: svc, user: svc, agent: svc, order: svc,
-		catalog: svc, content: svc, node: svc, stats: svc,
-		traffic: svc, ticket: svc, withdraw: svc,
-		system: svc, version: svc, telegram: svc,
+		audit: s.Audit, user: s.User, agent: s.Agent, order: s.Order,
+		catalog: s.Catalog, content: s.Content, node: s.Node, stats: s.Stats,
+		traffic: s.Traffic, ticket: s.Ticket, withdraw: s.Withdraw,
+		system: s.System, version: s.Version, telegram: tg,
 	}
 }
 

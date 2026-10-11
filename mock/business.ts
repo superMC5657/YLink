@@ -106,6 +106,14 @@ const ticketMessages: Record<number, TicketDetail['messages']> = {
       created_at: '2026-07-05T14:00:00+08:00',
     },
   ],
+  42: [
+    {
+      id: 1,
+      sender_type: 0,
+      message: '【佣金提现申请】\n提现方式：alipay\n收款账号：demo@example.com\n金额：50.00 元',
+      created_at: '2026-08-28T12:00:00+08:00',
+    },
+  ],
 }
 
 const tickets: Ticket[] = [
@@ -113,6 +121,7 @@ const tickets: Ticket[] = [
     id: 7,
     subject: '无法连接香港节点',
     level: 1,
+    type: 0,
     status: 1,
     reopen_count: 0,
     last_reply_at: '2026-06-30T10:30:00+08:00',
@@ -122,6 +131,7 @@ const tickets: Ticket[] = [
     id: 8,
     subject: '咨询年付套餐发票事宜',
     level: 0,
+    type: 0,
     status: 0,
     reopen_count: 0,
     last_reply_at: null,
@@ -131,10 +141,22 @@ const tickets: Ticket[] = [
     id: 6,
     subject: '流量统计不准确',
     level: 2,
+    type: 0,
     status: 2,
     reopen_count: 0,
     last_reply_at: '2026-06-20T16:00:00+08:00',
     created_at: '2026-06-19T11:00:00+08:00',
+  },
+  // 提现工单(F02):用户 close/reopen 须被拒(后端 14003),E2E 以按钮隐藏行为断言,不直断错误码
+  {
+    id: 42,
+    subject: '佣金提现申请',
+    level: 0,
+    type: 1,
+    status: 0,
+    reopen_count: 0,
+    last_reply_at: '2026-08-28T12:00:00+08:00',
+    created_at: '2026-08-28T12:00:00+08:00',
   },
 ]
 
@@ -380,6 +402,24 @@ export default [
       const id = Number(query.id)
       const t = tickets.find((x) => x.id === id)
       if (!t) return { code: 40400, message: '工单不存在', data: null }
+      // 提现工单详情附带结构化提现信息(与后端 withdrawInfo 语义一致,前端据 type 隐藏关单入口)
+      if (t.type === 1) {
+        return ok({
+          ...t,
+          messages: ticketMessages[id] ?? [],
+          withdraw: {
+            id: 1,
+            user_id: 10086,
+            amount: 50,
+            method: 'alipay',
+            account: 'demo@example.com',
+            status: 0,
+            review_remark: null,
+            reviewed_at: null,
+            created_at: '2026-08-28T12:00:00+08:00',
+          },
+        })
+      }
       return ok({ ...t, messages: ticketMessages[id] ?? [] })
     },
   },
@@ -420,6 +460,8 @@ export default [
       const id = Number(query.id)
       const t = tickets.find((x) => x.id === id)
       if (!t) return { code: 40400, message: '工单不存在', data: null }
+      // 提现工单生命周期由管理员审核闭环,用户不可直接关闭(后端 14003)
+      if (t.type === 1) return { code: 14003, message: '提现工单不可手动关闭', data: null }
       t.status = 2
       return ok(t)
     },
@@ -432,6 +474,8 @@ export default [
       const id = Number(query.id)
       const t = tickets.find((x) => x.id === id)
       if (!t) return { code: 40400, message: '工单不存在', data: null }
+      // 提现工单同样不可重开(后端 14003,审核完成后资金已闭环)
+      if (t.type === 1) return { code: 14003, message: '提现工单不可手动关闭', data: null }
       if (t.status !== 2) return { code: 40900, message: '状态冲突', data: null }
       if (t.reopen_count >= 1) return { code: 14002, message: '工单仅可重开一次', data: null }
       t.status = 0

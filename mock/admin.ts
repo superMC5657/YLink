@@ -421,6 +421,19 @@ const tickets = [
     last_reply_at: '2026-07-12T14:00:00+08:00',
     created_at: '2026-07-12T13:50:00+08:00',
   },
+  // 提现工单(F02):列表透出 type=1 打标,详情走审核闭环(pay/reject),直接关单后端 14003
+  {
+    id: 3,
+    user_id: 10086,
+    user_email: '2734921923@qq.com',
+    subject: '佣金提现申请',
+    level: 0,
+    type: 1,
+    status: 0,
+    reopen_count: 0,
+    last_reply_at: '2026-08-28T12:00:00+08:00',
+    created_at: '2026-08-28T12:00:00+08:00',
+  },
 ]
 
 const ticketDetail = {
@@ -445,6 +458,36 @@ const ticketDetail = {
       created_at: '2026-07-10T09:30:00+08:00',
     },
   ],
+}
+
+// 提现工单详情(F02):附带结构化提现信息,审核入口据 withdraw.status 展示
+const ticketWithdrawDetail = {
+  id: 3,
+  subject: '佣金提现申请',
+  level: 0,
+  type: 1,
+  status: 0,
+  reopen_count: 0,
+  created_at: '2026-08-28T12:00:00+08:00',
+  messages: [
+    {
+      id: 1,
+      sender_type: 0,
+      message: '【佣金提现申请】\n提现方式：alipay\n收款账号：demo@example.com\n金额：50.00 元',
+      created_at: '2026-08-28T12:00:00+08:00',
+    },
+  ],
+  withdraw: {
+    id: 1,
+    user_id: 10086,
+    amount: 50,
+    method: 'alipay',
+    account: 'demo@example.com',
+    status: 0,
+    review_remark: null,
+    reviewed_at: null,
+    created_at: '2026-08-28T12:00:00+08:00',
+  },
 }
 
 // ---------- 二期模块(契约 docs/api/README.md §16.1) ----------
@@ -906,8 +949,16 @@ export default [
   {
     url: '/api/v1/admin/tickets/:id',
     method: 'get',
-    response: ({ headers }: { headers: Record<string, string> }) => {
+    response: ({
+      headers,
+      query,
+    }: {
+      headers: Record<string, string>
+      query: { id?: string }
+    }) => {
       if (!verifyAdmin(headers)) return forbidden()
+      // 提现工单走审核闭环详情(含 withdraw),普通工单走通用详情
+      if (query.id === '3') return ok(ticketWithdrawDetail)
       return ok(ticketDetail)
     },
   },
@@ -922,8 +973,16 @@ export default [
   {
     url: '/api/v1/admin/tickets/:id/close',
     method: 'post',
-    response: ({ headers }: { headers: Record<string, string> }) => {
+    response: ({
+      headers,
+      query,
+    }: {
+      headers: Record<string, string>
+      query: { id?: string }
+    }) => {
       if (!verifyAdmin(headers)) return forbidden()
+      // 提现工单须经 pay/reject 审核闭环,直接关单后端 14003(与后端 guardAdminCloseWithdraw 一致)
+      if (query.id === '3') return { code: 14003, message: '提现工单不可手动关闭', data: null }
       return ok(null)
     },
   },

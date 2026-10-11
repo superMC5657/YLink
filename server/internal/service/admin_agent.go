@@ -65,8 +65,8 @@ func (m *adminAgentModule) ReviewAgentApply(ctx context.Context, adminID, applyI
 			if err := m.repos.User.UpdateRole(tx, apply.UserID, model.RoleAgent); err != nil {
 				return err
 			}
-			// 升级为代理商 → bump 会话版本号：旧 access token 的 role 快照立即失效
-			bumpSessionVersion(ctx, m.rdb, apply.UserID)
+			// 升级为代理商 → 经会话吊销深 Module 全量吊销：旧 access 的 role 快照立即失效
+			_ = NewSessionRevoker(m.rdb, 0).RevokeAll(ctx, apply.UserID, RevokeReasonAgentApprove)
 		}
 		now := time.Now()
 		apply.Status = status

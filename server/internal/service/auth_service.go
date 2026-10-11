@@ -259,11 +259,9 @@ func (s *AuthService) Forgot(ctx context.Context, req *model.ForgotReq) error {
 // ---- 登出 ----
 
 // Logout 吊销当前 refresh 并 bump 会话版本号（access 立即失效）。
+// 经会话吊销深 Module 表达登出意图。
 func (s *AuthService) Logout(ctx context.Context, userID int64, jti string) error {
-	if jti != "" {
-		s.rdb.Del(ctx, refreshKey(userID, jti))
-	}
-	bumpSessionVersion(ctx, s.rdb, userID)
+	NewSessionRevoker(s.rdb, s.cfg.JWT.RefreshTTL).LogoutCurrent(ctx, userID, jti)
 	return nil
 }
 
@@ -300,30 +298,14 @@ func (s *AuthService) issueSession(ctx context.Context, user *model.User) (*mode
 }
 
 // revokeAllSessions 删除用户全部 refresh 白名单，并 bump 会话版本号（access 立即失效）。
+// 薄 adapter：转发到会话吊销深 Module。
 func (s *AuthService) revokeAllSessions(ctx context.Context, userID int64) error {
-	pattern := redispkg.Key("refresh", fmt.Sprint(userID), "*")
-	iter := s.rdb.Scan(ctx, 0, pattern, 100).Iterator()
-	for iter.Next(ctx) {
-		s.rdb.Del(ctx, iter.Val())
-	}
-	bumpSessionVersion(ctx, s.rdb, userID)
-	return iter.Err()
+	return NewSessionRevoker(s.rdb, s.cfg.JWT.RefreshTTL).RevokeAll(ctx, userID, RevokeReasonPasswordReset)
 }
 
-// revokeOtherSessions 吊销除当前 jti 外的会话。
+// revokeOtherSessions 吊销除当前 jti 外的会话。薄 adapter：转发到深 Module。
 func (s *AuthService) revokeOtherSessions(ctx context.Context, userID int64, keepJTI string) error {
-	pattern := redispkg.Key("refresh", fmt.Sprint(userID), "*")
-	iter := s.rdb.Scan(ctx, 0, pattern, 100).Iterator()
-	for iter.Next(ctx) {
-		if iter.Val() != refreshKey(userID, keepJTI) {
-			s.rdb.Del(ctx, iter.Val())
-		}
-	}
-	return iter.Err()
-}
-
-func refreshKey(userID int64, jti string) string {
-	return redispkg.Key("refresh", fmt.Sprint(userID), jti)
+	return NewSessionRevoker(s.rdb, s.cfg.JWT.RefreshTTL).RevokeOthers(ctx, userID, keepJTI)
 }
 
 // randomCode 生成 n 位数字验证码。

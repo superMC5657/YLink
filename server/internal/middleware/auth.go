@@ -33,17 +33,10 @@ func Auth(mgr *jwtpkg.Manager, rdb *redis.Client) gin.HandlerFunc {
 			Fail(c, errs.ErrUnauthorized)
 			return
 		}
-		// 会话版本号比对：Key 不存在视为 0（Redis 重启安全）；Redis 异常不阻断（退化为 TTL）。
-		// 与踢下线标记（F14 auth:kill:{uid} Hash field=jti）合并为一次 Pipeline，控制鉴权 RTT。
-		pipe := rdb.Pipeline()
-		svCmd := pipe.Get(c.Request.Context(), redispkg.SessionVersionKey(claims.UserID))
-		killCmd := pipe.HExists(c.Request.Context(), redispkg.SessionKillKey(claims.UserID), claims.JTI)
-		_, _ = pipe.Exec(c.Request.Context())
-		if cur, err := svCmd.Int64(); err == nil && claims.SV != cur {
-			Fail(c, errs.ErrUnauthorized)
-			return
-		}
-		if killed, _ := killCmd.Result(); killed {
+		// 会话版本号比对 + 踢下线标记：经会话吊销深 Module 的读 seam 提问，不手拼 Key。
+		// Key 不存在视为 0（Redis 重启安全）；Redis 异常不阻断（退化为 TTL）。
+		ok, _ := redispkg.SessionAccessAllowed(c.Request.Context(), rdb, claims.UserID, claims.JTI, claims.SV)
+		if !ok {
 			Fail(c, errs.ErrUnauthorized)
 			return
 		}

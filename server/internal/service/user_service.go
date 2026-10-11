@@ -2,10 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"strings"
-	"time"
 
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
@@ -13,7 +9,6 @@ import (
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/errs"
 	"ylink-backend/internal/pkg/passwd"
-	redispkg "ylink-backend/internal/pkg/redis"
 	"ylink-backend/internal/repo"
 )
 
@@ -102,57 +97,14 @@ func (s *UserService) ChangePassword(ctx context.Context, userID int64, jti stri
 // ---- 会话管理（F14） ----
 
 // ListSessions GET /user/sessions 活跃会话列表（refresh 白名单维度，Redis SCAN）。
-// 白名单值恒为 issueSession 写入的 JSON {ip,ua,ts}；currentJTI 标记当前会话。
+// 薄 adapter：转发到会话吊销深 Module 的读 seam。
 func (s *UserService) ListSessions(ctx context.Context, userID int64, currentJTI string) ([]model.UserSessionItem, error) {
-	pattern := redispkg.Key("refresh", fmt.Sprint(userID), "*")
-	iter := s.rdb.Scan(ctx, 0, pattern, 100).Iterator()
-	out := make([]model.UserSessionItem, 0, 4)
-	for iter.Next(ctx) {
-		key := iter.Val()
-		jti := key[strings.LastIndex(key, ":")+1:]
-		if jti == "" {
-			continue
-		}
-		raw, err := s.rdb.Get(ctx, key).Result()
-		if err != nil {
-			continue
-		}
-		var meta struct {
-			IP        string    `json:"ip"`
-			UserAgent string    `json:"ua"`
-			CreatedAt time.Time `json:"ts"`
-		}
-		if json.Unmarshal([]byte(raw), &meta) != nil {
-			continue
-		}
-		item := model.UserSessionItem{JTI: jti, Current: jti == currentJTI}
-		item.IP = meta.IP
-		item.UserAgent = meta.UserAgent
-		item.CreatedAt = &meta.CreatedAt
-		out = append(out, item)
-	}
-	return out, iter.Err()
+	return NewSessionRevoker(s.rdb, s.auth.cfg.JWT.RefreshTTL).List(ctx, userID, currentJTI)
 }
 
 // RevokeSession DELETE /user/sessions/{jti} 踢下线指定会话：删除 refresh 白名单 +
 // 写踢下线标记（access 立即失效）；当前会话不可自行踢除，其余会话不受影响。
+// 薄 adapter：转发到会话吊销深 Module。
 func (s *UserService) RevokeSession(ctx context.Context, userID int64, jti, currentJTI string) error {
-	if jti == "" {
-		return errs.ErrNotFound
-	}
-	if jti == currentJTI {
-		return errs.New(40000, "不能踢除当前登录会话")
-	}
-	n, err := s.rdb.Del(ctx, refreshKey(userID, jti)).Result()
-	if err != nil {
-		return err
-	}
-	if n == 0 {
-		return errs.ErrNotFound
-	}
-	// access 立即失效：Auth 中间件 HExists 命中即 401；Hash 随 refresh TTL 自动清理
-	killKey := redispkg.SessionKillKey(userID)
-	s.rdb.HSet(ctx, killKey, jti, 1)
-	s.rdb.Expire(ctx, killKey, s.auth.cfg.JWT.RefreshTTL)
-	return nil
+	return NewSessionRevoker(s.rdb, s.auth.cfg.JWT.RefreshTTL).RevokeOne(ctx, userID, jti, currentJTI)
 }

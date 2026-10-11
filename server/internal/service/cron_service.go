@@ -308,8 +308,8 @@ func (s *CronService) AgentAudit(ctx context.Context) {
 		if valid < int64(required) {
 			if err := s.repos.User.UpdateRole(s.db, a.ID, model.RoleUser); err == nil {
 				downgraded++
-				// 降级 → bump 会话版本号：旧 access token 的 role 快照立即失效
-				bumpSessionVersion(ctx, s.rdb, a.ID)
+				// 降级 → 经会话吊销深 Module 全量吊销：旧 access 的 role 快照立即失效
+				_ = NewSessionRevoker(s.rdb, 0).RevokeAll(ctx, a.ID, RevokeReasonAgentDowngrade)
 				logger.L().Info("agent downgraded", zapS("user_id", fmt.Sprint(a.ID)))
 			}
 		}

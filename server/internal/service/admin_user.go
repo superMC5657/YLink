@@ -54,11 +54,13 @@ func (m *adminUserModule) UpdateUser(ctx context.Context, adminID, userID int64,
 		return errs.ErrNotFound
 	}
 	changed := false
+	reason := RevokeReasonBan
 	if req.Banned != nil && *req.Banned != user.IsBanned {
 		if err := m.repos.User.SetBanned(m.db, userID, *req.Banned); err != nil {
 			return err
 		}
 		changed = true
+		reason = RevokeReasonBan
 		_ = m.audit.write(m.db, adminID, "ban_user", fmt.Sprint(userID), ip, map[string]any{
 			"email": user.Email, "banned": *req.Banned,
 		})
@@ -68,13 +70,14 @@ func (m *adminUserModule) UpdateUser(ctx context.Context, adminID, userID int64,
 			return err
 		}
 		changed = true
+		reason = RevokeReasonRoleChange
 		_ = m.audit.write(m.db, adminID, "update_role", fmt.Sprint(userID), ip, map[string]any{
 			"email": user.Email, "role": *req.Role,
 		})
 	}
-	// 封禁/解封/角色变更 → bump 会话版本号：已签发 access token 立即失效
+	// 封禁/解封/角色变更 → 经会话吊销深 Module 全量吊销：已签发 access 立即失效
 	if changed {
-		bumpSessionVersion(ctx, m.rdb, userID)
+		_ = NewSessionRevoker(m.rdb, 0).RevokeAll(ctx, userID, reason)
 	}
 	return nil
 }

@@ -263,21 +263,26 @@ audit_logs：id、admin_id、action（如 `adjust_balance/refund/ban_user`）、
 |---|---|---|
 | `captcha:email:{type}:{email}` | String，10min | 邮箱验证码；type=register/forgot |
 | `captcha:rate:{email}` / `captcha:rate:ip:{ip}` | String，60s / String，24h | 发送限频与每日上限 |
+| `auth:ver:{uid}` | Counter(INCR)，无 TTL | 会话版本号SV：封禁/解封/角色变更/代理审批/降级/找回密码/登出 bump，已签发 access 快照比对不一致即 401（owner：会话吊销深 Module；Key 不存在视为 0） |
 | `refresh:{user_id}:{jti}` | String(JSON)，14d | refresh token 白名单（登出/改密即删）；值为会话元数据 `{ip, ua, ts}` 供 F14 会话列表展示（字段语义见 [api README](../api/README.md) §5.7） |
 | `auth:kill:{user_id}` | Hash(field=jti)，14d | F14 踢下线标记：用户端踢下线指定会话写入，Auth 中间件 HExists 命中即 401（单会话 access 立即失效，不影响其余会话） |
 | `login:fail:{email}` | String+INCR，10min | 登录失败锁定计数 |
 | `tg:bind:code:{code}` | String(user_id)，10min | F12 Telegram 绑定验证码（单次有效，GetDel 消费） |
 | `tg:bind:rate:{user_id}` | String，60s | F12 绑定验证码重发间隔 |
 | `tg:bind:daily:{user_id}` | String+INCR，24h | F12 每日验证码签发上限（20 次） |
-| `rl:{scope}:{key}` | 令牌桶 | 接口限流（scope=login/global/subscribe…） |
-| `idem:{key}` | String（响应快照），24h | 下单幂等 |
-| `order:paying:{order_no}` | String，30min | 收银台创建锁，防重复拉起支付 |
-| `cache:settings` / `cache:plans` / `cache:servers` | JSON，60–300s | 热数据缓存，变更即失效 |
-| `sub:userinfo:{token}` | Hash，30s | 订阅 userinfo 缓存，防客户端高频拉取打库（节点上报后主动删除，客户端立即可见新用量） |
+| `rl:{scope}:{clientIP}` | String+Lua INCR，窗口见 scope（严格 1min/5 次，全局 1min/300 次） | 固定窗口限流（多实例共享计数；IP 取 X-Forwarded-For 第一跳） |
+| `idem:{user_id}:{key}` | String（响应快照），24h | 下单幂等（key 按 user_id 隔离；成功响应回放） |
+| `order:paying:{user_id}:{order_no}:{method}` | String，30min | 收银台创建锁，防重复拉起支付 |
+| `cache:settings:{key}` | String(JSON)，60s | 热配置缓存，管理端变更即失效 |
+| `cache:version:manifest` | String(JSON)，10min | 远端版本清单缓存（F20，3s 超时拉取） |
+| `sub:userinfo:{token}` | String，30s | 订阅 userinfo 缓存，防客户端高频拉取打库（节点上报后主动删除，客户端立即可见新用量） |
+| `sub:rl:{token}` | String+INCR，1min | 订阅下发独立限流（10 次/分/token，超限 429） |
+| `remind:expire:{uid}:{expUnix}:{window}` | String+NX，30d | 到期提醒窗口去重（window=3d/1d，owner：Cron 调度深 Module） |
+| `remind:traffic:{uid}` | String+NX，30d | 流量提醒去重（用量≥80%，owner：Cron 调度深 Module） |
 | `node:key:{node_key}` | String(server_id)，60s | 节点密钥 → 节点 id 缓存（X-Node-Key 鉴权；重置密钥即删） |
 | `node:heartbeat:{id}` | String(unix 秒)，90s | 在线状态深 Module 写 seam：节点上报心跳；存在即在线，过期即离线（形状/TTL 的 owner 见 `node_presence.go`） |
 | `node:stats:{id}` | String(NodeSystemStats JSON)，180s | 在线状态深 Module 写 seam：负载快照（`model.NodeSystemStats` 形状唯一来源）；解析失败读端降级 nil |
-| `cron:lock:{job}` | String+NX | 定时任务分布式锁 |
+| `cron:lock:{job}` | String+NX，15min | 定时任务分布式锁（占不到即跳过并打点，owner：Cron 调度深 Module） |
 
 ## 4. 初始化数据
 

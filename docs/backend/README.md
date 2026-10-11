@@ -86,7 +86,7 @@ server/
 | Recovery | panic 捕获 → 500 + envelope，记录堆栈 |
 | AccessLog | 方法/路径/状态/耗时/用户 ID（脱敏，不记 body 与 token） |
 | CORS | 白名单域名（Web 版前端域名）；Tauri 桌面端走原生 http 不经过浏览器 CORS，但订阅端点需允许任意来源（代理客户端直连） |
-| RateLimit | Redis 令牌桶：登录/注册/验证码严格（如 5 次/分钟/IP），全局宽松（如 300 次/分钟/IP）；超限返回 429 |
+| RateLimit | Redis 固定窗口（Lua 原子 INCR+EXPIRE，多实例共享计数）：登录/注册/验证码严格（如 5 次/分钟/IP），全局宽松（如 300 次/分钟/IP）；超限返回 429 |
 | Auth | 解析 Bearer JWT，注入 `user_id`；`admin` 分组额外校验 `role` |
 | Idempotency | 对 `POST /orders` 等写接口支持 `Idempotency-Key` 头：同 Key 在 24h 内直接返回首次结果（Redis 缓存响应），防重复下单 |
 

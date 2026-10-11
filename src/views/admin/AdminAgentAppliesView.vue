@@ -9,7 +9,7 @@ import { apiAdmin } from '@/api/admin'
 import type { AdminAgentApplyItem, AdminApplyStatus } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { useMessage, useDialog } from 'naive-ui'
-import { formatTime } from '@/utils/format'
+import { agentApplyStatusBadge, agentApplyStatusLabel, formatTime } from '@/utils/format'
 
 const { t } = useI18n()
 const message = useMessage()
@@ -22,18 +22,13 @@ const page = ref(1)
 const pageSize = 10
 const statusFilter = ref<'' | AdminApplyStatus>('')
 
-const STATUS_KEY: Record<AdminApplyStatus, string> = {
-  0: 'adminAgentApplies.pending',
-  1: 'adminAgentApplies.approved',
-  2: 'adminAgentApplies.rejected',
-}
-
 function statusText(status: AdminApplyStatus): string {
-  return t(STATUS_KEY[status])
+  // 机械收敛:同域小表（文案与徽标同源，不跨域复用）
+  return agentApplyStatusLabel(status)
 }
 
 function statusType(status: AdminApplyStatus): 'warning' | 'success' | 'danger' {
-  return status === 0 ? 'warning' : status === 1 ? 'success' : 'danger'
+  return agentApplyStatusBadge(status)
 }
 
 async function load() {

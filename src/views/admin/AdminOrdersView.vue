@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n'
 import { apiAdmin } from '@/api/admin'
 import type { AdminOrderItem, OrderStatus } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
-import { payMethodLabel, periodLabel } from '@/utils/format'
+import { orderStatusBadge, orderStatusLabel, payMethodLabel, periodLabel } from '@/utils/format'
 import { useMessage, useDialog } from 'naive-ui'
 
 const { t } = useI18n()
@@ -22,19 +22,13 @@ const page = ref(1)
 const pageSize = 10
 const statusFilter = ref<'' | OrderStatus>('')
 
-const STATUS_KEY: Record<OrderStatus, string> = {
-  0: 'common.pending',
-  1: 'common.completed',
-  2: 'common.cancelled',
-  3: 'common.refunded',
-}
-
 function statusText(status: OrderStatus): string {
-  return t(STATUS_KEY[status])
+  // 机械收敛:订单域小表（用户端同形，不跨域复用）
+  return orderStatusLabel(status)
 }
 
 function statusType(status: OrderStatus): 'warning' | 'success' | 'neutral' | 'danger' {
-  return status === 0 ? 'warning' : status === 1 ? 'success' : status === 2 ? 'neutral' : 'danger'
+  return orderStatusBadge(status)
 }
 
 async function load() {

@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
+  adminTicketLevelBadge,
+  adminTicketLevelLabel,
+  adminTicketStatusBadge,
+  adminTicketStatusLabel,
+  agentApplyStatusBadge,
+  agentApplyStatusLabel,
+  commissionStatusBadge,
+  commissionStatusLabel,
   formatBytes,
   formatDate,
   formatExpiry,
@@ -9,6 +17,7 @@ import {
   formatTime,
   fromNow,
   localDateKey,
+  orderStatusBadge,
   orderStatusLabel,
   periodLabel,
   serverStatusMeta,
@@ -126,5 +135,39 @@ describe('标签映射', () => {
   it('serverStatusMeta', () => {
     expect(serverStatusMeta(1).label).toBe('正常')
     expect(serverStatusMeta(3).label).toBe('维护')
+  })
+  it('orderStatusBadge: 与收敛前四处手写映射同形', () => {
+    expect(orderStatusBadge(0)).toBe('warning')
+    expect(orderStatusBadge(1)).toBe('success')
+    expect(orderStatusBadge(2)).toBe('neutral')
+    expect(orderStatusBadge(3)).toBe('danger')
+  })
+  it('commissionStatusLabel / commissionStatusBadge', () => {
+    expect(commissionStatusLabel(0)).toBe('确认中')
+    expect(commissionStatusLabel(1)).toBe('已发放')
+    expect(commissionStatusLabel(2)).toBe('已撤销')
+    expect(commissionStatusBadge(0)).toBe('warning')
+    expect(commissionStatusBadge(1)).toBe('success')
+    expect(commissionStatusBadge(2)).toBe('danger')
+  })
+  it('agentApplyStatusLabel / agentApplyStatusBadge', () => {
+    expect(agentApplyStatusLabel(0)).toBe('待审核')
+    expect(agentApplyStatusLabel(1)).toBe('已通过')
+    expect(agentApplyStatusLabel(2)).toBe('已拒绝')
+    expect(agentApplyStatusBadge(0)).toBe('warning')
+    expect(agentApplyStatusBadge(1)).toBe('success')
+    expect(agentApplyStatusBadge(2)).toBe('danger')
+  })
+  it('adminTicketStatusLabel / adminTicketStatusBadge / level', () => {
+    expect(adminTicketStatusLabel(0)).toBe('待回复')
+    expect(adminTicketStatusLabel(1)).toBe('已回复')
+    expect(adminTicketStatusLabel(2)).toBe('已关闭')
+    expect(adminTicketStatusBadge(0)).toBe('warning')
+    expect(adminTicketStatusBadge(1)).toBe('primary')
+    expect(adminTicketStatusBadge(2)).toBe('neutral')
+    expect(adminTicketLevelLabel(2)).toBe('高')
+    expect(adminTicketLevelBadge(0)).toBe('neutral')
+    expect(adminTicketLevelBadge(1)).toBe('warning')
+    expect(adminTicketLevelBadge(2)).toBe('danger')
   })
 })

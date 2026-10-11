@@ -8,7 +8,12 @@ import { useI18n } from 'vue-i18n'
 import { apiAdmin } from '@/api/admin'
 import type { AdminCommissionItem, CommissionStatus } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
-import { formatMoney, formatTime } from '@/utils/format'
+import {
+  commissionStatusBadge,
+  commissionStatusLabel,
+  formatMoney,
+  formatTime,
+} from '@/utils/format'
 
 const { t } = useI18n()
 const loading = ref(false)
@@ -18,18 +23,13 @@ const page = ref(1)
 const pageSize = 10
 const statusFilter = ref<'' | CommissionStatus>('')
 
-const STATUS_KEY: Record<CommissionStatus, string> = {
-  0: 'adminCommissionLogs.confirming',
-  1: 'adminCommissionLogs.paid',
-  2: 'adminCommissionLogs.revoked',
-}
-
 function statusText(status: CommissionStatus): string {
-  return t(STATUS_KEY[status])
+  // 机械收敛:同域小表（文案与徽标同源，不跨域复用）
+  return commissionStatusLabel(status)
 }
 
 function statusType(status: CommissionStatus): 'warning' | 'success' | 'danger' {
-  return status === 0 ? 'warning' : status === 1 ? 'success' : 'danger'
+  return commissionStatusBadge(status)
 }
 
 async function load() {

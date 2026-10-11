@@ -7,7 +7,13 @@ import { computed, ref, watch } from 'vue'
 import { useOrderStore } from '@/stores/order'
 import { useMessage, useDialog } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
-import { formatMoney, formatTime, orderStatusLabel, periodLabel } from '@/utils/format'
+import {
+  formatMoney,
+  formatTime,
+  orderStatusBadge,
+  orderStatusLabel,
+  periodLabel,
+} from '@/utils/format'
 import PaymentModal from './PaymentModal.vue'
 import type { Order } from '@/types/api'
 
@@ -41,13 +47,8 @@ watch(
 )
 
 const statusType = computed(() => {
-  const map: Record<Order['status'], 'success' | 'warning' | 'neutral' | 'danger'> = {
-    0: 'warning',
-    1: 'success',
-    2: 'neutral',
-    3: 'danger',
-  }
-  return map[(detail.value?.status ?? 2) as Order['status']]
+  // 机械收敛:订单域小表（缺单回退 2=已取消，与收敛前一致）
+  return orderStatusBadge(detail.value?.status ?? 2)
 })
 
 async function onCancel() {

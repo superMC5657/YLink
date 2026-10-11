@@ -2,7 +2,13 @@
 /**
  * 订单表格(桌面视图)。数据:GET /orders(契约 §10.2)
  */
-import { formatMoney, formatTime, orderStatusLabel, periodLabel } from '@/utils/format'
+import {
+  formatMoney,
+  formatTime,
+  orderStatusBadge,
+  orderStatusLabel,
+  periodLabel,
+} from '@/utils/format'
 import type { Order } from '@/types/api'
 
 defineProps<{ orders: Order[] }>()
@@ -13,13 +19,8 @@ const emit = defineEmits<{
 }>()
 
 function statusType(status: Order['status']) {
-  const map: Record<Order['status'], 'success' | 'warning' | 'neutral' | 'danger'> = {
-    0: 'warning',
-    1: 'success',
-    2: 'neutral',
-    3: 'danger',
-  }
-  return map[status]
+  // 机械收敛:订单域小表（管理端同形）
+  return orderStatusBadge(status)
 }
 </script>
 

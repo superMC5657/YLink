@@ -10,6 +10,12 @@ import { useI18n } from 'vue-i18n'
 import { apiAdmin } from '@/api/admin'
 import type { AdminTicketDetail, AdminTicketItem, TicketLevel, TicketStatus } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import {
+  adminTicketLevelBadge,
+  adminTicketLevelLabel,
+  adminTicketStatusBadge,
+  adminTicketStatusLabel,
+} from '@/utils/format'
 import { useMessage, useDialog } from 'naive-ui'
 
 const { t } = useI18n()
@@ -30,32 +36,21 @@ const replyText = ref('')
 const sending = ref(false)
 const msgListRef = ref<HTMLElement | null>(null)
 
-const LEVEL_KEY: Record<TicketLevel, string> = {
-  0: 'adminTickets.low',
-  1: 'adminTickets.medium',
-  2: 'adminTickets.high',
-}
-
-const STATUS_KEY: Record<TicketStatus, string> = {
-  0: 'adminTickets.pending',
-  1: 'adminTickets.replied',
-  2: 'adminTickets.closed',
-}
-
+// 机械收敛:工单域小表（文案与徽标同源；用户端 success 色不同意图，不硬合）
 function levelText(level: TicketLevel): string {
-  return t(LEVEL_KEY[level])
+  return adminTicketLevelLabel(level)
 }
 
 function levelType(level: TicketLevel): 'neutral' | 'warning' | 'danger' {
-  return level === 0 ? 'neutral' : level === 1 ? 'warning' : 'danger'
+  return adminTicketLevelBadge(level)
 }
 
 function statusText(status: TicketStatus): string {
-  return t(STATUS_KEY[status])
+  return adminTicketStatusLabel(status)
 }
 
 function statusType(status: TicketStatus): 'warning' | 'primary' | 'neutral' {
-  return status === 0 ? 'warning' : status === 1 ? 'primary' : 'neutral'
+  return adminTicketStatusBadge(status)
 }
 
 async function load() {

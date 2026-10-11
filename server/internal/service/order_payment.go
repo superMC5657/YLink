@@ -21,6 +21,7 @@ import (
 )
 
 // ---- 收银台与支付回调(Checkout / HandleNotify / 回执邮件) ----
+// 渠道分支与履约后置经由 trade module 的 seam 收口，不再散落于各处。
 
 // Checkout POST /orders/{no}/checkout 拉起支付或余额直付。
 func (s *OrderService) Checkout(ctx context.Context, userID int64, orderNo, method string) (*model.CheckoutResp, error) {
@@ -32,7 +33,7 @@ func (s *OrderService) Checkout(ctx context.Context, userID int64, orderNo, meth
 		return nil, errs.ErrOrderStatus
 	}
 
-	if method == "balance" {
+	if s.trade.isBalanceChannel(method) {
 		return s.checkoutBalance(ctx, order)
 	}
 
@@ -110,10 +111,10 @@ func (s *OrderService) checkoutBalance(ctx context.Context, order *model.Order) 
 		if err := s.repos.Order.Save(tx, locked); err != nil {
 			return err
 		}
-		if err := s.applySubscription(tx, locked); err != nil {
+		if err := s.trade.apply(tx, locked); err != nil {
 			return err
 		}
-		return s.grantCommission(tx, locked, payAmount)
+		return s.trade.grant(tx, locked, payAmount)
 	})
 	if err != nil {
 		return nil, err
@@ -167,10 +168,10 @@ func (s *OrderService) HandleNotify(ctx context.Context, method string, nr *paym
 		if err := s.repos.Order.Save(tx, order); err != nil {
 			return err
 		}
-		if err := s.applySubscription(tx, order); err != nil {
+		if err := s.trade.apply(tx, order); err != nil {
 			return err
 		}
-		return s.grantCommission(tx, order, order.PayAmount)
+		return s.trade.grant(tx, order, order.PayAmount)
 	})
 	if err == nil {
 		middleware.PaySuccessInc(method)

@@ -8,15 +8,27 @@ import (
 	"ylink-backend/internal/model"
 )
 
-// ---- 履约:订阅开通/续期与佣金入账(支付成功后调用) ----
+// ---- 履约域 module：订阅开通/续期与佣金入账（支付后置调用） ----
+// 渠道判定（余额直付 vs 在线渠道）收敛于本 module，
+// 券×周期×渠道的 N×M 分支不再散落于收银台与佣金各处。
 
-// applySubscription 开通/续期规则（core-flows 2.1）。
-func (s *OrderService) applySubscription(tx *gorm.DB, order *model.Order) error {
-	user, err := s.repos.User.GetByID(tx, order.UserID)
+// isBalanceChannel 渠道判定唯一口：余额直付渠道。
+func (m *orderTradeModule) isBalanceChannel(method string) bool {
+	return method == "balance"
+}
+
+// commissionEligible 佣金准入唯一口：余额直付不写佣金，仅在线渠道写佣金。
+func (m *orderTradeModule) commissionEligible(payMethod *string) bool {
+	return payMethod == nil || *payMethod != "balance"
+}
+
+// apply 开通/续期唯一口（core-flows 2.1）。
+func (m *orderTradeModule) apply(tx *gorm.DB, order *model.Order) error {
+	user, err := m.repos.User.GetByID(tx, order.UserID)
 	if err != nil {
 		return err
 	}
-	plan, err := s.repos.Plan.GetByID(tx, order.PlanID)
+	plan, err := m.repos.Plan.GetByID(tx, order.PlanID)
 	if err != nil {
 		return err
 	}
@@ -51,23 +63,24 @@ func (s *OrderService) applySubscription(tx *gorm.DB, order *model.Order) error 
 	}
 	user.SpeedLimit = plan.SpeedLimit
 	user.DeviceLimit = plan.DeviceLimit
-	return s.repos.User.Save(tx, user)
+	return m.repos.User.Save(tx, user)
 }
 
-// grantCommission 下单支付成功后写佣金（确认中）。payAmount 为实际支付金额（余额支付为扣减前的应付额）。
-// 余额支付不产生佣金（2026-08-12 需求变更）：仅在线支付渠道(epay 等)写佣金。
-func (s *OrderService) grantCommission(tx *gorm.DB, order *model.Order, payAmount int64) error {
-	if order.PayMethod != nil && *order.PayMethod == "balance" {
+// grant 佣金唯一口：下单支付后写佣金（确认中）。payAmount 为实际支付金额（余额支付为扣减前的应付额）。
+// 余额支付不产生佣金（2026-08-12 需求变更）：仅在线渠道写佣金。
+// 邀请人缺失不上抛（返回 nil 不阻塞支付主流程）；佣金缺失上抛语义由上层保持。
+func (m *orderTradeModule) grant(tx *gorm.DB, order *model.Order, payAmount int64) error {
+	if !m.commissionEligible(order.PayMethod) {
 		return nil
 	}
-	user, err := s.repos.User.GetByID(tx, order.UserID)
+	user, err := m.repos.User.GetByID(tx, order.UserID)
 	if err != nil {
 		return err
 	}
 	if user.InviteByID == nil {
 		return nil
 	}
-	inviter, err := s.repos.User.GetByID(tx, *user.InviteByID)
+	inviter, err := m.repos.User.GetByID(tx, *user.InviteByID)
 	if err != nil {
 		return nil // 邀请人异常不阻塞支付
 	}
@@ -76,7 +89,7 @@ func (s *OrderService) grantCommission(tx *gorm.DB, order *model.Order, payAmoun
 	if amount <= 0 {
 		return nil
 	}
-	return s.repos.Commission.Create(tx, &model.CommissionLog{
+	return m.repos.Commission.Create(tx, &model.CommissionLog{
 		InviteUserID: *user.InviteByID,
 		FromUserID:   user.ID,
 		OrderNo:      order.OrderNo,
@@ -85,4 +98,14 @@ func (s *OrderService) grantCommission(tx *gorm.DB, order *model.Order, payAmoun
 		Amount:       amount,
 		Status:       model.CommissionPending,
 	})
+}
+
+// applySubscription 存量薄 wrapper，实现收敛于 trade module。
+func (s *OrderService) applySubscription(tx *gorm.DB, order *model.Order) error {
+	return s.trade.apply(tx, order)
+}
+
+// grantCommission 存量薄 wrapper，实现收敛于 trade module。
+func (s *OrderService) grantCommission(tx *gorm.DB, order *model.Order, payAmount int64) error {
+	return s.trade.grant(tx, order, payAmount)
 }

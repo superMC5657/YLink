@@ -18,7 +18,12 @@ import (
 	"ylink-backend/internal/repo"
 )
 
-// OrderService 交易域：套餐、优惠券、下单、收银台、支付回调、开通/续期。
+// Order 交易域门面：对上层保持原有窄口，域逻辑收敛于 orderTradeModule。
+//
+// 术语说明：下文用 module 指代按域内聚的实现单元，用 interface/seam 指代
+// module 对外暴露的窄契约，用 adapter 指代对仓储的委托封装。
+// 下单计价/券校验/支付后置/履约收敛于同一 module 的同一 seam，
+// 券 scope 解析与占用释放集中一处，仓储经由 seam 注入。
 type OrderService struct {
 	db     *gorm.DB
 	rdb    *redis.Client
@@ -26,11 +31,98 @@ type OrderService struct {
 	set    *SettingService
 	cfg    *config.Config
 	mailer *mailer.Mailer
+	trade  *orderTradeModule
 }
 
 func NewOrderService(db *gorm.DB, rdb *redis.Client, repos *repo.Repos, set *SettingService, cfg *config.Config, mail *mailer.Mailer) *OrderService {
-	return &OrderService{db: db, rdb: rdb, repos: repos, set: set, cfg: cfg, mailer: mail}
+	if repos == nil {
+		repos = &repo.Repos{}
+	}
+	s := &OrderService{db: db, rdb: rdb, repos: repos, set: set, cfg: cfg, mailer: mail}
+	s.trade = &orderTradeModule{db: db, repos: repos, coupons: orderCouponRepoAdapter{repos: repos}}
+	return s
 }
+
+// orderTradeModule 下单域深 module：套餐取价 + 券解析/校验/占用释放 + 支付后置 + 履约内聚一处。
+// 计价方法见 order_coupon.go，履约方法见 order_fulfill.go，收银台编排见 order_payment.go。
+type orderTradeModule struct {
+	db      *gorm.DB
+	repos   *repo.Repos
+	coupons orderCouponSeam
+}
+
+// orderCouponSeam 券仓储窄 seam：trade module 依赖的唯一券读写口，经由 adapter 注入。
+type orderCouponSeam interface {
+	GetByCode(db *gorm.DB, code string) (*model.Coupon, error)
+	ListAvailable(db *gorm.DB, now time.Time) ([]model.Coupon, error)
+	CountUsage(db *gorm.DB, couponID, userID int64) (int64, error)
+	CountUsageLocked(db *gorm.DB, couponID, userID int64) (int64, error)
+	Occupy(db *gorm.DB, couponID int64) (bool, error)
+	Release(db *gorm.DB, couponID int64) error
+	DeleteUsage(db *gorm.DB, couponID, userID int64, orderNo string) error
+	RecordUsage(db *gorm.DB, couponID, userID int64, orderNo string) error
+	CodeByID(db *gorm.DB, id int64) (string, error)
+}
+
+// orderCouponRepoAdapter seam 的 adapter：以后端 repos 装配，不直 new 仓储。
+type orderCouponRepoAdapter struct {
+	repos *repo.Repos
+}
+
+var _ orderCouponSeam = orderCouponRepoAdapter{}
+
+func (a orderCouponRepoAdapter) GetByCode(db *gorm.DB, code string) (*model.Coupon, error) {
+	return a.repos.Coupon.GetByCode(db, code)
+}
+
+func (a orderCouponRepoAdapter) ListAvailable(db *gorm.DB, now time.Time) ([]model.Coupon, error) {
+	return a.repos.Coupon.ListAvailable(db, now)
+}
+
+func (a orderCouponRepoAdapter) CountUsage(db *gorm.DB, couponID, userID int64) (int64, error) {
+	return a.repos.Coupon.CountUsage(db, couponID, userID)
+}
+
+func (a orderCouponRepoAdapter) CountUsageLocked(db *gorm.DB, couponID, userID int64) (int64, error) {
+	return a.repos.Coupon.CountUsageLocked(db, couponID, userID)
+}
+
+func (a orderCouponRepoAdapter) Occupy(db *gorm.DB, couponID int64) (bool, error) {
+	return a.repos.Coupon.Occupy(db, couponID)
+}
+
+func (a orderCouponRepoAdapter) Release(db *gorm.DB, couponID int64) error {
+	return a.repos.Coupon.Release(db, couponID)
+}
+
+func (a orderCouponRepoAdapter) DeleteUsage(db *gorm.DB, couponID, userID int64, orderNo string) error {
+	return a.repos.Coupon.DeleteUsage(db, couponID, userID, orderNo)
+}
+
+func (a orderCouponRepoAdapter) RecordUsage(db *gorm.DB, couponID, userID int64, orderNo string) error {
+	return a.repos.Coupon.RecordUsage(db, couponID, userID, orderNo)
+}
+
+func (a orderCouponRepoAdapter) CodeByID(db *gorm.DB, id int64) (string, error) {
+	return fetchCouponCode(db, id)
+}
+
+// orderTradeSeam trade module 对外窄 interface：下单计价/券校验/支付后置/履约收口。
+// 上层仅经由 Order 门面触达本 seam，不直触仓储。
+type orderTradeSeam interface {
+	priceOf(p *model.Plan, period string) *int64
+	planPrices(p *model.Plan) model.PlanPrices
+	validate(db *gorm.DB, userID int64, code string, plan *model.Plan, period string, amount int64) (*model.Coupon, int64, error)
+	available(db *gorm.DB, userID, planID int64, period string) ([]model.CouponItem, error)
+	claim(tx *gorm.DB, userID int64, code string, plan *model.Plan, period string, amount int64, orderNo string) (*model.Coupon, int64, error)
+	release(db *gorm.DB, couponID, userID int64, orderNo string) error
+	codeByID(db *gorm.DB, id int64) (string, error)
+	apply(tx *gorm.DB, order *model.Order) error
+	grant(tx *gorm.DB, order *model.Order, payAmount int64) error
+	isBalanceChannel(method string) bool
+}
+
+var _ orderTradeSeam = (*orderTradeModule)(nil)
 
 // ---- 套餐 ----
 
@@ -45,7 +137,7 @@ func (s *OrderService) Plans(ctx context.Context) ([]model.PlanResp, error) {
 		out = append(out, model.PlanResp{
 			ID:          p.ID,
 			Name:        p.Name,
-			Prices:      planPrices(&p),
+			Prices:      s.trade.planPrices(&p),
 			TrafficGB:   p.TrafficGB,
 			SpeedLimit:  p.SpeedLimit,
 			DeviceLimit: p.DeviceLimit,
@@ -56,46 +148,14 @@ func (s *OrderService) Plans(ctx context.Context) ([]model.PlanResp, error) {
 	return out, nil
 }
 
-func planPrices(p *model.Plan) model.PlanPrices {
-	pp := model.PlanPrices{}
-	if p.MonthPrice != nil {
-		v := model.FenToYuan(*p.MonthPrice)
-		pp.Month = &v
-	}
-	if p.QuarterPrice != nil {
-		v := model.FenToYuan(*p.QuarterPrice)
-		pp.Quarter = &v
-	}
-	if p.HalfYearPrice != nil {
-		v := model.FenToYuan(*p.HalfYearPrice)
-		pp.HalfYear = &v
-	}
-	if p.YearPrice != nil {
-		v := model.FenToYuan(*p.YearPrice)
-		pp.Year = &v
-	}
-	if p.OnetimePrice != nil {
-		v := model.FenToYuan(*p.OnetimePrice)
-		pp.Onetime = &v
-	}
-	return pp
+// priceOf 取周期价格；NULL=不支持。实现收敛于 trade module，本函数仅为存量薄 wrapper。
+func priceOf(p *model.Plan, period string) *int64 {
+	return (&orderTradeModule{}).priceOf(p, period)
 }
 
-// priceOf 取周期价格；NULL=不支持。
-func priceOf(p *model.Plan, period string) *int64 {
-	switch period {
-	case "month":
-		return p.MonthPrice
-	case "quarter":
-		return p.QuarterPrice
-	case "half_year":
-		return p.HalfYearPrice
-	case "year":
-		return p.YearPrice
-	case "onetime":
-		return p.OnetimePrice
-	}
-	return nil
+// planPrices 套餐展示价格。实现收敛于 trade module，本函数仅为存量薄 wrapper。
+func planPrices(p *model.Plan) model.PlanPrices {
+	return (&orderTradeModule{}).planPrices(p)
 }
 
 // ---- 优惠券 ----
@@ -113,7 +173,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID int64, idemKey st
 	if err != nil || !plan.IsShow {
 		return nil, errs.ErrPlanNotAvailable
 	}
-	price := priceOf(plan, req.Period)
+	price := s.trade.priceOf(plan, req.Period)
 	if price == nil {
 		return nil, errs.ErrPlanPeriod
 	}
@@ -134,29 +194,8 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID int64, idemKey st
 	err = repo.WithTx(s.db, func(tx *gorm.DB) error {
 		var discount int64
 		if req.CouponCode != "" {
-			coupon, d, err := s.validateCoupon(tx, userID, req.CouponCode, plan, req.Period, amount)
+			coupon, d, err := s.trade.claim(tx, userID, req.CouponCode, plan, req.Period, amount, order.OrderNo)
 			if err != nil {
-				return err
-			}
-			// 原子占用总限量（条件更新），失败即超发 → 12001
-			ok, err := s.repos.Coupon.Occupy(tx, coupon.ID)
-			if err != nil {
-				return err
-			}
-			if !ok {
-				return errs.ErrCoupon
-			}
-			// 每用户限次：Occupy 已锁 coupon 行串行化并发下单，再用锁定读校验
-			if coupon.LimitPerUser > 0 {
-				n, err := s.repos.Coupon.CountUsageLocked(tx, coupon.ID, userID)
-				if err != nil {
-					return err
-				}
-				if n >= int64(coupon.LimitPerUser) {
-					return errs.ErrCoupon
-				}
-			}
-			if err := s.repos.Coupon.RecordUsage(tx, coupon.ID, userID, order.OrderNo); err != nil {
 				return err
 			}
 			discount = d
@@ -258,7 +297,7 @@ func (s *OrderService) GetOrder(ctx context.Context, userID int64, orderNo strin
 		CreatedAt:      o.CreatedAt,
 	}
 	if o.CouponID != nil {
-		if code, err := couponCode(s.db, *o.CouponID); err == nil {
+		if code, err := s.trade.codeByID(s.db, *o.CouponID); err == nil {
 			resp.CouponCode = &code
 		}
 	}
@@ -284,7 +323,7 @@ func (s *OrderService) CancelOrder(ctx context.Context, userID int64, orderNo st
 			return errs.ErrOrderStatus
 		}
 		if o.CouponID != nil {
-			if err := releaseCoupon(tx, *o.CouponID, userID, orderNo); err != nil {
+			if err := s.trade.release(tx, *o.CouponID, userID, orderNo); err != nil {
 				return err
 			}
 		}
@@ -312,29 +351,4 @@ func genOrderNo() string {
 	ts := time.Now().Format("20060102150405")
 	n, _ := rand.Int(rand.Reader, big.NewInt(1e13))
 	return fmt.Sprintf("%s%013d", ts, n.Int64())
-}
-
-func containsInt64(list []int64, v int64) bool {
-	for _, x := range list {
-		if x == v {
-			return true
-		}
-	}
-	return false
-}
-
-func containsStr(list []string, v string) bool {
-	for _, x := range list {
-		if x == v {
-			return true
-		}
-	}
-	return false
-}
-
-func min64(a, b int64) int64 {
-	if a < b {
-		return a
-	}
-	return b
 }

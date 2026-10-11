@@ -37,11 +37,11 @@ func (s *ServerService) List(ctx context.Context, userID int64) ([]model.ServerG
 	if err != nil {
 		return []model.ServerGroupResp{}, nil
 	}
-	var groupIDs []int64
-	if err := json.Unmarshal([]byte(plan.GroupIDs), &groupIDs); err != nil || len(groupIDs) == 0 {
+	// 可见分组解析收敛于深 Module（失败/空一律空集）
+	groupIDs := parsePlanGroups(plan.GroupIDs)
+	if len(groupIDs) == 0 {
 		return []model.ServerGroupResp{}, nil
 	}
-
 	servers, err := s.repos.Server.ListByGroupIDs(s.db, groupIDs)
 	if err != nil {
 		return nil, err
@@ -51,11 +51,8 @@ func (s *ServerService) List(ctx context.Context, userID int64) ([]model.ServerG
 		return nil, err
 	}
 
-	// group_id → 名称
-	nameOf := map[int64]string{}
-	for _, g := range groups {
-		nameOf[g.ID] = g.Name
-	}
+	// group_id → 名称（收敛于深 Module）
+	nameOf := groupNameMap(groups)
 	// 保序分组（按套餐 group_ids 顺序）
 	var out []model.ServerGroupResp
 	idx := map[int64]int{}

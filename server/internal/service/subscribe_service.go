@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"strconv"
 	"time"
 
@@ -246,6 +245,7 @@ func (s *SubscribeService) renderWithHints(gen subscribe.Generator, u *subscribe
 
 // buildNodes 组装用户套餐可见节点 adapter：取库行后经由模块 BuildNodes 转换，
 // 配置解析失败的行显式丢弃并记 warn，不再静默下发空加密方式。
+// 分组解析/名称映射/规格组装收敛于订阅可见性深 Module。
 func (s *SubscribeService) buildNodes(user *model.User) []subscribe.Node {
 	if user.PlanID == nil {
 		return nil
@@ -254,8 +254,8 @@ func (s *SubscribeService) buildNodes(user *model.User) []subscribe.Node {
 	if err != nil {
 		return nil
 	}
-	var groupIDs []int64
-	if err := json.Unmarshal([]byte(plan.GroupIDs), &groupIDs); err != nil || len(groupIDs) == 0 {
+	groupIDs := parsePlanGroups(plan.GroupIDs)
+	if len(groupIDs) == 0 {
 		logger.L().Warn("套餐分组解析失败，返回空节点", zapS("plan", plan.Name), zapE(err))
 		return nil
 	}
@@ -264,22 +264,8 @@ func (s *SubscribeService) buildNodes(user *model.User) []subscribe.Node {
 		return nil
 	}
 	groups, _ := s.repos.Server.ListGroups(s.db)
-	groupName := map[int64]string{}
-	for _, g := range groups {
-		groupName[g.ID] = g.Name
-	}
-	specs := make([]subscribe.ServerSpec, 0, len(servers))
-	for _, srv := range servers {
-		specs = append(specs, subscribe.ServerSpec{
-			Name:      srv.Name,
-			Type:      srv.Type,
-			Host:      srv.Host,
-			Port:      srv.Port,
-			Config:    srv.Config,
-			Rate:      srv.Rate,
-			GroupName: groupName[srv.GroupID],
-		})
-	}
+	groupName := groupNameMap(groups)
+	specs := specsFromServers(servers, groupName)
 	// 每用户独立凭证(契约 §15):同一节点对不同用户下发不同凭证,节点按此归因流量
 	res := subscribe.BuildNodes(specs, user.UUID)
 	if res.Dropped > 0 {

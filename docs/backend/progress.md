@@ -29,7 +29,7 @@
 
 ### 2.4 订阅下发
 
-`GET /client/subscribe/{token}`:flag=clash/sing-box/v2ray + UA 嗅探;token 级限流;userinfo 缓存 30s;`subscription-userinfo` 等响应头;无订阅/到期/流量用尽注入提示节点;生成器为 Go text/template 渲染(公共/客户端变量,节点语法对模板作者不可破坏),**自定义模板缺失或渲染失败自动回退内置生成器,订阅不 5xx**(F10);6 种协议(shadowsocks/vmess/vless/trojan/hysteria2/tuic)。
+`GET /client/subscribe/{token}`:flag=clash/sing-box/v2ray + UA 嗅探;token 级限流;userinfo 缓存 30s;`subscription-userinfo` 等响应头;无订阅/到期/流量用尽注入提示节点;生成器为 Go text/template 渲染(公共/客户端变量,节点语法对模板作者不可破坏),**自定义模板缺失或渲染失败自动回退内置生成器,订阅不 5xx**(F10);6 种协议(shadowsocks/vmess/vless/trojan/hysteria2/tuic)。**订阅可见性深 Module**（GroupIDs 解析→过滤过期/封禁/无订阅→名称映射归一，`GET /servers` 列表/订阅构建/节点上报问同一谓词，答案含空集一致；每用户订阅凭证 `users.uuid` 归因随答案带走）。
 
 ### 2.5 营销与代理
 

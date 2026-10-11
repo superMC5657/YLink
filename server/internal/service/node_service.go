@@ -90,25 +90,13 @@ func (s *NodeService) Users(ctx context.Context, serverID int64) (*NodeUsersResp
 }
 
 // planIDsContainingGroup 全量套餐中 group_ids 含指定分组的套餐 id(含下架:存量订阅仍有效)。
+// 薄 adapter：转发到订阅可见性深 Module。
 func (s *NodeService) planIDsContainingGroup(groupID int64) ([]int64, error) {
 	plans, err := s.repos.Plan.ListAll(s.db)
 	if err != nil {
 		return nil, err
 	}
-	ids := make([]int64, 0, len(plans))
-	for _, p := range plans {
-		var groups []int64
-		if json.Unmarshal([]byte(p.GroupIDs), &groups) != nil {
-			continue
-		}
-		for _, g := range groups {
-			if g == groupID {
-				ids = append(ids, p.ID)
-				break
-			}
-		}
-	}
-	return ids, nil
+	return plansContainingGroup(plans, groupID), nil
 }
 
 // ---- POST /node/report ----
@@ -197,11 +185,8 @@ func (s *NodeService) Report(ctx context.Context, serverID int64, req *NodeRepor
 				resp.Skipped = append(resp.Skipped, NodeSkipItem{UUID: it.UUID, Reason: "unknown_user"})
 				continue
 			}
-			if u.PlanID == nil {
-				resp.Skipped = append(resp.Skipped, NodeSkipItem{UUID: it.UUID, Reason: "not_subscribed"})
-				continue
-			}
-			if _, ok := allowedPlans[*u.PlanID]; !ok || u.IsBanned || (u.ExpiredAt != nil && u.ExpiredAt.Before(now)) {
+			// 可见性判定收敛于深 Module（无订阅/分组外/封禁/过期同一谓词）
+			if !userAllowedOnNode(u, allowedPlans, now) {
 				resp.Skipped = append(resp.Skipped, NodeSkipItem{UUID: it.UUID, Reason: "not_subscribed"})
 				continue
 			}

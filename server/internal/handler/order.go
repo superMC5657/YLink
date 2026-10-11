@@ -113,8 +113,7 @@ func (h *Order) Create(c *gin.Context) {
 // @Success 200 {object} resp.Body{data=resp.Page}
 // @Router /orders [get]
 func (h *Order) List(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	page, pageSize := pageParams(c)
 	var status *int
 	if s := c.Query("status"); s != "" {
 		if v, err := strconv.Atoi(s); err == nil && v >= 0 && v <= 3 {

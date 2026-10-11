@@ -16,12 +16,6 @@ import (
 
 // ListOrders GET /admin/orders。
 func (m *adminOrderModule) ListOrders(ctx context.Context, status *int, page, pageSize int) ([]model.AdminOrderItem, int64, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 50 {
-		pageSize = 10
-	}
 	list, total, err := m.repos.Order.ListByPage(m.db, status, page, pageSize)
 	if err != nil {
 		return nil, 0, err

@@ -276,13 +276,8 @@ type AuditLogQuery struct {
 }
 
 // ListByPage 审计日志分页（JOIN users 取操作人邮箱，id 倒序）。
+// 分页钳制唯一 owner 为 handler（审计类档），本层直接透传。
 func (AuditLogRepo) ListByPage(db *gorm.DB, q AuditLogQuery, page, pageSize int) ([]model.AdminAuditLogItem, int64, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 20
-	}
 	w := func(tx *gorm.DB) *gorm.DB {
 		tx = tx.Joins("JOIN users ON users.id = audit_logs.admin_id")
 		if q.AdminID != nil {
@@ -349,13 +344,8 @@ type TrafficResetQuery struct {
 }
 
 // ListByPage 重置记录分页（联表取用户邮箱，id 倒序）。
+// 分页钳制唯一 owner 为 handler（审计类档），本层直接透传。
 func (TrafficResetRepo) ListByPage(db *gorm.DB, q TrafficResetQuery, page, pageSize int) ([]model.AdminTrafficResetLogItem, int64, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 20
-	}
 	w := func(tx *gorm.DB) *gorm.DB {
 		tx = tx.Joins("JOIN users ON users.id = traffic_reset_logs.user_id")
 		if q.UserID != nil {

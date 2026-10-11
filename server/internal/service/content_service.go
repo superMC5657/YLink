@@ -117,12 +117,6 @@ func (s *ContentService) SiteConfig(ctx context.Context) (*model.SiteConfigResp,
 
 // Notices GET /notices 公告分页。
 func (s *ContentService) Notices(ctx context.Context, page, pageSize int) ([]model.Notice, int64, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 50 {
-		pageSize = 10
-	}
 	return s.repos.Notice.ListByPage(s.db, page, pageSize)
 }
 

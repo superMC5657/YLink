@@ -22,12 +22,6 @@ import (
 
 // ListUsers GET /admin/users。
 func (m *adminUserModule) ListUsers(ctx context.Context, keyword string, page, pageSize int) ([]model.AdminUserItem, int64, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 50 {
-		pageSize = 10
-	}
 	list, total, err := m.repos.User.ListByPage(m.db, keyword, page, pageSize)
 	if err != nil {
 		return nil, 0, err

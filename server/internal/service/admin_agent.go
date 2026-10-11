@@ -17,12 +17,6 @@ import (
 
 // ListAgentApplies GET /admin/agent/applies。
 func (m *adminAgentModule) ListAgentApplies(ctx context.Context, status int, page, pageSize int) ([]model.AdminAgentApplyItem, int64, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 50 {
-		pageSize = 10
-	}
 	list, total, err := m.repos.AgentApply.ListByStatus(m.db, status, page, pageSize)
 	if err != nil {
 		return nil, 0, err
@@ -88,12 +82,6 @@ func (m *adminAgentModule) ReviewAgentApply(ctx context.Context, adminID, applyI
 
 // ListCommissions GET /admin/commission-logs。
 func (m *adminAgentModule) ListCommissions(ctx context.Context, status *int, page, pageSize int) ([]model.AdminCommissionItem, int64, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 50 {
-		pageSize = 10
-	}
 	list, total, err := m.repos.Commission.ListByPage(m.db, status, page, pageSize)
 	if err != nil {
 		return nil, 0, err

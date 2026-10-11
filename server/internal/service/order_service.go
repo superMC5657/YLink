@@ -237,12 +237,6 @@ func (s *OrderService) toOrderResp(db *gorm.DB, o *model.Order) (*model.OrderRes
 
 // ListOrders GET /orders 订单列表。
 func (s *OrderService) ListOrders(ctx context.Context, userID int64, status *int, page, pageSize int) ([]model.OrderResp, int64, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 50 {
-		pageSize = 10
-	}
 	orders, total, err := s.repos.Order.ListByUser(s.db, userID, status, page, pageSize)
 	if err != nil {
 		return nil, 0, err

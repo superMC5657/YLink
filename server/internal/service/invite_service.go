@@ -139,12 +139,6 @@ func randomInviteCode() string {
 
 // Records GET /invite/records 仅展示已发放（status=1）。
 func (s *InviteService) Records(ctx context.Context, userID int64, page, pageSize int) ([]model.CommissionRecordResp, int64, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 50 {
-		pageSize = 10
-	}
 	list, total, err := s.repos.Commission.ListByInviteStatus(s.db, userID, model.CommissionGranted, page, pageSize)
 	if err != nil {
 		return nil, 0, err
@@ -235,12 +229,6 @@ func (s *InviteService) SubmitWithdraw(ctx context.Context, userID int64, req *m
 
 // Withdraws GET /invite/withdraws 本人提现记录分页。
 func (s *InviteService) Withdraws(ctx context.Context, userID int64, page, pageSize int) ([]model.WithdrawItem, int64, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 50 {
-		pageSize = 10
-	}
 	list, total, err := s.repos.Withdraw.ListByUser(s.db, userID, page, pageSize)
 	if err != nil {
 		return nil, 0, err

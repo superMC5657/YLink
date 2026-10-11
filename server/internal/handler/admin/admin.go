@@ -52,6 +52,11 @@ func pageParams(c *gin.Context) (int, int) {
 	return handler.PageParams(c)
 }
 
+func pageParamsAudit(c *gin.Context) (int, int) {
+	// 薄 adapter：审计类分页（缺省 20/上限 100）收敛于 handler param 唯一 owner。
+	return handler.PageParamsAudit(c)
+}
+
 func statDays(c *gin.Context) int {
 	days, _ := strconv.Atoi(c.DefaultQuery("days", "30"))
 	return days

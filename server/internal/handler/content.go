@@ -41,8 +41,7 @@ func (h *Content) Config(c *gin.Context) {
 // @Success 200 {object} resp.Body{data=resp.Page}
 // @Router /notices [get]
 func (h *Content) Notices(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	page, pageSize := pageParams(c)
 	list, total, err := h.svc.Notices(c.Request.Context(), page, pageSize)
 	if err != nil {
 		resp.Fail(c, err)

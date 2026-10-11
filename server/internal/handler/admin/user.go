@@ -198,7 +198,7 @@ func (h *Admin) ResetUserSubToken(c *gin.Context) {
 // @Success 200 {object} resp.Body{data=resp.Page}
 // @Router /admin/audit-logs [get]
 func (h *Admin) ListAuditLogs(c *gin.Context) {
-	page, pageSize := pageParams(c)
+	page, pageSize := pageParamsAudit(c)
 	f := service.AuditLogFilter{
 		Action: c.Query("action"),
 		Target: c.Query("target"),

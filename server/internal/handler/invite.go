@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"strconv"
-
 	"github.com/gin-gonic/gin"
 
 	"ylink-backend/internal/middleware"
@@ -95,8 +93,7 @@ func (h *Invite) DeleteCode(c *gin.Context) {
 // @Success 200 {object} resp.Body{data=resp.Page}
 // @Router /invite/records [get]
 func (h *Invite) Records(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	page, pageSize := pageParams(c)
 	list, total, err := h.svc.Records(c.Request.Context(), middleware.UserID(c), page, pageSize)
 	if err != nil {
 		resp.Fail(c, err)

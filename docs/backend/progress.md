@@ -17,7 +17,7 @@
 
 ### 2.1 工程骨架
 
-双入口 `cmd/server` + `cmd/worker`;Viper 配置(`configs/config.yaml` + `APP_` 前缀环境变量覆盖);zap JSON 日志按天切割(stdout + 文件);中间件链 RequestID → Recovery → AccessLog → CORS → RateLimit → [Auth] → [Idempotency];统一响应信封 `{code,message,data}` + 分页(分页列表 nil slice 统一兜底为 `[]`);binding 错误统一 40000;bcrypt(12);JWT access 2h / refresh 14d(TokenType 防混用,refresh 白名单存 Redis);Makefile / Dockerfile / docker-compose / Caddyfile。
+双入口 `cmd/server` + `cmd/worker`;Viper 配置(`configs/config.yaml` + `APP_` 前缀环境变量覆盖);zap JSON 日志按天切割(stdout + 文件);中间件链 RequestID → Recovery → AccessLog → CORS → RateLimit → [Auth] → [Idempotency];统一响应信封 `{code,message,data}` + 分页(分页列表 nil slice 统一兜底为 `[]`，钳制唯一归 `pkg/page` 解析即钳制 ADR-0004);binding 错误统一 40000;bcrypt(12);JWT access 2h / refresh 14d(TokenType 防混用,refresh 白名单存 Redis);Makefile / Dockerfile / docker-compose / Caddyfile。
 
 ### 2.2 账户与安全
 

@@ -17,12 +17,6 @@ import (
 
 // ListTickets GET /admin/tickets。
 func (m *adminTicketModule) ListTickets(ctx context.Context, page, pageSize int) ([]model.AdminTicketItem, int64, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 50 {
-		pageSize = 10
-	}
 	list, total, err := m.repos.Ticket.ListByPage(m.db, page, pageSize)
 	if err != nil {
 		return nil, 0, err

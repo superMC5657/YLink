@@ -28,8 +28,7 @@ func NewTicket(svc *service.TicketService) *Ticket { return &Ticket{svc: svc} }
 // @Success 200 {object} resp.Body{data=resp.Page}
 // @Router /tickets [get]
 func (h *Ticket) List(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	page, pageSize := pageParams(c)
 	list, total, err := h.svc.List(c.Request.Context(), middleware.UserID(c), page, pageSize)
 	if err != nil {
 		resp.Fail(c, err)

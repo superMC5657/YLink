@@ -26,12 +26,6 @@ func NewTicketService(db *gorm.DB, rdb *redis.Client, repos *repo.Repos) *Ticket
 
 // List GET /tickets。
 func (s *TicketService) List(ctx context.Context, userID int64, page, pageSize int) ([]model.TicketListItem, int64, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 50 {
-		pageSize = 10
-	}
 	list, total, err := s.repos.Ticket.ListByUser(s.db, userID, page, pageSize)
 	if err != nil {
 		return nil, 0, err

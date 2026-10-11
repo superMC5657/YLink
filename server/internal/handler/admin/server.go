@@ -256,7 +256,7 @@ func (h *Admin) ResetTraffic(c *gin.Context) {
 // @Success 200 {object} resp.Body{data=resp.Page}
 // @Router /admin/traffic/resets [get]
 func (h *Admin) ListTrafficResets(c *gin.Context) {
-	page, pageSize := pageParams(c)
+	page, pageSize := pageParamsAudit(c)
 	var userID *int64
 	if v := c.Query("user_id"); v != "" {
 		id, err := strconv.ParseInt(v, 10, 64)

@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -11,7 +10,6 @@ import (
 	"gorm.io/gorm"
 
 	"ylink-backend/internal/config"
-	"ylink-backend/internal/middleware"
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/logger"
 	"ylink-backend/internal/pkg/mailer"
@@ -36,47 +34,16 @@ func NewCronService(db *gorm.DB, rdb *redis.Client, repos *repo.Repos, cfg *conf
 }
 
 // WithLock 分布式锁包装：仅单实例执行任务。
+// 薄 adapter：转发到 Cron 调度深 Module 的锁 seam；打点语义收敛于 Module 内。
 // 打点 cron_job_runs_total / cron_job_duration_seconds（worker /metrics 暴露，供 Grafana 看板与告警）。
 func (s *CronService) WithLock(name string, fn func()) func() {
-	return func() {
-		ctx := context.Background()
-		ok, err := s.rdb.SetNX(ctx, redispkg.Key("cron", "lock", name), "1", 15*time.Minute).Result()
-		if err != nil || !ok {
-			logger.L().Info("cron lock skipped", zapS("job", name))
-			middleware.CronJobInc(name, "skipped")
-			return
-		}
-		defer s.rdb.Del(ctx, redispkg.Key("cron", "lock", name))
-		logger.L().Info("cron job start", zapS("job", name))
-		start := time.Now()
-		func() {
-			defer func() {
-				if r := recover(); r != nil {
-					middleware.CronJobInc(name, "error")
-					middleware.CronJobDuration(name, time.Since(start))
-					panic(r)
-				}
-			}()
-			fn()
-			middleware.CronJobInc(name, "success")
-			middleware.CronJobDuration(name, time.Since(start))
-		}()
-		logger.L().Info("cron job done", zapS("job", name))
-	}
+	return (&cronGuard{rdb: s.rdb}).run(name, fn)
 }
 
 // CloseExpiredOrders 关闭超时未支付订单（每 5 分钟）。
+// 关单窗口问策略 seam（order.expire_minutes，默认 30min）。
 func (s *CronService) CloseExpiredOrders(ctx context.Context) {
-	minutes := 30
-	type orderCfg struct {
-		ExpireMinutes int `json:"expire_minutes"`
-	}
-	if raw, err := s.repos.Setting.Get(s.db, "order"); err == nil {
-		var c orderCfg
-		if json.Unmarshal([]byte(raw), &c) == nil && c.ExpireMinutes > 0 {
-			minutes = c.ExpireMinutes
-		}
-	}
+	minutes := (&cronPolicy{db: s.db, repos: s.repos}).orderExpireMinutes()
 	deadline := time.Now().Add(-time.Duration(minutes) * time.Minute)
 	orders, err := s.repos.Order.ListPendingBefore(s.db, deadline)
 	if err != nil {
@@ -152,17 +119,9 @@ func (s *CronService) ReconcilePayments(ctx context.Context) {
 }
 
 // ConfirmCommissions 佣金确认：确认中满 N 天转已发放（每日 02:00）。
+// 确认窗口问策略 seam（invite.commission_confirm_days，默认 3d）。
 func (s *CronService) ConfirmCommissions(ctx context.Context) {
-	days := 3
-	type inviteCfg struct {
-		CommissionConfirmDays int `json:"commission_confirm_days"`
-	}
-	if raw, err := s.repos.Setting.Get(s.db, "invite"); err == nil {
-		var c inviteCfg
-		if json.Unmarshal([]byte(raw), &c) == nil && c.CommissionConfirmDays > 0 {
-			days = c.CommissionConfirmDays
-		}
-	}
+	days := (&cronPolicy{db: s.db, repos: s.repos}).commissionConfirmDays()
 	deadline := time.Now().Add(-time.Duration(days) * 24 * time.Hour)
 	list, err := s.repos.Commission.ListPendingConfirmBefore(s.db, deadline)
 	if err != nil {
@@ -213,13 +172,9 @@ func (s *CronService) ExpireRemind(ctx context.Context) {
 	}
 	for _, u := range users {
 		remaining := time.Until(*u.ExpiredAt)
-		var window string
-		switch {
-		case remaining > 48*time.Hour && remaining <= 72*time.Hour:
-			window = "3d"
-		case remaining > 0 && remaining <= 24*time.Hour:
-			window = "1d"
-		default:
+		// 窗口分类收敛于调度深 Module 的策略 seam
+		window := expireWindow(remaining)
+		if window == "" {
 			continue
 		}
 		markKey := redispkg.Key("remind", "expire", fmt.Sprint(u.ID), fmt.Sprint(u.ExpiredAt.Unix()), window)
@@ -227,29 +182,17 @@ func (s *CronService) ExpireRemind(ctx context.Context) {
 		if !ok {
 			continue
 		}
-		go s.sendExpireMail(u)
+		// 投递收敛于深 Module 的投递 seam（异步带 recover，不阻断主循环）
+		n := &cronNotifier{db: s.db, cfg: s.cfg, mailer: s.mailer, tg: s.tg}
+		u := u
+		n.deliverAsync(func() { n.deliverExpire(u) })
 	}
 	logger.L().Info("expire remind done", zapS("count", fmt.Sprint(len(users))))
 }
 
 func (s *CronService) sendExpireMail(u model.User) {
-	if u.ExpiredAt == nil {
-		return
-	}
-	// F11：到期提醒走模板渲染（自定义模板优先，缺失/错误回退内置文案）
-	vars := map[string]string{"expire_date": u.ExpiredAt.Format("2006-01-02")}
-	subject, body, err := renderMailTemplate(s.db, s.cfg.App.Name, "expire_remind", vars)
-	if err != nil {
-		logger.L().Error("render expire mail", zapE(err))
-		return
-	}
-	if err := s.mailer.Send(u.Email, subject, body); err != nil {
-		logger.L().Error("send expire mail failed", zapS("email", u.Email), zapE(err))
-	}
-	// F12：已绑定 Telegram 的用户同步推送（失败仅记日志，不影响邮件主流程）
-	if s.tg != nil {
-		s.tg.NotifyUser(context.Background(), u, "您的订阅将于 "+vars["expire_date"]+" 到期，请及时续费以免影响使用。")
-	}
+	// 薄 adapter：转发到调度深 Module 的投递 seam。
+	(&cronNotifier{db: s.db, cfg: s.cfg, mailer: s.mailer, tg: s.tg}).deliverExpire(u)
 }
 
 // TrafficRemind 流量提醒（每日 10:00）：用量 ≥80% 且开启提醒。
@@ -269,24 +212,14 @@ func (s *CronService) TrafficRemind(ctx context.Context) {
 			continue
 		}
 		percent := (u.U + u.D) * 100 / u.TransferEnable
-		vars := map[string]string{"percent": fmt.Sprint(percent)}
-		subject, body, err := renderMailTemplate(s.db, s.cfg.App.Name, "traffic_remind", vars)
-		if err != nil {
-			logger.L().Error("render traffic mail", zapE(err))
-			continue
-		}
-		if err := s.mailer.Send(u.Email, subject, body); err != nil {
-			logger.L().Error("send traffic mail failed", zapS("email", u.Email), zapE(err))
-		}
-		// F12：已绑定 Telegram 的用户同步推送（失败仅记日志）
-		if s.tg != nil {
-			s.tg.NotifyUser(ctx, u, "您的流量已使用 "+vars["percent"]+"%，请注意剩余流量。")
-		}
+		// 投递收敛于深 Module 的投递 seam（mail 主通道 + TG 追加，失败只记日志）
+		(&cronNotifier{db: s.db, cfg: s.cfg, mailer: s.mailer, tg: s.tg}).deliverTraffic(ctx, u, percent)
 	}
 	logger.L().Info("traffic remind done")
 }
 
-// TrafficDaily 流量日结转（模式 B 空跑，供二期对账）。
+// TrafficDaily 流量日结转（流量模式B占位：管理端手工导入同日覆盖模式A值做校准，
+// 本 job 为空跑，供二期对账；调度语义收敛于深 Module，intent 保留）。
 func (s *CronService) TrafficDaily(ctx context.Context) {
 	logger.L().Info("traffic daily (mode B: no-op)")
 }

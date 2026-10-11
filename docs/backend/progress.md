@@ -37,7 +37,7 @@
 
 ### 2.6 工单与定时任务
 
-工单创建/回复/关闭/重开一次(`reopen_count`);worker cron(Redis 分布式锁 + 指标打点):`close-expired-orders`(5min,条件更新防竞态)、`reconcile-payments`(10min 主动查单补账)、`confirm-commissions`(每日 02:00)、`expire-remind`(10:00 前 3/1 天双窗口)、`traffic-remind`(10:30 ≥80%)、`traffic-daily`(01:00 模式 B 空跑);到期/流量提醒在邮件后对已绑定用户追加 Telegram 推送(失败仅记日志不阻断,F12)。
+工单创建/回复/关闭/重开一次(`reopen_count`);worker cron(Redis 分布式锁 + 指标打点，调度/策略/投递收敛于 Cron 调度深 Module：锁 seam、窗口策略唯一 owner、mail+TG 双扇出不阻断):`close-expired-orders`(5min,条件更新防竞态)、`reconcile-payments`(10min 主动查单补账)、`confirm-commissions`(每日 02:00)、`expire-remind`(10:00 前 3/1 天双窗口)、`traffic-remind`(10:30 ≥80%)、`traffic-daily`(01:00 流量模式B空跑);到期/流量提醒在邮件后对已绑定用户追加 Telegram 推送(失败仅记日志不阻断,F12)。
 
 ### 2.7 管理端
 

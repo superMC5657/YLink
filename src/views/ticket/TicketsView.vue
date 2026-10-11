@@ -27,7 +27,7 @@ const levelOptions = [
   { label: t('ticket.high'), value: 2 },
 ]
 
-/** 工单状态徽标：与详情页、管理端同域同形（待回复警告/已回复成功/已关闭中性） */
+/** 工单状态徽标：与详情页、管理端同域同形由对称测试锁定（待回复警告/已回复成功/已关闭中性） */
 function statusType(status: number) {
   return ticketStatusBadge(status)
 }

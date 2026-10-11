@@ -7,6 +7,7 @@ import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/zh-cn'
 import type { PlanPeriod } from '@/types/api'
 import { i18n } from '@/i18n'
+import { statusBadge, statusLabel, statusMeta } from './statusMeta'
 
 dayjs.extend(relativeTime)
 
@@ -153,133 +154,78 @@ export function planSavePercent(
   return pct > 0 ? pct : null
 }
 
-/** 订单状态 → 文案 */
+/** 订单状态 → 文案(表归 statusMeta,本函数只剩签名兼容) */
 export function orderStatusLabel(status: number): string {
-  const map: Record<number, string> = {
-    0: 'common.pending',
-    1: 'common.completed',
-    2: 'common.cancelled',
-    3: 'common.refunded',
-  }
-  return map[status] ? tt(map[status]) : tt('common.unknown')
+  return statusLabel('order', status)
 }
 
-/** 订单状态 → 徽标色（用户端与管理端同域同形，勿分叉） */
+/** 订单状态 → 徽标色（用户端与管理端同域同形，由对称测试锁定） */
 export function orderStatusBadge(status: number): 'warning' | 'success' | 'neutral' | 'danger' {
-  const map: Record<number, 'warning' | 'success' | 'neutral' | 'danger'> = {
-    0: 'warning',
-    1: 'success',
-    2: 'neutral',
-    3: 'danger',
-  }
-  return map[status] ?? 'neutral'
+  return statusBadge('order', status)
 }
 
-/** 佣金状态 → 文案（与 AdminCommissionLogsView 同源，不跨域复用） */
+/** 佣金状态 → 文案（表归 statusMeta,本函数只剩签名兼容） */
 export function commissionStatusLabel(status: number): string {
-  const map: Record<number, string> = {
-    0: 'adminCommissionLogs.confirming',
-    1: 'adminCommissionLogs.paid',
-    2: 'adminCommissionLogs.revoked',
-  }
-  return map[status] ? tt(map[status]) : tt('common.unknown')
+  return statusLabel('commission', status)
 }
 
 /** 佣金状态 → 徽标色（确认中警告/已发放成功/已撤销危险） */
 export function commissionStatusBadge(status: number): 'warning' | 'success' | 'danger' {
-  return status === 0 ? 'warning' : status === 1 ? 'success' : 'danger'
+  return statusBadge('commission', status) as 'warning' | 'success' | 'danger'
 }
 
-/** 代理申请状态 → 文案（与 AdminAgentAppliesView 同源，不跨域复用） */
+/** 代理申请状态 → 文案（表归 statusMeta,本函数只剩签名兼容） */
 export function agentApplyStatusLabel(status: number): string {
-  const map: Record<number, string> = {
-    0: 'adminAgentApplies.pending',
-    1: 'adminAgentApplies.approved',
-    2: 'adminAgentApplies.rejected',
-  }
-  return map[status] ? tt(map[status]) : tt('common.unknown')
+  return statusLabel('agentApply', status)
 }
 
 /** 代理申请状态 → 徽标色（待审核警告/通过成功/拒绝危险） */
 export function agentApplyStatusBadge(status: number): 'warning' | 'success' | 'danger' {
-  return status === 0 ? 'warning' : status === 1 ? 'success' : 'danger'
+  return statusBadge('agentApply', status) as 'warning' | 'success' | 'danger'
 }
 
 /** 管理端工单状态 → 文案（用户端 ticket.* 键不同域，不混用） */
 export function adminTicketStatusLabel(status: number): string {
-  const map: Record<number, string> = {
-    0: 'adminTickets.pending',
-    1: 'adminTickets.replied',
-    2: 'adminTickets.closed',
-  }
-  return map[status] ? tt(map[status]) : tt('common.unknown')
+  return statusLabel('adminTicket', status)
 }
 
-/** 管理端工单状态 → 徽标色（待回复警告/已回复成功/已关闭中性，与用户端同域同形） */
+/** 管理端工单状态 → 徽标色（待回复警告/已回复成功/已关闭中性，由对称测试锁定） */
 export function adminTicketStatusBadge(status: number): 'warning' | 'success' | 'neutral' {
-  return status === 0 ? 'warning' : status === 1 ? 'success' : 'neutral'
+  return statusBadge('adminTicket', status) as 'warning' | 'success' | 'neutral'
 }
 
 /** 管理端工单级别 → 文案 */
 export function adminTicketLevelLabel(level: number): string {
-  const map: Record<number, string> = {
-    0: 'adminTickets.low',
-    1: 'adminTickets.medium',
-    2: 'adminTickets.high',
-  }
-  return map[level] ? tt(map[level]) : tt('adminTickets.low')
+  return statusLabel('adminTicketLevel', level)
 }
 
 /** 管理端工单级别 → 徽标色 */
 export function adminTicketLevelBadge(level: number): 'neutral' | 'warning' | 'danger' {
-  return level === 0 ? 'neutral' : level === 1 ? 'warning' : 'danger'
+  return statusBadge('adminTicketLevel', level) as 'neutral' | 'warning' | 'danger'
 }
 
 /** 工单状态 → 文案 */
 export function ticketStatusLabel(status: number): string {
-  const map: Record<number, string> = {
-    0: 'ticket.pending',
-    1: 'ticket.replied',
-    2: 'ticket.closed',
-  }
-  return map[status] ? tt(map[status]) : tt('common.unknown')
+  return statusLabel('ticket', status)
 }
 
-/** 工单状态 → 徽标色（待回复警告/已回复成功/已关闭中性，与管理端同域同形） */
+/** 工单状态 → 徽标色（待回复警告/已回复成功/已关闭中性，由对称测试锁定） */
 export function ticketStatusBadge(status: number): 'warning' | 'success' | 'neutral' {
-  const map: Record<number, 'warning' | 'success' | 'neutral'> = {
-    0: 'warning',
-    1: 'success',
-    2: 'neutral',
-  }
-  return map[status] ?? 'neutral'
+  return statusBadge('ticket', status) as 'warning' | 'success' | 'neutral'
 }
 
 /** 工单级别 → 文案 */
 export function ticketLevelLabel(level: number): string {
-  const map: Record<number, string> = { 0: 'ticket.low', 1: 'ticket.medium', 2: 'ticket.high' }
-  return map[level] ? tt(map[level]) : tt('ticket.low')
+  return statusLabel('ticketLevel', level)
 }
 
 /** 管理端角色 → 文案(用户/代理/管理员三态,与 useAdminUsers.roleLabel 同源) */
 export function adminRoleLabel(role: number): string {
-  const map: Record<number, string> = {
-    1: 'adminUsers.roleAdmin',
-    2: 'adminUsers.roleAgent',
-    0: 'adminUsers.roleNormal',
-  }
-  return map[role] ? tt(map[role]) : tt('adminUsers.roleNormal')
+  return statusLabel('adminRole', role)
 }
 
 /** 节点状态 → 文案与色 */
 export function serverStatusMeta(status: number): { label: string; color: string } {
-  const map: Record<number, { labelKey: string; color: string }> = {
-    1: { labelKey: 'node.normal', color: 'var(--c-success)' },
-    2: { labelKey: 'node.busy', color: 'var(--c-warning)' },
-    3: { labelKey: 'node.maintenance', color: 'var(--c-text-sub)' },
-  }
-  const meta = map[status]
-  return meta
-    ? { label: tt(meta.labelKey), color: meta.color }
-    : { label: tt('common.unknown'), color: 'var(--c-text-sub)' }
+  const meta = statusMeta('server', status)
+  return { label: tt(meta.labelKey), color: meta.color ?? 'var(--c-text-sub)' }
 }

@@ -47,7 +47,7 @@ watch(
 )
 
 const statusType = computed(() => {
-  // 机械收敛:订单域小表（缺单回退 2=已取消，与收敛前一致）
+  // 状态元深模块同源（缺单回退 2=已取消，与收敛前一致）
   return orderStatusBadge(detail.value?.status ?? 2)
 })
 

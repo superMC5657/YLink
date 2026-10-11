@@ -9,7 +9,7 @@ import type {
   ServerStatus,
 } from '@/types/api'
 import { useMessage, useDialog } from 'naive-ui'
-import { serverStatusMeta } from '@/utils/format'
+import { statusBadge, statusLabel } from '@/utils/statusMeta'
 import { useAdminList } from './useAdminList'
 
 /**
@@ -81,18 +81,13 @@ export function useAdminNodes() {
   }
 
   function statusText(status: ServerStatus): string {
-    // 机械收敛:format.ts 同源标签映射,输出与收敛前逐字一致
-    return serverStatusMeta(status).label
+    // 状态元深模块同源,输出与收敛前逐字一致
+    return statusLabel('server', status)
   }
 
   function statusType(status: ServerStatus): 'success' | 'warning' | 'neutral' {
-    // 机械收敛:成功/警告/其余中性,与收敛前映射一致
-    const { color } = serverStatusMeta(status)
-    return color === 'var(--c-success)'
-      ? 'success'
-      : color === 'var(--c-warning)'
-        ? 'warning'
-        : 'neutral'
+    // 徽标直读表,不再从色值字符串反推(旧泄漏点已删)
+    return statusBadge('server', status) as 'success' | 'warning' | 'neutral'
   }
 
   const groupNameOf = computed(() => {

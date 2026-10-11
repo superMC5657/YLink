@@ -4,7 +4,8 @@ import { usersTransport } from '@/stores/admin/users'
 import { useAuthStore } from '@/stores/auth'
 import type { AdminRole, AdminUserItem } from '@/types/api'
 import { useMessage, useDialog } from 'naive-ui'
-import { adminRoleLabel, maskUrl } from '@/utils/format'
+import { maskUrl } from '@/utils/format'
+import { statusLabel } from '@/utils/statusMeta'
 import { copyText } from '@/utils/platform'
 import { useAdminList } from './useAdminList'
 
@@ -112,8 +113,8 @@ export function useAdminUsers() {
   }
 
   function roleLabel(role: AdminRole): string {
-    // 机械收敛:format.ts 同源标签映射,输出与收敛前逐字一致
-    return adminRoleLabel(role)
+    // 状态元深模块同源,输出与收敛前逐字一致
+    return statusLabel('adminRole', role)
   }
 
   async function saveBalance() {

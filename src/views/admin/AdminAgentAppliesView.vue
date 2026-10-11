@@ -26,7 +26,7 @@ const { loading, list, total, page, pageSize, load, applyFilters, onPageChange }
 })
 
 function statusText(status: AdminApplyStatus): string {
-  // 机械收敛:同域小表（文案与徽标同源，不跨域复用）
+  // 状态元深模块同源（文案与徽标同源，不跨域复用）
   return agentApplyStatusLabel(status)
 }
 

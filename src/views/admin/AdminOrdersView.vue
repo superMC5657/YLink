@@ -26,7 +26,7 @@ const { loading, list, total, page, pageSize, load, applyFilters, onPageChange }
 })
 
 function statusText(status: OrderStatus): string {
-  // 机械收敛:订单域小表（用户端同形，不跨域复用）
+  // 状态元深模块同源（用户端同形，不跨域复用键）
   return orderStatusLabel(status)
 }
 

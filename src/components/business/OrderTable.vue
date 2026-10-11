@@ -19,7 +19,7 @@ const emit = defineEmits<{
 }>()
 
 function statusType(status: Order['status']) {
-  // 机械收敛:订单域小表（管理端同形）
+  // 状态元深模块同源（管理端同形）
   return orderStatusBadge(status)
 }
 </script>

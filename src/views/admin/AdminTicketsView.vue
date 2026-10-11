@@ -39,7 +39,7 @@ const replyText = ref('')
 const sending = ref(false)
 const msgListRef = ref<HTMLElement | null>(null)
 
-// 工单域小表（文案分域、徽标两端统一 success；文案键用户端 ticket.* 与管理端 adminTickets.* 不同域不混用）
+// 工单域（文案分域、徽标两端对称由表测试锁定；文案键用户端 ticket.* 与管理端 adminTickets.* 不同域不混用）
 function levelText(level: TicketLevel): string {
   return adminTicketLevelLabel(level)
 }

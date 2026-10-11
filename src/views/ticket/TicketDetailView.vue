@@ -24,7 +24,7 @@ const listRef = ref<HTMLElement | null>(null)
 
 const detail = computed(() => ticket.detail)
 const isClosed = computed(() => detail.value?.status === 2)
-/** 工单状态徽标：与管理端同域同形（待回复警告/已回复成功/已关闭中性） */
+/** 工单状态徽标：与管理端同域同形由对称测试锁定（待回复警告/已回复成功/已关闭中性） */
 function statusType(status: number): 'warning' | 'success' | 'neutral' {
   return ticketStatusBadge(status)
 }

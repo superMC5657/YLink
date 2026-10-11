@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  adminRoleLabel,
   adminTicketLevelBadge,
   adminTicketLevelLabel,
   adminTicketStatusBadge,
@@ -170,6 +171,17 @@ describe('标签映射', () => {
     expect(adminTicketLevelBadge(0)).toBe('neutral')
     expect(adminTicketLevelBadge(1)).toBe('warning')
     expect(adminTicketLevelBadge(2)).toBe('danger')
+  })
+  it('adminRoleLabel', () => {
+    expect(adminRoleLabel(1)).toBe('管理员')
+    expect(adminRoleLabel(2)).toBe('代理商')
+    expect(adminRoleLabel(0)).toBe('普通用户')
+    expect(adminRoleLabel(99)).toBe('普通用户')
+  })
+  it('serverStatusMeta 着色与未知回落', () => {
+    expect(serverStatusMeta(1)).toEqual({ label: '正常', color: 'var(--c-success)' })
+    expect(serverStatusMeta(2).color).toBe('var(--c-warning)')
+    expect(serverStatusMeta(99)).toEqual({ label: '未知', color: 'var(--c-text-sub)' })
   })
   it('ticketStatusBadge: 与管理端同域同形（待回复警告/已回复成功/已关闭中性）', () => {
     expect(ticketStatusBadge(0)).toBe('warning')

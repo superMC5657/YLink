@@ -1,9 +1,12 @@
-# CI:前端 quality + e2e、Rust/Tauri 检查
+# CI:前端 quality + e2e、Rust/Tauri 双平台检查门禁
+# 骨架对齐 z-viewer(双系统矩阵 windows+ubuntu-22.04、apt 段、pnpm+node22、clippy+test)，
+# 并保留 YLink 独有功能:
 # 触发:
-#   - PR → 轻量门禁(frontend-pr-gate:lint + typecheck),快速反馈不拖慢开发
-#   - 仅发布 tag(v*)→ 全量 quality/e2e/rust(2026-08-12 调整:日常开发检查为本地
+#   - PR → 轻量门禁(frontend-pr-gate:lint + typecheck)，快速反馈不拖慢开发
+#   - 仅发布 tag(v*)→ 全量 quality/e2e/rust(日常开发检查为本地
 #     pnpm lint/typecheck/test/format:check;只有打 tag 发布时才在 CI 全量检查)
-# 注:Go 后端按项目决策不走 GitHub Actions,推送检查走根目录 Makefile(make go-vet / go-test),
+#   - workflow_call/workflow_dispatch 保留，供 release-tauri.yml 复用(与 z-viewer 一致)
+# 注:Go 后端按项目决策不走 GitHub Actions，推送检查走根目录 Makefile(make go-vet / go-test)，
 #     见 docs/backend/README.md §9
 name: CI
 
@@ -11,6 +14,8 @@ on:
   pull_request:
   push:
     tags: ['v*']
+  workflow_call:
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -30,8 +35,6 @@ jobs:
       - uses: actions/checkout@v7
 
       - uses: pnpm/action-setup@v6
-        with:
-          version: 10 # lockfileVersion 9.0
 
       - uses: actions/setup-node@v7
         with:
@@ -47,7 +50,7 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-  # ---------- 前端:quality(仅 tag) ----------
+  # ---------- 前端:quality(仅 tag;YLink 增强:lint+lint:css+typecheck+format:check+test,build:web 代替 build) ----------
   frontend-quality:
     name: Frontend quality
     if: startsWith(github.ref, 'refs/tags/v')
@@ -56,8 +59,6 @@ jobs:
       - uses: actions/checkout@v7
 
       - uses: pnpm/action-setup@v6
-        with:
-          version: 10 # lockfileVersion 9.0
 
       - uses: actions/setup-node@v7
         with:
@@ -95,8 +96,6 @@ jobs:
       - uses: actions/checkout@v7
 
       - uses: pnpm/action-setup@v6
-        with:
-          version: 10
 
       - uses: actions/setup-node@v7
         with:
@@ -123,18 +122,26 @@ jobs:
             test-results/
           retention-days: 7
 
-  # ---------- Rust / Tauri(仅 tag) ----------
-  # 打包仅支持 Windows(2026-08-12 收窄),Rust 检查与打包平台保持一致,在 windows-latest 上跑
+  # ---------- Rust / Tauri(仅 tag;对齐 z-viewer:双系统 clippy+test,替代原单 windows check) ----------
   rust:
-    name: Rust (Tauri) check
+    name: Rust (Tauri) check (${{ matrix.os }})
     if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
 
+      # Tauri v2 Linux 编译所需系统依赖 (与发版机保持一致)
+      - name: Install Tauri Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file patchelf libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+
       - uses: pnpm/action-setup@v6
-        with:
-          version: 10
 
       - uses: actions/setup-node@v7
         with:
@@ -149,9 +156,15 @@ jobs:
         run: pnpm build:web
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
 
-      - name: Cargo check
-        run: cargo check --manifest-path src-tauri/Cargo.toml
+      - name: Rust Clippy
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
+
+      - name: Cargo tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml

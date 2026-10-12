@@ -3,22 +3,18 @@
 # 并保留 YLink 独有功能:
 # 触发:
 #   - PR → 轻量门禁(frontend-pr-gate:lint + typecheck)，快速反馈不拖慢开发
-#   - 仅发布 tag(v*)→ 全量 quality/e2e/rust(日常开发检查为本地
-#     pnpm lint/typecheck/test/format:check;只有打 tag 发布时才在 CI 全量检查)
-#   - workflow_call/workflow_dispatch 保留，供 release-tauri.yml 复用(与 z-viewer 一致)
+#   - workflow_call/workflow_dispatch → 全量 quality/e2e/rust(tag 全量检查只走 release-tauri.yml 开头复用的那次，避免双跑)
 # 注:Go 后端按项目决策不走 GitHub Actions，推送检查走根目录 Makefile(make go-vet / go-test)，
 #     见 docs/backend/README.md §9
 name: CI
 
 on:
   pull_request:
-  push:
-    tags: ['v*']
   workflow_call:
   workflow_dispatch:
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:

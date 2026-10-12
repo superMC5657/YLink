@@ -36,7 +36,7 @@ Rust 工程 + 10 插件最小授权(http scope 限 https/localhost);平台适配
 
 ### 2.6 工程化与质量门禁
 
-ESLint 9 flat config + Prettier 3 + Stylelint 17(接入 lint-staged);husky pre-commit/commit-msg(Conventional Commits);Vitest 单测(含 i18n 消息编译回归锁);Playwright E2E 双 project(webServer 固定 `.env.e2e` Mock);CI 仅 tag 触发 3 job(frontend-quality / frontend-e2e / rust);Release 流水线(Windows NSIS + 签名 + 公开产物仓库);PWA(manifest + Workbox 离线壳,dev 不启用);**错误 toast 单一出口约定**(http 封装层是唯一 toast 出口,组件 catch 禁止转发错误 message;`scripts/check-error-toast.mjs` 串入 `pnpm lint` 守护,详见 data-layer.md §1.1/§7)。
+ESLint 9 flat config + Prettier 3 + Stylelint 17(接入 lint-staged);husky pre-commit/commit-msg(Conventional Commits);Vitest 单测(含 i18n 消息编译回归锁);Playwright E2E 双 project(webServer 固定 `.env.e2e` Mock);CI(仅 PR 轻量 lint+typecheck + 供 release 复用全量 quality+e2e+rust 双系统 clippy+test，tag 不再独立触发、只走 Release 开头复用的那次，concurrency 按 workflow+ref 隔离);Release 流水线(先复用 CI 门禁，并行产 Windows-NSIS/Linux-deb+AppImage 签名产物，统一发布 latest.json 直连/latest-cn.json 镜像双清单到产物仓库，配置外置 .github/release.env);PWA(manifest + Workbox 离线壳,dev 不启用);**错误 toast 单一出口约定**(http 封装层是唯一 toast 出口,组件 catch 禁止转发错误 message;`scripts/check-error-toast.mjs` 串入 `pnpm lint` 守护,详见 data-layer.md §1.1/§7)。
 
 ## 3. 未完成与已决策
 

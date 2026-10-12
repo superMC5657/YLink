@@ -4,12 +4,7 @@ import { inviteTransport, useInviteStore } from '../invite'
 import { apiInvite } from '@/api/invite'
 import { http } from '@/utils/http'
 import { isTauri } from '@/utils/platform'
-import type {
-  InviteCode,
-  InviteCodeListResp,
-  InviteSummary,
-  TransferResp,
-} from '@/types/api'
+import type { InviteCode, InviteCodeListResp, InviteSummary, TransferResp } from '@/types/api'
 
 vi.mock('@/utils/http', () => ({
   http: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },

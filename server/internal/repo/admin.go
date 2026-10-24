@@ -424,6 +424,7 @@ func EnsureAdmin(db *gorm.DB, email, password string) error {
 		PasswordHash: hash,
 		Role:         model.RoleAdmin,
 		SubToken:     uuid.NewString(),
+		UUID:         uuid.NewString(),
 	}
 	return db.Create(admin).Error
 }
@@ -449,6 +450,7 @@ func EnsureDemoUser(db *gorm.DB, email, password string) error {
 		PasswordHash: hash,
 		Role:         model.RoleUser,
 		SubToken:     uuid.NewString(),
+		UUID:         uuid.NewString(),
 	}
 	return db.Create(demo).Error
 }

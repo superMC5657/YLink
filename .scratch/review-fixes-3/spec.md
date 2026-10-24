@@ -11,7 +11,7 @@
 
 config.yaml 开发密钥改为 `${ENV}` 占位；config.Load 在生产模式对已知的开发默认值（JWT secret/DB/Redis 密码）fail-fast 拒绝启动；worker 日志键勘误。→ issues/01
 
-### [P0] 02 种子账号必须携带订阅凭证 UUID
+### [P0] 02 种子账号必须携带订阅凭证 UUID ✅
 
 EnsureAdmin/EnsureDemoUser 填充 `users.uuid`，消除唯一约束冲突与模式 A 归因缺失。→ issues/02
 

@@ -2,6 +2,8 @@
 package config
 
 import (
+	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -129,6 +131,11 @@ func Load(path string) (*Config, error) {
 	v.SetEnvPrefix("APP")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
+	// app.* 经 AutomaticEnv 映射为 APP_APP_*，而部署模板与 dev 脚本统一用 APP_ENV 短名；
+	// 不显式绑定则生产 env 标识被静默忽略（env 一直是文件里的 development）。
+	if err := v.BindEnv("app.env", "APP_ENV"); err != nil {
+		return nil, err
+	}
 
 	if err := v.ReadInConfig(); err != nil {
 		return nil, err
@@ -143,5 +150,67 @@ func Load(path string) (*Config, error) {
 	if c.Database.MaxIdle == 0 {
 		c.Database.MaxIdle = 10
 	}
+	if err := c.validateProd(); err != nil {
+		return nil, err
+	}
 	return &c, nil
+}
+
+// 仓库内公开的开发默认密钥：生产模式命中任意一个即拒绝启动，
+// 防止部署漏配环境变量时静默使用可伪造 token 的公开口令。
+const (
+	devJWTSecretPrefix  = "dev-only-secret-" // configs/config.yaml 旧 JWT 默认值
+	devEnvTemplateValue = "please-change-me" // server/.env.example 模板占位
+	devDBPassword       = "ylink_root"       // 本地编排 PostgreSQL 默认口令
+	devRedisPassword    = "ylink_redis"      // 本地编排 Redis 默认口令
+)
+
+// validateProd 生产 fail-fast：JWT/DB/Redis 密钥为空、为 ${...} 占位符
+// 或仍为已知开发默认值时拒绝启动；开发模式直接放行。
+func (c *Config) validateProd() error {
+	if !c.App.IsProduction() {
+		return nil
+	}
+	checks := []struct {
+		item string
+		env  string
+		val  string
+	}{
+		{"jwt.secret", "APP_JWT_SECRET", c.JWT.Secret},
+		{"database.dsn 的 password", "APP_DATABASE_DSN", dsnPassword(c.Database.DSN)},
+		{"redis.password", "APP_REDIS_PASSWORD", c.Redis.Password},
+	}
+	for _, ck := range checks {
+		if isMissingOrDevSecret(ck.val) {
+			return fmt.Errorf("生产模式拒绝启动：%s 为空、占位符或仍为开发默认值，请经环境变量 %s 注入真实密钥", ck.item, ck.env)
+		}
+	}
+	return nil
+}
+
+// isMissingOrDevSecret 判断密钥缺失（空串或 ${...} 占位符）或命中已知开发默认值。
+func isMissingOrDevSecret(v string) bool {
+	if v == "" || (strings.HasPrefix(v, "${") && strings.HasSuffix(v, "}")) {
+		return true
+	}
+	return strings.HasPrefix(v, devJWTSecretPrefix) ||
+		strings.HasPrefix(v, devEnvTemplateValue) ||
+		v == devDBPassword ||
+		v == devRedisPassword
+}
+
+// dsnPassword 提取 DSN 中的 password：postgres:// URL 形式取 userinfo 口令，
+// 其余按空格分词取 password= 值（含引号时去引号），提取不到返回空串。
+func dsnPassword(dsn string) string {
+	if u, err := url.Parse(dsn); err == nil && u.User != nil {
+		if pw, ok := u.User.Password(); ok {
+			return pw
+		}
+	}
+	for _, tok := range strings.Fields(dsn) {
+		if v, ok := strings.CutPrefix(tok, "password="); ok {
+			return strings.Trim(v, `'"`)
+		}
+	}
+	return ""
 }

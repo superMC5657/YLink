@@ -83,7 +83,7 @@ func main() {
 	}))
 
 	c.Start()
-	logger.L().Info("worker started with cron jobs", zap.String("tz", cfg.App.Name))
+	logger.L().Info("worker started with cron jobs", zap.String("app", cfg.App.Name))
 
 	// Prometheus 指标端点（cron 打点见 internal/service/cron_service.go WithLock）。
 	metricsSrv := &http.Server{Addr: metricsAddr, Handler: promhttp.Handler()}

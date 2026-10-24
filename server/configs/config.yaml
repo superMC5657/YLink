@@ -7,17 +7,19 @@ app:
   version: "dev"              # 后端版本号（F20 管理端版本检查展示；部署时注入）
 
 database:
-  dsn: "host=127.0.0.1 port=5433 user=ylink password=ylink_root dbname=ylink-backend sslmode=disable TimeZone=Asia/Shanghai"
+  # DSN 整串经 APP_DATABASE_DSN 注入（本地开发由 scripts/dev.sh / dev-docker.sh 导出；
+  # 形状：host=127.0.0.1 port=5433 user=ylink password=<口令> dbname=ylink-backend sslmode=disable TimeZone=Asia/Shanghai）
+  dsn: "${APP_DATABASE_DSN}"
   max_open: 50
   max_idle: 10
 
 redis:
   addr: "127.0.0.1:6379"
-  password: "ylink_redis"
+  password: "${APP_REDIS_PASSWORD}"
   db: 0
 
 jwt:
-  secret: "dev-only-secret-please-override-0123456789abcdef"   # >= 32 字节；生产经 JWT_SECRET
+  secret: "${APP_JWT_SECRET}"   # >= 32 字节；生产漏配/沿用开发默认值时 fail-fast 拒绝启动
   access_ttl: 2h
   refresh_ttl: 336h          # 14d
 

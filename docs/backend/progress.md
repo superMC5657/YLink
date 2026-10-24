@@ -69,7 +69,7 @@ handler 按业务域组织于 `internal/handler/admin/` 子包:`admin.go`(Admin 
 | 前置 | 说明 |
 |---|---|
 | Go ≥ 1.26.1 | `go.mod` 声明 |
-| PostgreSQL 16 | 端口 **5433**(容器内 5433);库 `ylink-backend`(默认用户 `ylink`/密码 `ylink_root`);DSN 见 `configs/config.yaml` 或 `APP_DATABASE_DSN` |
+| PostgreSQL 16 | 端口 **5433**(容器内 5433);库 `ylink-backend`(默认用户 `ylink`/密码 `ylink_root`);DSN 经 `APP_DATABASE_DSN` 注入(`configs/config.yaml` 仅 `${...}` 占位,本地由 `scripts/dev.sh` 导出;生产模式漏配/沿用开发默认密钥会 fail-fast 拒启) |
 | Redis 7 | 本地 `127.0.0.1:6379`(默认无密码);生产必须设密码 |
 | 一键编排 | `bash scripts/dev.sh`:compose 起 postgres+redis,api/worker 为宿主机进程;`-stop` 只停基础设施容器 |
 | 全容器联调 | `bash scripts/dev-docker.sh`:api/worker 也跑 compose,前端 `pnpm build` 产物由 Caddy 容器托管(`http://localhost` 静态 + `/api/*` 同域反代);`-stop` 停基础设施。**env 以 `server/.env.dev` 为唯一来源,缺失即报错**(提示 `cp server/.env.example server/.env.dev`,必需基础设施变量缺失同样报错)。Windows 构建前端需 `MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/v1 pnpm build`(防 Git Bash 路径转换写坏产物默认 apiBase) |

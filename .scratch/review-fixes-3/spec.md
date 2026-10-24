@@ -7,7 +7,7 @@
 
 ## Requirements
 
-### [P0] 01 生产配置不得静默使用开发密钥
+### [P0] 01 生产配置不得静默使用开发密钥 ✅
 
 config.yaml 开发密钥改为 `${ENV}` 占位；config.Load 在生产模式对已知的开发默认值（JWT secret/DB/Redis 密码）fail-fast 拒绝启动；worker 日志键勘误。→ issues/01
 

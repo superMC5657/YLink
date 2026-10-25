@@ -24,7 +24,8 @@ func (m *adminContentModule) SortNotices(ctx context.Context, adminID int64, ite
 				return err
 			}
 		}
-		return m.audit.write(tx, adminID, "sort_notice", "", ip, map[string]any{"count": len(items)})
+		return m.audit.write(tx, adminID, "sort_notice", batchAuditTarget(len(items)), ip,
+			map[string]any{"count": len(items), "ids": sortItemIDs(items)})
 	})
 }
 
@@ -36,7 +37,8 @@ func (m *adminContentModule) SortKnowledges(ctx context.Context, adminID int64, 
 				return err
 			}
 		}
-		return m.audit.write(tx, adminID, "sort_knowledge", "", ip, map[string]any{"count": len(items)})
+		return m.audit.write(tx, adminID, "sort_knowledge", batchAuditTarget(len(items)), ip,
+			map[string]any{"count": len(items), "ids": sortItemIDs(items)})
 	})
 }
 

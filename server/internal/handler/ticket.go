@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"strconv"
-
 	"github.com/gin-gonic/gin"
 
 	"ylink-backend/internal/middleware"
@@ -68,9 +66,8 @@ func (h *Ticket) Create(c *gin.Context) {
 // @Success 200 {object} resp.Body{data=model.TicketDetailResp}
 // @Router /tickets/{id} [get]
 func (h *Ticket) Detail(c *gin.Context) {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: id 不合法")
+	id, ok := IDParam(c)
+	if !ok {
 		return
 	}
 	data, err := h.svc.Detail(c.Request.Context(), middleware.UserID(c), id)
@@ -93,9 +90,8 @@ func (h *Ticket) Detail(c *gin.Context) {
 // @Failure 409 {object} resp.Body
 // @Router /tickets/{id}/reply [post]
 func (h *Ticket) Reply(c *gin.Context) {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: id 不合法")
+	id, ok := IDParam(c)
+	if !ok {
 		return
 	}
 	var req model.ReplyTicketReq
@@ -118,9 +114,8 @@ func (h *Ticket) Reply(c *gin.Context) {
 // @Success 200 {object} resp.Body{data=model.TicketListItem}
 // @Router /tickets/{id}/close [post]
 func (h *Ticket) Close(c *gin.Context) {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: id 不合法")
+	id, ok := IDParam(c)
+	if !ok {
 		return
 	}
 	data, err := h.svc.Close(c.Request.Context(), middleware.UserID(c), id)
@@ -141,9 +136,8 @@ func (h *Ticket) Close(c *gin.Context) {
 // @Failure 409 {object} resp.Body
 // @Router /tickets/{id}/reopen [post]
 func (h *Ticket) Reopen(c *gin.Context) {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: id 不合法")
+	id, ok := IDParam(c)
+	if !ok {
 		return
 	}
 	data, err := h.svc.Reopen(c.Request.Context(), middleware.UserID(c), id)

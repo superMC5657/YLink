@@ -51,7 +51,7 @@ handler 按业务域组织于 `internal/handler/admin/` 子包:`admin.go`(Admin 
 
 ### 2.9 可观测性
 
-`GET /metrics`(promhttp:请求计数/延迟直方图/支付成功计数)+ worker `:8082/metrics`(cron 运行/耗时);`docker compose --profile obs` 一键 Prometheus/Grafana/Alertmanager/node-exporter,看板 provisioning 自动加载,数据保留 180 天,告警经 Alertmanager 邮件(STARTTLS);生产 Caddy 拦截公网 /metrics。
+`GET /metrics`(promhttp:请求计数/延迟直方图/支付成功计数,未匹配路由 path label 归一 `unmatched` 防扫描撑爆时序基数)+ worker `:8082/metrics`(cron 运行/耗时);`docker compose --profile obs` 一键 Prometheus/Grafana/Alertmanager/node-exporter,看板 provisioning 自动加载,数据保留 180 天,告警经 Alertmanager 邮件(STARTTLS);生产 Caddy 拦截公网 /metrics。
 
 ## 3. 未完成与已决策
 

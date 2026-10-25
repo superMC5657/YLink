@@ -32,6 +32,15 @@ type AuditLogFilter struct {
 // 完整 ID 列表放 detail JSON 留痕（ids / user_ids）。
 func batchAuditTarget(n int) string { return fmt.Sprintf("batch:%d", n) }
 
+// sortItemIDs 排序批量动作的 ID 列表（detail JSON 留痕用）。
+func sortItemIDs(items []model.AdminSortItem) []int64 {
+	ids := make([]int64, 0, len(items))
+	for _, it := range items {
+		ids = append(ids, it.ID)
+	}
+	return ids
+}
+
 // write 写审计日志（各域 module 经由 seam 复用）。
 func (m *adminAuditModule) write(tx *gorm.DB, adminID int64, action, target, ip string, detail any) error {
 	var detailStr *string

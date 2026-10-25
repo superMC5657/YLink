@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"strconv"
-
 	"github.com/gin-gonic/gin"
 
 	"ylink-backend/internal/middleware"
@@ -78,9 +76,8 @@ func (h *Content) Knowledges(c *gin.Context) {
 // @Failure 404 {object} resp.Body
 // @Router /knowledges/{id} [get]
 func (h *Content) KnowledgeDetail(c *gin.Context) {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
-		resp.FailWithCode(c, 40000, "参数校验失败: id 不合法")
+	id, ok := IDParam(c)
+	if !ok {
 		return
 	}
 	data, err := h.svc.KnowledgeDetail(c.Request.Context(), id)

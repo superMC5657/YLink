@@ -67,7 +67,7 @@ func (m *adminNodeBatchModule) BatchServers(ctx context.Context, adminID int64, 
 	if req.Action == "delete" {
 		action = "batch_server_delete"
 	}
-	_ = m.audit.write(m.db, adminID, action, "", ip, map[string]any{
+	_ = m.audit.write(m.db, adminID, action, batchAuditTarget(len(req.IDs)), ip, map[string]any{
 		"ids": req.IDs, "success": resp.Success, "failed": len(resp.Failed), "updates": updates,
 	})
 	return resp, nil
@@ -110,7 +110,8 @@ func (m *adminNodeBatchModule) SortServers(ctx context.Context, adminID int64, i
 				return err
 			}
 		}
-		return m.audit.write(tx, adminID, "sort_server", "", ip, map[string]any{"count": len(items)})
+		return m.audit.write(tx, adminID, "sort_server", batchAuditTarget(len(items)), ip,
+			map[string]any{"count": len(items), "ids": sortItemIDs(items)})
 	})
 }
 

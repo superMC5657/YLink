@@ -10,6 +10,7 @@ erDiagram
     users ||--o{ invite_codes : owns
     users ||--o{ commission_logs : earns
     users ||--o{ commission_withdraws : withdraws
+    users ||--o| agent_applies : applies_for
     users ||--o{ tickets : opens
     knowledge_categories ||--o{ knowledges : classifies
     users ||--o{ traffic_logs : generates
@@ -105,7 +106,7 @@ erDiagram
 
 ### 2.5 coupons（优惠券）/ coupon_usages（使用记录）
 
-coupons：id、code UNIQUE、type（1=固定金额 2=百分比）、value（分 或 百分比整数）、min_spend（分，门槛）、limit_per_user、total_limit、valid_periods JSONB（限定周期）、plan_ids JSONB（NULL=全场）、started_at / ended_at、is_enable。
+coupons：id、code UNIQUE、type（1=固定金额 2=百分比）、value（分 或 百分比整数）、min_spend（分，门槛）、limit_per_user、total_limit（总限量，0=不限）、used_count INT DEFAULT 0（已核销次数，下单事务内 Occupy 原子 +1）、valid_periods JSONB（限定周期）、plan_ids JSONB（NULL=全场）、started_at / ended_at、is_enable。
 coupon_usages：id、coupon_id、user_id、order_no，唯一索引 `(coupon_id, user_id, order_no)`。`limit_per_user` 的并发控制：下单事务内先 `Occupy`（原子条件更新 total_limit）再对已用次数行加锁统计（`CountUsageLocked`，`SELECT ... FOR UPDATE`），配合唯一索引防止并发下单超过单人限额。
 
 ### 2.6 invite_codes（邀请码）
@@ -256,6 +257,21 @@ audit_logs：id、admin_id、action（如 `adjust_balance/refund/ban_user`）、
 | updated_at | TIMESTAMP(3) | |
 
 无自定义行（或自定义模板渲染失败）时订阅下发自动回退内置生成器（不 5xx，记 warn）；管理端保存前以示例数据渲染校验，支持预览与恢复内置。
+
+### 2.18 agent_applies（代理商申请）
+
+用户提交、管理员审批的代理商申请（0001 初始表，一人一行）：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| id | BIGSERIAL PK | — |
+| user_id | BIGINT NOT NULL | 申请人，`uk_agent_apply_user` 唯一（一人一单） |
+| status | SMALLINT NOT NULL DEFAULT 0 | 0=待审核 1=通过 2=拒绝；`(status)` 索引 |
+| remark | VARCHAR(255) NULL | 审核备注（拒绝理由等） |
+| reviewed_at | TIMESTAMP(3) NULL | 审核时间 |
+| created_at / updated_at | TIMESTAMP(3) | |
+
+仅待审核状态可审（否则 409）；通过即写 `users.role=2` 并全量吊销该用户会话（旧 access 的 role 快照立即失效），拒绝不动角色。两类审核均写 `audit_logs`（`agent_approve`/`agent_reject`，target 为用户 ID）。
 
 ## 3. Redis Key 设计
 

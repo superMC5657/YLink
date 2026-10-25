@@ -84,8 +84,8 @@ type User struct {
 	RemindExpire      bool       `gorm:"default:true" json:"remind_expire"`
 	RemindTraffic     bool       `gorm:"default:false" json:"remind_traffic"`
 	TelegramID        *int64     `json:"telegram_id,omitempty"`
-	PlanID            *int64     `json:"plan_id,omitempty"`
-	ExpiredAt         *time.Time `json:"expired_at,omitempty"`
+	PlanID            *int64     `gorm:"index:idx_users_plan_expire,priority:1" json:"plan_id,omitempty"`
+	ExpiredAt         *time.Time `gorm:"index:idx_users_plan_expire,priority:2" json:"expired_at,omitempty"`
 	TransferEnable    int64      `gorm:"default:0" json:"transfer_enable"`
 	U                 int64      `gorm:"default:0" json:"u"`
 	D                 int64      `gorm:"default:0" json:"d"`
@@ -126,7 +126,7 @@ func (Plan) TableName() string { return "plans" }
 type Order struct {
 	ID             int64      `gorm:"primaryKey" json:"-"`
 	OrderNo        string     `gorm:"size:32;uniqueIndex" json:"order_no"`
-	UserID         int64      `gorm:"index" json:"-"`
+	UserID         int64      `gorm:"index:idx_orders_user_status,priority:1" json:"-"`
 	PlanID         int64      `json:"-"`
 	Period         string     `gorm:"size:16" json:"period"`
 	Amount         int64      `json:"-"`
@@ -134,11 +134,11 @@ type Order struct {
 	BalanceUsed    int64      `gorm:"default:0" json:"-"`
 	PayAmount      int64      `json:"-"`
 	CouponID       *int64     `json:"-"`
-	Status         int        `gorm:"default:0" json:"status"`
+	Status         int        `gorm:"default:0;index:idx_orders_user_status,priority:2" json:"status"`
 	PayMethod      *string    `gorm:"size:32" json:"-"`
 	PaidAt         *time.Time `json:"-"`
 	IdempotencyKey *string    `gorm:"size:64;uniqueIndex" json:"-"`
-	CreatedAt      time.Time  `json:"created_at"`
+	CreatedAt      time.Time  `gorm:"index:idx_orders_user_status,priority:3" json:"created_at"`
 	UpdatedAt      time.Time  `json:"-"`
 }
 
@@ -185,9 +185,9 @@ func (Coupon) TableName() string { return "coupons" }
 // CouponUsage 对应 coupon_usages 表。
 type CouponUsage struct {
 	ID       int64  `gorm:"primaryKey" json:"-"`
-	CouponID int64  `json:"-"`
-	UserID   int64  `json:"-"`
-	OrderNo  string `gorm:"size:32" json:"-"`
+	CouponID int64  `gorm:"uniqueIndex:uk_coupon_usage,priority:1" json:"-"`
+	UserID   int64  `gorm:"uniqueIndex:uk_coupon_usage,priority:2" json:"-"`
+	OrderNo  string `gorm:"size:32;uniqueIndex:uk_coupon_usage,priority:3" json:"-"`
 }
 
 func (CouponUsage) TableName() string { return "coupon_usages" }
@@ -205,7 +205,8 @@ type InviteCode struct {
 func (InviteCode) TableName() string { return "invite_codes" }
 
 // CommissionLog 对应 commission_logs 表。
-// biz_type=0 为订单佣金（order_no 全表唯一约束）；biz_type=1 为提现流水（order_no='w<提现单ID>'）。
+// order_no 唯一性为部分唯一索引 uk_commission_order（WHERE biz_type=0，订单佣金一单一笔）：
+// biz_type=0 为订单佣金；biz_type=1 为提现流水（order_no='w<提现单ID>'，不受唯一约束）。
 type CommissionLog struct {
 	ID           int64      `gorm:"primaryKey" json:"-"`
 	InviteUserID int64      `gorm:"index" json:"-"`
@@ -233,7 +234,7 @@ type CommissionWithdraw struct {
 	Status       int        `gorm:"default:0" json:"status"` // 0=处理中 1=已发放 2=已退回
 	ReviewRemark *string    `gorm:"size:255" json:"-"`
 	ReviewedAt   *time.Time `json:"reviewed_at"`
-	CreatedAt    time.Time  `json:"created_at"`
+	CreatedAt    time.Time  `gorm:"index:idx_withdraw_user,priority:2,sort:desc" json:"-"`
 	UpdatedAt    time.Time  `json:"-"`
 }
 
@@ -282,8 +283,8 @@ func (Notice) TableName() string { return "notices" }
 // KnowledgeCategory 对应 knowledge_categories 表：知识库分类（F15，按语言隔离）。
 type KnowledgeCategory struct {
 	ID        int64     `gorm:"primaryKey" json:"id"`
-	Language  string    `gorm:"size:10;default:zh-CN" json:"language"`
-	Name      string    `gorm:"size:64;uniqueIndex:uk_knowledge_categories" json:"name"`
+	Language  string    `gorm:"size:10;default:zh-CN;uniqueIndex:uk_knowledge_categories,priority:1" json:"language"`
+	Name      string    `gorm:"size:64;uniqueIndex:uk_knowledge_categories,priority:2" json:"name"`
 	Sort      int       `gorm:"default:0" json:"sort"`
 	CreatedAt time.Time `json:"-"`
 	UpdatedAt time.Time `json:"-"`
@@ -295,12 +296,12 @@ func (KnowledgeCategory) TableName() string { return "knowledge_categories" }
 // Category 为展示用冗余字符串；CategoryID 为 knowledge_categories 归属（F15）。
 type Knowledge struct {
 	ID         int64     `gorm:"primaryKey" json:"id"`
-	Category   string    `gorm:"size:64" json:"category"`
+	Category   string    `gorm:"size:64;index:idx_knowledges_lang,priority:2" json:"category"`
 	CategoryID *int64    `gorm:"index" json:"-"`
 	Title      string    `gorm:"size:128" json:"title"`
 	Body       string    `gorm:"type:text" json:"body,omitempty"`
-	Language   string    `gorm:"size:10;default:zh-CN" json:"language,omitempty"`
-	IsShow     bool      `gorm:"default:true" json:"-"`
+	Language   string    `gorm:"size:10;default:zh-CN;index:idx_knowledges_lang,priority:1" json:"language,omitempty"`
+	IsShow     bool      `gorm:"default:true;index:idx_knowledges_lang,priority:3" json:"-"`
 	Sort       int       `gorm:"default:0" json:"-"`
 	UpdatedAt  time.Time `json:"updated_at"`
 }
@@ -334,11 +335,11 @@ type TicketMessage struct {
 
 func (TicketMessage) TableName() string { return "ticket_messages" }
 
-// TrafficLog 对应 traffic_logs 表。
+// TrafficLog 对应 traffic_logs 表：(user_id, date) 唯一（同日一条）。
 type TrafficLog struct {
 	ID     int64  `gorm:"primaryKey" json:"-"`
-	UserID int64  `gorm:"index" json:"-"`
-	Date   string `gorm:"type:date" json:"date"`
+	UserID int64  `gorm:"uniqueIndex:uk_traffic_user_date,priority:1" json:"-"`
+	Date   string `gorm:"type:date;uniqueIndex:uk_traffic_user_date,priority:2" json:"date"`
 	U      int64  `json:"u"`
 	D      int64  `json:"d"`
 }
@@ -400,7 +401,7 @@ type TrafficResetLog struct {
 	BeforeD              int64     `json:"-"`
 	BeforeTransferEnable int64     `json:"-"`
 	AfterTransferEnable  int64     `json:"-"`
-	CreatedAt            time.Time `json:"created_at"`
+	CreatedAt            time.Time `gorm:"index:idx_traffic_reset_logs_user,priority:2,sort:desc" json:"created_at"`
 }
 
 func (TrafficResetLog) TableName() string { return "traffic_reset_logs" }
@@ -414,7 +415,7 @@ type MailLog struct {
 	Status    int       `gorm:"default:0" json:"status"` // 0=发送失败 1=发送成功
 	Error     *string   `gorm:"size:512" json:"error"`
 	AdminID   int64     `json:"-"`
-	CreatedAt time.Time `json:"created_at"`
+	CreatedAt time.Time `gorm:"index:idx_mail_logs_user,priority:2,sort:desc" json:"created_at"`
 }
 
 func (MailLog) TableName() string { return "mail_logs" }

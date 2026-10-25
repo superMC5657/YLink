@@ -22,7 +22,12 @@ func (m *adminTrafficModule) ImportTraffic(ctx context.Context, adminID int64, r
 				return err
 			}
 		}
-		return m.audit.write(tx, adminID, "traffic_import", "", ip, map[string]any{"count": len(req.Items)})
+		userIDs := make([]int64, 0, len(req.Items))
+		for _, it := range req.Items {
+			userIDs = append(userIDs, it.UserID)
+		}
+		return m.audit.write(tx, adminID, "traffic_import", batchAuditTarget(len(req.Items)), ip,
+			map[string]any{"count": len(req.Items), "user_ids": userIDs})
 	})
 }
 

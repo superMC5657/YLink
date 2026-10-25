@@ -1,6 +1,6 @@
 # Review Fixes 3
 
-> 状态: 修复中——P0 完成 4/4；P1 完成 10/10（05-13）；P2 完成 1/5（14），余 P2×4 / P3×3
+> 状态: 修复中——P0 完成 4/4；P1 完成 10/10（05-13）；P2 完成 2/5（14、15），余 P2×3 / P3×3
 > 日期: 2026-10-25
 > 范围: 全量代码评审（review-round-09）产出的修复项——安全与启动稳定、并发/正确性、分层与契约合规、令牌化与文档对齐、死代码清理
 > 关联: 评审快照 `docs/reviews/review-round-09.md`；分段执行手册 `execution.md`（一次贴一段）；前两轮见 `.scratch/review-fixes/`、`.scratch/review-fixes-2/`
@@ -63,7 +63,7 @@ desktop schemes 注册（ylink:// 可用）、latest-cn.json 接入 updater endp
 
 约 30 处写死渐变 + uno btn-primary + theme.ts base 色迁移至 CSS 变量；check-tokens-sync MAPPING 补键堵住漂移。→ issues/14
 
-### [P2] 15 后端契约与规范合规批
+### [P2] 15 后端契约与规范合规批 ✅
 
 批量审计 target 统一 `batch:<count>`（5 处）、IDParam 收敛（6 处）、models.go tag 对齐 data-model、agent_applies/used_count 补文档、metrics label 基数治理。→ issues/15
 

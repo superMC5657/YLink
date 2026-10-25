@@ -53,13 +53,15 @@ func init() {
 }
 
 // Metrics 请求指标采集（QPS/延迟直方图）。
+// 未匹配路由（404/扫描流量）的 path label 归一为常量 unmatched：
+// 以原始 URL.Path 作 label 会被随机路径扫描撑爆时序基数。
 func Metrics() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		c.Next()
 		path := c.FullPath()
 		if path == "" {
-			path = c.Request.URL.Path
+			path = "unmatched"
 		}
 		reqTotal.WithLabelValues(c.Request.Method, strconv.Itoa(c.Writer.Status()), path).Inc()
 		reqDuration.WithLabelValues(c.Request.Method, path).Observe(time.Since(start).Seconds())

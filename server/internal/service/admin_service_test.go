@@ -803,6 +803,99 @@ func TestSendMailAuditTargetSummary(t *testing.T) {
 	require.Len(t, resp.Failed, 2, "SMTP 未配置时全部失败且留痕")
 }
 
+// TestBatchActionsAuditTargetBatchSummary 全部 ID 列表类批量动作的审计 target
+// 必须是 batch:<count> 摘要且完整 ID 列表留痕 detail JSON（§16.1，照 send_mail 形状）：
+// batch_server_delete/update、sort_server/notice/knowledge、traffic_import。
+func TestBatchActionsAuditTargetBatchSummary(t *testing.T) {
+	newSvc := func(t *testing.T) (*AdminSeams, *testEnv) {
+		t.Helper()
+		e := newTestEnv(t)
+		set := NewSettingService(e.db, e.rdb, &repo.Repos{})
+		return NewAdminSeams(e.db, e.rdb, &repo.Repos{}, nil, set, nil), e
+	}
+	expectAudit := func(e *testEnv, action string, detail argContains) {
+		t.Helper()
+		e.mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "audit_logs"`)).
+			WithArgs(int64(1), action, argEq("batch:2"), detail, argEq("127.0.0.1"), sqlmock.AnyArg()).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	}
+
+	t.Run("batch_server_delete", func(t *testing.T) {
+		svc, e := newSvc(t)
+		e.mock.ExpectBegin()
+		e.mock.ExpectExec(regexp.QuoteMeta(`DELETE FROM "servers"`)).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+		e.mock.ExpectExec(regexp.QuoteMeta(`DELETE FROM "servers"`)).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+		e.mock.ExpectCommit()
+		e.mock.ExpectBegin()
+		expectAudit(e, "batch_server_delete", argContains(`"ids":[3,4]`))
+		e.mock.ExpectCommit()
+
+		resp, err := svc.Node.BatchServers(context.Background(), 1, &model.AdminBatchServerReq{
+			Action: "delete", IDs: []int64{3, 4},
+		}, "127.0.0.1")
+		require.NoError(t, err)
+		assert.EqualValues(t, 2, resp.Success)
+		require.NoError(t, e.mock.ExpectationsWereMet())
+	})
+
+	sortCases := []struct {
+		name   string
+		action string
+		table  string
+		call   func(svc *AdminSeams) error
+	}{
+		{"sort_server", "sort_server", "servers", func(svc *AdminSeams) error {
+			return svc.Node.SortServers(context.Background(), 1,
+				[]model.AdminSortItem{{ID: 3, Sort: 0}, {ID: 4, Sort: 1}}, "127.0.0.1")
+		}},
+		{"sort_notice", "sort_notice", "notices", func(svc *AdminSeams) error {
+			return svc.Content.SortNotices(context.Background(), 1,
+				[]model.AdminSortItem{{ID: 3, Sort: 0}, {ID: 4, Sort: 1}}, "127.0.0.1")
+		}},
+		{"sort_knowledge", "sort_knowledge", "knowledges", func(svc *AdminSeams) error {
+			return svc.Content.SortKnowledges(context.Background(), 1,
+				[]model.AdminSortItem{{ID: 3, Sort: 0}, {ID: 4, Sort: 1}}, "127.0.0.1")
+		}},
+	}
+	for _, tc := range sortCases {
+		t.Run(tc.name, func(t *testing.T) {
+			svc, e := newSvc(t)
+			e.mock.ExpectBegin()
+			e.mock.ExpectExec(regexp.QuoteMeta(`UPDATE "` + tc.table + `" SET`)).
+				WillReturnResult(sqlmock.NewResult(0, 1))
+			e.mock.ExpectExec(regexp.QuoteMeta(`UPDATE "` + tc.table + `" SET`)).
+				WillReturnResult(sqlmock.NewResult(0, 1))
+			expectAudit(e, tc.action, argContains(`"ids":[3,4]`))
+			e.mock.ExpectCommit()
+
+			require.NoError(t, tc.call(svc))
+			require.NoError(t, e.mock.ExpectationsWereMet())
+		})
+	}
+
+	t.Run("traffic_import", func(t *testing.T) {
+		svc, e := newSvc(t)
+		e.mock.ExpectBegin()
+		e.mock.ExpectQuery(`INSERT INTO "traffic_logs".*ON CONFLICT.*DO UPDATE SET`).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+		e.mock.ExpectQuery(`INSERT INTO "traffic_logs".*ON CONFLICT.*DO UPDATE SET`).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(2))
+		expectAudit(e, "traffic_import", argContains(`"user_ids":[7,8]`))
+		e.mock.ExpectCommit()
+
+		err := svc.Traffic.ImportTraffic(context.Background(), 1, &model.TrafficImportReq{
+			Items: []model.TrafficImportItem{
+				{UserID: 7, Date: "2026-10-25", U: 1, D: 2},
+				{UserID: 8, Date: "2026-10-25", U: 3, D: 4},
+			},
+		}, "127.0.0.1")
+		require.NoError(t, err)
+		require.NoError(t, e.mock.ExpectationsWereMet())
+	})
+}
+
 func TestSendMailMailerNotConfigured(t *testing.T) {
 	e := newTestEnv(t)
 	set := NewSettingService(e.db, e.rdb, &repo.Repos{})

@@ -10,6 +10,7 @@ import { useMessage, useDialog } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import { useMediaQuery } from '@vueuse/core'
 import { formatMoney, formatTime } from '@/utils/format'
+import { statusBadge, statusLabel } from '@/utils/statusMeta'
 import { copyText } from '@/utils/platform'
 import StatNumber from '@/components/ui/StatNumber.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
@@ -37,16 +38,6 @@ const withdrawMethodOptions = [
   { label: 'USDT', value: 'usdt' },
   { label: 'Bank', value: 'bank' },
 ]
-
-/** 提现单状态样式:0=处理中(警告) 1=已发放(成功) 2=已退回(中性) */
-function withdrawStatusType(status: number) {
-  const map: Record<number, 'warning' | 'success' | 'neutral'> = {
-    0: 'warning',
-    1: 'success',
-    2: 'neutral',
-  }
-  return map[status] ?? 'neutral'
-}
 
 const canWithdraw = computed(
   () =>
@@ -373,8 +364,8 @@ onMounted(() => {
                     {{ w.account }}
                   </td>
                   <td>
-                    <StatusBadge :type="withdrawStatusType(w.status)">
-                      {{ t(`invite.withdrawStatus_${w.status}`) }}
+                    <StatusBadge :type="statusBadge('withdraw', w.status)">
+                      {{ statusLabel('withdraw', w.status) }}
                     </StatusBadge>
                   </td>
                   <td class="text-14 text-[var(--c-text-sub)]">
@@ -397,8 +388,8 @@ onMounted(() => {
                 </div>
                 <div class="truncate text-14 text-[var(--c-text-sub)]">{{ w.account }}</div>
               </div>
-              <StatusBadge :type="withdrawStatusType(w.status)">
-                {{ t(`invite.withdrawStatus_${w.status}`) }}
+              <StatusBadge :type="statusBadge('withdraw', w.status)">
+                {{ statusLabel('withdraw', w.status) }}
               </StatusBadge>
             </div>
           </div>

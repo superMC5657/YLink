@@ -17,6 +17,7 @@ export type StatusBadge = 'warning' | 'success' | 'neutral' | 'danger'
 export type StatusDomain =
   | 'order'
   | 'commission'
+  | 'withdraw'
   | 'agentApply'
   | 'adminTicket'
   | 'adminTicketLevel'
@@ -51,6 +52,12 @@ export const statusTable: Record<StatusDomain, Record<number, StatusRow>> = {
     0: { labelKey: 'adminCommissionLogs.confirming', badge: 'warning' },
     1: { labelKey: 'adminCommissionLogs.paid', badge: 'success' },
     2: { labelKey: 'adminCommissionLogs.revoked', badge: 'danger' },
+  },
+  // 提现单(0 处理中/1 已发放/2 已退回;用户邀请页与管理端工单详情同域同形,键同源)
+  withdraw: {
+    0: { labelKey: 'adminTickets.withdrawPending', badge: 'warning' },
+    1: { labelKey: 'adminTickets.withdrawPaid', badge: 'success' },
+    2: { labelKey: 'adminTickets.withdrawRefunded', badge: 'neutral' },
   },
   // 代理申请(0 待审核/1 通过/2 拒绝;徽标三元形态保留)
   agentApply: {
@@ -103,6 +110,7 @@ const statusFallback: Record<
 > = {
   order: { labelKey: 'common.unknown', badge: 'neutral' },
   commission: { labelKey: 'common.unknown', badge: 'danger' },
+  withdraw: { labelKey: 'common.unknown', badge: 'neutral' },
   agentApply: { labelKey: 'common.unknown', badge: 'danger' },
   adminTicket: { labelKey: 'common.unknown', badge: 'neutral' },
   adminTicketLevel: { labelKey: 'adminTickets.low', badge: 'danger' },

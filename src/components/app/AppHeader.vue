@@ -4,6 +4,7 @@
  */
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useMediaQuery } from '@vueuse/core'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import { useConfigStore } from '@/stores/config'
@@ -24,7 +25,8 @@ const { t } = useI18n()
 const props = defineProps<{ admin?: boolean }>()
 const emit = defineEmits<{ (e: 'toggle-drawer'): void }>()
 
-const isMobile = computed(() => window.innerWidth < 768)
+// 响应式判定须走 useMediaQuery(design-system §6.1),window.innerWidth 无响应源、挂载即冻结
+const isMobile = useMediaQuery('(max-width: 767px)')
 const userEmail = computed(() => auth.user?.email ?? '')
 
 const dropdownOptions = computed<DropdownOption[]>(() => [

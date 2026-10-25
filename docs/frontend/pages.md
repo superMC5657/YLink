@@ -65,7 +65,7 @@
                                     右下角：客服浮球（可配置外链）
 ```
 
-- AppSidebar：宽 240px，折叠后 72px（仅图标 + tooltip）；激活项为 `--c-primary-soft` 底胶囊 + `--c-primary-text` 文字；分组标题小字 `--c-text-sub`。菜单源仅 `NAV_GROUPS`（基础/财务/订阅/用户 4 组 10 项），**不含管理菜单**；管理员在底部额外有「进入管理后台」按钮（`v-if="auth.isAdmin"`，跳 `/admin/overview`）。
+- AppSidebar：宽 200px，折叠后 72px（仅图标 + tooltip）；激活项为 `--c-primary-soft` 底胶囊 + `--c-primary-text` 文字；分组标题小字 `--c-text-sub`。菜单源仅 `NAV_GROUPS`（基础/财务/订阅/用户 4 组 10 项），**不含管理菜单**；管理员在底部额外有「进入管理后台」按钮（`v-if="auth.isAdmin"`，跳 `/admin/overview`）。
 - AppHeader：吸顶，毛玻璃（`backdrop-filter`），含侧边栏折叠钮、站点名、主题切换、语言下拉、用户邮箱 chip（点击进 `/profile`，下拉含退出登录）；管理员下拉首项为「进入管理后台」（对称互切，见 A4）。
 
 ### 2.2 MainLayout（手机 <768px）
@@ -123,7 +123,7 @@
 ### 3.2 注册 `/register` / 找回 `/forgot`
 
 - 注册字段：邮箱、邮箱验证码（60s 倒计时按钮）、密码、确认密码、邀请码（选填，URL `?code=` 自动填充）。
-- 表单样式：与登录页一致——`n-form` 关闭 feedback 占位（`:show-feedback="false"`），`.n-form-item` 纵向间距收为 4px；注册按钮带 `mt-9`（36px），对齐登录页「忘记密码」行撑出的按钮上方净空（≈38px）。
+- 表单样式：与登录页一致——`n-form` 关闭 feedback 占位（`:show-feedback="false"`），`.n-form-item` 纵向间距收为 4px；注册/找回按钮带 `mt-9`（36px），对齐登录页「忘记密码」行撑出的按钮上方净空（≈38px）。
 - 找回字段：邮箱、验证码、新密码。
 - 数据：`POST /captcha/email`、`POST /auth/register`、`POST /auth/forgot`。
 - 校验：邮箱格式、密码 ≥8 位且含字母数字、两次一致；错误内联显示。

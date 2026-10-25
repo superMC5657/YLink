@@ -8,14 +8,13 @@ defineProps<{
   show: boolean
   selectedCount: number
   saving: boolean
-  subject: string
-  body: string
 }>()
+
+const subject = defineModel<string>('subject', { required: true })
+const body = defineModel<string>('body', { required: true })
 
 const emit = defineEmits<{
   'update:show': [boolean]
-  'update:subject': [string]
-  'update:body': [string]
   save: []
 }>()
 
@@ -35,17 +34,10 @@ const { t } = useI18n()
         <span class="text-14">{{ t('adminUsers.selectedCount', { count: selectedCount }) }}</span>
       </n-form-item>
       <n-form-item :label="t('adminUsers.mailSubject')">
-        <n-input :value="subject" :maxlength="200" @update:value="emit('update:subject', $event)" />
+        <n-input v-model:value="subject" :maxlength="200" />
       </n-form-item>
       <n-form-item :label="t('adminUsers.mailBody')">
-        <n-input
-          :value="body"
-          type="textarea"
-          :rows="6"
-          :maxlength="10000"
-          show-count
-          @update:value="emit('update:body', $event)"
-        />
+        <n-input v-model:value="body" type="textarea" :rows="6" :maxlength="10000" show-count />
       </n-form-item>
     </n-form>
     <template #footer>

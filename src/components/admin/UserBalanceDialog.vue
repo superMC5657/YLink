@@ -50,7 +50,11 @@ const { t } = useI18n()
         <button class="btn-soft-neutral h-9 px-4 text-14" @click="emit('update:show', false)">
           {{ t('common.cancel') }}
         </button>
-        <button class="btn-primary h-9 px-4 text-14" :disabled="saving" @click="emit('save')">
+        <button
+          class="btn-primary h-9 px-4 text-14"
+          :disabled="saving || amount === null"
+          @click="emit('save')"
+        >
           {{ t('common.save') }}
         </button>
       </div>

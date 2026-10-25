@@ -25,3 +25,20 @@ test('移动端仪表板渲染 + 底栏导航到购买订阅', async ({ authedPa
       .first(),
   ).toBeVisible()
 })
+
+test('顶栏响应式分支随视口宽度切换(汉堡钮 ↔ 折叠钮)', async ({ authedPage }) => {
+  await authedPage.goto('/#/dashboard')
+  await expect(authedPage.getByText('钱包余额')).toBeVisible()
+  // 起始视口 390(<768):移动分支,顶栏汉堡菜单图标(AppIcon menu 三横 path)
+  const hamburger = authedPage.locator('header path[d="M3 12h18M3 6h18M3 18h18"]')
+  await expect(hamburger).toBeVisible()
+
+  // 拉宽到桌面(≥768):切换为桌面折叠钮,汉堡图标消失
+  // (冻结判定 window.innerWidth 在此残留,useMediaQuery 才会随宽度切换)
+  await authedPage.setViewportSize({ width: 1280, height: 800 })
+  await expect(hamburger).toHaveCount(0)
+
+  // 再缩回移动:汉堡钮回来(双向响应)
+  await authedPage.setViewportSize({ width: 390, height: 844 })
+  await expect(hamburger).toBeVisible()
+})

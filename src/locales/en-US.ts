@@ -251,9 +251,6 @@ export default {
     withdrawAccount: 'Payout account',
     withdrawAccountPlaceholder: 'Alipay account / USDT address / bank card',
     withdrawStatus: 'Status',
-    withdrawStatus_0: 'Processing',
-    withdrawStatus_1: 'Paid',
-    withdrawStatus_2: 'Returned',
     withdrawRecords: 'Withdrawal history',
     withdrawTip:
       'Commission is frozen immediately and a withdrawal ticket is created. An admin pays offline and confirms here; rejected requests are refunded automatically.',

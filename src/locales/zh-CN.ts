@@ -250,9 +250,6 @@ export default {
     withdrawAccount: '收款账号',
     withdrawAccountPlaceholder: '支付宝账号 / USDT 地址 / 银行卡号',
     withdrawStatus: '状态',
-    withdrawStatus_0: '处理中',
-    withdrawStatus_1: '已发放',
-    withdrawStatus_2: '已退回',
     withdrawRecords: '提现记录',
     withdrawTip:
       '提交后佣金立即冻结并生成提现工单，管理员线下打款后在本工单确认；被拒绝时佣金自动退回。',

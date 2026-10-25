@@ -30,6 +30,7 @@ import {
 const EXPECTED_STATUSES: Record<StatusDomain, number[]> = {
   order: [0, 1, 2, 3],
   commission: [0, 1, 2],
+  withdraw: [0, 1, 2],
   agentApply: [0, 1, 2],
   adminTicket: [0, 1, 2],
   adminTicketLevel: [0, 1, 2],
@@ -39,10 +40,9 @@ const EXPECTED_STATUSES: Record<StatusDomain, number[]> = {
   server: [1, 2, 3],
 }
 
-/** 旧导出(现为委托)与表的对照:deletion test 的另一半,删旧表不丢行为 */
-const LEGACY: Record<
-  StatusDomain,
-  { label: (n: number) => string; badge?: (n: number) => StatusBadge }
+/** 旧导出(现为委托)与表的对照:deletion test 的另一半,删旧表不丢行为(withdraw 为新增域,无旧导出) */
+const LEGACY: Partial<
+  Record<StatusDomain, { label: (n: number) => string; badge?: (n: number) => StatusBadge }>
 > = {
   order: { label: orderStatusLabel, badge: orderStatusBadge },
   commission: { label: commissionStatusLabel, badge: commissionStatusBadge },
@@ -81,6 +81,7 @@ describe('回落语义(与收敛前逐字一致)', () => {
   const cases: Array<[StatusDomain, number, string, StatusBadge]> = [
     ['order', 99, 'common.unknown', 'neutral'],
     ['commission', 99, 'common.unknown', 'danger'],
+    ['withdraw', 99, 'common.unknown', 'neutral'],
     ['agentApply', 99, 'common.unknown', 'danger'],
     ['adminTicket', 99, 'common.unknown', 'neutral'],
     ['adminTicketLevel', 99, 'adminTickets.low', 'danger'],
@@ -107,16 +108,13 @@ describe('回落语义(与收敛前逐字一致)', () => {
 })
 
 describe('旧导出委托(删旧表不丢行为)', () => {
-  it.each(Object.keys(EXPECTED_STATUSES) as StatusDomain[])(
-    '%s 旧文案/徽标与表一致(含未知回落)',
-    (domain) => {
-      const legacy = LEGACY[domain]
-      for (const s of [...EXPECTED_STATUSES[domain], 99]) {
-        expect(legacy.label(s)).toBe(statusLabel(domain, s))
-        if (legacy.badge) expect(legacy.badge(s)).toBe(statusBadge(domain, s))
-      }
-    },
-  )
+  it.each(Object.keys(LEGACY) as StatusDomain[])('%s 旧文案/徽标与表一致(含未知回落)', (domain) => {
+    const legacy = LEGACY[domain]!
+    for (const s of [...EXPECTED_STATUSES[domain], 99]) {
+      expect(legacy.label(s)).toBe(statusLabel(domain, s))
+      if (legacy.badge) expect(legacy.badge(s)).toBe(statusBadge(domain, s))
+    }
+  })
 
   it('serverStatusMeta 文案与色委托', () => {
     for (const s of [1, 2, 3, 99]) {
@@ -134,5 +132,9 @@ describe('旧导出委托(删旧表不丢行为)', () => {
     expect(statusLabel('adminRole', 2)).toBe('代理商')
     expect(statusLabel('adminRole', 0)).toBe('普通用户')
     expect(statusLabel('server', 1)).toBe('正常')
+    // withdraw 键存在性守卫:键被删时 i18n 回落为键名而非文案,此处即红
+    expect(statusLabel('withdraw', 0)).toBe('处理中')
+    expect(statusLabel('withdraw', 1)).toBe('已发放')
+    expect(statusLabel('withdraw', 2)).toBe('已退回')
   })
 })

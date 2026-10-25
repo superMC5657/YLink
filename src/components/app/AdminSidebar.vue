@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * 管理端侧边栏:唯一菜单源 ADMIN_NAV_GROUPS(13 项),底部「返回用户中心」。
+ * 管理端侧边栏:唯一菜单源 ADMIN_NAV_GROUPS(18 项),底部「返回用户中心」。
  * fill 模式用于移动端独立抽屉(撑满容器、固定展开、隐藏折叠钮)。
  * 规范见 docs/frontend/pages.md §2.4。
  */

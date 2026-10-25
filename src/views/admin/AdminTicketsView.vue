@@ -17,6 +17,7 @@ import {
   adminTicketStatusBadge,
   adminTicketStatusLabel,
 } from '@/utils/format'
+import { statusBadge, statusLabel } from '@/utils/statusMeta'
 import { useMessage, useDialog } from 'naive-ui'
 
 const { t } = useI18n()
@@ -62,12 +63,12 @@ function scrollToBottom() {
   })
 }
 
-async function openDetail(t: AdminTicketItem) {
+async function openDetail(tk: AdminTicketItem) {
   modalVisible.value = true
   detailLoading.value = true
   replyText.value = ''
   try {
-    detail.value = await apiAdmin.ticketDetail(t.id)
+    detail.value = await apiAdmin.ticketDetail(tk.id)
     scrollToBottom()
   } finally {
     detailLoading.value = false
@@ -119,16 +120,6 @@ function onClose() {
 const withdrawAction = ref<'pay' | 'reject' | null>(null)
 const withdrawRemark = ref('')
 const withdrawSubmitting = ref(false)
-
-/** 提现单状态文案 key 后缀:0=处理中 1=已发放 2=已退回 */
-function withdrawStatusKey(status: number): string {
-  const map: Record<number, string> = {
-    0: 'adminTickets.withdrawPending',
-    1: 'adminTickets.withdrawPaid',
-    2: 'adminTickets.withdrawRefunded',
-  }
-  return map[status] ?? ''
-}
 
 function askWithdrawPay() {
   withdrawAction.value = 'pay'
@@ -277,16 +268,8 @@ onMounted(() => void load())
             <span class="text-14 font-600 text-[var(--c-text)]">
               {{ t('adminTickets.withdrawInfo') }}
             </span>
-            <StatusBadge
-              :type="
-                detail.withdraw.status === 0
-                  ? 'warning'
-                  : detail.withdraw.status === 1
-                    ? 'success'
-                    : 'neutral'
-              "
-            >
-              {{ t(withdrawStatusKey(detail.withdraw.status)) }}
+            <StatusBadge :type="statusBadge('withdraw', detail.withdraw.status)">
+              {{ statusLabel('withdraw', detail.withdraw.status) }}
             </StatusBadge>
           </div>
           <div class="grid grid-cols-2 gap-2 text-14">

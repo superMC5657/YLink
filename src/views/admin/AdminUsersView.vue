@@ -249,12 +249,10 @@ const {
     <!-- F05 发送邮件弹窗 -->
     <UserMailDialog
       v-model:show="mailModal"
-      :subject="mailSubject"
-      :body="mailBody"
+      v-model:subject="mailSubject"
+      v-model:body="mailBody"
       :selected-count="selectedIds.length"
       :saving="mailSaving"
-      @update:subject="mailSubject = $event"
-      @update:body="mailBody = $event"
       @save="saveSendMail"
     />
   </div>

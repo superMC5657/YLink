@@ -175,10 +175,12 @@ const {
                       >
                         <span class="relative flex h-2 w-2">
                           <span
-                            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"
+                            class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
+                            style="background: var(--c-success)"
                           ></span>
                           <span
-                            class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"
+                            class="relative inline-flex h-2 w-2 rounded-full"
+                            style="background: var(--c-success)"
                           ></span>
                         </span>
                         {{ t('adminNodes.online') }}
@@ -231,7 +233,10 @@ const {
                     v-else
                     class="inline-flex items-center gap-1 text-12 text-[var(--c-text-sub)]"
                   >
-                    <span class="h-1.5 w-1.5 rounded-full bg-gray-400"></span>
+                    <span
+                      class="h-1.5 w-1.5 rounded-full"
+                      style="background: var(--c-text-sub)"
+                    ></span>
                     {{ t('adminNodes.offline') }}
                   </span>
                 </div>

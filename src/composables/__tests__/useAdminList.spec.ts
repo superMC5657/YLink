@@ -97,6 +97,22 @@ describe('useAdminList', () => {
     expect(list.value).toEqual([r1])
   })
 
+  // 变更后刷新走 reload:失败静默(错误交 http 层 toast),不再产生未处理拒绝;
+  // 首载/筛选切换仍用 load 的重抛语义区分 loading/error。
+  it('reload 失败静默不抛且保留旧表,load 保持重抛', async () => {
+    const fetch = vi
+      .fn<() => Promise<PageResult<Row>>>()
+      .mockResolvedValueOnce(pageOf([r1], 1))
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockRejectedValue(new Error('boom'))
+    const { list, loading, load, reload } = useAdminList<Row, Record<string, unknown>>({ fetch })
+    await load()
+    await expect(reload()).resolves.toBeUndefined()
+    expect(loading.value).toBe(false)
+    expect(list.value).toEqual([r1])
+    await expect(load()).rejects.toThrow('boom')
+  })
+
   it('翻到删空页自动退一页重取(单步有界)', async () => {
     const fetch = vi
       .fn<() => Promise<PageResult<Row>>>()

@@ -29,6 +29,7 @@ export function useAdminNodes() {
     loading,
     list: servers,
     load,
+    reload,
     selectedIds,
     isSelected,
     toggleRow,
@@ -150,7 +151,7 @@ export function useAdminNodes() {
         message.success(t('adminNodes.nodeUpdated'))
       }
       nodeModal.value = false
-      void load()
+      void reload()
     } finally {
       nodeSaving.value = false
     }
@@ -165,7 +166,7 @@ export function useAdminNodes() {
       onPositiveClick: async () => {
         await nodesTransport.deleteServer(srv.id)
         message.success(t('adminNodes.deleted'))
-        void load()
+        void reload()
       },
     })
   }
@@ -179,7 +180,7 @@ export function useAdminNodes() {
       onPositiveClick: async () => {
         const { node_key: key } = await nodesTransport.resetServerNodeKey(srv.id)
         message.success(t('adminNodes.resetKeySuccess', { key }))
-        void load()
+        void reload()
       },
     })
   }
@@ -206,7 +207,7 @@ export function useAdminNodes() {
           const resp = await nodesTransport.batchServers({ action: 'delete', ids })
           reportBatch(resp)
           clearSelection()
-          void load()
+          void reload()
         } finally {
           batchSaving.value = false
         }
@@ -292,7 +293,7 @@ export function useAdminNodes() {
       onPositiveClick: async () => {
         await nodesTransport.copyServer(srv.id)
         message.success(t('adminNodes.copied', { name: srv.name }))
-        void load()
+        void reload()
       },
     })
   }
@@ -363,7 +364,7 @@ export function useAdminNodes() {
         message.success(t('adminNodes.groupUpdated'))
       }
       groupModal.value = false
-      void load()
+      void reload()
     } finally {
       groupSaving.value = false
     }
@@ -378,12 +379,12 @@ export function useAdminNodes() {
       onPositiveClick: async () => {
         await nodesTransport.deleteServerGroup(g.id)
         message.success(t('adminNodes.deleted'))
-        void load()
+        void reload()
       },
     })
   }
 
-  onMounted(() => void load())
+  onMounted(() => void reload())
 
   return {
     // 状态
@@ -415,6 +416,7 @@ export function useAdminNodes() {
     allChecked,
     // 动作
     load,
+    reload,
     openNodeCreate,
     openNodeEdit,
     saveNode,

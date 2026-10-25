@@ -43,7 +43,7 @@ ReplyTicket 条件更新守卫（reopen-once 状态机）；TrafficLogRepo.Upser
 
 clampPageSize 支持 Standard/Audit 双档（ADR-0004），审计页选 100/页真实生效。→ issues/09
 
-### [P1] 10 管理端变更后刷新不得产生未处理拒绝
+### [P1] 10 管理端变更后刷新不得产生未处理拒绝 ✅
 
 `void load()` 全部改为非抛出的 reload 语义。→ issues/10
 

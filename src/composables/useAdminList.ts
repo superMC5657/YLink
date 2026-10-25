@@ -121,6 +121,18 @@ export function useAdminList<TItem, TQuery extends Record<string, unknown>>(
     return fetchPage()
   }
 
+  /**
+   * 变更后刷新:同 load 复用上次筛选,但失败静默(http 层已 toast),
+   * 供 `void reload()` 触发点使用,不产生未处理 Promise 拒绝。
+   * 需区分 loading/error 的首载与筛选切换仍用 load()/applyFilters()。
+   */
+  function reload() {
+    return fetchPage().then(
+      () => undefined,
+      () => undefined,
+    )
+  }
+
   /** 换筛选并回首页取数(搜索/过滤入口)。 */
   function applyFilters(query: TQuery) {
     lastQuery.value = { ...query }
@@ -184,6 +196,7 @@ export function useAdminList<TItem, TQuery extends Record<string, unknown>>(
     page,
     pageSize,
     load,
+    reload,
     applyFilters,
     onPageChange,
     setPageSize,

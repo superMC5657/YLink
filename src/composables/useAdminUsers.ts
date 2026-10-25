@@ -30,6 +30,7 @@ export function useAdminUsers() {
     page,
     pageSize,
     load,
+    reload,
     applyFilters,
     onPageChange,
     selectedIds,
@@ -77,7 +78,7 @@ export function useAdminUsers() {
       onPositiveClick: async () => {
         await usersTransport.updateUser(u.id, { banned: !u.is_banned })
         message.success(t('adminUsers.updated'))
-        void load()
+        void reload()
       },
     })
   }
@@ -99,7 +100,7 @@ export function useAdminUsers() {
       await usersTransport.updateUser(roleTarget.value.id, { role: roleValue.value })
       message.success(t('adminUsers.roleUpdated'))
       roleModal.value = false
-      void load()
+      void reload()
     } finally {
       roleSaving.value = false
     }
@@ -127,7 +128,7 @@ export function useAdminUsers() {
       })
       message.success(t('adminUsers.balanceAdjusted'))
       balanceModal.value = false
-      void load()
+      void reload()
     } finally {
       balanceSaving.value = false
     }
@@ -162,7 +163,7 @@ export function useAdminUsers() {
           const resp = await usersTransport.batchUsers({ action: banned ? 'ban' : 'unban', ids })
           reportBatch(t('adminUsers.batchDone'), resp)
           clearSelection()
-          void load()
+          void reload()
         } finally {
           batchSaving.value = false
         }
@@ -194,7 +195,7 @@ export function useAdminUsers() {
       reportBatch(t('adminUsers.batchBalanceDone'), resp)
       batchBalanceModal.value = false
       clearSelection()
-      void load()
+      void reload()
     } finally {
       batchSaving.value = false
     }
@@ -275,7 +276,7 @@ export function useAdminUsers() {
     })
   }
 
-  onMounted(() => void load())
+  onMounted(() => void reload())
 
   return {
     // 状态
@@ -309,6 +310,7 @@ export function useAdminUsers() {
     allChecked,
     // 动作
     load,
+    reload,
     onSearch,
     onPageChange,
     toggleBan,

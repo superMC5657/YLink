@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -32,6 +33,16 @@ import (
 
 const cronLockTTL = 15 * time.Minute
 
+// cronUnlockLua 属主校验释放锁：仅当锁值仍为本实例的 token 时 DEL。
+// 任务执行超过锁 TTL 后锁已被继任实例重新持有，无属主校验的 DEL 会误删
+// 继任者的锁，导致下一轮双实例并发执行同一任务。
+var cronUnlockLua = redis.NewScript(`
+if redis.call("GET", KEYS[1]) == ARGV[1] then
+	return redis.call("DEL", KEYS[1])
+end
+return 0
+`)
+
 // cronGuard 锁 seam：同一 job 单实例执行，占不到即跳过并打点。
 type cronGuard struct {
 	rdb *redis.Client
@@ -40,13 +51,22 @@ type cronGuard struct {
 func (g *cronGuard) run(name string, fn func()) func() {
 	return func() {
 		ctx := context.Background()
-		ok, err := g.rdb.SetNX(ctx, redispkg.Key("cron", "lock", name), "1", cronLockTTL).Result()
-		if err != nil || !ok {
-			logger.L().Info("cron lock skipped", zapS("job", name))
+		key := redispkg.Key("cron", "lock", name)
+		token := uuid.NewString()
+		ok, err := g.rdb.SetNX(ctx, key, token, cronLockTTL).Result()
+		if err != nil {
+			// Redis 故障与锁被他人持有是两种语义：故障必须 Error 级可观测，
+			// 否则基础设施故障被静默降级成「本轮跳过」。
+			logger.L().Error("cron lock acquire failed", zapS("job", name), zapE(err))
 			middleware.CronJobInc(name, "skipped")
 			return
 		}
-		defer g.rdb.Del(ctx, redispkg.Key("cron", "lock", name))
+		if !ok {
+			logger.L().Info("cron lock held by peer, skip", zapS("job", name))
+			middleware.CronJobInc(name, "skipped")
+			return
+		}
+		defer g.release(ctx, key, token)
 		logger.L().Info("cron job start", zapS("job", name))
 		start := time.Now()
 		func() {
@@ -62,6 +82,13 @@ func (g *cronGuard) run(name string, fn func()) func() {
 			middleware.CronJobDuration(name, time.Since(start))
 		}()
 		logger.L().Info("cron job done", zapS("job", name))
+	}
+}
+
+// release 属主校验释放（Lua 单原子）；失败只记日志，等锁 TTL 自然过期兜底。
+func (g *cronGuard) release(ctx context.Context, key, token string) {
+	if err := cronUnlockLua.Run(ctx, g.rdb, []string{key}, token).Err(); err != nil {
+		logger.L().Error("cron lock release failed", zapS("job", key), zapE(err))
 	}
 }
 

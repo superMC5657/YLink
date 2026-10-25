@@ -316,4 +316,3 @@ func TestNodeReportWithSystemAndHeartbeat(t *testing.T) {
 	assert.Contains(t, statVal, `"cpu_percent":25.5`)
 	assert.Contains(t, statVal, `"connections":42`)
 }
-

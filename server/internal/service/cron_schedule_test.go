@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	redispkg "ylink-backend/internal/pkg/redis"
 	"ylink-backend/internal/repo"
 )
 
@@ -31,6 +32,50 @@ func TestCronLockSkip(t *testing.T) {
 	job2 := g.run("ut-job", func() { ran++ })
 	job2()
 	assert.Equal(t, 1, ran)
+}
+
+// Redis 故障：SetNX 报错走 Error 级路径（可观测），任务不执行、不 panic。
+func TestCronLockRedisErrorSkips(t *testing.T) {
+	mr := miniredis.RunT(t)
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	g := &cronGuard{rdb: rdb}
+	mr.SetError("redis down")
+
+	ran := false
+	g.run("ut-redis-err", func() { ran = true })()
+	assert.False(t, ran)
+}
+
+// 释放只删自己持有的锁：token 不匹配（继任实例已接管）不得误删，匹配即删。
+func TestCronLockReleaseOwnership(t *testing.T) {
+	mr := miniredis.RunT(t)
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	g := &cronGuard{rdb: rdb}
+	ctx := context.Background()
+	key := redispkg.Key("cron", "lock", "ut-owner")
+
+	require.NoError(t, rdb.Set(ctx, key, "successor-token", time.Minute).Err())
+	g.release(ctx, key, "my-token")
+	got, err := rdb.Get(ctx, key).Result()
+	require.NoError(t, err)
+	assert.Equal(t, "successor-token", got, "不得误删继任实例持有的锁")
+
+	g.release(ctx, key, "successor-token")
+	assert.False(t, mr.Exists(key), "属主匹配时应删除锁")
+}
+
+// 同一 job 连续两轮：首轮结束释放后，第二轮可重新获得锁执行。
+func TestCronLockSequentialRuns(t *testing.T) {
+	mr := miniredis.RunT(t)
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	g := &cronGuard{rdb: rdb}
+
+	ran := 0
+	job := g.run("ut-seq", func() { ran++ })
+	job()
+	job()
+	assert.Equal(t, 2, ran)
+	assert.False(t, mr.Exists(redispkg.Key("cron", "lock", "ut-seq")))
 }
 
 func TestExpireWindowMatrix(t *testing.T) {

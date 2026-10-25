@@ -19,7 +19,7 @@ EnsureAdmin/EnsureDemoUser 填充 `users.uuid`，消除唯一约束冲突与模�
 
 `/readyz` 的 DB ping 纳入超时上下文、不向公网泄漏内部错误细节；Telegram Webhook 先校验 secret 再 bind body（403 语义）。→ issues/03
 
-### [P0] 04 cron 分布式锁修复
+### [P0] 04 cron 分布式锁修复 ✅
 
 SetNX 错误与锁竞争分路径处理（Redis 故障不再静默跳过）；锁删除带属主 token 防误删继任者。→ issues/04
 

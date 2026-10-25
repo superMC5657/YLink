@@ -148,7 +148,7 @@ sequenceDiagram
 | agent-audit | 每月 1 日 03:00 | 代理商有效人数复核降级 role=0 |
 | traffic-daily | 每日 01:00 | 流量日结转/汇总校验（模式 B 下可空跑） |
 
-所有任务加 `cron:lock:{job}` 分布式锁，支持多实例部署安全。
+所有任务加 `cron:lock:{job}` 分布式锁（TTL 15min，锁值为随机属主 token，结束时 Lua 比对属主后释放——超时任务不得误删继任实例的锁；Redis 故障按 Error 日志跳过本轮，与「锁被他人持有」的 Info 跳过区分），支持多实例部署安全。
 
 ## 10. 通知邮件模板
 

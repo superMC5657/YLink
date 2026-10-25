@@ -125,11 +125,11 @@ func submitWithdrawTx(tx *gorm.DB, repos *repo.Repos, userID, amountFen int64, m
 // withdrawReviewOut 生命周期·审核的域输出：调用方（admin）据此写审计，
 // 目标保持单个用户 ID（提现不混用批量摘要 batch:<count>）。
 type withdrawReviewOut struct {
-	action    string // withdraw_pay / withdraw_reject
-	userID    int64
+	action     string // withdraw_pay / withdraw_reject
+	userID     int64
 	withdrawID int64
-	amountFen int64
-	method    string
+	amountFen  int64
+	method     string
 }
 
 // reviewWithdrawTx 生命周期·审核：取工单 → 取提现单（行锁）→ pay 确认打款 /

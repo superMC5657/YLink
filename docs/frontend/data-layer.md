@@ -18,22 +18,27 @@
 ### 1.2 使用约定
 
 ```ts
-// api/order.ts —— api 模块是纯函数集合，返回解包后的数据
-export const fetchOrders = (q: OrderQuery) => http.get<PageResult<Order>>('/orders', { query: q })
-export const createOrder = (body: CreateOrderReq) => http.post<CreateOrderResp>('/orders', { body })
+// stores/order.ts —— 传输核：本域 URL 与响应形态的唯一归属（ADR-0006）
+export const orderTransport = {
+  create: (body: CreateOrderReq, idempotencyKey: string) =>
+    http.post<Order>('/orders', { body, headers: { 'Idempotency-Key': idempotencyKey } }),
+  fetch: (q: PageQuery) => http.get<PageResult<Order>>('/orders', { query: q }),
+}
+
+// api/order.ts —— 契约名适配缝：既有引入路径与导出名稳定，不新增逻辑
+export const apiOrder = orderTransport
 ```
 
-- api 模块只做参数拼装与类型标注，不写业务逻辑；
+- 传输核（`xxxTransport`）归 `stores/<domain>.ts`，只做参数拼装与类型标注，不写业务逻辑；store 动作与 api 适配缝共用同一核（一处修改，N 处调用）；唯一例外 `api/auth.ts` 自持实现（ADR-0006）。
 - 所有类型在 `types/api.d.ts` 定义，与契约文档保持同步（契约变更先改类型；管理端 DTO 形状走 `contract:gen` 生成，见 ADR-002）。
 
 ## 2. 状态管理（Pinia）
 
 | Store | 关键状态 | 持久化 |
 |---|---|---|
-| `useAuthStore` | access_token、refresh_token、登录/登出/刷新动作 | 是 |
-| `useUserStore` | 用户信息、余额、佣金、通知开关 | 否（进入主布局时拉取） |
+| `useAuthStore` | 登录用户、role 核实、登录/登出/刷新动作 | 是 |
+| `useUserStore` | 用户信息、余额/佣金统计、订阅信息、流量记录 | 否（进入主布局时拉取） |
 | `useConfigStore` | 站点配置（站点名、TG 链接、客服地址、注册开关、代理政策文案） | 是（60s 缓存） |
-| `useSubscribeStore` | 当前订阅、流量统计、订阅链接 | 否（窗口聚焦刷新） |
 | `useNoticeStore` | 公告列表、分页 | 否 |
 | `usePlanStore` | 套餐列表 | 会话级缓存 |
 | `useOrderStore` | 订单列表、分页、当前详情、轮询句柄 | 否 |
@@ -44,9 +49,9 @@ export const createOrder = (body: CreateOrderReq) => http.post<CreateOrderResp>(
 | `useAppStore` | 侧边栏折叠、语言、主题模式、后端地址 | 是 |
 
 约定：
-- store 是唯一允许调用 api 模块的地方；页面组件读写 store，不直接发请求。
+- store 是唯一 transport 持有者：各域传输核（URL 与响应形态）定义在 `stores/<domain>.ts`，api 模块只是契约名适配缝（re-export，ADR-0006）；页面组件与 composable 读写 store，不直接发请求。一次性动作（改密、重置订阅、会话管理、Telegram 绑定）也走 store actions，结果由页面局部持有。
 - 轮询/定时器句柄存放在对应 store，路由离开时统一清理（`$reset` 或显式 stop）。
-- 例外（务实决策）：管理后台视图（`views/admin/*`）直接调用 `apiAdmin`（纯适配缝，实现归 `stores/admin/*` 各域传输核，ADR-0003）不经 store 中转——管理端数据一次性拉取、无跨页共享状态；用户端业务视图一律经 store（Profile / 下单弹窗已按此约定收敛）。
+- 例外（务实决策）：管理后台视图（`views/admin/*`）直接调用 `apiAdmin`（纯适配缝，实现归 `stores/admin/*` 各域传输核，ADR-0003）不经 store 中转——管理端数据一次性拉取、无跨页共享状态；认证视图（注册/找回的验证码、忘记密码）直调 `apiCaptcha`/`apiAuth`——会话建立前的引导页。用户端业务视图与 composable 一律经 store（Profile、下单弹窗、本地通知轮询已按此约定收敛）。
 
 ## 3. 持久化适配（`utils/storage.ts`）
 

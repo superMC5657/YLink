@@ -84,6 +84,20 @@ export const useUserStore = defineStore('user', {
       const data = await userTransport.trafficLogs(from, to)
       this.trafficLogs = data?.list ?? []
     },
+    // 会话管理（F14）与 Telegram 绑定（F12）：一次性动作，无跨页共享态，结果由页面局部持有
+    async fetchSessions() {
+      const data = await userTransport.sessions()
+      return data?.list ?? []
+    },
+    async revokeSession(jti: string) {
+      return userTransport.revokeSession(jti)
+    },
+    async telegramBindCode() {
+      return userTransport.telegramBindCode()
+    },
+    async telegramUnbind() {
+      return userTransport.telegramUnbind()
+    },
     /** 窗口聚焦时静默刷新仪表板数据 */
     async refreshDashboard() {
       await Promise.allSettled([this.fetchStat(), this.fetchSubscribe()])

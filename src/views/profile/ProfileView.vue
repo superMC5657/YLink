@@ -13,7 +13,6 @@ import { openExternal } from '@/utils/platform'
 import { copyText } from '@/utils/platform'
 import { isTauri } from '@/utils/platform'
 import { checkForUpdate, requestCheckUpdate } from '@/utils/updater'
-import { apiUser } from '@/api/user'
 import { formatTime, maskUrl } from '@/utils/format'
 import type { UserSessionItem } from '@/types/api'
 import BannerStatCard from '@/components/business/BannerStatCard.vue'
@@ -150,7 +149,7 @@ async function openBindModal() {
   gettingCode.value = true
   bindCode.value = ''
   try {
-    const data = await apiUser.telegramBindCode()
+    const data = await user.telegramBindCode()
     bindCode.value = data.code
     bindBot.value = data.bot_username
     bindModal.value = true
@@ -176,7 +175,7 @@ function onUnbind() {
       if (unbinding.value) return
       unbinding.value = true
       try {
-        await apiUser.telegramUnbind()
+        await user.telegramUnbind()
         telegramBound.value = false
         message.success(t('profile.tgUnboundDone'))
       } catch {
@@ -195,8 +194,7 @@ const sessionsLoading = ref(false)
 async function loadSessions() {
   sessionsLoading.value = true
   try {
-    const data = await apiUser.sessions()
-    sessions.value = data?.list ?? []
+    sessions.value = await user.fetchSessions()
   } finally {
     sessionsLoading.value = false
   }
@@ -210,7 +208,7 @@ function onRevokeSession(s: UserSessionItem) {
     negativeText: t('common.cancel'),
     onPositiveClick: async () => {
       try {
-        await apiUser.revokeSession(s.jti)
+        await user.revokeSession(s.jti)
         message.success(t('profile.sessionRevoked'))
         void loadSessions()
       } catch {
@@ -306,7 +304,7 @@ onMounted(() => {
                     </StatusBadge>
                   </div>
                   <div class="mt-0.5 text-14 text-[var(--c-text-sub)]">
-                    {{ s.ip || '--' }} · {{ s.created_at ? formatTime(s.created_at, false) : '--' }}
+                    {{ s.ip || '--' }} · {{ formatTime(s.created_at, false) }}
                   </div>
                 </div>
                 <button

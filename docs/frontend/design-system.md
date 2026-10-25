@@ -141,7 +141,7 @@
 3. **防闪烁**：SPA 入口 `src/index.html` 以外链引入 `public/theme.js`（独立文件满足 CSP `script-src 'self'`），在渲染前读持久化值并写入 `data-theme`，避免亮暗闪烁（FOUC）。
 4. **联动项**：
    - ECharts：按主题切换 `light/dark` 主题并刷新实例；
-   - 图片：Banner 插画暗色加遮罩层；纯黑描边图标一律使用 Iconify 线性图标（随 `currentColor` 变色），不使用位图图标；
+   - 图片：Banner 插画暗色加遮罩层；线性图标一律走 `AppIcon`（内联 Lucide path，随 `currentColor` 变色），不使用位图图标；
    - 编辑器/代码块（知识库 Markdown）：暗色使用 `github-dark` 高亮主题；
    - Tauri 桌面端：窗口标题栏跟随主题（`set_theme`），托盘图标提供亮暗两套。
 5. **验收**：所有页面截图走查一遍亮/暗两套；禁止出现写死颜色导致的「暗色下白块」。
@@ -201,6 +201,6 @@
 
 ## 8. 图标与插画
 
-- 图标统一 Iconify：界面用 MingCute Line，语义图标用 Solar Line；尺寸 16/20/24 三档，`currentColor` 着色。
+- 图标统一内联 Lucide path：`components/ui/AppIcon.vue` 的 `PATHS` 表为唯一来源（24×24 stroke 风格、ISC 许可），`currentColor` 着色、离线可用（桌面端零网络依赖）；新增图标 = 在 `PATHS` 补一条 path，尺寸经 `size` prop 控制（默认 20）。
 - 空态/登录页插画：自绘或选用统一风格的开源插画集（如 unDraw），暗色下统一降透明度至 80% 并叠冷色调。
 - Banner 插画：1920×480 @2x，WebP；明暗两套资源命名 `banner-light.webp / banner-dark.webp`。

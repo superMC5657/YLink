@@ -1,6 +1,6 @@
 # Review Fixes 3
 
-> 状态: 修复中——P0 完成 4/4；P1 完成 10/10（05-13）；P2 完成 2/5（14、15），余 P2×3 / P3×3
+> 状态: 修复中——P0 完成 4/4；P1 完成 10/10（05-13）；P2 完成 3/5（14-16），余 P2×2 / P3×3
 > 日期: 2026-10-25
 > 范围: 全量代码评审（review-round-09）产出的修复项——安全与启动稳定、并发/正确性、分层与契约合规、令牌化与文档对齐、死代码清理
 > 关联: 评审快照 `docs/reviews/review-round-09.md`；分段执行手册 `execution.md`（一次贴一段）；前两轮见 `.scratch/review-fixes/`、`.scratch/review-fixes-2/`
@@ -67,7 +67,7 @@ desktop schemes 注册（ylink:// 可用）、latest-cn.json 接入 updater endp
 
 批量审计 target 统一 `batch:<count>`（5 处）、IDParam 收敛（6 处）、models.go tag 对齐 data-model、agent_applies/used_count 补文档、metrics label 基数治理。→ issues/15
 
-### [P2] 16 前端数据层合规批
+### [P2] 16 前端数据层合规批 ✅
 
 ProfileView/useLocalNotifications 下沉 store、OrderConfirmModal silent:true、api seam 保留现状补 ADR-0006 并更新 data-layer.md、AppIcon 文档对齐内联 Lucide、api.d.ts 会话契约同步。→ issues/16
 

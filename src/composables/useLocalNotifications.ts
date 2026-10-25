@@ -4,7 +4,7 @@
  * 防打扰:到期按「到期日」只通知一次,工单按状态快照只通知变化,均用 localStorage 持久化。
  */
 import { useI18n } from 'vue-i18n'
-import { apiTicket } from '@/api/ticket'
+import { useTicketStore } from '@/stores/ticket'
 import { useUserStore } from '@/stores/user'
 import { notify } from '@/utils/notify'
 import { getItem, setItem } from '@/utils/storage'
@@ -31,7 +31,7 @@ export function useLocalNotifications() {
   /** 工单状态变为「已回复」(0→1 或 2→1)→ 通知一次(状态快照去重) */
   async function checkTickets(): Promise<void> {
     try {
-      const data = await apiTicket.fetch({ page: 1, page_size: 10 })
+      const data = await useTicketStore().fetchStatusSnapshot(1, 10)
       const list = data?.list ?? []
       if (list.length === 0) return
       let prev: Record<number, number> = {}

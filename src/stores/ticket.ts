@@ -13,7 +13,7 @@ import type {
 /**
  * ticket module 的传输核：本域 URL 与响应形态的唯一归属。
  * store 动作与 `@/api/ticket` 适配缝共用同一核（一处修改，N 处调用）；
- * 适配缝只走传输核、不写 store 异步态，后台轮询不掀翻列表视图。
+ * 后台状态快照轮询走 fetchStatusSnapshot，不写列表/加载态，不掀翻列表视图。
  */
 export const ticketTransport = {
   fetch: (q: PageQuery = {}) =>
@@ -52,6 +52,10 @@ export const useTicketStore = defineStore('ticket', {
       } finally {
         this.loading = false
       }
+    },
+    /** 状态快照轮询（useLocalNotifications 后台通知）：只取数不落列表/加载态，避免掀翻列表视图 */
+    async fetchStatusSnapshot(page = 1, pageSize = 10) {
+      return ticketTransport.fetch({ page, page_size: pageSize })
     },
     async create(body: CreateTicketReq) {
       const ticket = await ticketTransport.create(body)

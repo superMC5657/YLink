@@ -20,7 +20,9 @@ import type {
  * store 动作与 `@/api/order` 适配缝共用同一核（一处修改，N 处调用）。
  */
 export const couponTransport = {
-  check: (body: CouponCheckReq) => http.post<CouponCheckResp>('/coupons/check', { body }),
+  // 试算失败由调用方内联展示（OrderConfirmModal 券错误文案），http 层不再 toast
+  check: (body: CouponCheckReq) =>
+    http.post<CouponCheckResp>('/coupons/check', { body, silent: true }),
   available: (q: { plan_id?: number; period?: PlanPeriod } = {}) =>
     http.get<CouponAvailableResp>('/coupons/available', {
       query: { plan_id: q.plan_id, period: q.period },

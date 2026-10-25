@@ -29,7 +29,7 @@
 | 状态管理 | Pinia + pinia-plugin-persistedstate | 按业务域拆分 store |
 | 国际化 | vue-i18n@11 | zh-CN / en 起步，语言包懒加载 |
 | 图表 | ECharts 5（按需引入） | 流量明细曲线 |
-| 图标 | @iconify/vue（Solar / MingCute 图标集） | 线性风格统一 |
+| 图标 | 内联 Lucide path（`components/ui/AppIcon.vue` 单源） | 24×24 stroke 风格、`currentColor` 着色，零网络依赖（离线/桌面端稳定，ISC 许可） |
 | Markdown 渲染 | markdown-it + DOMPurify | 知识库/公告正文，防 XSS |
 | 工具库 | dayjs、@vueuse/core | 时间与组合式工具 |
 | 测试 | Vitest + Vue Test Utils、Playwright | 单测 + E2E |
@@ -42,19 +42,18 @@
 ```
 views/ 页面 ──► components/ 业务组件 ──► composables/ 逻辑复用
      │                │                       │
-     └────────────────┴─────────► stores/（Pinia，业务域状态）
-                                      │
-                                api/（接口模块，按域划分，纯函数）
-                                      │
-                            utils/http.ts（统一封装）
-                              │               │
+     └────────────────┴─────────► stores/（Pinia：业务域状态 + 各域传输核）
+                                      │  ▲
+                                      │  └── api/ 契约名适配缝 re-export（ADR-0006）
+                              utils/http.ts（统一封装）
+                                │               │
                     isTauri() ? tauri-plugin-http : window.fetch
                                       │
-                              后端 /api/v1
+                                后端 /api/v1
 ```
 
 分层约束：
-1. **页面不直接发请求**：views 只读写 store；store 调 api 模块；api 模块只依赖 http 封装与契约类型。
+1. **页面不直接发请求**：views 只读写 store；各域传输核（URL 与响应形态）归 `stores/<domain>.ts`，store 动作与 `api/` 契约名适配缝共用同一核（ADR-0006）；适配缝只依赖 http 封装与契约类型，不新增逻辑。
 2. **接口类型集中**：`types/api.d.ts` 与契约文档一一对应，后端字段变更先改契约再改类型（管理端 DTO 形状走 `contract:gen` 生成，见 ADR-002）。
 3. **平台能力适配层**：`utils/platform.ts` 暴露 `copyText / openExternal / importToClient` 等能力，内部按 Tauri/浏览器自动降级，业务代码不感知平台差异。
 
@@ -63,8 +62,9 @@ views/ 页面 ──► components/ 业务组件 ──► composables/ 逻辑�
 ```
 YLink/
 ├── src/
-│   ├── api/                  # 接口模块：auth.ts user.ts order.ts plan.ts
-│   │                         #   invite.ts knowledge.ts ticket.ts server.ts config.ts
+│   ├── api/                  # 契约名适配缝（re-export stores 传输核，ADR-0006）：
+│   │                         #   admin agent auth invite knowledge notice
+│   │                         #   order plan server ticket user
 │   ├── assets/               # banner 图、logo、插画（暗色模式专用图单独命名）
 │   ├── components/           # 通用组件
 │   │   ├── app/              #   AppSidebar AppHeader MobileTabBar DrawerMenu

@@ -16,7 +16,7 @@
 
 ### 2.1 工程骨架
 
-Vue 3.5 + TS + Vite 6 + pnpm(`<script setup>`,Node ≥ 20);UnoCSS(presetUno/Attributify/Icons + 自定义 shortcuts);Vue Router 4 hash 模式(用户端 + `/admin` 管理端双布局 + guest/登录/admin 三类守卫 + 页面标题);Pinia + persistedstate(12 个业务 store);vue-i18n@11 zh-CN/en-US 按模块命名空间、语言包懒加载;vite-plugin-mock 按契约造数(含 401/错误码/支付自动完成);`public/theme.js` 首帧防闪烁;运行时可改后端地址并持久化。
+Vue 3.5 + TS + Vite 6 + pnpm(`<script setup>`,Node ≥ 20);UnoCSS(presetUno/Attributify/Icons + 自定义 shortcuts);Vue Router 4 hash 模式(用户端 + `/admin` 管理端双布局 + guest/登录/admin 三类守卫 + 页面标题);Pinia + persistedstate(12 个业务 store);api/ 为契约名适配缝(既有引入路径与导出名稳定),各域传输核唯一归 `stores/*`,用户端视图/composable 一律经 store(auth 域例外,ADR-0006);vue-i18n@11 zh-CN/en-US 按模块命名空间、语言包懒加载;vite-plugin-mock 按契约造数(含 401/错误码/支付自动完成);`public/theme.js` 首帧防闪烁;运行时可改后端地址并持久化。
 
 ### 2.2 布局与设计系统
 
@@ -24,7 +24,7 @@ Vue 3.5 + TS + Vite 6 + pnpm(`<script setup>`,Node ≥ 20);UnoCSS(presetUno/Attr
 
 ### 2.3 用户端页面
 
-仪表板(统计卡/订阅卡/公告 markdown + 优惠码高亮复制/快捷操作)、使用文档(搜索/分类分组/markdown)、我的订单(表格/卡片双视图/详情弹窗/待支付轮询)、套餐购买(周期切换/优惠券试算与点选/可用券列表/收银台二维码/余额直付;支付方式三入口[下单确认/订单详情/收银台]同源 config.payment_methods,共享 `PaymentMethodPicker`+`payMethodLabel`,余额按应付额禁用)、一键导入(10 款客户端 scheme + 复制兜底)、邀请赚钱(统计卡/划转/邀请码/注册链接/提现入口与记录,F02)、申请代理、节点状态(60s 静默轮询,不暴露 host/port)、个人信息(改密/通知开关/Telegram 绑定卡片 F12/会话管理 F14/重置订阅)、工单(列表/对话流/回复关闭，提现单关/重开入口隐藏）、流量明细(ECharts)、门户分流页 `/portal`(管理员双卡分流,admin-console-split)。
+仪表板(统计卡/订阅卡/公告 markdown + 优惠码高亮复制/快捷操作)、使用文档(搜索/分类分组/markdown)、我的订单(表格/卡片双视图/详情弹窗/待支付轮询)、套餐购买(周期切换/优惠券试算与点选[试算失败仅内联提示,transport silent]/可用券列表/收银台二维码/余额直付;支付方式三入口[下单确认/订单详情/收银台]同源 config.payment_methods,共享 `PaymentMethodPicker`+`payMethodLabel`,余额按应付额禁用)、一键导入(10 款客户端 scheme + 复制兜底)、邀请赚钱(统计卡/划转/邀请码/注册链接/提现入口与记录,F02)、申请代理、节点状态(60s 静默轮询,不暴露 host/port)、个人信息(改密/通知开关/Telegram 绑定卡片 F12/会话管理 F14/重置订阅)、工单(列表/对话流/回复关闭，提现单关/重开入口隐藏）、流量明细(ECharts)、门户分流页 `/portal`(管理员双卡分流,admin-console-split)。
 
 ### 2.4 管理后台
 

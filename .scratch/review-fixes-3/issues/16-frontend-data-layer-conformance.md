@@ -1,6 +1,6 @@
 # [P2] 前端数据层合规批（store 下沉 / silent / api seam ADR / AppIcon / api.d.ts）
 
-Status: ready-for-agent
+Status: resolved
 Type: task
 
 ## Finding
@@ -28,3 +28,7 @@ Type: task
 ## Comments
 
 2026-10-25: 用户拍板——Plan 3/4 两个决策点一律按「代码为准、文档随改」执行：api seam 保留现状并补 ADR-0006；AppIcon 保留内联 Lucide，文档改写为内联图标规范。
+
+2026-10-25: 已修复 ProfileView/useLocalNotifications 全部改走 store（useUserStore 补 sessions/telegramBindCode/telegramUnbind/revokeSession actions、useTicketStore 补 fetchStatusSnapshot 快照轮询动作[不写列表态]）、couponTransport.check 加 silent:true、api.d.ts 会话 created_at 收敛为 string 并删历史注释；新增 docs/adr/0006 并按当前实现改写 data-layer.md §1.2/§2（删 useSubscribeStore 幽灵条目）、README §2/§3/§4、design-system §6.3/§8；progress 能力行同步。
+
+2026-10-25: 范围外发现（未顺手修）——① 8 个用户端 seam（apiAgent/apiInvite/apiKnowledge/apiNotice/apiCoupon/apiOrder/apiPlan/apiServer）连同本次归零消费方的 apiTicket 已无直接调用方，是否删除归 ticket 21 死代码收敛；② README §4 composables 行仍列 usePolling/useTrafficFormat/useMediaQuery（实际 useMediaQuery 来自 @vueuse/core、usePolling 不存在），归 ticket 18 文档对齐批；③ server/docs/swagger.json 为陈旧部分快照（无 /user/sessions 等端点，Makefile swag 输出目录问题），created_at 契约在 Go 注解源（dto.go 恒有值）已正确，swagger 重生成归 ticket 18。

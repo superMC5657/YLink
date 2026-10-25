@@ -2,127 +2,79 @@
 /**
  * 管理后台 · 套餐管理:列表 / 新建 / 编辑 / 删除。
  * 数据:GET/POST/PUT/DELETE /admin/plans + GET /admin/server-groups(docs/api/README.md §16)
+ * CRUD 脚手架归 useAdminCrud(分组为旁路数据,fetch 闭包内同步拉取)。
  */
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { apiAdmin } from '@/api/admin'
 import type { AdminPlanItem, AdminPlanReq, AdminServerGroupItem } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
-import { useMessage, useDialog } from 'naive-ui'
+import { useMessage } from 'naive-ui'
+import { useAdminCrud } from '@/composables/useAdminCrud'
 
 const { t } = useI18n()
 const message = useMessage()
-const dialog = useDialog()
 
-const loading = ref(false)
-const list = ref<AdminPlanItem[]>([])
 const groups = ref<AdminServerGroupItem[]>([])
 
-// 新建/编辑弹窗
-const modal = ref(false)
-const editingId = ref<number | null>(null)
-const saving = ref(false)
-const form = reactive<AdminPlanReq>({
-  name: '',
-  content: '',
-  month_price: null,
-  quarter_price: null,
-  half_year_price: null,
-  year_price: null,
-  onetime_price: null,
-  traffic_gb: 0,
-  speed_limit: null,
-  device_limit: null,
-  group_ids: [],
-  is_show: true,
-  sort: 0,
-})
-
-async function load() {
-  loading.value = true
-  try {
-    const [planRes, groupRes] = await Promise.all([apiAdmin.plans(), apiAdmin.serverGroups()])
-    list.value = planRes.list
-    groups.value = groupRes.list
-  } finally {
-    loading.value = false
-  }
-}
-
-function openCreate() {
-  editingId.value = null
-  Object.assign(form, {
-    name: '',
-    content: '',
-    month_price: null,
-    quarter_price: null,
-    half_year_price: null,
-    year_price: null,
-    onetime_price: null,
-    traffic_gb: 0,
-    speed_limit: null,
-    device_limit: null,
-    group_ids: [],
-    is_show: true,
-    sort: 0,
-  })
-  modal.value = true
-}
-
-function openEdit(p: AdminPlanItem) {
-  editingId.value = p.id
-  Object.assign(form, {
-    name: p.name,
-    content: p.content,
-    month_price: p.month_price,
-    quarter_price: p.quarter_price,
-    half_year_price: p.half_year_price,
-    year_price: p.year_price,
-    onetime_price: p.onetime_price,
-    traffic_gb: p.traffic_gb,
-    speed_limit: p.speed_limit,
-    device_limit: p.device_limit,
-    group_ids: p.group_ids ?? [],
-    is_show: p.is_show,
-    sort: p.sort,
-  })
-  modal.value = true
-}
-
-async function save() {
-  if (!form.name.trim()) {
-    message.warning(t('adminPlans.enterName'))
-    return
-  }
-  saving.value = true
-  try {
-    if (editingId.value === null) {
-      await apiAdmin.createPlan({ ...form })
-      message.success(t('adminPlans.created'))
-    } else {
-      await apiAdmin.updatePlan(editingId.value, { ...form })
-      message.success(t('adminPlans.updated'))
-    }
-    modal.value = false
-    void load()
-  } finally {
-    saving.value = false
-  }
-}
-
-function remove(p: AdminPlanItem) {
-  dialog.warning({
-    title: t('adminPlans.deleteTitle'),
-    content: t('adminPlans.deleteConfirm', { name: p.name }),
-    positiveText: t('adminPlans.delete'),
-    negativeText: t('common.cancel'),
-    onPositiveClick: async () => {
-      await apiAdmin.deletePlan(p.id)
-      message.success(t('adminPlans.deleted'))
-      void load()
+const { loading, list, modal, editingId, saving, form, load, openCreate, openEdit, save, remove } =
+  useAdminCrud<AdminPlanItem, AdminPlanReq>({
+    fetch: async () => {
+      const [planRes, groupRes] = await Promise.all([apiAdmin.plans(), apiAdmin.serverGroups()])
+      groups.value = groupRes.list
+      return planRes
+    },
+    emptyForm: () => ({
+      name: '',
+      content: '',
+      month_price: null,
+      quarter_price: null,
+      half_year_price: null,
+      year_price: null,
+      onetime_price: null,
+      traffic_gb: 0,
+      speed_limit: null,
+      device_limit: null,
+      group_ids: [],
+      is_show: true,
+      sort: 0,
+    }),
+    toForm: (p) => ({
+      name: p.name,
+      content: p.content,
+      month_price: p.month_price,
+      quarter_price: p.quarter_price,
+      half_year_price: p.half_year_price,
+      year_price: p.year_price,
+      onetime_price: p.onetime_price,
+      traffic_gb: p.traffic_gb,
+      speed_limit: p.speed_limit,
+      device_limit: p.device_limit,
+      group_ids: p.group_ids ?? [],
+      is_show: p.is_show,
+      sort: p.sort,
+    }),
+    create: (body) => apiAdmin.createPlan(body),
+    update: (id, body) => apiAdmin.updatePlan(id, body),
+    validate: (f) => {
+      if (!f.name.trim()) {
+        message.warning(t('adminPlans.enterName'))
+        return false
+      }
+      return true
+    },
+    remove: (id) => apiAdmin.deletePlan(id),
+    removeTexts: {
+      titleKey: 'adminPlans.deleteTitle',
+      content: (p) => t('adminPlans.deleteConfirm', { name: p.name }),
+      positiveKey: 'adminPlans.delete',
+    },
+    messages: {
+      created: 'adminPlans.created',
+      updated: 'adminPlans.updated',
+      deleted: 'adminPlans.deleted',
     },
   })
-}
 
 function price(v: number | null): string {
   return v === null ? '-' : `¥${v}`

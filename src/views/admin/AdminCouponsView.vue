@@ -1,22 +1,21 @@
 <script setup lang="ts">
 /**
- * 管理后台 · 优惠券管理:列表 / 新建 / 编辑 / 删除。
+ * 管理后台 · 优惠券管理:列表 / 新建 / 编辑 / 删除 + 一键公告。
  * 数据:GET/POST/PUT/DELETE /admin/coupons + GET /admin/plans(docs/api/README.md §16.1)
+ * CRUD 脚手架归 useAdminCrud(套餐列表为旁路数据,fetch 闭包内同步拉取)。
  */
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { apiAdmin } from '@/api/admin'
 import type { AdminCouponItem, AdminCouponReq, AdminNoticeReq, AdminPlanItem } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
-import { useMessage, useDialog } from 'naive-ui'
+import { useMessage } from 'naive-ui'
 import { formatTime } from '@/utils/format'
+import { useAdminCrud } from '@/composables/useAdminCrud'
 
 const { t } = useI18n()
 const message = useMessage()
-const dialog = useDialog()
 
-const loading = ref(false)
-const list = ref<AdminCouponItem[]>([])
 const plans = ref<AdminPlanItem[]>([])
 
 const PERIODS = [
@@ -27,23 +26,68 @@ const PERIODS = [
   { value: 'onetime', labelKey: 'adminCoupons.onetime' },
 ]
 
-// 新建/编辑弹窗
-const modal = ref(false)
-const editingId = ref<number | null>(null)
-const saving = ref(false)
-const form = reactive<AdminCouponReq>({
-  code: '',
-  type: 2,
-  value: 0,
-  min_spend: 0,
-  limit_per_user: 0,
-  total_limit: 0,
-  valid_periods: [],
-  plan_ids: [],
-  started_at: null,
-  ended_at: null,
-  is_enable: true,
-})
+const { loading, list, modal, editingId, saving, form, load, openCreate, openEdit, save, remove } =
+  useAdminCrud<AdminCouponItem, AdminCouponReq>({
+    fetch: async () => {
+      const [couponRes, planRes] = await Promise.all([apiAdmin.coupons(), apiAdmin.plans()])
+      plans.value = planRes.list
+      return couponRes
+    },
+    emptyForm: () => ({
+      code: '',
+      type: 2,
+      value: 0,
+      min_spend: 0,
+      limit_per_user: 0,
+      total_limit: 0,
+      valid_periods: [],
+      plan_ids: [],
+      started_at: null,
+      ended_at: null,
+      is_enable: true,
+    }),
+    toForm: (c) => ({
+      code: c.code,
+      type: c.type,
+      value: c.value,
+      min_spend: c.min_spend,
+      limit_per_user: c.limit_per_user,
+      total_limit: c.total_limit,
+      valid_periods: [...c.valid_periods],
+      plan_ids: [...c.plan_ids],
+      started_at: c.started_at,
+      ended_at: c.ended_at,
+      is_enable: c.is_enable,
+    }),
+    create: (body) => apiAdmin.createCoupon(body),
+    update: (id, body) => apiAdmin.updateCoupon(id, body),
+    validate: (f) => {
+      if (!f.code.trim()) {
+        message.warning(t('adminCoupons.enterCode'))
+        return false
+      }
+      if (typeof f.value !== 'number' || f.value <= 0) {
+        message.warning(t('adminCoupons.enterValue', { type: typeLabel.value }))
+        return false
+      }
+      return true
+    },
+    remove: (id) => apiAdmin.deleteCoupon(id),
+    removeTexts: {
+      titleKey: 'adminCoupons.deleteTitle',
+      content: (c) => t('adminCoupons.deleteConfirm', { code: c.code }),
+      positiveKey: 'adminCoupons.delete',
+    },
+    messages: {
+      created: 'adminCoupons.created',
+      updated: 'adminCoupons.updated',
+      deleted: 'adminCoupons.deleted',
+    },
+  })
+
+const typeLabel = computed(() =>
+  form.type === 1 ? t('adminCoupons.fixed') : t('adminCoupons.percent'),
+)
 
 // 一键公告弹窗：为某张优惠券生成公告草稿并发布
 const noticeModal = ref(false)
@@ -90,96 +134,6 @@ async function publishNotice() {
   } finally {
     noticeSaving.value = false
   }
-}
-
-const typeLabel = computed(() =>
-  form.type === 1 ? t('adminCoupons.fixed') : t('adminCoupons.percent'),
-)
-
-async function load() {
-  loading.value = true
-  try {
-    const [couponRes, planRes] = await Promise.all([apiAdmin.coupons(), apiAdmin.plans()])
-    list.value = couponRes.list
-    plans.value = planRes.list
-  } finally {
-    loading.value = false
-  }
-}
-
-function openCreate() {
-  editingId.value = null
-  Object.assign(form, {
-    code: '',
-    type: 2,
-    value: 0,
-    min_spend: 0,
-    limit_per_user: 0,
-    total_limit: 0,
-    valid_periods: [],
-    plan_ids: [],
-    started_at: null,
-    ended_at: null,
-    is_enable: true,
-  })
-  modal.value = true
-}
-
-function openEdit(c: AdminCouponItem) {
-  editingId.value = c.id
-  Object.assign(form, {
-    code: c.code,
-    type: c.type,
-    value: c.value,
-    min_spend: c.min_spend,
-    limit_per_user: c.limit_per_user,
-    total_limit: c.total_limit,
-    valid_periods: [...c.valid_periods],
-    plan_ids: [...c.plan_ids],
-    started_at: c.started_at,
-    ended_at: c.ended_at,
-    is_enable: c.is_enable,
-  })
-  modal.value = true
-}
-
-async function save() {
-  if (!form.code.trim()) {
-    message.warning(t('adminCoupons.enterCode'))
-    return
-  }
-  if (typeof form.value !== 'number' || form.value <= 0) {
-    message.warning(t('adminCoupons.enterValue', { type: typeLabel.value }))
-    return
-  }
-  saving.value = true
-  try {
-    if (editingId.value === null) {
-      await apiAdmin.createCoupon({ ...form })
-      message.success(t('adminCoupons.created'))
-    } else {
-      await apiAdmin.updateCoupon(editingId.value, { ...form })
-      message.success(t('adminCoupons.updated'))
-    }
-    modal.value = false
-    void load()
-  } finally {
-    saving.value = false
-  }
-}
-
-function remove(c: AdminCouponItem) {
-  dialog.warning({
-    title: t('adminCoupons.deleteTitle'),
-    content: t('adminCoupons.deleteConfirm', { code: c.code }),
-    positiveText: t('adminCoupons.delete'),
-    negativeText: t('common.cancel'),
-    onPositiveClick: async () => {
-      await apiAdmin.deleteCoupon(c.id)
-      message.success(t('adminCoupons.deleted'))
-      void load()
-    },
-  })
 }
 
 function discountText(c: AdminCouponItem): string {

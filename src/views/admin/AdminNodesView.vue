@@ -11,7 +11,7 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import NodeFormDialog from '@/components/admin/NodeFormDialog.vue'
 import GroupFormDialog from '@/components/admin/GroupFormDialog.vue'
 import NodeBatchDialog from '@/components/admin/NodeBatchDialog.vue'
-import NodeSortDialog from '@/components/admin/NodeSortDialog.vue'
+import SortDialog from '@/components/admin/SortDialog.vue'
 import NodeInstallDialog from '@/components/admin/NodeInstallDialog.vue'
 
 const { t } = useI18n()
@@ -351,10 +351,13 @@ const {
     />
 
     <!-- F09 排序弹窗 -->
-    <NodeSortDialog
+    <SortDialog
       v-model:show="sortModal"
       :items="sortItems"
       :saving="sortSaving"
+      :title="t('adminNodes.sortTitle')"
+      :hint="t('adminNodes.sortHint')"
+      :save-text="t('adminNodes.sortSave')"
       @move="moveSortItem"
       @save="saveSort"
     />

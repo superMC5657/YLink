@@ -13,6 +13,7 @@ import type {
 import { useMessage, useDialog } from 'naive-ui'
 import { statusBadge, statusLabel } from '@/utils/statusMeta'
 import { useAdminList } from './useAdminList'
+import { useSortDialog } from './useSortDialog'
 
 /**
  * 节点管理数据域(F09):节点/分组 CRUD、多选与批量操作、复制/排序。
@@ -362,39 +363,15 @@ export function useAdminNodes() {
     })
   }
 
-  // 排序弹窗:上下移调整顺序,保存时按最终顺序写 0..n
-  const sortModal = ref(false)
-  const sortItems = ref<{ id: number; name: string }[]>([])
-  const sortSaving = ref(false)
-
-  function openSortModal() {
-    sortItems.value = [...servers.value]
-      .sort((a, b) => a.sort - b.sort || a.id - b.id)
-      .map((s) => ({ id: s.id, name: s.name }))
-    sortModal.value = true
-  }
-
-  function moveSortItem(index: number, delta: number) {
-    const target = index + delta
-    if (target < 0 || target >= sortItems.value.length) return
-    const items = [...sortItems.value]
-    ;[items[index], items[target]] = [items[target], items[index]]
-    sortItems.value = items
-  }
-
-  async function saveSort() {
-    sortSaving.value = true
-    try {
-      await nodesTransport.sortServers({
-        items: sortItems.value.map((s, i) => ({ id: s.id, sort: i })),
-      })
-      message.success(t('adminNodes.sortSaved'))
-      sortModal.value = false
-      await load()
-    } finally {
-      sortSaving.value = false
-    }
-  }
+  // 排序弹窗:上下移调整顺序,保存时按最终顺序写 0..n(数据域归 useSortDialog,呈现归 SortDialog)
+  const { sortModal, sortItems, sortSaving, openSortModal, moveSortItem, saveSort } =
+    useSortDialog<AdminServerItem>({
+      source: () => servers.value,
+      nameOf: (s) => s.name,
+      save: (items) => nodesTransport.sortServers({ items }),
+      savedKey: 'adminNodes.sortSaved',
+      reload: load,
+    })
 
   function openGroupCreate() {
     editingGroup.value = null

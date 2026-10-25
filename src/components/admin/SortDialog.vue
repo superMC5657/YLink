@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /**
- * 节点排序弹窗(呈现层):上下移与保存动作交回 useAdminNodes 处理。
+ * 列表排序弹窗(呈现层,节点/公告/知识库共用):上下移与保存动作交回调用方处理。
+ * 文案(标题/提示/保存钮)由调用方传入,组件不绑定具体域的 i18n 键。
  */
 import { useI18n } from 'vue-i18n'
 
@@ -8,6 +9,9 @@ defineProps<{
   show: boolean
   items: { id: number; name: string }[]
   saving: boolean
+  title: string
+  hint: string
+  saveText: string
 }>()
 
 const emit = defineEmits<{
@@ -23,11 +27,11 @@ const { t } = useI18n()
   <n-modal
     :show="show"
     preset="card"
-    :title="t('adminNodes.sortTitle')"
+    :title="title"
     style="width: 420px"
     @update:show="emit('update:show', $event)"
   >
-    <p class="mb-3 text-14 text-[var(--c-text-sub)]">{{ t('adminNodes.sortHint') }}</p>
+    <p class="mb-3 text-14 text-[var(--c-text-sub)]">{{ hint }}</p>
     <div class="flex flex-col gap-2">
       <div
         v-for="(item, i) in items"
@@ -60,7 +64,7 @@ const { t } = useI18n()
           {{ t('common.cancel') }}
         </button>
         <button class="btn-primary h-9 px-4 text-14" :disabled="saving" @click="emit('save')">
-          {{ t('adminNodes.sortSave') }}
+          {{ saveText }}
         </button>
       </div>
     </template>

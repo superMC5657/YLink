@@ -2,125 +2,62 @@
 /**
  * 管理后台 · 公告管理:列表 / 新建 / 编辑 / 删除。
  * 数据:GET/POST/PUT/DELETE /admin/notices(docs/api/README.md §16.1)
+ * CRUD 脚手架归 useAdminCrud,排序弹窗归 useSortDialog(呈现 SortDialog)。
  */
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { apiAdmin } from '@/api/admin'
 import type { AdminNoticeItem, AdminNoticeReq } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
-import { useMessage, useDialog } from 'naive-ui'
+import SortDialog from '@/components/admin/SortDialog.vue'
+import { useMessage } from 'naive-ui'
 import { formatTime } from '@/utils/format'
+import { useAdminCrud } from '@/composables/useAdminCrud'
+import { useSortDialog } from '@/composables/useSortDialog'
 
 const { t } = useI18n()
 const message = useMessage()
-const dialog = useDialog()
 
-const loading = ref(false)
-const list = ref<AdminNoticeItem[]>([])
-
-// 新建/编辑弹窗
-const modal = ref(false)
-const editingId = ref<number | null>(null)
-const saving = ref(false)
-const form = reactive<AdminNoticeReq>({
-  title: '',
-  content: '',
-  is_show: true,
-  sort: 0,
-})
-
-async function load() {
-  loading.value = true
-  try {
-    const res = await apiAdmin.notices()
-    list.value = res.list
-  } finally {
-    loading.value = false
-  }
-}
-
-function openCreate() {
-  editingId.value = null
-  Object.assign(form, { title: '', content: '', is_show: true, sort: 0 })
-  modal.value = true
-}
-
-function openEdit(n: AdminNoticeItem) {
-  editingId.value = n.id
-  Object.assign(form, { title: n.title, content: n.content, is_show: n.is_show, sort: n.sort })
-  modal.value = true
-}
-
-async function save() {
-  if (!form.title.trim()) {
-    message.warning(t('adminNotices.enterTitle'))
-    return
-  }
-  if (!form.content.trim()) {
-    message.warning(t('adminNotices.enterContent'))
-    return
-  }
-  saving.value = true
-  try {
-    if (editingId.value === null) {
-      await apiAdmin.createNotice({ ...form })
-      message.success(t('adminNotices.created'))
-    } else {
-      await apiAdmin.updateNotice(editingId.value, { ...form })
-      message.success(t('adminNotices.updated'))
-    }
-    modal.value = false
-    void load()
-  } finally {
-    saving.value = false
-  }
-}
-
-// ---------- F15 排序弹窗:上下移调整顺序,保存时按最终顺序写 0..n ----------
-const sortModal = ref(false)
-const sortItems = ref<{ id: number; name: string }[]>([])
-const sortSaving = ref(false)
-
-function openSortModal() {
-  sortItems.value = [...list.value]
-    .sort((a, b) => a.sort - b.sort || a.id - b.id)
-    .map((n) => ({ id: n.id, name: n.title }))
-  sortModal.value = true
-}
-
-function moveSortItem(index: number, delta: number) {
-  const target = index + delta
-  if (target < 0 || target >= sortItems.value.length) return
-  const items = [...sortItems.value]
-  ;[items[index], items[target]] = [items[target], items[index]]
-  sortItems.value = items
-}
-
-async function saveSort() {
-  sortSaving.value = true
-  try {
-    await apiAdmin.sortNotices({ items: sortItems.value.map((n, i) => ({ id: n.id, sort: i })) })
-    message.success(t('adminNotices.sortSaved'))
-    sortModal.value = false
-    await load()
-  } finally {
-    sortSaving.value = false
-  }
-}
-
-function remove(n: AdminNoticeItem) {
-  dialog.warning({
-    title: t('adminNotices.deleteTitle'),
-    content: t('adminNotices.deleteConfirm', { title: n.title }),
-    positiveText: t('adminNotices.delete'),
-    negativeText: t('common.cancel'),
-    onPositiveClick: async () => {
-      await apiAdmin.deleteNotice(n.id)
-      message.success(t('adminNotices.deleted'))
-      void load()
+const { loading, list, modal, editingId, saving, form, load, openCreate, openEdit, save, remove } =
+  useAdminCrud<AdminNoticeItem, AdminNoticeReq>({
+    fetch: () => apiAdmin.notices(),
+    emptyForm: () => ({ title: '', content: '', is_show: true, sort: 0 }),
+    toForm: (n) => ({ title: n.title, content: n.content, is_show: n.is_show, sort: n.sort }),
+    create: (body) => apiAdmin.createNotice(body),
+    update: (id, body) => apiAdmin.updateNotice(id, body),
+    validate: (f) => {
+      if (!f.title.trim()) {
+        message.warning(t('adminNotices.enterTitle'))
+        return false
+      }
+      if (!f.content.trim()) {
+        message.warning(t('adminNotices.enterContent'))
+        return false
+      }
+      return true
+    },
+    remove: (id) => apiAdmin.deleteNotice(id),
+    removeTexts: {
+      titleKey: 'adminNotices.deleteTitle',
+      content: (n) => t('adminNotices.deleteConfirm', { title: n.title }),
+      positiveKey: 'adminNotices.delete',
+    },
+    messages: {
+      created: 'adminNotices.created',
+      updated: 'adminNotices.updated',
+      deleted: 'adminNotices.deleted',
     },
   })
-}
+
+// ---------- F15 排序弹窗(数据域归 useSortDialog) ----------
+const { sortModal, sortItems, sortSaving, openSortModal, moveSortItem, saveSort } =
+  useSortDialog<AdminNoticeItem>({
+    source: () => list.value,
+    nameOf: (n) => n.title,
+    save: (items) => apiAdmin.sortNotices({ items }),
+    savedKey: 'adminNotices.sortSaved',
+    reload: load,
+  })
 
 onMounted(() => void load())
 </script>
@@ -231,49 +168,15 @@ onMounted(() => void load())
     </n-modal>
 
     <!-- F15 排序弹窗 -->
-    <n-modal
+    <SortDialog
       v-model:show="sortModal"
-      preset="card"
+      :items="sortItems"
+      :saving="sortSaving"
       :title="t('adminNotices.sortTitle')"
-      style="width: 420px"
-    >
-      <p class="mb-3 text-14 text-[var(--c-text-sub)]">{{ t('adminNotices.sortHint') }}</p>
-      <div class="flex flex-col gap-2">
-        <div
-          v-for="(item, i) in sortItems"
-          :key="item.id"
-          class="flex items-center justify-between rounded-lg border border-[var(--c-border)] px-3 py-2"
-        >
-          <span class="num-font mr-2 text-14 text-[var(--c-text-sub)]">{{ i + 1 }}</span>
-          <span class="flex-1 truncate text-14 font-500 text-[var(--c-text)]">{{ item.name }}</span>
-          <div class="flex gap-1">
-            <button
-              class="btn-soft-neutral h-7 px-2 text-14"
-              :disabled="i === 0"
-              @click="moveSortItem(i, -1)"
-            >
-              ↑
-            </button>
-            <button
-              class="btn-soft-neutral h-7 px-2 text-14"
-              :disabled="i === sortItems.length - 1"
-              @click="moveSortItem(i, 1)"
-            >
-              ↓
-            </button>
-          </div>
-        </div>
-      </div>
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <button class="btn-soft-neutral h-9 px-4 text-14" @click="sortModal = false">
-            {{ t('common.cancel') }}
-          </button>
-          <button class="btn-primary h-9 px-4 text-14" :disabled="sortSaving" @click="saveSort">
-            {{ t('adminNotices.sortSave') }}
-          </button>
-        </div>
-      </template>
-    </n-modal>
+      :hint="t('adminNotices.sortHint')"
+      :save-text="t('adminNotices.sortSave')"
+      @move="moveSortItem"
+      @save="saveSort"
+    />
   </div>
 </template>

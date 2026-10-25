@@ -1,50 +1,27 @@
 <script setup lang="ts">
 /**
- * 管理后台 · 知识库管理:列表 / 新建 / 编辑 / 删除。
+ * 管理后台 · 知识库管理:列表 / 新建 / 编辑 / 删除 + 分类管理。
  * 数据:GET/POST/PUT/DELETE /admin/knowledges(docs/api/README.md §16.1)
+ * CRUD 脚手架归 useAdminCrud(分类联动走 onOpen/beforeSave 钩子),
+ * 排序弹窗归 useSortDialog(呈现 SortDialog)。
  */
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { apiAdmin } from '@/api/admin'
 import type { AdminKnowledgeCategoryItem, AdminKnowledgeItem, AdminKnowledgeReq } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import SortDialog from '@/components/admin/SortDialog.vue'
 import { useMessage, useDialog } from 'naive-ui'
 import { formatTime } from '@/utils/format'
+import { useAdminCrud } from '@/composables/useAdminCrud'
+import { useSortDialog } from '@/composables/useSortDialog'
 
 const { t } = useI18n()
 const message = useMessage()
 const dialog = useDialog()
 
-const loading = ref(false)
-const list = ref<AdminKnowledgeItem[]>([])
 const langFilter = ref<'all' | 'zh-CN' | 'en-US'>('all')
 const keyword = ref('')
-
-const filtered = computed(() =>
-  list.value.filter((k) => {
-    if (langFilter.value !== 'all' && k.language !== langFilter.value) return false
-    const kw = keyword.value.trim().toLowerCase()
-    if (!kw) return true
-    return (
-      k.title.toLowerCase().includes(kw) ||
-      k.category.toLowerCase().includes(kw) ||
-      k.body.toLowerCase().includes(kw)
-    )
-  }),
-)
-
-// 新建/编辑弹窗
-const modal = ref(false)
-const editingId = ref<number | null>(null)
-const saving = ref(false)
-const form = reactive<AdminKnowledgeReq>({
-  category: '',
-  title: '',
-  body: '',
-  language: 'zh-CN',
-  is_show: true,
-  sort: 0,
-})
 
 // ---------- F15 分类选择（下拉选已有分类或输入新分类） ----------
 const categoryValue = ref<number | string | null>(null)
@@ -82,37 +59,88 @@ function applyCategoryValue() {
   }
 }
 
-// ---------- F15 排序弹窗 ----------
-const sortModal = ref(false)
-const sortItems = ref<{ id: number; name: string }[]>([])
-const sortSaving = ref(false)
+const { loading, list, modal, editingId, saving, form, load, openCreate, openEdit, save, remove } =
+  useAdminCrud<AdminKnowledgeItem, AdminKnowledgeReq>({
+    fetch: () => apiAdmin.knowledges(),
+    emptyForm: () => ({
+      category: '',
+      title: '',
+      body: '',
+      language: 'zh-CN',
+      is_show: true,
+      sort: 0,
+    }),
+    toForm: (k) => ({
+      category: k.category,
+      title: k.title,
+      body: k.body,
+      language: k.language,
+      is_show: k.is_show,
+      sort: k.sort,
+    }),
+    create: (body) => apiAdmin.createKnowledge(body),
+    update: (id, body) => apiAdmin.updateKnowledge(id, body),
+    beforeSave: applyCategoryValue,
+    validate: (f) => {
+      if (!f.category.trim()) {
+        message.warning(t('adminKnowledges.enterCategory'))
+        return false
+      }
+      if (!f.title.trim()) {
+        message.warning(t('adminKnowledges.enterTitle'))
+        return false
+      }
+      if (!f.body.trim()) {
+        message.warning(t('adminKnowledges.enterBody'))
+        return false
+      }
+      return true
+    },
+    onOpen: (f, item) => {
+      if (item === null) {
+        // 新建态语言跟随当前筛选
+        f.language = langFilter.value === 'all' ? 'zh-CN' : langFilter.value
+        categoryValue.value = null
+      } else {
+        categoryValue.value = item.category_id ?? item.category
+      }
+      void loadCategoryOptions(f.language ?? 'zh-CN')
+    },
+    remove: (id) => apiAdmin.deleteKnowledge(id),
+    removeTexts: {
+      titleKey: 'adminKnowledges.deleteTitle',
+      content: (k) => t('adminKnowledges.deleteConfirm', { title: k.title }),
+      positiveKey: 'adminKnowledges.delete',
+    },
+    messages: {
+      created: 'adminKnowledges.created',
+      updated: 'adminKnowledges.updated',
+      deleted: 'adminKnowledges.deleted',
+    },
+  })
 
-function openSortModal() {
-  sortItems.value = [...filtered.value]
-    .sort((a, b) => a.sort - b.sort || a.id - b.id)
-    .map((k) => ({ id: k.id, name: k.title }))
-  sortModal.value = true
-}
+const filtered = computed(() =>
+  list.value.filter((k) => {
+    if (langFilter.value !== 'all' && k.language !== langFilter.value) return false
+    const kw = keyword.value.trim().toLowerCase()
+    if (!kw) return true
+    return (
+      k.title.toLowerCase().includes(kw) ||
+      k.category.toLowerCase().includes(kw) ||
+      k.body.toLowerCase().includes(kw)
+    )
+  }),
+)
 
-function moveSortItem(index: number, delta: number) {
-  const target = index + delta
-  if (target < 0 || target >= sortItems.value.length) return
-  const items = [...sortItems.value]
-  ;[items[index], items[target]] = [items[target], items[index]]
-  sortItems.value = items
-}
-
-async function saveSort() {
-  sortSaving.value = true
-  try {
-    await apiAdmin.sortKnowledges({ items: sortItems.value.map((k, i) => ({ id: k.id, sort: i })) })
-    message.success(t('adminKnowledges.sortSaved'))
-    sortModal.value = false
-    await load()
-  } finally {
-    sortSaving.value = false
-  }
-}
+// ---------- F15 排序弹窗(数据域归 useSortDialog) ----------
+const { sortModal, sortItems, sortSaving, openSortModal, moveSortItem, saveSort } =
+  useSortDialog<AdminKnowledgeItem>({
+    source: () => filtered.value,
+    nameOf: (k) => k.title,
+    save: (items) => apiAdmin.sortKnowledges({ items }),
+    savedKey: 'adminKnowledges.sortSaved',
+    reload: load,
+  })
 
 // ---------- F15 分类管理弹窗 ----------
 const catModal = ref(false)
@@ -204,90 +232,6 @@ function removeCategory(c: AdminKnowledgeCategoryItem) {
       } catch {
         // 错误提示由 http 层统一 toast,这里仅阻止异常冒泡为 unhandled error
       }
-    },
-  })
-}
-
-async function load() {
-  loading.value = true
-  try {
-    const res = await apiAdmin.knowledges()
-    list.value = res.list
-  } finally {
-    loading.value = false
-  }
-}
-
-function openCreate() {
-  editingId.value = null
-  Object.assign(form, {
-    category: '',
-    title: '',
-    body: '',
-    language: langFilter.value === 'all' ? 'zh-CN' : langFilter.value,
-    is_show: true,
-    sort: 0,
-  })
-  categoryValue.value = null
-  void loadCategoryOptions(form.language ?? 'zh-CN')
-  modal.value = true
-}
-
-function openEdit(k: AdminKnowledgeItem) {
-  editingId.value = k.id
-  Object.assign(form, {
-    category: k.category,
-    title: k.title,
-    body: k.body,
-    language: k.language,
-    is_show: k.is_show,
-    sort: k.sort,
-  })
-  categoryValue.value = k.category_id ?? k.category
-  void loadCategoryOptions(k.language)
-  modal.value = true
-}
-
-async function save() {
-  applyCategoryValue()
-  if (!form.category.trim()) {
-    message.warning(t('adminKnowledges.enterCategory'))
-    return
-  }
-  if (!form.title.trim()) {
-    message.warning(t('adminKnowledges.enterTitle'))
-    return
-  }
-  if (!form.body.trim()) {
-    message.warning(t('adminKnowledges.enterBody'))
-    return
-  }
-  saving.value = true
-  try {
-    if (editingId.value === null) {
-      await apiAdmin.createKnowledge({ ...form })
-      message.success(t('adminKnowledges.created'))
-    } else {
-      await apiAdmin.updateKnowledge(editingId.value, { ...form })
-      message.success(t('adminKnowledges.updated'))
-    }
-    modal.value = false
-    void load()
-  } finally {
-    saving.value = false
-  }
-}
-
-function remove(k: AdminKnowledgeItem) {
-  dialog.warning({
-    title: t('adminKnowledges.deleteTitle'),
-    content: t('adminKnowledges.deleteConfirm', { title: k.title }),
-    positiveText: t('adminKnowledges.delete'),
-    negativeText: t('common.cancel'),
-    onPositiveClick: async () => {
-      await apiAdmin.deleteKnowledge(k.id)
-      message.success(t('adminKnowledges.deleted'))
-      void load()
     },
   })
 }
@@ -446,50 +390,16 @@ onMounted(() => void load())
     </n-modal>
 
     <!-- F15 排序弹窗 -->
-    <n-modal
+    <SortDialog
       v-model:show="sortModal"
-      preset="card"
+      :items="sortItems"
+      :saving="sortSaving"
       :title="t('adminKnowledges.sortTitle')"
-      style="width: 420px"
-    >
-      <p class="mb-3 text-14 text-[var(--c-text-sub)]">{{ t('adminKnowledges.sortHint') }}</p>
-      <div class="flex flex-col gap-2">
-        <div
-          v-for="(item, i) in sortItems"
-          :key="item.id"
-          class="flex items-center justify-between rounded-lg border border-[var(--c-border)] px-3 py-2"
-        >
-          <span class="num-font mr-2 text-14 text-[var(--c-text-sub)]">{{ i + 1 }}</span>
-          <span class="flex-1 truncate text-14 font-500 text-[var(--c-text)]">{{ item.name }}</span>
-          <div class="flex gap-1">
-            <button
-              class="btn-soft-neutral h-7 px-2 text-14"
-              :disabled="i === 0"
-              @click="moveSortItem(i, -1)"
-            >
-              ↑
-            </button>
-            <button
-              class="btn-soft-neutral h-7 px-2 text-14"
-              :disabled="i === sortItems.length - 1"
-              @click="moveSortItem(i, 1)"
-            >
-              ↓
-            </button>
-          </div>
-        </div>
-      </div>
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <button class="btn-soft-neutral h-9 px-4 text-14" @click="sortModal = false">
-            {{ t('common.cancel') }}
-          </button>
-          <button class="btn-primary h-9 px-4 text-14" :disabled="sortSaving" @click="saveSort">
-            {{ t('adminKnowledges.sortSave') }}
-          </button>
-        </div>
-      </template>
-    </n-modal>
+      :hint="t('adminKnowledges.sortHint')"
+      :save-text="t('adminKnowledges.sortSave')"
+      @move="moveSortItem"
+      @save="saveSort"
+    />
 
     <!-- F15 分类管理弹窗 -->
     <n-modal

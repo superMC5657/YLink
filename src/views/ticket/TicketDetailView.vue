@@ -134,7 +134,7 @@ onMounted(async () => {
               class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white"
               :style="
                 m.sender_type === 0
-                  ? 'background: linear-gradient(135deg,#6558F5,#8B5CF6)'
+                  ? 'background: linear-gradient(135deg,var(--c-primary),var(--c-primary-grad-end))'
                   : 'background: var(--c-bg-hover); color: var(--c-text-sub)'
               "
             >
@@ -148,7 +148,7 @@ onMounted(async () => {
                 class="rounded-2xl px-4 py-2.5 text-14 leading-6 whitespace-pre-wrap"
                 :style="
                   m.sender_type === 0
-                    ? 'background: linear-gradient(135deg,#6558F5,#8B5CF6); color: #fff; border-bottom-right-radius: 4px'
+                    ? 'background: linear-gradient(135deg,var(--c-primary),var(--c-primary-grad-end)); color: #fff; border-bottom-right-radius: 4px'
                     : 'background: var(--c-bg-hover); color: var(--c-text); border-bottom-left-radius: 4px'
                 "
               >

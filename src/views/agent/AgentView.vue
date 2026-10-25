@@ -59,7 +59,7 @@ onMounted(() => {
         <div class="card-base flex flex-col items-center p-8 text-center">
           <span
             class="flex h-18 w-18 items-center justify-center rounded-full text-white shadow-lg"
-            style="background: linear-gradient(135deg, #6558f5, #8b5cf6)"
+            style="background: linear-gradient(135deg, var(--c-primary), var(--c-primary-grad-end))"
           >
             <AppIcon name="award" :size="34" />
           </span>
@@ -93,7 +93,7 @@ onMounted(() => {
                 class="h-full rounded-full transition-all duration-500"
                 :style="{
                   width: `${Math.min(100, ((status?.valid_invites ?? 0) / Math.max(1, status?.required_valid_invites ?? 1)) * 100)}%`,
-                  background: 'linear-gradient(90deg, #6558F5, #8B5CF6)',
+                  background: 'linear-gradient(90deg, var(--c-primary), var(--c-primary-grad-end))',
                 }"
               />
             </div>

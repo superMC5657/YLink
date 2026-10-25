@@ -124,7 +124,7 @@ onBeforeUnmount(() => {
               class="h-full rounded-full transition-all"
               :style="{
                 width: total ? percent + '%' : '40%',
-                background: 'linear-gradient(90deg,#6558F5,#8B5CF6)',
+                background: 'linear-gradient(90deg,var(--c-primary),var(--c-primary-grad-end))',
               }"
             />
           </div>

@@ -2,15 +2,18 @@ import type { GlobalThemeOverrides } from 'naive-ui'
 
 /**
  * Naive UI 主题覆盖。
- * 注意:naive-ui 内部用 seemly 解析颜色派生(如 rgba()),**不支持 CSS 变量字符串**,
- * 因此亮/暗各提供一套真实色值,与 src/styles/tokens.css 保持一致(双源同步)。
+ * 注意:naive-ui 内部用 seemely 解析颜色派生(如 rgba()),**不支持 CSS 变量字符串**,
+ * 因此亮/暗各提供一套真实色值,与 src/styles/tokens.css 保持一致(双源同步,
+ * 由 scripts/check-tokens-sync.mjs 挂在 lint 链上强制校验)。
+ * base 只保留与主题无关的形状(圆角);所有颜色(含 Pagination/Switch 激活色)
+ * 一律下沉到亮/暗覆盖,暗色下跟随暗色令牌而非共享亮色值。
  */
 
+/** 主题无关覆盖:圆角与形状,不含任何颜色 */
 const base: GlobalThemeOverrides = {
   common: {
     borderRadius: '10px',
     borderRadiusSmall: '8px',
-    fontFamily: 'Inter, "HarmonyOS Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif',
   },
   Button: {
     borderRadiusMedium: '10px',
@@ -27,14 +30,10 @@ const base: GlobalThemeOverrides = {
   },
   Pagination: {
     borderRadius: '999px',
-    itemColorActive: '#6558F5',
     itemTextColorActive: '#fff',
   },
   Tag: {
     borderRadius: '999px',
-  },
-  Switch: {
-    railColorActive: '#6558F5',
   },
   Message: {
     borderRadius: '10px',
@@ -49,6 +48,8 @@ export const lightThemeOverrides: GlobalThemeOverrides = {
   ...base,
   common: {
     ...base.common,
+    fontFamily:
+      '"Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", "HarmonyOS Sans SC", system-ui, sans-serif',
     primaryColor: '#6558F5',
     primaryColorHover: '#7A6EF7',
     primaryColorPressed: '#4B3ED6',
@@ -57,7 +58,7 @@ export const lightThemeOverrides: GlobalThemeOverrides = {
     textColor1: '#1F2430',
     textColor2: '#1F2430',
     textColor3: '#8A8FA3',
-    bodyColor: '#F5F6FB',
+    bodyColor: '#ECEEF5',
     cardColor: '#FFFFFF',
     modalColor: '#FFFFFF',
     popoverColor: '#FFFFFF',
@@ -70,6 +71,12 @@ export const lightThemeOverrides: GlobalThemeOverrides = {
     errorColor: '#E5484D',
     infoColor: '#6558F5',
   },
+  Pagination: {
+    itemColorActive: '#6558F5',
+  },
+  Switch: {
+    railColorActive: '#6558F5',
+  },
 }
 
 /** 暗色主题覆盖(与 tokens.css [data-theme='dark'] 同步) */
@@ -77,6 +84,8 @@ export const darkThemeOverrides: GlobalThemeOverrides = {
   ...base,
   common: {
     ...base.common,
+    fontFamily:
+      '"Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", "HarmonyOS Sans SC", system-ui, sans-serif',
     primaryColor: '#7C72FF',
     primaryColorHover: '#8F86FF',
     primaryColorPressed: '#A79DFF',
@@ -97,5 +106,11 @@ export const darkThemeOverrides: GlobalThemeOverrides = {
     warningColor: '#F0B24A',
     errorColor: '#F16A6E',
     infoColor: '#7C72FF',
+  },
+  Pagination: {
+    itemColorActive: '#7C72FF',
+  },
+  Switch: {
+    railColorActive: '#7C72FF',
   },
 }

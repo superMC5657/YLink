@@ -21,12 +21,14 @@
   --c-primary-hover: #7A6EF7;
   --c-primary-soft: #EAE7FF;     /* 侧边栏激活胶囊底、选中底 */
   --c-primary-text: #4B3ED6;     /* 激活态文字 */
+  --c-primary-grad-end: #8B5CF6; /* 主渐变终点(§2.3,起点=--c-primary) */
 
   /* 中性 */
-  --c-bg-app: #F5F6FB;           /* 内容区底 */
+  --c-bg-app: #ECEEF5;           /* 内容区底 */
   --c-bg-card: #FFFFFF;
   --c-bg-hover: #F2F3FA;
   --c-border: #EBECF4;
+  --c-card-border: #C9CEDE;      /* 卡片外框(比 --c-border 深一档) */
   --c-text: #1F2430;
   --c-text-sub: #8A8FA3;
   --c-text-inverse: #FFFFFF;
@@ -38,10 +40,18 @@
   --c-warning-bg: #FCEFCE;
   --c-danger: #E5484D;           /* 过期标签、重置订阅按钮 */
   --c-danger-bg: #FDE3E4;
+  --c-danger-grad-end: #F16A6E;  /* danger 渐变终点(离线横幅,起点=--c-danger) */
   --c-marketing: #E33D5B;        /* 套餐卡片中的营销红字 */
   --c-olive: #7C9A3D;            /* 保存/新增邀请码 橄榄绿按钮 */
   --c-pink: #C2487B;             /* 佣金数字 */
   --c-amber-icon: #F5A524;       /* 公告铃铛等图标点缀 */
+  --c-amber-grad-end: #F7C948;   /* amber 渐变终点(公告铃铛,起点=--c-amber-icon) */
+
+  /* 彩色浅底(快捷操作宫格等;暗色主题为半透明) */
+  --c-pink-bg: #FBE3EF;
+  --c-blue: #4B8FE5;
+  --c-blue-bg: #E1EEFB;
+  --c-olive-bg: #EAF2D9;
 }
 ```
 
@@ -53,11 +63,13 @@
   --c-primary-hover: #8F86FF;
   --c-primary-soft: rgba(124, 114, 255, .16);
   --c-primary-text: #A79DFF;
+  --c-primary-grad-end: #A78BFA; /* 主渐变终点,暗色自动切换变体 */
 
   --c-bg-app: #0F1117;           /* 近黑蓝灰，避免纯黑 */
   --c-bg-card: #171B26;
   --c-bg-hover: #1E2331;
   --c-border: rgba(255, 255, 255, .07);
+  --c-card-border: rgba(255, 255, 255, .1);
   --c-text: #E8EAF2;
   --c-text-sub: #9BA1B7;
 
@@ -67,10 +79,18 @@
   --c-warning-bg: rgba(240, 178, 74, .14);
   --c-danger: #F16A6E;
   --c-danger-bg: rgba(241, 106, 110, .14);
+  --c-danger-grad-end: #FF9299;
   --c-marketing: #FF6B88;
   --c-olive: #9DBE5F;
   --c-pink: #E57BA6;
   --c-amber-icon: #F5A524;
+  --c-amber-grad-end: #F7C948;
+
+  /* 彩色浅底 → 半透明,避免刺眼的浅色块 */
+  --c-pink-bg: rgba(229, 123, 166, .14);
+  --c-blue: #6EA8F0;
+  --c-blue-bg: rgba(110, 168, 240, .14);
+  --c-olive-bg: rgba(157, 190, 95, .14);
 }
 ```
 
@@ -79,6 +99,7 @@
 ### 2.3 渐变与氛围（美观增强）
 
 - 主按钮/关键数字可用主色渐变：`linear-gradient(135deg, #6558F5, #8B5CF6)`（暗色 `#7C72FF → #A78BFA`）。已令牌化为 `linear-gradient(135deg, var(--c-primary), var(--c-primary-grad-end))`，暗色主题自动切换变体（tokens.css）。
+- 语义渐变同理令牌化：danger 渐变 `linear-gradient(<angle>, var(--c-danger), var(--c-danger-grad-end))`（离线横幅）、amber 渐变 `linear-gradient(135deg, var(--c-amber-icon), var(--c-amber-grad-end))`（公告铃铛），组件不得再写死渐变端点。
 - 仪表板 Banner 卡保留背景插画；暗色模式叠加 `rgba(10,12,20,.45)` 遮罩保证文字可读，或使用暗色专属插画。
 - 内容区底可加极低透明度（3%–5%）的品牌纹理/几何插画，暗色下同图降透明度至 2%。
 - 卡片可选 `backdrop-filter: blur(12px)` 毛玻璃（仅顶栏、抽屉、移动底栏等浮层使用，普通卡片保持实色以保性能）。
@@ -87,8 +108,8 @@
 
 | 用途 | 字体 | 说明 |
 |---|---|---|
-| 界面文字 | `Inter, "HarmonyOS Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif` | 中西文混排清晰 |
-| 数字展示（价格/流量） | `"DIN Alternate", "Bahnschrift", Inter, sans-serif` + `font-feature-settings: "tnum"` | 大数字等宽对齐，还原截图的展示感 |
+| 界面文字（`--font-ui`） | `"Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", "HarmonyOS Sans SC", system-ui, sans-serif` | 未内置 webfont，优先系统圆润字体（微软雅黑 UI/苹方），中西文一体渲染更柔和 |
+| 数字展示（价格/流量，`--font-num`） | `"DIN Alternate", "Bahnschrift", "Microsoft YaHei UI", sans-serif` + `font-feature-settings: "tnum"` | 大数字等宽对齐，还原截图的展示感 |
 | 字号阶梯 | 12 / 13 / 14(正文) / 16 / 18 / 20 / 24 / 28 / 32 | 套餐价格等大数字用 32–40 |
 | 字重 | 400 正文 / 500 强调 / 600 标题 / 700 大数字 | — |
 | 行高 | 正文 1.6，标题 1.3 | — |
@@ -98,9 +119,9 @@
 ```css
 :root {
   --r-card: 16px;  --r-control: 10px;  --r-pill: 999px;
-  --s-card: 0 8px 24px rgba(23, 25, 66, .06);
-  --s-card-hover: 0 12px 32px rgba(23, 25, 66, .10);
-  --s-pop: 0 16px 48px rgba(23, 25, 66, .16);
+  --s-card: 0 8px 24px rgba(23, 25, 66, .08);
+  --s-card-hover: 0 12px 32px rgba(23, 25, 66, .12);
+  --s-pop: 0 16px 48px rgba(23, 25, 66, .22);
   --t-fast: .15s ease;  --t-base: .22s ease;
 }
 [data-theme='dark'] {
@@ -132,8 +153,8 @@
 | 断点 | 范围 | 布局模式 |
 |---|---|---|
 | `sm` | < 768px（手机） | 顶栏 + 单列内容 + **底部标签栏**（仪表板/购买/工单/我的）+ 左上角抽屉菜单承载完整导航 |
-| `md` | 768–1024px（平板） | 折叠为图标的迷你侧边栏 + 两列卡片 |
-| `lg` | > 1024px（桌面） | 完整分组侧边栏 + 顶栏 + 多列卡片 |
+| `md` | 768–1280px（平板；`md:` 变体自 1024px 起生效） | 折叠为图标的迷你侧边栏 + 两列卡片 |
+| `lg` | ≥ 1280px（桌面） | 完整分组侧边栏 + 顶栏 + 多列卡片 |
 
 断点与 UnoCSS 对齐（`sm/md/lg`），组件内逻辑分支用 `useMediaQuery`。
 

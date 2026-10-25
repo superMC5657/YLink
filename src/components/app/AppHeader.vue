@@ -119,7 +119,7 @@ function onLogout() {
         >
           <span
             class="flex h-8 w-8 items-center justify-center rounded-full text-white"
-            style="background: linear-gradient(135deg, #6558f5, #8b5cf6)"
+            style="background: linear-gradient(135deg, var(--c-primary), var(--c-primary-grad-end))"
           >
             <AppIcon name="user" :size="17" />
           </span>

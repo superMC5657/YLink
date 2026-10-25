@@ -11,7 +11,7 @@ export default defineConfig({
   shortcuts: {
     'card-base': 'bg-[var(--c-bg-card)] rounded-[var(--r-card)] shadow-[var(--s-card)]',
     'btn-primary':
-      'whitespace-nowrap inline-flex items-center justify-center gap-1 rounded-[var(--r-control)] bg-[linear-gradient(135deg,#6558F5,#8B5CF6)] text-white font-medium transition-all duration-[var(--t-base)] hover:shadow-lg hover:brightness-105 active:scale-98 disabled:opacity-60 disabled:pointer-events-none',
+      'whitespace-nowrap inline-flex items-center justify-center gap-1 rounded-[var(--r-control)] bg-[linear-gradient(135deg,var(--c-primary),var(--c-primary-grad-end))] text-white font-medium transition-all duration-[var(--t-base)] hover:shadow-lg hover:brightness-105 active:scale-98 disabled:opacity-60 disabled:pointer-events-none',
     'btn-olive':
       'whitespace-nowrap inline-flex items-center justify-center gap-1 rounded-[var(--r-control)] bg-[var(--c-olive)] text-white font-medium transition-all duration-[var(--t-base)] hover:brightness-105 active:scale-98 disabled:opacity-60 disabled:pointer-events-none',
     'btn-ghost':

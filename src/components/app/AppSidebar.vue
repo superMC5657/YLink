@@ -44,7 +44,7 @@ function go(path: string) {
     >
       <span
         class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white"
-        style="background: linear-gradient(135deg, #6558f5, #8b5cf6)"
+        style="background: linear-gradient(135deg, var(--c-primary), var(--c-primary-grad-end))"
       >
         <AppIcon name="zap" :size="20" />
       </span>

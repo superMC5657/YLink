@@ -319,7 +319,7 @@ onMounted(() => void load())
               class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white"
               :style="
                 m.sender_type === 0
-                  ? 'background: linear-gradient(135deg,#6558f5,#8b5cf6)'
+                  ? 'background: linear-gradient(135deg,var(--c-primary),var(--c-primary-grad-end))'
                   : 'background: var(--c-olive)'
               "
             >

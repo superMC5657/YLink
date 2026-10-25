@@ -61,7 +61,7 @@ function onLogout() {
       <div class="flex h-16 shrink-0 items-center gap-3 border-b border-[var(--c-border)] px-5">
         <span
           class="flex h-9 w-9 items-center justify-center rounded-xl text-white"
-          style="background: linear-gradient(135deg, #6558f5, #8b5cf6)"
+          style="background: linear-gradient(135deg, var(--c-primary), var(--c-primary-grad-end))"
         >
           <AppIcon name="zap" :size="20" />
         </span>
@@ -100,7 +100,7 @@ function onLogout() {
         <div class="flex items-center gap-3">
           <span
             class="flex h-10 w-10 items-center justify-center rounded-full text-white"
-            style="background: linear-gradient(135deg, #6558f5, #8b5cf6)"
+            style="background: linear-gradient(135deg, var(--c-primary), var(--c-primary-grad-end))"
           >
             <AppIcon name="user" :size="18" />
           </span>

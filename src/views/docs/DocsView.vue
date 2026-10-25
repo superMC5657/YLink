@@ -74,7 +74,9 @@ watch(
           <div class="mb-3 flex items-center gap-2">
             <span
               class="h-4 w-1 rounded-full"
-              style="background: linear-gradient(180deg, #6558f5, #8b5cf6)"
+              style="
+                background: linear-gradient(180deg, var(--c-primary), var(--c-primary-grad-end));
+              "
             />
             <h3 class="text-16 font-600 text-[var(--c-text)]">{{ group.category }}</h3>
             <span class="ml-auto text-14 text-[var(--c-text-sub)]">{{

@@ -20,7 +20,7 @@ Vue 3.5 + TS + Vite 6 + pnpm(`<script setup>`,Node ≥ 20);UnoCSS(presetUno/Attr
 
 ### 2.2 布局与设计系统
 
-设计令牌 tokens.css(亮/暗两套 CSS 变量)+ Naive UI theme.ts 真实色值 overrides(**双源必须同步**);桌面 240px 侧边栏(折叠 72px)+ 毛玻璃吸顶顶栏;平板/手机 `<768px` 底栏 4 Tab + 抽屉菜单、768-1024 迷你侧边栏;AuthLayout 全局壳、客服浮球、toast 桥接;基础 UI 组件全局注册(AppIcon/UiCard/StatNumber/StatusBadge/PriceText/EmptyState/PageHeader/CopyText 等);桌面内容区 max-w-1440 + 窄桌面自动折叠侧边栏 + 表格 overflow 适配。
+设计令牌 tokens.css(亮/暗两套 CSS 变量)+ Naive UI theme.ts 真实色值 overrides(**双源必须同步**);品牌渐变/语义渐变(danger、amber)与 Pagination/Switch 激活色全量令牌化,业务代码零硬编码色值,暗色主题自动切换变体;桌面 240px 侧边栏(折叠 72px)+ 毛玻璃吸顶顶栏;平板/手机 `<768px` 底栏 4 Tab + 抽屉菜单、768-1024 迷你侧边栏;AuthLayout 全局壳、客服浮球、toast 桥接;基础 UI 组件全局注册(AppIcon/UiCard/StatNumber/StatusBadge/PriceText/EmptyState/PageHeader/CopyText 等);桌面内容区 max-w-1440 + 窄桌面自动折叠侧边栏 + 表格 overflow 适配。
 
 ### 2.3 用户端页面
 
@@ -72,7 +72,7 @@ ESLint 9 flat config + Prettier 3 + Stylelint 17(接入 lint-staged);husky pre-c
 
 ### 4.4 设计令牌维护(重要)
 
-CSS 变量在 `tokens.css`,Naive UI overrides 在 `theme.ts`(亮/暗两套真实色值)——**改色必须两处同步**,否则 naive 组件与自绘组件视觉漂移;业务代码禁止写死颜色,一律 `var(--c-*)`。同步已有脚本兜底:`scripts/check-tokens-sync.mjs`(11 组色值映射×亮暗断言)挂在 `pnpm lint` 链上,漂移即报错。
+CSS 变量在 `tokens.css`,Naive UI overrides 在 `theme.ts`(亮/暗两套真实色值)——**改色必须两处同步**,否则 naive 组件与自绘组件视觉漂移;业务代码禁止写死颜色,一律 `var(--c-*)`。同步已有脚本兜底:`scripts/check-tokens-sync.mjs`(13 组映射×亮暗断言,含 bg-app/bodyColor、font-ui/fontFamily 与 Pagination/Switch 激活色;暗色未重定义的键按 CSS 继承语义回落 `:root`)挂在 `pnpm lint` 链上,漂移即报错。
 
 ### 4.5 Tauri 桌面端
 

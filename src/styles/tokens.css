@@ -28,10 +28,14 @@
   --c-warning-bg: #fcefce;
   --c-danger: #e5484d;
   --c-danger-bg: #fde3e4;
+  /* danger 渐变终点(离线横幅等;起点=--c-danger) */
+  --c-danger-grad-end: #f16a6e;
   --c-marketing: #e33d5b;
   --c-olive: #7c9a3d;
   --c-pink: #c2487b;
   --c-amber-icon: #f5a524;
+  /* amber 渐变终点(公告铃铛等;起点=--c-amber-icon) */
+  --c-amber-grad-end: #f7c948;
   /* 彩色浅底(快捷操作宫格等使用;暗色主题为半透明) */
   --c-pink-bg: #fbe3ef;
   --c-blue: #4b8fe5;
@@ -80,10 +84,12 @@
   --c-warning-bg: rgba(240, 178, 74, 0.14);
   --c-danger: #f16a6e;
   --c-danger-bg: rgba(241, 106, 110, 0.14);
+  --c-danger-grad-end: #ff9299;
   --c-marketing: #ff6b88;
   --c-olive: #9dbe5f;
   --c-pink: #e57ba6;
   --c-amber-icon: #f5a524;
+  --c-amber-grad-end: #f7c948;
   /* 彩色浅底 → 暗色半透明,避免刺眼的浅色块 */
   --c-pink-bg: rgba(229, 123, 166, 0.14);
   --c-blue: #6ea8f0;

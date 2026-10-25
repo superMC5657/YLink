@@ -14,7 +14,7 @@ const { t } = useI18n()
     <span
       class="num text-8xl font-700"
       style="
-        background: linear-gradient(135deg, #f55858, #f59e0b);
+        background: linear-gradient(135deg, var(--c-danger), var(--c-warning));
         -webkit-background-clip: text;
         background-clip: text;
         color: transparent;

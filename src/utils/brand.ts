@@ -62,7 +62,7 @@ export function applyPrimaryColor(color: string | undefined | null): void {
   el.style.setProperty('--c-primary-hover', mixHex(color, '#ffffff', 0.14))
   el.style.setProperty('--c-primary-soft', soft)
   el.style.setProperty('--c-primary-text', mixHex(color, '#000000', 0.2))
-  el.style.setProperty('--c-primary-grad-end', mixHex(color, '#8b5cf6', 0.3))
+  el.style.setProperty('--c-primary-grad-end', mixHex(color, '#8B5CF6', 0.3))
 }
 
 /** 应用品牌背景图(body 层,空值清除) */

@@ -30,7 +30,7 @@ function open() {
   <div v-if="serviceUrl" class="fixed bottom-20 right-4 z-20 md:bottom-6 md:right-6">
     <button
       class="group relative flex h-13 w-13 cursor-pointer items-center justify-center rounded-full text-white shadow-lg transition-transform hover:scale-105 active:scale-95"
-      style="background: linear-gradient(135deg, #6558f5, #8b5cf6)"
+      style="background: linear-gradient(135deg, var(--c-primary), var(--c-primary-grad-end))"
       @mouseenter="show = true"
       @mouseleave="show = false"
       @click="open"

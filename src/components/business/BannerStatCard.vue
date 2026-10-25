@@ -15,7 +15,7 @@ const { t } = useI18n()
   <div
     class="relative overflow-hidden rounded-[var(--r-card)] p-6 text-white md:p-8"
     style="
-      background: linear-gradient(120deg, #5b4be0 0%, #7a5cf0 45%, #9a6cf8 100%);
+      background: linear-gradient(120deg, var(--c-primary), var(--c-primary-grad-end));
       box-shadow: var(--s-card-hover);
     "
   >
@@ -50,7 +50,7 @@ const { t } = useI18n()
             <AppIcon name="wallet" :size="15" />
             {{ t('dashboard.balance') }}
           </div>
-          <div class="num mt-1 text-28 font-700 text-[#7CFC9C] md:text-32">
+          <div class="num mt-1 text-28 font-700 text-[var(--c-success)] md:text-32">
             {{ formatMoney(user.balance) }}
           </div>
         </div>
@@ -59,7 +59,7 @@ const { t } = useI18n()
             <AppIcon name="coins" :size="15" />
             {{ t('dashboard.commission') }}
           </div>
-          <div class="num mt-1 text-28 font-700 text-[#FFB3D9] md:text-32">
+          <div class="num mt-1 text-28 font-700 text-[var(--c-pink)] md:text-32">
             {{ formatMoney(user.commissionBalance) }}
           </div>
         </div>

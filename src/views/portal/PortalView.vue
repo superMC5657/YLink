@@ -52,11 +52,11 @@ function onLogout() {
     <div class="pointer-events-none absolute inset-0 overflow-hidden">
       <div
         class="absolute -top-32 -left-32 h-96 w-96 rounded-full opacity-25 blur-3xl"
-        style="background: radial-gradient(circle, #6558f5 0%, transparent 70%)"
+        style="background: radial-gradient(circle, var(--c-primary) 0%, transparent 70%)"
       />
       <div
         class="absolute -right-32 -bottom-32 h-96 w-96 rounded-full opacity-20 blur-3xl"
-        style="background: radial-gradient(circle, #8b5cf6 0%, transparent 70%)"
+        style="background: radial-gradient(circle, var(--c-primary-grad-end) 0%, transparent 70%)"
       />
     </div>
 
@@ -71,7 +71,7 @@ function onLogout() {
       <div class="mb-8 flex flex-col items-center gap-2">
         <span
           class="flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-lg"
-          style="background: linear-gradient(135deg, #6558f5, #8b5cf6)"
+          style="background: linear-gradient(135deg, var(--c-primary), var(--c-primary-grad-end))"
         >
           <AppIcon name="zap" :size="28" />
         </span>
@@ -92,7 +92,7 @@ function onLogout() {
         >
           <span
             class="flex h-12 w-12 items-center justify-center rounded-2xl text-white"
-            style="background: linear-gradient(135deg, #6558f5, #8b5cf6)"
+            style="background: linear-gradient(135deg, var(--c-primary), var(--c-primary-grad-end))"
           >
             <AppIcon :name="entry.icon" :size="24" />
           </span>

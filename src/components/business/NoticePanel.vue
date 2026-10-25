@@ -75,7 +75,7 @@ onMounted(() => {
     <div class="mb-4 flex items-center gap-2">
       <span
         class="flex h-8 w-8 items-center justify-center rounded-full text-white"
-        style="background: linear-gradient(135deg, #f5a524, #f7c948)"
+        style="background: linear-gradient(135deg, var(--c-amber-icon), var(--c-amber-grad-end))"
       >
         <AppIcon name="bell" :size="17" />
       </span>

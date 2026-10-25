@@ -57,7 +57,7 @@ onBeforeUnmount(() => {
       <div
         v-if="offline"
         class="flex h-10 items-center justify-center gap-2 text-14 font-500 text-white"
-        style="background: linear-gradient(90deg, #e5484d, #f16a6e)"
+        style="background: linear-gradient(90deg, var(--c-danger), var(--c-danger-grad-end))"
       >
         <span class="h-2 w-2 animate-pulse rounded-full bg-white" />
         {{ t('network.offline') }}

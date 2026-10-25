@@ -50,7 +50,7 @@ function cycle() {
       class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white shadow transition-transform duration-300"
       :style="{
         transform: `translateX(${slideOffset})`,
-        background: 'linear-gradient(135deg,#6558F5,#8B5CF6)',
+        background: 'linear-gradient(135deg,var(--c-primary),var(--c-primary-grad-end))',
       }"
     >
       <AppIcon :name="modes[currentIndex].icon" :size="14" />

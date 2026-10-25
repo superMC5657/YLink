@@ -1,6 +1,6 @@
 # [P2] 品牌渐变全量令牌化（约 30 处 + 守门补键）
 
-Status: ready-for-agent
+Status: resolved
 Type: task
 
 ## Finding
@@ -35,3 +35,5 @@ design-system.md §2.3 已将主渐变令牌化为 `var(--c-primary), var(--c-pr
 - `pnpm lint`（含 check-tokens-sync）+ `pnpm test` 全绿；design-system.md 数值与 tokens.css 一致。
 
 ## Comments
+
+2026-10-25: 已修复——全部字面量渐变/颜色替换为令牌(主渐变 `var(--c-primary),var(--c-primary-grad-end)`、BannerStatCard 数字 `--c-success`/`--c-pink`、403 页 danger→warning);tokens.css 两主题补 `--c-danger-grad-end`/`--c-amber-grad-end`(ToastBridge 离线横幅/公告铃铛引用,消除亮暗端点混用);uno `btn-primary` shortcut 渐变令牌化;theme.ts Pagination/Switch 激活色下沉亮/暗 overrides,bodyColor(#ECEEF5)/fontFamily 对齐 tokens.css;check-tokens-sync MAPPING 补 `c-bg-app→bodyColor`、`font-ui→fontFamily`、`c-primary→itemColorActive/railColorActive` 并修暗色继承语义;design-system.md 以 tokens.css 为准对齐 bg-app/阴影透明度/lg 断点 1280/未文档化令牌/字体栈。验收:acceptance grep 对业务代码零命中——pattern 全部命中仅剩 `src/styles/tokens.css`(令牌定义源,Plan 1 本就要求在其中补字面量;且 Prettier 强制 CSS hex 小写,大写规避不可行),即 `grep -rn "#6558f5\|#8b5cf6\|#7CFC9C\|#FFB3D9\|#f5a524\|#f7c948" src/ uno.config.ts --exclude=tokens.css` 零命中;lint+test 全绿;浏览器实测暗↔亮切换(登录页 logo/btn-primary 渐变、body 底色、管理端分页激活色 #7C72FF↔#6558F5 均随主题切换)。

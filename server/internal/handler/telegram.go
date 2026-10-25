@@ -55,13 +55,19 @@ func (h *Telegram) Unbind(c *gin.Context) {
 // @Failure 403 {string} string "forbidden"
 // @Router /telegram/webhook [post]
 func (h *Telegram) Webhook(c *gin.Context) {
+	// secret 校验先于 body 读取：坏/缺 secret 的任意 body 一律 403，
+	// 不被 JSON bind 错误的静默 200 掩盖（docs/api §19）。
+	secret := c.GetHeader("X-Telegram-Bot-Api-Secret-Token")
+	if err := h.svc.CheckWebhookSecret(c.Request.Context(), secret); err != nil {
+		c.String(403, "forbidden")
+		return
+	}
 	var up service.TelegramUpdate
 	if err := c.ShouldBindJSON(&up); err != nil {
 		// 非 Telegram 更新体：静默 200，避免对端重试风暴
 		c.String(200, "ok")
 		return
 	}
-	secret := c.GetHeader("X-Telegram-Bot-Api-Secret-Token")
 	if err := h.svc.Webhook(c.Request.Context(), secret, &up); err != nil {
 		c.String(403, "forbidden")
 		return

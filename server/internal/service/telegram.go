@@ -119,12 +119,27 @@ type TelegramUpdate struct {
 	} `json:"message"`
 }
 
+// CheckWebhookSecret 校验 X-Telegram-Bot-Api-Secret-Token：bot/secret 未配置或
+// 不匹配一律拒绝（40300）。handler 在读取 body 之前调用，保证坏 body 不会掩盖
+// 403 语义（docs/api §19）。
+func (s *TelegramService) CheckWebhookSecret(ctx context.Context, secret string) error {
+	return checkWebhookSecret(s.settings(ctx), secret)
+}
+
+// checkWebhookSecret 基于已加载 settings 的纯校验（Webhook 内部复用，不重复读库）。
+func checkWebhookSecret(st telegramSettings, secret string) error {
+	if st.BotToken == "" || st.WebhookSecret == "" || secret != st.WebhookSecret {
+		return errs.New(40300, "forbidden")
+	}
+	return nil
+}
+
 // Webhook POST /telegram/webhook：secret 头校验 → /bind <code> 写 users.telegram_id /
 // /unbind 清除 → bot sendMessage 回执。命令之外的更新静默 200（由 handler 保证）。
 func (s *TelegramService) Webhook(ctx context.Context, secret string, up *TelegramUpdate) error {
 	st := s.settings(ctx)
-	if st.BotToken == "" || st.WebhookSecret == "" || secret != st.WebhookSecret {
-		return errs.New(40300, "forbidden")
+	if err := checkWebhookSecret(st, secret); err != nil {
+		return err
 	}
 	if up.Message == nil || up.Message.Text == "" {
 		return nil

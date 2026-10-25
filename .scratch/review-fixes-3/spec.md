@@ -15,7 +15,7 @@ config.yaml 开发密钥改为 `${ENV}` 占位；config.Load 在生产模式对�
 
 EnsureAdmin/EnsureDemoUser 填充 `users.uuid`，消除唯一约束冲突与模式 A 归因缺失。→ issues/02
 
-### [P0] 03 探针与 Webhook 加固
+### [P0] 03 探针与 Webhook 加固 ✅
 
 `/readyz` 的 DB ping 纳入超时上下文、不向公网泄漏内部错误细节；Telegram Webhook 先校验 secret 再 bind body（403 语义）。→ issues/03
 

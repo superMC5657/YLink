@@ -735,7 +735,7 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 | 响应 | `{ "accepted": 10, "skipped": [ { "uuid": "...", "reason": "unknown_user | not_subscribed | duplicate_uuid" } ] }`；未知 uuid、套餐分组不包含本节点/无订阅/封禁/过期、同一 UUID 重复出现的条目跳过，不报错 |
 
 - `data` 可选（0–1000 条，空流量时仍可单纯上报心跳/探针）；建议上报周期 30–60s。
-- 配套探针与上报 Agent：`server/cmd/node-agent`（Linux 实机采集 `/proc` 与 Windows/macOS 兼容实现，支持 `--endpoint`、`--node-id`、`--node-key`），一键部署脚本见 `deploy/install-agent.sh`。
+- 配套探针与上报 Agent：`server/cmd/node-agent`（Linux 实机采集 `/proc` 与 Windows/macOS 兼容实现，支持 `--endpoint`、`--key`、`--interval`、`--users`），一键部署脚本见 `deploy/install-agent.sh`（参数 `--endpoint <面板 API>`/`--key <node_key>`）。
 
 ---
 

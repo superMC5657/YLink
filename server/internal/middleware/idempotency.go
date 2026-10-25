@@ -58,7 +58,7 @@ func idempotencyKey(userID int64, key string) string {
 
 // middlewareUserID 读取当前用户 ID（Auth 中间件注入）。
 func middlewareUserID(c *gin.Context) int64 {
-	if v, ok := c.Get("user_id"); ok {
+	if v, ok := c.Get(ctxKeyUserID); ok {
 		if id, ok := v.(int64); ok {
 			return id
 		}

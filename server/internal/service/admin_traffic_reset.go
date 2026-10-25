@@ -47,7 +47,7 @@ func (m *adminTrafficModule) ResetTraffic(ctx context.Context, adminID int64, re
 		}
 		resp.Success++
 	}
-	_ = m.audit.write(m.db, adminID, "traffic_reset", batchAuditTarget(len(req.UserIDs)), ip, map[string]any{
+	m.audit.bestEffort(m.db, adminID, "traffic_reset", batchAuditTarget(len(req.UserIDs)), ip, map[string]any{
 		"mode": req.Mode, "success": resp.Success, "failed": len(resp.Failed), "user_ids": req.UserIDs,
 	})
 	return resp, nil

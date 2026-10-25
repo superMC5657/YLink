@@ -49,12 +49,12 @@ func (m *adminAgentModule) ReviewAgentApply(ctx context.Context, adminID, applyI
 		if err != nil {
 			return errs.ErrNotFound
 		}
-		if apply.Status != 0 {
+		if apply.Status != model.AgentApplyPending {
 			return errs.ErrConflict
 		}
-		status := 2
+		status := model.AgentApplyRejected
 		if approve {
-			status = 1
+			status = model.AgentApplyApproved
 			if err := m.repos.User.UpdateRole(tx, apply.UserID, model.RoleAgent); err != nil {
 				return err
 			}

@@ -52,7 +52,7 @@ func (s *TicketService) Create(ctx context.Context, userID int64, req *model.Cre
 		if err := s.repos.Ticket.Create(tx, t); err != nil {
 			return err
 		}
-		msg := &model.TicketMessage{TicketID: t.ID, SenderType: 0, SenderID: userID, Message: sanitize.Text(req.Message)}
+		msg := &model.TicketMessage{TicketID: t.ID, SenderType: model.TicketSenderUser, SenderID: userID, Message: sanitize.Text(req.Message)}
 		if err := s.repos.Ticket.CreateMessage(tx, msg); err != nil {
 			return err
 		}
@@ -96,13 +96,13 @@ func (s *TicketService) Reply(ctx context.Context, userID int64, id int64, messa
 	if err != nil {
 		return errs.ErrNotFound
 	}
-	if t.Status == 2 {
+	if t.Status == model.TicketStatusClosed {
 		return errs.ErrTicketClosed
 	}
 	err = repo.WithTx(s.db, func(tx *gorm.DB) error {
 		now := time.Now()
-		msg := &model.TicketMessage{TicketID: id, SenderType: 0, SenderID: userID, Message: sanitize.Text(message)}
-		ok, err := s.repos.Ticket.UpdateStatusIfNotClosed(tx, id, 0)
+		msg := &model.TicketMessage{TicketID: id, SenderType: model.TicketSenderUser, SenderID: userID, Message: sanitize.Text(message)}
+		ok, err := s.repos.Ticket.UpdateStatusIfNotClosed(tx, id, model.TicketStatusOpen)
 		if err != nil {
 			return err
 		}
@@ -127,13 +127,13 @@ func (s *TicketService) Close(ctx context.Context, userID int64, id int64) (*mod
 	if err := guardUserCloseWithdraw(t); err != nil {
 		return nil, err
 	}
-	if t.Status == 2 {
+	if t.Status == model.TicketStatusClosed {
 		return nil, errs.ErrTicketClosed
 	}
-	if err := s.repos.Ticket.UpdateStatus(s.db, id, 2); err != nil {
+	if err := s.repos.Ticket.UpdateStatus(s.db, id, model.TicketStatusClosed); err != nil {
 		return nil, err
 	}
-	t.Status = 2
+	t.Status = model.TicketStatusClosed
 	return &model.TicketListItem{
 		ID: t.ID, Subject: t.Subject, Level: t.Level, Type: t.Type, Status: t.Status, ReopenCount: t.ReopenCount,
 		LastReplyAt: t.LastReplyAt, CreatedAt: t.CreatedAt,
@@ -151,7 +151,7 @@ func (s *TicketService) Reopen(ctx context.Context, userID int64, id int64) (*mo
 	if err := guardUserReopenWithdraw(t); err != nil {
 		return nil, err
 	}
-	if t.Status != 2 {
+	if t.Status != model.TicketStatusClosed {
 		return nil, errs.ErrConflict
 	}
 	if t.ReopenCount >= 1 {
@@ -166,7 +166,7 @@ func (s *TicketService) Reopen(ctx context.Context, userID int64, id int64) (*mo
 	if !updated {
 		return nil, errs.ErrTicketReopenLimit
 	}
-	t.Status = 0
+	t.Status = model.TicketStatusOpen
 	t.ReopenCount = 1
 	t.LastReplyAt = &now
 	return &model.TicketListItem{

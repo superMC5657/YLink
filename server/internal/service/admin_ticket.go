@@ -25,7 +25,7 @@ func (m *adminTicketModule) ListTickets(ctx context.Context, page, pageSize int)
 	for _, t := range list {
 		ids = append(ids, t.UserID)
 	}
-	emails := m.withdraw.audit.emailsOf(ids)
+	emails := m.audit.emailsOf(ids)
 	out := make([]model.AdminTicketItem, 0, len(list))
 	for _, t := range list {
 		out = append(out, model.AdminTicketItem{
@@ -63,12 +63,12 @@ func (m *adminTicketModule) ReplyTicket(ctx context.Context, adminID, id int64, 
 	if err != nil {
 		return errs.ErrNotFound
 	}
-	if t.Status == 2 {
+	if t.Status == model.TicketStatusClosed {
 		return errs.ErrTicketClosed
 	}
 	return repo.WithTx(m.db, func(tx *gorm.DB) error {
 		now := time.Now()
-		ok, err := m.repos.Ticket.UpdateStatusIfNotClosed(tx, id, 1)
+		ok, err := m.repos.Ticket.UpdateStatusIfNotClosed(tx, id, model.TicketStatusReplied)
 		if err != nil {
 			return err
 		}
@@ -76,7 +76,7 @@ func (m *adminTicketModule) ReplyTicket(ctx context.Context, adminID, id int64, 
 			return errs.ErrTicketClosed
 		}
 		if err := m.repos.Ticket.CreateMessage(tx, &model.TicketMessage{
-			TicketID: id, SenderType: 1, SenderID: adminID, Message: sanitize.Text(message),
+			TicketID: id, SenderType: model.TicketSenderAdmin, SenderID: adminID, Message: sanitize.Text(message),
 		}); err != nil {
 			return err
 		}
@@ -95,8 +95,8 @@ func (m *adminTicketModule) CloseTicket(ctx context.Context, id int64) error {
 	if err := guardAdminCloseWithdraw(t); err != nil {
 		return err
 	}
-	if t.Status == 2 {
+	if t.Status == model.TicketStatusClosed {
 		return errs.ErrTicketClosed
 	}
-	return m.repos.Ticket.UpdateStatus(m.db, id, 2)
+	return m.repos.Ticket.UpdateStatus(m.db, id, model.TicketStatusClosed)
 }

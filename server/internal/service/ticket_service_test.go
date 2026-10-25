@@ -98,7 +98,7 @@ func TestTicketReply(t *testing.T) {
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"tickets\"")).WillReturnRows(ticketRow(tk))
 	e.mock.ExpectBegin()
 	// 条件更新守卫先行（status<>2），随后写回复与 last_reply_at
-	e.mock.ExpectExec(`UPDATE "tickets" SET "status".* WHERE id = .* AND status <> 2`).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectExec(`UPDATE "tickets" SET "status".* WHERE id = .* AND status <> \$3`).WillReturnResult(sqlmock.NewResult(0, 1))
 	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"ticket_messages\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(2))
 	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"tickets\"")).WillReturnResult(sqlmock.NewResult(0, 1))
 	e.mock.ExpectCommit()
@@ -114,7 +114,7 @@ func TestTicketReplyRacedClosed(t *testing.T) {
 	tk := &model.Ticket{ID: 7, UserID: 1, Subject: "s", Level: 1, Status: 1, CreatedAt: now}
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"tickets\"")).WillReturnRows(ticketRow(tk))
 	e.mock.ExpectBegin()
-	e.mock.ExpectExec(`UPDATE "tickets" SET "status".* WHERE id = .* AND status <> 2`).WillReturnResult(sqlmock.NewResult(0, 0))
+	e.mock.ExpectExec(`UPDATE "tickets" SET "status".* WHERE id = .* AND status <> \$3`).WillReturnResult(sqlmock.NewResult(0, 0))
 	e.mock.ExpectRollback()
 
 	err := svc.Reply(context.Background(), 1, 7, "补充说明")

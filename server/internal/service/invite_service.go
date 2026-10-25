@@ -266,11 +266,11 @@ func (s *InviteService) AgentStatus(ctx context.Context, userID int64) (*model.A
 	applyStatus := "none"
 	if apply, err := s.repos.AgentApply.GetByUser(s.db, userID); err == nil {
 		switch apply.Status {
-		case 0:
+		case model.AgentApplyPending:
 			applyStatus = "pending"
-		case 1:
+		case model.AgentApplyApproved:
 			applyStatus = "approved"
-		case 2:
+		case model.AgentApplyRejected:
 			applyStatus = "rejected"
 		}
 	}
@@ -309,18 +309,18 @@ func (s *InviteService) ApplyAgent(ctx context.Context, userID int64) (string, e
 	}
 	apply, err := s.repos.AgentApply.GetByUser(s.db, userID)
 	if err == nil {
-		if apply.Status != 2 { // 审核中或已通过，不可重复提交
+		if apply.Status != model.AgentApplyRejected { // 审核中或已通过，不可重复提交
 			return "", errs.ErrAgentDuplicated
 		}
 		// 被拒绝后重新提交
-		apply.Status = 0
+		apply.Status = model.AgentApplyPending
 		apply.Remark = nil
 		if err := s.repos.AgentApply.Save(s.db, apply); err != nil {
 			return "", err
 		}
 		return "pending", nil
 	}
-	if err := s.repos.AgentApply.Create(s.db, &model.AgentApply{UserID: userID, Status: 0}); err != nil {
+	if err := s.repos.AgentApply.Create(s.db, &model.AgentApply{UserID: userID, Status: model.AgentApplyPending}); err != nil {
 		return "", err
 	}
 	return "pending", nil

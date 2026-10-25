@@ -82,7 +82,7 @@ func (m *adminContentModule) CreateKnowledgeCategory(ctx context.Context, adminI
 	if err := m.repos.KnowledgeCat.Create(m.db, kc); err != nil {
 		return nil, err
 	}
-	_ = m.audit.write(m.db, adminID, "create_knowledge_category", fmt.Sprint(kc.ID), ip, map[string]any{
+	m.audit.bestEffort(m.db, adminID, "create_knowledge_category", fmt.Sprint(kc.ID), ip, map[string]any{
 		"language": kc.Language, "name": kc.Name,
 	})
 	return kc, nil
@@ -137,7 +137,7 @@ func (m *adminContentModule) DeleteKnowledgeCategory(ctx context.Context, adminI
 	if err := m.repos.KnowledgeCat.Delete(m.db, id); err != nil {
 		return err
 	}
-	_ = m.audit.write(m.db, adminID, "delete_knowledge_category", fmt.Sprint(id), ip, map[string]any{
+	m.audit.bestEffort(m.db, adminID, "delete_knowledge_category", fmt.Sprint(id), ip, map[string]any{
 		"language": kc.Language, "name": kc.Name,
 	})
 	return nil

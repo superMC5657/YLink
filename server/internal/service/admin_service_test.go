@@ -19,85 +19,8 @@ import (
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/mailer"
 	redispkg "ylink-backend/internal/pkg/redis"
-	"ylink-backend/internal/pkg/sanitize"
 	"ylink-backend/internal/repo"
 )
-
-func TestSanitize(t *testing.T) {
-	// 富文本：脚本/事件被剥离，基础标签保留
-	html := `<p onclick="alert(1)">hello <b>bold</b><script>alert(2)</script><img src=x onerror=alert(3)></p>`
-	out := sanitize.Markdown(html)
-	assert.NotContains(t, out, "script")
-	assert.NotContains(t, out, "onclick")
-	assert.NotContains(t, out, "onerror")
-	assert.Contains(t, out, "<b>bold</b>")
-
-	// 纯文本：全部标签剥离
-	assert.Equal(t, "hello", sanitize.Text("<b>hello</b>"))
-}
-
-func TestCreateOrderCouponLimitExceeded(t *testing.T) {
-	e, svc := newOrderEnv(t)
-	ctx := context.Background()
-	now := time.Now()
-	mPrice := int64(1000)
-	p := &model.Plan{ID: 1, Name: "白羊座", MonthPrice: &mPrice, TrafficGB: 300, IsShow: true, CreatedAt: now, UpdatedAt: now}
-
-	// 幂等键未命中
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"orders\"")).WillReturnError(assert.AnError)
-	// 套餐查询
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"plans\"")).WillReturnRows(planRow(p))
-	// 事务开始
-	e.mock.ExpectBegin()
-	// 优惠券查询（used_count 已达 total_limit）
-	cp := &model.Coupon{ID: 9, Code: "LIMIT", Type: 1, Value: 200, MinSpend: 0, TotalLimit: 10, UsedCount: 10, IsEnable: true}
-	couponRows := sqlmock.NewRows([]string{
-		"id", "code", "type", "value", "min_spend", "limit_per_user", "total_limit", "used_count",
-		"valid_periods", "plan_ids", "started_at", "ended_at", "is_enable", "created_at", "updated_at",
-	}).AddRow(cp.ID, cp.Code, cp.Type, cp.Value, cp.MinSpend, cp.LimitPerUser, cp.TotalLimit, cp.UsedCount,
-		cp.ValidPeriods, cp.PlanIDs, cp.StartedAt, cp.EndedAt, cp.IsEnable, now, now)
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"coupons\"")).WillReturnRows(couponRows)
-	// validateCoupon 检查 used_count >= total_limit → 直接 ErrCoupon（未到 Occupy）
-	e.mock.ExpectRollback()
-
-	_, err := svc.CreateOrder(ctx, 7, "idem-9", &model.CreateOrderReq{PlanID: 1, Period: "month", CouponCode: "LIMIT"})
-	assert.Equal(t, 12001, codeOf(err))
-}
-
-func TestCreateOrderCouponOccupied(t *testing.T) {
-	e, svc := newOrderEnv(t)
-	ctx := context.Background()
-	now := time.Now()
-	mPrice := int64(1000)
-	p := &model.Plan{ID: 1, Name: "白羊座", MonthPrice: &mPrice, TrafficGB: 300, IsShow: true, CreatedAt: now, UpdatedAt: now}
-
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"orders\"")).WillReturnError(assert.AnError)
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"plans\"")).WillReturnRows(planRow(p))
-	e.mock.ExpectBegin()
-	// 优惠券查询
-	cp := &model.Coupon{ID: 9, Code: "OK", Type: 1, Value: 200, MinSpend: 0, TotalLimit: 10, UsedCount: 3, IsEnable: true}
-	couponRows := sqlmock.NewRows([]string{
-		"id", "code", "type", "value", "min_spend", "limit_per_user", "total_limit", "used_count",
-		"valid_periods", "plan_ids", "started_at", "ended_at", "is_enable", "created_at", "updated_at",
-	}).AddRow(cp.ID, cp.Code, cp.Type, cp.Value, cp.MinSpend, cp.LimitPerUser, cp.TotalLimit, cp.UsedCount,
-		cp.ValidPeriods, cp.PlanIDs, cp.StartedAt, cp.EndedAt, cp.IsEnable, now, now)
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"coupons\"")).WillReturnRows(couponRows)
-	// 原子占用：条件更新成功（1 行）
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"coupons\" SET \"used_count\"=used_count + 1 WHERE")).
-		WillReturnResult(sqlmock.NewResult(0, 1))
-	// 写使用流水
-	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"coupon_usages\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
-	// 创建订单
-	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"orders\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
-	e.mock.ExpectCommit()
-	// toOrderResp 查套餐
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"plans\"")).WillReturnRows(planRow(p))
-
-	resp, err := svc.CreateOrder(ctx, 7, "idem-ok", &model.CreateOrderReq{PlanID: 1, Period: "month", CouponCode: "OK"})
-	require.NoError(t, err)
-	assert.Equal(t, 8.00, resp.PayAmount)
-	assert.Equal(t, 2.00, resp.DiscountAmount)
-}
 
 func TestAdminRefundWithCommissionRollback(t *testing.T) {
 	e := newTestEnv(t)
@@ -347,7 +270,7 @@ func TestAdminReplyTicketSuccess(t *testing.T) {
 	tk := &model.Ticket{ID: 7, UserID: 9, Subject: "s", Level: 1, Status: 0, CreatedAt: now}
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"tickets\"")).WillReturnRows(withdrawTicketRows(tk))
 	e.mock.ExpectBegin()
-	e.mock.ExpectExec(`UPDATE "tickets" SET "status".* WHERE id = .* AND status <> 2`).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectExec(`UPDATE "tickets" SET "status".* WHERE id = .* AND status <> \$3`).WillReturnResult(sqlmock.NewResult(0, 1))
 	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"ticket_messages\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(2))
 	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"tickets\"")).WillReturnResult(sqlmock.NewResult(0, 1))
 	e.mock.ExpectCommit()
@@ -368,7 +291,7 @@ func TestAdminReplyTicketRacedClosed(t *testing.T) {
 	tk := &model.Ticket{ID: 7, UserID: 9, Subject: "s", Level: 1, Status: 1, CreatedAt: now}
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"tickets\"")).WillReturnRows(withdrawTicketRows(tk))
 	e.mock.ExpectBegin()
-	e.mock.ExpectExec(`UPDATE "tickets" SET "status".* WHERE id = .* AND status <> 2`).WillReturnResult(sqlmock.NewResult(0, 0))
+	e.mock.ExpectExec(`UPDATE "tickets" SET "status".* WHERE id = .* AND status <> \$3`).WillReturnResult(sqlmock.NewResult(0, 0))
 	e.mock.ExpectRollback()
 
 	err := svc.Ticket.ReplyTicket(context.Background(), 1, 7, "客服回复")
@@ -971,20 +894,6 @@ func TestResetUserSubTokenByAdmin(t *testing.T) {
 		WillReturnError(gorm.ErrRecordNotFound)
 	_, err = svc2.User.ResetUserSubToken(context.Background(), 1, 99, "127.0.0.1")
 	assert.Equal(t, 40400, codeOf(err))
-}
-
-func userRows(users []model.User) *sqlmock.Rows {
-	rows := sqlmock.NewRows([]string{
-		"id", "email", "password_hash", "role", "balance", "commission_balance", "invite_by_id",
-		"is_banned", "remind_expire", "remind_traffic", "telegram_id", "plan_id", "expired_at",
-		"transfer_enable", "u", "d", "speed_limit", "device_limit", "sub_token", "uuid", "created_at", "updated_at",
-	})
-	for _, u := range users {
-		rows.AddRow(u.ID, u.Email, u.PasswordHash, u.Role, u.Balance, u.CommissionBalance, u.InviteByID,
-			u.IsBanned, u.RemindExpire, u.RemindTraffic, u.TelegramID, u.PlanID, u.ExpiredAt,
-			u.TransferEnable, u.U, u.D, u.SpeedLimit, u.DeviceLimit, u.SubToken, u.UUID, u.CreatedAt, u.UpdatedAt)
-	}
-	return rows
 }
 
 func TestExportUsersStreamsBatches(t *testing.T) {

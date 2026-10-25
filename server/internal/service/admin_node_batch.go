@@ -68,7 +68,7 @@ func (m *adminNodeBatchModule) BatchServers(ctx context.Context, adminID int64, 
 	if req.Action == "delete" {
 		action = "batch_server_delete"
 	}
-	_ = m.audit.write(m.db, adminID, action, batchAuditTarget(len(req.IDs)), ip, map[string]any{
+	m.audit.bestEffort(m.db, adminID, action, batchAuditTarget(len(req.IDs)), ip, map[string]any{
 		"ids": req.IDs, "success": resp.Success, "failed": len(resp.Failed), "updates": updates,
 	})
 	return resp, nil
@@ -87,7 +87,7 @@ func (m *adminNodeBatchModule) CopyServer(ctx context.Context, adminID, serverID
 	if err := m.repos.Server.Create(m.db, &cp); err != nil {
 		return nil, err
 	}
-	_ = m.audit.write(m.db, adminID, "copy_server", fmt.Sprint(serverID), ip, map[string]any{
+	m.audit.bestEffort(m.db, adminID, "copy_server", fmt.Sprint(serverID), ip, map[string]any{
 		"new_id": cp.ID, "name": cp.Name,
 	})
 	view := toServerView(&cp)
@@ -124,7 +124,7 @@ func (m *adminNodeBatchModule) ResetNodeKey(ctx context.Context, adminID, server
 	if err := m.repos.Server.UpdateMap(m.db, serverID, map[string]any{"node_key": newKey}); err != nil {
 		return "", err
 	}
-	_ = m.audit.write(m.db, adminID, "reset_node_key", fmt.Sprint(serverID), ip, map[string]any{})
+	m.audit.bestEffort(m.db, adminID, "reset_node_key", fmt.Sprint(serverID), ip, map[string]any{})
 	// 旧密钥的鉴权缓存立即失效(NodeAuth 中间件 node:key:{k})
 	if oldKey != "" {
 		m.rdb.Del(ctx, redispkg.Key("node", "key", oldKey))

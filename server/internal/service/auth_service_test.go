@@ -246,3 +246,17 @@ func TestIssueSessionWhitelistWriteError(t *testing.T) {
 	_, err := e.svc.issueSession(context.Background(), u)
 	require.Error(t, err)
 }
+
+func userRows(users []model.User) *sqlmock.Rows {
+	rows := sqlmock.NewRows([]string{
+		"id", "email", "password_hash", "role", "balance", "commission_balance", "invite_by_id",
+		"is_banned", "remind_expire", "remind_traffic", "telegram_id", "plan_id", "expired_at",
+		"transfer_enable", "u", "d", "speed_limit", "device_limit", "sub_token", "uuid", "created_at", "updated_at",
+	})
+	for _, u := range users {
+		rows.AddRow(u.ID, u.Email, u.PasswordHash, u.Role, u.Balance, u.CommissionBalance, u.InviteByID,
+			u.IsBanned, u.RemindExpire, u.RemindTraffic, u.TelegramID, u.PlanID, u.ExpiredAt,
+			u.TransferEnable, u.U, u.D, u.SpeedLimit, u.DeviceLimit, u.SubToken, u.UUID, u.CreatedAt, u.UpdatedAt)
+	}
+	return rows
+}

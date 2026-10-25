@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/errs"
+	"ylink-backend/internal/pkg/logger"
 	redispkg "ylink-backend/internal/pkg/redis"
 	"ylink-backend/internal/repo"
 )
@@ -164,7 +166,13 @@ func (s *NodeService) Report(ctx context.Context, serverID int64, req *NodeRepor
 
 	now := time.Now()
 	today := now.Format("2006-01-02")
-	var affected []model.User
+	// 倍率防线：misconfigure（rate≤0）不得静默按 0 计费丢流水，回退 1 并告警留痕
+	rate := srv.Rate
+	if rate <= 0 {
+		logger.L().Warn("node rate non-positive, fallback to 1", zapS("server_id", fmt.Sprint(serverID)), zapS("rate", fmt.Sprint(srv.Rate)))
+		rate = 1
+	}
+	var affectedTokens []string
 
 	err = repo.WithTx(s.db, func(tx *gorm.DB) error {
 		for _, it := range items {
@@ -187,7 +195,7 @@ func (s *NodeService) Report(ctx context.Context, serverID int64, req *NodeRepor
 				lastU, lastD = st.LastU, st.LastD
 			}
 			du, dd := cumDelta(it.U, lastU), cumDelta(it.D, lastD)
-			bu, bd := scaleRate(du, srv.Rate), scaleRate(dd, srv.Rate)
+			bu, bd := scaleRate(du, rate), scaleRate(dd, rate)
 			if bu > 0 || bd > 0 {
 				if err := s.repos.User.IncrTraffic(tx, u.ID, bu, bd); err != nil {
 					return err
@@ -195,7 +203,8 @@ func (s *NodeService) Report(ctx context.Context, serverID int64, req *NodeRepor
 				if err := s.repos.Traffic.AdditiveUpsert(tx, u.ID, today, bu, bd); err != nil {
 					return err
 				}
-				affected = append(affected, *u)
+				// 只留缓存失效所需的 SubToken，不整份拷贝 model.User
+				affectedTokens = append(affectedTokens, u.SubToken)
 			}
 			if err := s.repos.NodeStat.Upsert(tx, serverID, u.ID, it.U, it.D); err != nil {
 				return err
@@ -208,8 +217,8 @@ func (s *NodeService) Report(ctx context.Context, serverID int64, req *NodeRepor
 		return nil, err
 	}
 	// 受影响用户 userinfo 缓存立即失效,客户端下次拉订阅即见新用量
-	for _, u := range affected {
-		s.rdb.Del(ctx, redispkg.Key("sub", "userinfo", u.SubToken))
+	for _, token := range affectedTokens {
+		s.rdb.Del(ctx, redispkg.Key("sub", "userinfo", token))
 	}
 	return resp, nil
 }

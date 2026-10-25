@@ -12,6 +12,7 @@ import (
 
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/errs"
+	"ylink-backend/internal/pkg/logger"
 	"ylink-backend/internal/repo"
 )
 
@@ -68,6 +69,15 @@ func (m *adminAuditModule) write(tx *gorm.DB, adminID int64, action, target, ip 
 	return m.repos.Audit.Create(tx, &model.AuditLog{
 		AdminID: adminID, Action: action, Target: &target, Detail: detailStr, IP: &ipStr,
 	})
+}
+
+// bestEffort 审计尽力写：主流程已成功的旁路记录（批量/复制/轮换/模板测试等
+// 收尾型动作），失败仅记 Error 日志不回滚业务——调用方不再各自 `_ =` 静默丢失败。
+// 与 write 的分工：write 在事务内、失败上抛回滚；bestEffort 在主流程落库之后。
+func (m *adminAuditModule) bestEffort(tx *gorm.DB, adminID int64, action, target, ip string, detail any) {
+	if err := m.write(tx, adminID, action, target, ip, detail); err != nil {
+		logger.L().Error("audit write failed", zapS("action", action), zapS("target", target), zapE(err))
+	}
 }
 
 // emailsOf 批量取用户邮箱。

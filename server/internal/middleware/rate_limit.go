@@ -9,6 +9,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"ylink-backend/internal/pkg/errs"
+	redispkg "ylink-backend/internal/pkg/redis"
 )
 
 // RateLimit 基于 Redis 的固定窗口限流（多实例共享计数）。
@@ -16,7 +17,7 @@ import (
 // 窗口内超过 limit 次 → 42900。
 func RateLimit(rdb *redis.Client, scope string, limit int, window time.Duration) gin.HandlerFunc {
 	key := func(c *gin.Context) string {
-		return "rl:" + scope + ":" + clientIP(c)
+		return redispkg.Key("rl", scope, clientIP(c))
 	}
 	return func(c *gin.Context) {
 		ctx := context.Background()

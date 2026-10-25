@@ -113,6 +113,12 @@ func (s *CronService) ReconcilePayments(ctx context.Context) {
 		if err != nil || !qr.Paid {
 			continue
 		}
+		// 对账防线：网关查单实收与本地支付单金额不一致时拒绝入账（0=网关未返回金额，跳过比对）
+		if qr.Amount > 0 && qr.Amount != p.Amount {
+			logger.L().Warn("reconcile amount mismatch",
+				zapS("order_no", p.OrderNo), zapS("gateway", fmt.Sprint(qr.Amount)), zapS("local", fmt.Sprint(p.Amount)))
+			continue
+		}
 		if err := s.orders.HandleNotify(ctx, p.Method, &payment.NotifyResult{
 			OrderNo: p.OrderNo, TradeNo: qr.TradeNo, Amount: p.Amount, Paid: true,
 		}); err == nil {

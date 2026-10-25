@@ -105,6 +105,7 @@ type adminTrafficModule struct {
 type adminTicketModule struct {
 	db       *gorm.DB
 	repos    *repo.Repos
+	audit    *adminAuditModule
 	withdraw *adminWithdrawModule
 }
 
@@ -165,7 +166,7 @@ func NewAdminSeams(db *gorm.DB, rdb *redis.Client, repos *repo.Repos, cfg *confi
 	stats := &adminStatsModule{db: k.db, repos: k.repos}
 	traffic := &adminTrafficModule{db: k.db, repos: k.repos, audit: audit}
 	withdraw := &adminWithdrawModule{db: k.db, repos: k.repos, audit: audit}
-	ticket := &adminTicketModule{db: k.db, repos: k.repos, withdraw: withdraw}
+	ticket := &adminTicketModule{db: k.db, repos: k.repos, audit: audit, withdraw: withdraw}
 	system := &adminSystemModule{db: k.db, repos: k.repos, set: k.set}
 	version := &adminVersionModule{rdb: k.rdb, cfg: k.cfg}
 	return &AdminSeams{

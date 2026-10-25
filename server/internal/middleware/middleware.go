@@ -61,7 +61,7 @@ func AccessLog() gin.HandlerFunc {
 			zap.Any("path", c.Request.URL.Path),
 			zap.Any("status", c.Writer.Status()),
 			zap.Any("latency_ms", time.Since(start).Milliseconds()),
-			zap.Any("user_id", c.GetInt64("user_id")),
+			zap.Any("user_id", c.GetInt64(ctxKeyUserID)),
 			zap.Any("request_id", c.GetString("request_id")),
 			zap.Any("ip", c.ClientIP()),
 		)

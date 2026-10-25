@@ -167,6 +167,6 @@ func (m *adminContentModule) TestMailTemplate(ctx context.Context, adminID int64
 	if sendErr != nil {
 		detail["error"] = sendErr.Error()
 	}
-	_ = m.audit.write(m.db, adminID, "test_mail_template", name, ip, detail)
+	m.audit.bestEffort(m.db, adminID, "test_mail_template", name, ip, detail)
 	return sendErr
 }

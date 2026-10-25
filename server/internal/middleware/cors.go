@@ -48,11 +48,11 @@ func CORSAny() gin.HandlerFunc {
 }
 
 // UserID 从上下文取当前用户 ID（由 Auth 注入）。
-func UserID(c *gin.Context) int64 { return c.GetInt64("user_id") }
+func UserID(c *gin.Context) int64 { return c.GetInt64(ctxKeyUserID) }
 
 // UserRole 从上下文取当前用户角色。
 func UserRole(c *gin.Context) int {
-	if v, ok := c.Get("role"); ok {
+	if v, ok := c.Get(ctxKeyRole); ok {
 		if r, ok := v.(int); ok {
 			return r
 		}

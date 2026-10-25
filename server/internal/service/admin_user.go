@@ -227,7 +227,7 @@ func (m *adminUserModule) SendMail(ctx context.Context, adminID int64, req *mode
 		for _, id := range req.IDs {
 			resp.Failed = append(resp.Failed, model.AdminBatchFailedItem{ID: id, Reason: "邮件服务未配置"})
 		}
-		_ = m.audit.write(m.db, adminID, "send_mail", batchAuditTarget(len(req.IDs)), ip, map[string]any{
+		m.audit.bestEffort(m.db, adminID, "send_mail", batchAuditTarget(len(req.IDs)), ip, map[string]any{
 			"subject": subject, "sent": 0, "failed": len(resp.Failed), "error": "mailer not configured", "ids": req.IDs,
 		})
 		return resp, nil
@@ -258,7 +258,7 @@ func (m *adminUserModule) SendMail(ctx context.Context, adminID int64, req *mode
 			return nil, err
 		}
 	}
-	_ = m.audit.write(m.db, adminID, "send_mail", batchAuditTarget(len(req.IDs)), ip, map[string]any{
+	m.audit.bestEffort(m.db, adminID, "send_mail", batchAuditTarget(len(req.IDs)), ip, map[string]any{
 		"subject": subject, "sent": resp.Sent, "failed": len(resp.Failed), "ids": req.IDs,
 	})
 	return resp, nil
@@ -279,7 +279,7 @@ func (m *adminUserModule) ResetUserSubToken(ctx context.Context, adminID, userID
 	// 清除旧 token 缓存（userinfo / 限流计数），与用户端自助重置一致
 	m.rdb.Del(ctx, redispkg.Key("sub", "userinfo", oldToken))
 	m.rdb.Del(ctx, redispkg.Key("sub", "rl", oldToken))
-	_ = m.audit.write(m.db, adminID, "reset_sub_token", fmt.Sprint(userID), ip, map[string]any{
+	m.audit.bestEffort(m.db, adminID, "reset_sub_token", fmt.Sprint(userID), ip, map[string]any{
 		"email": user.Email,
 	})
 	return m.cfg.App.BaseURL + "/api/v1/" + m.cfg.Security.SubscribePathOrDefault() + "/subscribe/" + newToken, nil

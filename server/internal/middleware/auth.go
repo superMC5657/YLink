@@ -11,10 +11,11 @@ import (
 	redispkg "ylink-backend/internal/pkg/redis"
 )
 
+// gin context key 唯一 owner：Auth 写入、各 helper/中间件/AccessLog 读取。
 const (
-	roleUser  = 0
-	roleAdmin = 1
-	roleAgent = 2
+	ctxKeyUserID = "user_id"
+	ctxKeyRole   = "role"
+	ctxKeyJTI    = "jti"
 )
 
 // Auth 解析 Bearer access_token，注入 user_id / role / jti。
@@ -40,9 +41,9 @@ func Auth(mgr *jwtpkg.Manager, rdb *redis.Client) gin.HandlerFunc {
 			Fail(c, errs.ErrUnauthorized)
 			return
 		}
-		c.Set("user_id", claims.UserID)
-		c.Set("role", claims.Role)
-		c.Set("jti", claims.JTI)
+		c.Set(ctxKeyUserID, claims.UserID)
+		c.Set(ctxKeyRole, claims.Role)
+		c.Set(ctxKeyJTI, claims.JTI)
 		c.Next()
 	}
 }

@@ -113,12 +113,15 @@ func (e *Epay) Query(ctx context.Context, orderNo string) (*QueryResult, error) 
 	var r struct {
 		Code    int    `json:"code"`
 		TradeNo string `json:"trade_no"`
+		Money   string `json:"money"`
 		Status  int    `json:"status"`
 	}
 	if err := json.Unmarshal(body, &r); err != nil {
 		return nil, fmt.Errorf("epay query bad response: %w", err)
 	}
-	return &QueryResult{TradeNo: r.TradeNo, Paid: r.Status == 1}, nil
+	// 网关金额（分）随查单返回供对账；解析失败置 0（跳过比对，不阻断查单主语义）
+	amount, _ := yuanStrToFen(r.Money)
+	return &QueryResult{TradeNo: r.TradeNo, Amount: amount, Paid: r.Status == 1}, nil
 }
 
 // ---- 签名 ----

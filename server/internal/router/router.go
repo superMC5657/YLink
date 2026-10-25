@@ -15,6 +15,7 @@ import (
 	"ylink-backend/internal/handler"
 	admin "ylink-backend/internal/handler/admin"
 	"ylink-backend/internal/middleware"
+	"ylink-backend/internal/model"
 	jwtpkg "ylink-backend/internal/pkg/jwt"
 	"ylink-backend/internal/pkg/mailer"
 	"ylink-backend/internal/repo"
@@ -201,7 +202,7 @@ func registerUser(g *gin.RouterGroup, d Deps, a *app) {
 // 按域 module 拆分注册函数：单域路由变更集中一处，缺陷定位收敛到对应 module。
 func registerAdmin(g *gin.RouterGroup, d Deps, a *app) {
 	admin := g.Group("/" + d.Cfg.Security.AdminPathOrDefault())
-	admin.Use(middleware.Auth(d.JWT, d.Redis), middleware.RequireRole(1))
+	admin.Use(middleware.Auth(d.JWT, d.Redis), middleware.RequireRole(model.RoleAdmin))
 
 	registerAdminStats(admin, a)
 	registerAdminUsers(admin, a)

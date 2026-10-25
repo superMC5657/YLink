@@ -34,8 +34,11 @@ type NotifyResult struct {
 }
 
 // QueryResult 主动查单结果。
+// Amount 为网关侧实收金额（分）：查单兜底入账前须与本地支付单金额比对，
+// 不一致拒绝入账（对账防线；0 表示网关未返回金额，跳过比对）。
 type QueryResult struct {
 	TradeNo string
+	Amount  int64
 	Paid    bool
 }
 

@@ -90,7 +90,7 @@ func submitWithdrawTx(tx *gorm.DB, repos *repo.Repos, userID, amountFen int64, m
 	now := time.Now()
 	ticket := &model.Ticket{
 		UserID: userID, Subject: "佣金提现申请", Level: 0, Type: model.TicketTypeWithdraw,
-		Status: 0, LastReplyAt: &now,
+		Status: model.TicketStatusOpen, LastReplyAt: &now,
 	}
 	if err := repos.Ticket.Create(tx, ticket); err != nil {
 		return nil, err
@@ -100,7 +100,7 @@ func submitWithdrawTx(tx *gorm.DB, repos *repo.Repos, userID, amountFen int64, m
 	msg := fmt.Sprintf("【佣金提现申请】\n提现方式：%s\n收款账号：%s\n金额：%.2f 元",
 		method, account, model.FenToYuan(amountFen))
 	if err := repos.Ticket.CreateMessage(tx, &model.TicketMessage{
-		TicketID: ticket.ID, SenderType: 0, SenderID: userID, Message: msg,
+		TicketID: ticket.ID, SenderType: model.TicketSenderUser, SenderID: userID, Message: msg,
 	}); err != nil {
 		return nil, err
 	}
@@ -185,11 +185,11 @@ func reviewWithdrawTx(tx *gorm.DB, repos *repo.Repos, ticketID, adminID int64, a
 	}
 	// 关闭工单 + 系统消息留痕
 	if err := repos.Ticket.CreateMessage(tx, &model.TicketMessage{
-		TicketID: ticketID, SenderType: 1, SenderID: adminID, Message: sysMsg,
+		TicketID: ticketID, SenderType: model.TicketSenderAdmin, SenderID: adminID, Message: sysMsg,
 	}); err != nil {
 		return nil, err
 	}
-	if err := repos.Ticket.UpdateStatus(tx, ticketID, 2); err != nil {
+	if err := repos.Ticket.UpdateStatus(tx, ticketID, model.TicketStatusClosed); err != nil {
 		return nil, err
 	}
 	return &withdrawReviewOut{

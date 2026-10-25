@@ -47,27 +47,12 @@ func (e *testEnv) expectServerByID(s *model.Server) {
 
 // expectReportUsers 上报用户批量查询。
 func (e *testEnv) expectReportUsers(users []model.User) {
-	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE uuid IN`)).WillReturnRows(userRowsFor(users))
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE uuid IN`)).WillReturnRows(userRows(users))
 }
 
 // expectActiveUsers 用户同步(套餐内有效订阅)查询。
 func (e *testEnv) expectActiveUsers(users []model.User) {
-	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE plan_id IN`)).WillReturnRows(userRowsFor(users))
-}
-
-func userRowsFor(users []model.User) *sqlmock.Rows {
-	rows := sqlmock.NewRows([]string{
-		"id", "email", "password_hash", "role", "balance", "commission_balance", "invite_by_id",
-		"is_banned", "remind_expire", "remind_traffic", "telegram_id", "plan_id", "expired_at",
-		"transfer_enable", "u", "d", "speed_limit", "device_limit", "sub_token", "uuid", "created_at", "updated_at",
-	})
-	for i := range users {
-		u := users[i]
-		rows.AddRow(u.ID, u.Email, u.PasswordHash, u.Role, u.Balance, u.CommissionBalance, u.InviteByID,
-			u.IsBanned, u.RemindExpire, u.RemindTraffic, u.TelegramID, u.PlanID, u.ExpiredAt,
-			u.TransferEnable, u.U, u.D, u.SpeedLimit, u.DeviceLimit, u.SubToken, u.UUID, u.CreatedAt, u.UpdatedAt)
-	}
-	return rows
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE plan_id IN`)).WillReturnRows(userRows(users))
 }
 
 func TestNodeUsers(t *testing.T) {

@@ -51,6 +51,26 @@ const (
 	TicketTypeWithdraw = 1
 )
 
+// 工单状态（tickets.status）
+const (
+	TicketStatusOpen    = 0 // 待回复
+	TicketStatusReplied = 1 // 已回复
+	TicketStatusClosed  = 2 // 已关闭
+)
+
+// 工单消息发送方（ticket_messages.sender_type）
+const (
+	TicketSenderUser  = 0 // 用户
+	TicketSenderAdmin = 1 // 客服/系统
+)
+
+// 代理申请状态（agent_applies.status）
+const (
+	AgentApplyPending  = 0 // 待审核
+	AgentApplyApproved = 1 // 已通过
+	AgentApplyRejected = 2 // 已拒绝
+)
+
 // 订阅周期
 var Periods = []string{"month", "quarter", "half_year", "year", "onetime"}
 

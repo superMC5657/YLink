@@ -57,7 +57,7 @@ func (TicketRepo) UpdateStatus(db *gorm.DB, id int64, status int) error {
 // 写入新回复并翻回未关闭态，绕过 reopen-once 状态机。
 func (TicketRepo) UpdateStatusIfNotClosed(db *gorm.DB, id int64, status int) (bool, error) {
 	res := db.Model(&model.Ticket{}).
-		Where("id = ? AND status <> 2", id).
+		Where("id = ? AND status <> ?", id, model.TicketStatusClosed).
 		Update("status", status)
 	if res.Error != nil {
 		return false, res.Error
@@ -70,9 +70,9 @@ func (TicketRepo) UpdateStatusIfNotClosed(db *gorm.DB, id int64, status int) (bo
 // 返回是否实际更新(0 行=已被并发重开/已重开过)。
 func (TicketRepo) UpdateReopen(db *gorm.DB, id int64, at time.Time) (bool, error) {
 	res := db.Model(&model.Ticket{}).
-		Where("id = ? AND status = 2 AND reopen_count = 0", id).
+		Where("id = ? AND status = ? AND reopen_count = 0", id, model.TicketStatusClosed).
 		Updates(map[string]any{
-			"status":        0,
+			"status":        model.TicketStatusOpen,
 			"reopen_count":  gorm.Expr("reopen_count + 1"),
 			"last_reply_at": at,
 		})

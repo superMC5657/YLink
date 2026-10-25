@@ -72,10 +72,11 @@ func PageOK[T any](c *gin.Context, list []T, total int64, page, pageSize int) {
 
 // Bind 解析 JSON 请求体；失败时按 40000 信封直接应答并返回 false。
 // 收敛前每个 handler 重复三行：ShouldBindJSON + Messages 拼接 + FailWithCode；
-// 收敛后 handler 只调这一句，不再单独引用校验 seam。
+// 收敛后 handler 只调这一句，不再单独引用校验 seam。业务码取 errs.ErrParam
+// （40000），与契约文档校验失败段位一致，不再硬编码。
 func Bind(c *gin.Context, req any) bool {
 	if err := c.ShouldBindJSON(req); err != nil {
-		FailWithCode(c, 40000, "参数校验失败: "+Messages(err))
+		FailWithCode(c, errs.ErrParam.Code, "参数校验失败: "+Messages(err))
 		return false
 	}
 	return true

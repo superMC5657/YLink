@@ -154,7 +154,7 @@ func (UserRepo) CountOrdersByStatus(db *gorm.DB, uid int64, status int) (int64, 
 // CountOpenTickets 统计用户未关闭工单数。
 func (UserRepo) CountOpenTickets(db *gorm.DB, uid int64) (int64, error) {
 	var n int64
-	err := db.Model(&model.Ticket{}).Where("user_id = ? AND status != ?", uid, 2).Count(&n).Error
+	err := db.Model(&model.Ticket{}).Where("user_id = ? AND status != ?", uid, model.TicketStatusClosed).Count(&n).Error
 	return n, err
 }
 

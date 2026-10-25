@@ -9,7 +9,13 @@ import { apiAdmin } from '@/api/admin'
 import { useAdminList } from '@/composables/useAdminList'
 import type { AdminOrderItem, OrderStatus } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
-import { orderStatusBadge, orderStatusLabel, payMethodLabel, periodLabel } from '@/utils/format'
+import {
+  formatDateTime,
+  orderStatusBadge,
+  orderStatusLabel,
+  payMethodLabel,
+  periodLabel,
+} from '@/utils/format'
 import { useMessage, useDialog } from 'naive-ui'
 
 const { t } = useI18n()
@@ -158,7 +164,7 @@ onMounted(() => void applyFilters({ status: statusFilter.value }))
               </td>
               <td class="text-14 text-[var(--c-text-sub)]">{{ payMethodLabel(o.pay_method) }}</td>
               <td class="text-14 text-[var(--c-text-sub)]">
-                {{ o.created_at.slice(0, 19).replace('T', ' ') }}
+                {{ formatDateTime(o.created_at) }}
               </td>
               <td>
                 <div class="flex gap-2">

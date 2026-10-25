@@ -61,6 +61,18 @@ export function formatTime(iso: string | null | undefined, withSeconds = true): 
   return withSeconds ? d.format('YYYY/M/D HH:mm:ss') : d.format('YYYY/M/D HH:mm')
 }
 
+/**
+ * RFC3339 → `YYYY-MM-DD HH:mm[:ss]`(管理端表格用,连字符日期)。
+ * 收敛前为 `.slice(0, N).replace('T', ' ')` 字符串原语 ×5(Orders/Tickets),
+ * 按本地时区渲染并带无效值兜底。
+ */
+export function formatDateTime(iso: string | null | undefined, withSeconds = true): string {
+  if (!iso) return '-'
+  const d = dayjs(iso)
+  if (!d.isValid()) return '-'
+  return withSeconds ? d.format('YYYY-MM-DD HH:mm:ss') : d.format('YYYY-MM-DD HH:mm')
+}
+
 /** 纯日期 YYYY-MM-DD */
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return '-'

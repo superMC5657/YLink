@@ -9,7 +9,7 @@ import { useConfigStore } from '@/stores/config'
 import { apiCaptcha } from '@/api/user'
 import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
-import { useCountdown } from '@/composables/useCountdown'
+import EmailCodeField from './EmailCodeField.vue'
 import type { FormInst, FormItemInst, FormRules } from 'naive-ui'
 
 const auth = useAuthStore()
@@ -18,13 +18,11 @@ const route = useRoute()
 const router = useRouter()
 const message = useMessage()
 const { t } = useI18n()
-const { remaining, running, start } = useCountdown(60)
 
 const formRef = ref<FormInst | null>(null)
 // email 表单项实例:发送验证码前单独校验邮箱(n-form 实例无 validateField,用 form-item 的 validate)
 const emailItemRef = ref<FormItemInst | null>(null)
 const loading = ref(false)
-const sending = ref(false)
 
 const form = ref({
   email: '',
@@ -99,23 +97,6 @@ const rules = computed<FormRules>(() => ({
     : {}),
 }))
 
-async function sendCode() {
-  if (sending.value || running.value) return
-  try {
-    await emailItemRef.value?.validate()
-  } catch {
-    return
-  }
-  sending.value = true
-  try {
-    await apiCaptcha.sendEmail({ email: form.value.email, type: 'register' })
-    message.success(t('auth.codeSent'))
-    start(60)
-  } finally {
-    sending.value = false
-  }
-}
-
 async function onSubmit() {
   if (loading.value) return
   const valid = await formRef.value?.validate().catch(() => false)
@@ -160,21 +141,12 @@ async function onSubmit() {
         </n-input>
       </n-form-item>
 
-      <n-form-item path="email_code">
-        <div class="flex w-full gap-2">
-          <n-input v-model:value="form.email_code" :placeholder="t('auth.emailCode')" maxlength="6">
-            <template #prefix><AppIcon name="shield-check" :size="16" /></template>
-          </n-input>
-          <button
-            type="button"
-            class="btn-soft-primary h-10 shrink-0 px-4 text-14"
-            :disabled="sending || running"
-            @click="sendCode"
-          >
-            {{ running ? t('auth.resendAfter', { n: remaining }) : t('auth.sendCode') }}
-          </button>
-        </div>
-      </n-form-item>
+      <EmailCodeField
+        v-model:value="form.email_code"
+        :email-item="emailItemRef"
+        :get-email="() => form.email"
+        :send="(email) => apiCaptcha.sendEmail({ email, type: 'register' })"
+      />
 
       <n-form-item path="password">
         <n-input

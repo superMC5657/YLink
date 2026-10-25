@@ -16,6 +16,7 @@ import {
   adminTicketLevelLabel,
   adminTicketStatusBadge,
   adminTicketStatusLabel,
+  formatDateTime,
 } from '@/utils/format'
 import { statusBadge, statusLabel } from '@/utils/statusMeta'
 import { useMessage, useDialog } from 'naive-ui'
@@ -202,10 +203,10 @@ onMounted(() => void load())
                 </StatusBadge>
               </td>
               <td class="text-14 text-[var(--c-text-sub)]">
-                {{ tk.last_reply_at ? tk.last_reply_at.slice(0, 16).replace('T', ' ') : '-' }}
+                {{ formatDateTime(tk.last_reply_at, false) }}
               </td>
               <td class="text-14 text-[var(--c-text-sub)]">
-                {{ tk.created_at.slice(0, 16).replace('T', ' ') }}
+                {{ formatDateTime(tk.created_at, false) }}
               </td>
               <td>
                 <div class="flex">
@@ -247,11 +248,7 @@ onMounted(() => void load())
               {{ statusText(detail.status) }}
             </StatusBadge>
             <span class="text-14 text-[var(--c-text-sub)]">
-              {{
-                t('adminTickets.created', {
-                  time: detail.created_at.slice(0, 16).replace('T', ' '),
-                })
-              }}
+              {{ t('adminTickets.created', { time: formatDateTime(detail.created_at, false) }) }}
             </span>
           </div>
         </div>
@@ -323,7 +320,7 @@ onMounted(() => void load())
                   }}
                 </span>
                 <span class="text-14 opacity-60">
-                  {{ m.created_at.slice(0, 16).replace('T', ' ') }}
+                  {{ formatDateTime(m.created_at, false) }}
                 </span>
               </div>
               <div class="whitespace-pre-wrap">{{ m.message }}</div>

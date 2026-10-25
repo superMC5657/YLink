@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
 	"ylink-backend/internal/model"
@@ -15,12 +14,11 @@ import (
 // ServerService 节点列表：仅返回当前用户套餐可见分组（不返回连接参数）。
 type ServerService struct {
 	db    *gorm.DB
-	rdb   *redis.Client
 	repos *repo.Repos
 }
 
-func NewServerService(db *gorm.DB, rdb *redis.Client, repos *repo.Repos) *ServerService {
-	return &ServerService{db: db, rdb: rdb, repos: repos}
+func NewServerService(db *gorm.DB, repos *repo.Repos) *ServerService {
+	return &ServerService{db: db, repos: repos}
 }
 
 // List GET /servers。

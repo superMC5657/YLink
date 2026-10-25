@@ -1,6 +1,6 @@
 # Review Fixes 3
 
-> 状态: 修复中——P0 完成 4/4；P1 完成 10/10（05-13）；P2 完成 5/5（14-18），余 P3×3
+> 状态: 修复中——P0 完成 4/4；P1 完成 10/10（05-13）；P2 完成 5/5（14-18）；P3 完成 1/3（19），余 20/21
 > 日期: 2026-10-25
 > 范围: 全量代码评审（review-round-09）产出的修复项——安全与启动稳定、并发/正确性、分层与契约合规、令牌化与文档对齐、死代码清理
 > 关联: 评审快照 `docs/reviews/review-round-09.md`；分段执行手册 `execution.md`（一次贴一段）；前两轮见 `.scratch/review-fixes/`、`.scratch/review-fixes-2/`
@@ -79,7 +79,7 @@ useMediaQuery 替换冻结宽度、侧边栏宽度以代码 200px/72px 为准更
 
 README §3/launch-checklist/deploy/data-model/desktop-tauri 等全部陈旧描述改为当前态；Makefile swag 输出目录；compose prod caddy !reset；邀请分成默认值单源化。→ issues/18
 
-### [P3] 19 后端死代码清理
+### [P3] 19 后端死代码清理 ✅
 
 零引用函数/字段/空壳结构体/pkg validate 整包删除（清单见 issue）。→ issues/19
 

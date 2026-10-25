@@ -263,11 +263,6 @@ func (s *OrderService) validateCoupon(db *gorm.DB, userID int64, code string, pl
 	return s.trade.validate(db, userID, code, plan, period, amount)
 }
 
-// couponCode 存量薄 wrapper：经由集中实现回填券码，供详情展示用。
-func couponCode(db *gorm.DB, id int64) (string, error) {
-	return fetchCouponCode(db, id)
-}
-
 // releaseCoupon 存量薄 wrapper：实现收敛于 trade module 的 release。
 // 存量调用方（管理关单/退款、超时关单）未经理门面注入，故以直连 adapter 承接同一释放序列。
 func releaseCoupon(db *gorm.DB, couponID, userID int64, orderNo string) error {

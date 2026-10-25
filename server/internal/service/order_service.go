@@ -28,17 +28,16 @@ type OrderService struct {
 	db     *gorm.DB
 	rdb    *redis.Client
 	repos  *repo.Repos
-	set    *SettingService
 	cfg    *config.Config
 	mailer *mailer.Mailer
 	trade  *orderTradeModule
 }
 
-func NewOrderService(db *gorm.DB, rdb *redis.Client, repos *repo.Repos, set *SettingService, cfg *config.Config, mail *mailer.Mailer) *OrderService {
+func NewOrderService(db *gorm.DB, rdb *redis.Client, repos *repo.Repos, cfg *config.Config, mail *mailer.Mailer) *OrderService {
 	if repos == nil {
 		repos = &repo.Repos{}
 	}
-	s := &OrderService{db: db, rdb: rdb, repos: repos, set: set, cfg: cfg, mailer: mail}
+	s := &OrderService{db: db, rdb: rdb, repos: repos, cfg: cfg, mailer: mail}
 	s.trade = &orderTradeModule{db: db, repos: repos, coupons: orderCouponRepoAdapter{repos: repos}}
 	return s
 }
@@ -107,23 +106,6 @@ func (a orderCouponRepoAdapter) CodeByID(db *gorm.DB, id int64) (string, error) 
 	return fetchCouponCode(db, id)
 }
 
-// orderTradeSeam trade module 对外窄 interface：下单计价/券校验/支付后置/履约收口。
-// 上层仅经由 Order 门面触达本 seam，不直触仓储。
-type orderTradeSeam interface {
-	priceOf(p *model.Plan, period string) *int64
-	planPrices(p *model.Plan) model.PlanPrices
-	validate(db *gorm.DB, userID int64, code string, plan *model.Plan, period string, amount int64) (*model.Coupon, int64, error)
-	available(db *gorm.DB, userID, planID int64, period string) ([]model.CouponItem, error)
-	claim(tx *gorm.DB, userID int64, code string, plan *model.Plan, period string, amount int64, orderNo string) (*model.Coupon, int64, error)
-	release(db *gorm.DB, couponID, userID int64, orderNo string) error
-	codeByID(db *gorm.DB, id int64) (string, error)
-	apply(tx *gorm.DB, order *model.Order) error
-	grant(tx *gorm.DB, order *model.Order, payAmount int64) error
-	isBalanceChannel(method string) bool
-}
-
-var _ orderTradeSeam = (*orderTradeModule)(nil)
-
 // ---- 套餐 ----
 
 // Plans GET /plans 上架套餐列表（prices 只含支持的周期）。
@@ -146,16 +128,6 @@ func (s *OrderService) Plans(ctx context.Context) ([]model.PlanResp, error) {
 		})
 	}
 	return out, nil
-}
-
-// priceOf 取周期价格；NULL=不支持。实现收敛于 trade module，本函数仅为存量薄 wrapper。
-func priceOf(p *model.Plan, period string) *int64 {
-	return (&orderTradeModule{}).priceOf(p, period)
-}
-
-// planPrices 套餐展示价格。实现收敛于 trade module，本函数仅为存量薄 wrapper。
-func planPrices(p *model.Plan) model.PlanPrices {
-	return (&orderTradeModule{}).planPrices(p)
 }
 
 // ---- 优惠券 ----

@@ -60,7 +60,7 @@ func (m *adminAgentModule) ReviewAgentApply(ctx context.Context, adminID, applyI
 				return err
 			}
 			// 升级为代理商 → 经会话吊销深 Module 全量吊销：旧 access 的 role 快照立即失效
-			_ = NewSessionRevoker(m.rdb, 0).RevokeAll(ctx, apply.UserID, RevokeReasonAgentApprove)
+			_ = NewSessionRevoker(m.rdb, 0).RevokeAll(ctx, apply.UserID)
 		}
 		now := time.Now()
 		apply.Status = status

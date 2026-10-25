@@ -19,31 +19,13 @@ func itoa(n int64) string { return strconv.FormatInt(n, 10) }
 // 会话吊销深 Module：白名单 refresh:{uid}:{jti} + 会话版本号SV auth:ver:{uid} +
 // kill-Hash auth:kill:{uid} 三套语义的唯一拥有者。
 //
-// 调用方（admin 封禁/改角色、代理审批/降级、找回密码、登出、用户踢会话）只表达
-// 吊销意图（RevocationReason），由本 Module 决定写哪些键、bump 哪个版本、
-// 删哪些白名单条目。Key 名与 Hash 字段一律不外泄：外部一律经由本文件 seam，
-// 不得手拼 "refresh:" / "auth:ver:" / "auth:kill:" 前缀。
+// 调用方（admin 封禁/改角色、代理审批/降级、找回密码、登出、用户踢会话）一律
+// 经由本 Module 的写/读 seam 表达吊销动作，由本 Module 决定写哪些键、bump 哪个
+// 版本、删哪些白名单条目。Key 名与 Hash 字段一律不外泄：外部不得手拼
+// "refresh:" / "auth:ver:" / "auth:kill:" 前缀。
 //
 // Depth 所在：一次撤销、处处失效（白名单删 + SV bump + kill 标记的组合语义），
 // 以及 SCAN 列举 + 元数据解析 + 当前会话标记的读语义。
-
-// RevocationReason 吊销意图：调用方声明发生了什么，Module 决定如何失效。
-type RevocationReason string
-
-const (
-	// RevokeReasonBan 封禁/解封：全部会话立即失效。
-	RevokeReasonBan RevocationReason = "ban"
-	// RevokeReasonRoleChange 角色变更：旧 role 快照立即失效。
-	RevokeReasonRoleChange RevocationReason = "role_change"
-	// RevokeReasonAgentApprove 代理审批通过：同角色变更。
-	RevokeReasonAgentApprove RevocationReason = "agent_approve"
-	// RevokeReasonAgentDowngrade 代理降级/月度复核：同角色变更。
-	RevokeReasonAgentDowngrade RevocationReason = "agent_downgrade"
-	// RevokeReasonPasswordReset 找回密码/改密：全部会话失效。
-	RevokeReasonPasswordReset RevocationReason = "password_reset"
-	// RevokeReasonLogout 登出：当前 refresh + 全局 access 失效。
-	RevokeReasonLogout RevocationReason = "logout"
-)
 
 // SessionRevoker 会话吊销深 Module 的窄 Interface（写 seam + 读 seam）。
 // killTTL 为 kick 标记保留时长，0 即用 redispkg.KillTTL（随 refresh TTL）。
@@ -60,9 +42,9 @@ func NewSessionRevoker(rdb *redis.Client, killTTL time.Duration) *SessionRevoker
 	return &SessionRevoker{rdb: rdb, killTTL: killTTL}
 }
 
-// RevokeAll 意图式全量吊销：删该用户全部 refresh 白名单 + bump 会话版本号。
+// RevokeAll 全量吊销：删该用户全部 refresh 白名单 + bump 会话版本号。
 // 适用于封禁/解封、角色变更、代理审批/降级、找回密码。
-func (v *SessionRevoker) RevokeAll(ctx context.Context, userID int64, _ RevocationReason) error {
+func (v *SessionRevoker) RevokeAll(ctx context.Context, userID int64) error {
 	if v == nil || v.rdb == nil {
 		return nil
 	}

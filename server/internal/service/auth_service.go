@@ -302,7 +302,7 @@ func (s *AuthService) issueSession(ctx context.Context, user *model.User) (*mode
 // revokeAllSessions 删除用户全部 refresh 白名单，并 bump 会话版本号（access 立即失效）。
 // 薄 adapter：转发到会话吊销深 Module。
 func (s *AuthService) revokeAllSessions(ctx context.Context, userID int64) error {
-	return NewSessionRevoker(s.rdb, s.cfg.JWT.RefreshTTL).RevokeAll(ctx, userID, RevokeReasonPasswordReset)
+	return NewSessionRevoker(s.rdb, s.cfg.JWT.RefreshTTL).RevokeAll(ctx, userID)
 }
 
 // revokeOtherSessions 吊销除当前 jti 外的会话。薄 adapter：转发到深 Module。

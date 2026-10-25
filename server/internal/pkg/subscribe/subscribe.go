@@ -13,7 +13,6 @@ type Node struct {
 	Port     int
 	Password string // trojan/vless/tuic/hysteria2 密码或 UUID
 	Method   string // shadowsocks 加密方式
-	Cipher   string // 备用加密字段
 	SNI      string
 	Network  string // ws/grpc/h2/...
 	Security string // tls/reality/...

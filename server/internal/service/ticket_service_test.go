@@ -18,7 +18,7 @@ import (
 
 func newTicketEnv(t *testing.T) (*testEnv, *TicketService) {
 	e := newTestEnv(t)
-	svc := NewTicketService(e.db, e.rdb, &repo.Repos{})
+	svc := NewTicketService(e.db, &repo.Repos{})
 	return e, svc
 }
 
@@ -174,8 +174,7 @@ func TestTicketReopenConcurrentUpdateZero(t *testing.T) {
 func TestConfirmCommissions(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
-	set := NewSettingService(e.db, e.rdb, repos)
-	orders := NewOrderService(e.db, e.rdb, repos, set, &config.Config{}, nil)
+	orders := NewOrderService(e.db, e.rdb, repos, &config.Config{}, nil)
 	cronSvc := NewCronService(e.db, e.rdb, repos, &config.Config{}, mailer.New(config.SMTPConfig{}), orders, nil)
 	now := time.Now()
 	// settings invite（确认期 3 天）
@@ -203,8 +202,7 @@ func TestConfirmCommissions(t *testing.T) {
 func TestCloseExpiredOrders(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
-	set := NewSettingService(e.db, e.rdb, repos)
-	orders := NewOrderService(e.db, e.rdb, repos, set, &config.Config{}, nil)
+	orders := NewOrderService(e.db, e.rdb, repos, &config.Config{}, nil)
 	cronSvc := NewCronService(e.db, e.rdb, repos, &config.Config{}, mailer.New(config.SMTPConfig{}), orders, nil)
 
 	now := time.Now()
@@ -228,8 +226,7 @@ func TestCloseExpiredOrders(t *testing.T) {
 func TestCloseExpiredOrdersReleasesCoupon(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
-	set := NewSettingService(e.db, e.rdb, repos)
-	orders := NewOrderService(e.db, e.rdb, repos, set, &config.Config{}, nil)
+	orders := NewOrderService(e.db, e.rdb, repos, &config.Config{}, nil)
 	cronSvc := NewCronService(e.db, e.rdb, repos, &config.Config{}, mailer.New(config.SMTPConfig{}), orders, nil)
 
 	now := time.Now()
@@ -255,8 +252,7 @@ func TestCloseExpiredOrdersReleasesCoupon(t *testing.T) {
 
 func TestCancelOrderConcurrentPaid(t *testing.T) {
 	e := newTestEnv(t)
-	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
-	svc := NewOrderService(e.db, e.rdb, &repo.Repos{}, set, &config.Config{}, nil)
+	svc := NewOrderService(e.db, e.rdb, &repo.Repos{}, &config.Config{}, nil)
 
 	now := time.Now()
 	couponID := int64(9)

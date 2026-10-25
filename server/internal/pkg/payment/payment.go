@@ -62,12 +62,3 @@ func Register(d Driver, codes ...string) {
 
 // Get 按渠道码取驱动；未注册返回 nil。
 func Get(name string) Driver { return registry[name] }
-
-// Available 已注册渠道码列表。
-func Available() []string {
-	out := make([]string, 0, len(registry))
-	for k := range registry {
-		out = append(out, k)
-	}
-	return out
-}

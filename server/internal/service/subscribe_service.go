@@ -212,11 +212,6 @@ func (s *SubscribeService) Generate(ctx context.Context, token, flag, userAgent 
 	}, nil
 }
 
-// renderSubscription 历史缝线 adapter：兼容既有调用，内部经由模块 Renderer 单缝线回退。
-func (s *SubscribeService) renderSubscription(gen subscribe.Generator, u *subscribe.User, nodes []subscribe.Node, siteName, userInfo string) ([]byte, error) {
-	return s.renderWithHints(gen, u, nodes, nil, siteName, userInfo)
-}
-
 // renderWithHints 渲染 adapter：取自定义模板文本后经由模块 Renderer 一次调用完成，
 // 回退只在模块内发生一次，adapter 侧对 fellBack 做一次 warn。
 func (s *SubscribeService) renderWithHints(gen subscribe.Generator, u *subscribe.User, nodes []subscribe.Node, hints []string, siteName, userInfo string) ([]byte, error) {
@@ -288,35 +283,6 @@ func (s *SubscribeService) userInfo(ctx context.Context, user *model.User) (stri
 	ui := subscribe.FormatUserInfo(user.U, user.D, user.TransferEnable, expire)
 	s.rdb.Set(ctx, cacheKey, ui, 30*time.Second)
 	return ui, nil
-}
-
-// toNode 历史缝线 adapter：将 servers 行转换为订阅节点;cred 为每用户凭证(users.uuid)。
-// 解析失败时返回空加密方式的显式回退；新链路经由模块 BuildNodes 显式丢弃，不再走此静默路径。
-func toNode(srv model.Server, groupName, cred string) subscribe.Node {
-	n, err := subscribe.NodeFromSpec(subscribe.ServerSpec{
-		Name:      srv.Name,
-		Type:      srv.Type,
-		Host:      srv.Host,
-		Port:      srv.Port,
-		Config:    srv.Config,
-		Rate:      srv.Rate,
-		GroupName: groupName,
-	}, cred)
-	if err != nil {
-		name := srv.Name
-		if groupName != "" {
-			name = groupName + " " + srv.Name
-		}
-		return subscribe.Node{
-			Name:     name,
-			Type:     srv.Type,
-			Host:     srv.Host,
-			Port:     srv.Port,
-			Password: cred,
-			Rate:     srv.Rate,
-		}
-	}
-	return n
 }
 
 // pickGenerator 按 flag 或 UA 嗅探选择生成器 adapter，收口于模块 ResolveFormat。

@@ -49,14 +49,12 @@ func (m *adminUserModule) UpdateUser(ctx context.Context, adminID, userID int64,
 		return errs.ErrNotFound
 	}
 	changed := false
-	reason := RevokeReasonBan
 	err = repo.WithTx(m.db, func(tx *gorm.DB) error {
 		if req.Banned != nil && *req.Banned != user.IsBanned {
 			if err := m.repos.User.SetBanned(tx, userID, *req.Banned); err != nil {
 				return err
 			}
 			changed = true
-			reason = RevokeReasonBan
 			if err := m.audit.write(tx, adminID, "ban_user", fmt.Sprint(userID), ip, map[string]any{
 				"email": user.Email, "banned": *req.Banned,
 			}); err != nil {
@@ -68,7 +66,6 @@ func (m *adminUserModule) UpdateUser(ctx context.Context, adminID, userID int64,
 				return err
 			}
 			changed = true
-			reason = RevokeReasonRoleChange
 			if err := m.audit.write(tx, adminID, "update_role", fmt.Sprint(userID), ip, map[string]any{
 				"email": user.Email, "role": *req.Role,
 			}); err != nil {
@@ -83,7 +80,7 @@ func (m *adminUserModule) UpdateUser(ctx context.Context, adminID, userID int64,
 	// 封禁/解封/角色变更 → 经会话吊销深 Module 全量吊销：已签发 access 立即失效
 	// （Redis 非事务资源，库事务成功后再执行）
 	if changed {
-		_ = NewSessionRevoker(m.rdb, 0).RevokeAll(ctx, userID, reason)
+		_ = NewSessionRevoker(m.rdb, 0).RevokeAll(ctx, userID)
 	}
 	return nil
 }

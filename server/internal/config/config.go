@@ -20,7 +20,6 @@ type Config struct {
 	Payment  PaymentConfig  `mapstructure:"payment"`
 	CORS     CORSConfig     `mapstructure:"cors"`
 	Log      LogConfig      `mapstructure:"log"`
-	Site     SiteConfig     `mapstructure:"site"`
 	Security SecurityConfig `mapstructure:"security"`
 	Update   UpdateConfig   `mapstructure:"update"`
 }
@@ -110,15 +109,6 @@ func (s SecurityConfig) SubscribePathOrDefault() string {
 		return "client"
 	}
 	return s.SubscribePath
-}
-
-type SiteConfig struct {
-	SiteName                  string `mapstructure:"site_name"`
-	InviteCommissionRate      int    `mapstructure:"invite_commission_rate"`
-	AgentCommissionRate       int    `mapstructure:"agent_commission_rate"`
-	AgentRequiredValidInvites int    `mapstructure:"agent_required_valid_invites"`
-	CommissionConfirmDays     int    `mapstructure:"commission_confirm_days"`
-	OrderExpireMinutes        int    `mapstructure:"order_expire_minutes"`
 }
 
 // Load 读取配置文件；path 为空时使用默认 configs/config.yaml。

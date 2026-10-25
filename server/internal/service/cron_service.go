@@ -190,11 +190,6 @@ func (s *CronService) ExpireRemind(ctx context.Context) {
 	logger.L().Info("expire remind done", zapS("count", fmt.Sprint(len(users))))
 }
 
-func (s *CronService) sendExpireMail(u model.User) {
-	// 薄 adapter：转发到调度深 Module 的投递 seam。
-	(&cronNotifier{db: s.db, cfg: s.cfg, mailer: s.mailer, tg: s.tg}).deliverExpire(u)
-}
-
 // TrafficRemind 流量提醒（每日 10:00）：用量 ≥80% 且开启提醒。
 func (s *CronService) TrafficRemind(ctx context.Context) {
 	var users []model.User
@@ -242,7 +237,7 @@ func (s *CronService) AgentAudit(ctx context.Context) {
 			if err := s.repos.User.UpdateRole(s.db, a.ID, model.RoleUser); err == nil {
 				downgraded++
 				// 降级 → 经会话吊销深 Module 全量吊销：旧 access 的 role 快照立即失效
-				_ = NewSessionRevoker(s.rdb, 0).RevokeAll(ctx, a.ID, RevokeReasonAgentDowngrade)
+				_ = NewSessionRevoker(s.rdb, 0).RevokeAll(ctx, a.ID)
 				logger.L().Info("agent downgraded", zapS("user_id", fmt.Sprint(a.ID)))
 			}
 		}

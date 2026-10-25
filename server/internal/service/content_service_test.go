@@ -83,7 +83,7 @@ func TestServerListWithoutPlan(t *testing.T) {
 			"transfer_enable", "u", "d", "speed_limit", "device_limit", "sub_token", "created_at", "updated_at",
 		}).AddRow(1, "a@b.com", "h", 0, 0, 0, nil, false, true, false, nil, nil, nil, 0, 0, 0, nil, nil, "t", nowTime(), nowTime()))
 
-	srvSvc := NewServerService(e.db, e.rdb, &repo.Repos{})
+	srvSvc := NewServerService(e.db, &repo.Repos{})
 	groups, err := srvSvc.List(context.Background(), 1)
 	require.NoError(t, err)
 	assert.Empty(t, groups)

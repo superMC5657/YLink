@@ -52,10 +52,9 @@ func paymentRow(p *model.Payment) *sqlmock.Rows {
 
 func newOrderEnv(t *testing.T) (*testEnv, *OrderService) {
 	e := newTestEnv(t)
-	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
 	cfg := &config.Config{}
 	cfg.App.BaseURL = "https://api.example.com"
-	svc := NewOrderService(e.db, e.rdb, &repo.Repos{}, set, cfg, nil)
+	svc := NewOrderService(e.db, e.rdb, &repo.Repos{}, cfg, nil)
 	return e, svc
 }
 

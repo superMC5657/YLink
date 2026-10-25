@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
 	"ylink-backend/internal/model"
@@ -16,12 +15,11 @@ import (
 // TicketService 工单域。
 type TicketService struct {
 	db    *gorm.DB
-	rdb   *redis.Client
 	repos *repo.Repos
 }
 
-func NewTicketService(db *gorm.DB, rdb *redis.Client, repos *repo.Repos) *TicketService {
-	return &TicketService{db: db, rdb: rdb, repos: repos}
+func NewTicketService(db *gorm.DB, repos *repo.Repos) *TicketService {
+	return &TicketService{db: db, repos: repos}
 }
 
 // List GET /tickets。

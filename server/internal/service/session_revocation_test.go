@@ -25,7 +25,7 @@ func TestSessionRevokerMatrix(t *testing.T) {
 	// 全量吊销：白名单清 + SV bump
 	require.NoError(t, rdb.Set(ctx, redispkg.RefreshKey(42, "a"), `{"ip":"1","ua":"u","ts":"2026-01-01T00:00:00Z"}`, time.Hour).Err())
 	require.NoError(t, rdb.Set(ctx, redispkg.RefreshKey(42, "b"), `{"ip":"1","ua":"u","ts":"2026-01-01T00:00:00Z"}`, time.Hour).Err())
-	require.NoError(t, v.RevokeAll(ctx, 42, RevokeReasonBan))
+	require.NoError(t, v.RevokeAll(ctx, 42))
 	assert.Equal(t, int64(1), v.CurrentVersion(ctx, 42))
 	assert.False(t, v.Allowed(ctx, 42, "a", 0)) // 旧 sv 快照失效
 	assert.True(t, v.Allowed(ctx, 42, "a", 1))

@@ -43,7 +43,7 @@ func TestSubscriptionRenderFallsBackToBuiltin(t *testing.T) {
 	// 无自定义行 → 查询报错回退
 	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "subscription_templates"`)).
 		WillReturnError(assert.AnError)
-	out, err := svc.renderSubscription(subscribe.Clash{}, u, nodes, "YLink", "ui")
+	out, err := svc.renderWithHints(subscribe.Clash{}, u, nodes, nil, "YLink", "ui")
 	require.NoError(t, err)
 	assert.Equal(t, string(builtin), string(out))
 }
@@ -57,7 +57,7 @@ func TestSubscriptionRenderCustom(t *testing.T) {
 	nodes := sampleSubNodes()
 	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "subscription_templates"`)).
 		WillReturnRows(subTemplateRows("clash", "# custom header\nproxies:\n{{.NodeBlock}}"))
-	out, err := svc.renderSubscription(subscribe.Clash{}, u, nodes, "YLink", "ui")
+	out, err := svc.renderWithHints(subscribe.Clash{}, u, nodes, nil, "YLink", "ui")
 	require.NoError(t, err)
 	s := string(out)
 	assert.True(t, len(s) > 0)
@@ -77,7 +77,7 @@ func TestSubscriptionRenderBrokenCustomFallsBack(t *testing.T) {
 
 	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "subscription_templates"`)).
 		WillReturnRows(subTemplateRows("v2ray", "{{.Links"))
-	out, err := svc.renderSubscription(subscribe.V2ray{}, u, nodes, "YLink", "ui")
+	out, err := svc.renderWithHints(subscribe.V2ray{}, u, nodes, nil, "YLink", "ui")
 	require.NoError(t, err)
 	assert.Equal(t, string(builtin), string(out))
 }

@@ -4,11 +4,8 @@ import (
 	"encoding/json"
 	"time"
 
-	"gorm.io/gorm"
-
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/subscribe"
-	"ylink-backend/internal/repo"
 )
 
 // 订阅可见性深 Module：“该用户能看到哪些节点”规则的唯一拥有者。
@@ -20,12 +17,6 @@ import (
 // 每用户独立订阅凭证 users.uuid，节点据此归因流量（模式A），不再只活在注释里。
 //
 // Depth 所在：空分组/解析失败/过期/封禁/隐藏的统一分类与空集语义。
-
-// subscriptionVisibility 可见性深 Module 的窄 Interface。
-type subscriptionVisibility struct {
-	db    *gorm.DB
-	repos *repo.Repos
-}
 
 // parsePlanGroups GroupIDs 解析唯一 owner：失败/空一律返回空集（非 nil），
 // 调用方不再分支 nil。三处复制此前各写一遍 unmarshal。

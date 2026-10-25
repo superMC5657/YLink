@@ -110,14 +110,14 @@ func (s *AuthService) sendCaptchaMail(email, code string) {
 	}
 }
 
-// verifyCaptcha 校验并一次性删除验证码。
+// verifyCaptcha 校验并一次性删除验证码。GetDel 原子取删：并发重复提交
+// 同一验证码只有一个成功（消费即失效，含校验失败——一次性语义，同 tg-bind）。
 func (s *AuthService) verifyCaptcha(ctx context.Context, email, typ, code string) error {
 	key := redispkg.Key("captcha", "email", typ, email)
-	got, err := s.rdb.Get(ctx, key).Result()
+	got, err := s.rdb.GetDel(ctx, key).Result()
 	if err != nil || got != code {
 		return errs.ErrCaptcha
 	}
-	s.rdb.Del(ctx, key)
 	return nil
 }
 
@@ -286,8 +286,10 @@ func (s *AuthService) issueSession(ctx context.Context, user *model.User) (*mode
 	meta, _ := json.Marshal(refreshMeta{
 		IP: ctxIP(ctx), UserAgent: ctxUserAgent(ctx), CreatedAt: time.Now(),
 	})
-	// refresh 白名单：14d
-	s.rdb.Set(ctx, refreshKey(user.ID, jti), string(meta), s.cfg.JWT.RefreshTTL)
+	// refresh 白名单：14d。写失败即登录失败——不返回「不在白名单里」的会话
+	if err := s.rdb.Set(ctx, refreshKey(user.ID, jti), string(meta), s.cfg.JWT.RefreshTTL).Err(); err != nil {
+		return nil, err
+	}
 	return &model.TokenResp{
 		AccessToken:  access,
 		RefreshToken: refresh,

@@ -101,7 +101,10 @@ func (s *InviteService) CreateCode(ctx context.Context, userID int64) (*model.In
 	if count >= int64(s.codeLimit()) {
 		return nil, errs.ErrInviteMax
 	}
-	code := randomInviteCode()
+	code, err := randomInviteCode()
+	if err != nil {
+		return nil, err
+	}
 	ic := &model.InviteCode{UserID: userID, Code: code, Status: 1}
 	if err := s.repos.Invite.Create(s.db, ic); err != nil {
 		return nil, err
@@ -124,15 +127,18 @@ func (s *InviteService) DeleteCode(ctx context.Context, userID int64, code strin
 	return nil
 }
 
-// randomInviteCode 8 位大写字母数字。
-func randomInviteCode() string {
+// randomInviteCode 8 位大写字母数字；熵源失败显式报错（拒绝服务优于静默弱随机）。
+func randomInviteCode() (string, error) {
 	const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	b := make([]byte, 8)
 	for i := range b {
-		n, _ := rand.Int(rand.Reader, big.NewInt(int64(len(chars))))
+		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(chars))))
+		if err != nil {
+			return "", err
+		}
 		b[i] = chars[n.Int64()]
 	}
-	return string(b)
+	return string(b), nil
 }
 
 // ---- 佣金记录 ----

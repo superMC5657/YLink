@@ -181,11 +181,17 @@ func (s *OrderService) HandleNotify(ctx context.Context, method string, nr *paym
 }
 
 // sendReceiptMailAsync 支付成功回执邮件（异步，不阻塞主流程）。
+// goroutine 内 recover（同 cron deliverAsync 政策）：渲染/发送恐慌只记日志，不崩 API 进程。
 func (s *OrderService) sendReceiptMailAsync(orderNo string) {
 	if s.mailer == nil || s.cfg.App.Name == "" {
 		return
 	}
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				logger.L().Error("send receipt mail panic", zap.String("order_no", orderNo), zap.Any("panic", r))
+			}
+		}()
 		o, err := s.repos.Order.GetByNo(s.db, orderNo)
 		if err != nil {
 			return

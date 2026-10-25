@@ -7,6 +7,7 @@ package payment
 import (
 	"context"
 	"crypto/md5"
+	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -146,28 +147,10 @@ func (e *Epay) sign(params url.Values) string {
 	return hex.EncodeToString(sum[:])
 }
 
+// verify 常量时间比较回调签名：重算走 sign() 单一实现（不再逐字复刻拼接逻辑），
+// subtle.ConstantTimeCompare 防时序侧信道逐字节探测签名。
 func (e *Epay) verify(form url.Values, sign string) bool {
-	keys := make([]string, 0, len(form))
-	for k := range form {
-		if k == "sign" || k == "sign_type" {
-			continue
-		}
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	var sb strings.Builder
-	for i, k := range keys {
-		if i > 0 {
-			sb.WriteByte('&')
-		}
-		sb.WriteString(k)
-		sb.WriteByte('=')
-		sb.WriteString(form.Get(k))
-	}
-	sb.WriteString("&key=")
-	sb.WriteString(e.cfg.Key)
-	sum := md5.Sum([]byte(sb.String()))
-	return hex.EncodeToString(sum[:]) == sign
+	return subtle.ConstantTimeCompare([]byte(e.sign(form)), []byte(sign)) == 1
 }
 
 // ---- 金额工具 ----

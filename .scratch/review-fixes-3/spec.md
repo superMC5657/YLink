@@ -31,7 +31,7 @@ user_service/subscribe_service 的全结构体陈旧快照更新改为按列条�
 
 ReplyTicket 条件更新守卫（reopen-once 状态机）；TrafficLogRepo.Upsert 改 OnConflict；UpdateUser 包事务。→ issues/06
 
-### [P1] 07 异步投递与密码学卫生
+### [P1] 07 异步投递与密码学卫生 ✅
 
 验证码 GetDel、issueSession 不忽略 Set 错误、rand.Int 错误传播、异步邮件 recover、mailer 超时、epay 签名常量时间比较。→ issues/07
 

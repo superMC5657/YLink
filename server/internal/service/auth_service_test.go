@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"regexp"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -214,4 +216,33 @@ func TestRefreshUnknownToken(t *testing.T) {
 	e := newTestEnv(t)
 	_, err := e.svc.Refresh(context.Background(), "not-a-real-token")
 	assert.Equal(t, 40100, codeOf(err))
+}
+
+// 并发重复使用同一验证码只有一个成功（GetDel 原子取删，无校验/删除窗口）。
+func TestVerifyCaptchaSingleUseConcurrent(t *testing.T) {
+	e := newTestEnv(t)
+	require.NoError(t, e.mr.Set("captcha:email:register:race@b.com", "123456"))
+
+	var wg sync.WaitGroup
+	var ok atomic.Int64
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if e.svc.verifyCaptcha(context.Background(), "race@b.com", "register", "123456") == nil {
+				ok.Add(1)
+			}
+		}()
+	}
+	wg.Wait()
+	assert.EqualValues(t, 1, ok.Load(), "一次性验证码并发使用必须恰好一次成功")
+}
+
+// issueSession 写 refresh 白名单失败 → 返回错误（登录失败优于「不在白名单的会话」）。
+func TestIssueSessionWhitelistWriteError(t *testing.T) {
+	e := newTestEnv(t)
+	e.mr.SetError("redis down")
+	u := &model.User{ID: 1, Email: "a@b.com", CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	_, err := e.svc.issueSession(context.Background(), u)
+	require.Error(t, err)
 }

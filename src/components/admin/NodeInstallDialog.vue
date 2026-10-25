@@ -1,51 +1,65 @@
 <script setup lang="ts">
 /**
- * 节点一键部署与脚本配置弹窗(F17)。
- * 自动渲染当前节点的安装命令，支持一键复制；
- * 允许在中台动态更换指定部署脚本 URL 与命令模板，保存后全站生效。
+ * 节点一键部署与脚本配置弹窗(F17)。纯展示:设置读写与保存动作在 useAdminNodes,
+ * 经 props/settings + emit/save 接入;组件不再触碰 API(data-layer §2 组件纯展示)。
  */
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useMessage } from 'naive-ui'
-import { apiAdmin } from '@/api/admin'
+import { resolveApiBase } from '@/utils/http'
 import type { AdminServerItem, NodeSettings } from '@/types/api'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import { NODE_INSTALL_DEFAULTS } from '@/composables/useAdminNodes'
 
 const props = defineProps<{
   show: boolean
   node: AdminServerItem | null
+  /** 部署脚本设置(useAdminNodes 提供,含默认值兜底) */
+  settings: NodeSettings
+  saving?: boolean
 }>()
 
 const emit = defineEmits<{
   'update:show': [boolean]
+  save: [NodeSettings]
 }>()
 
 const { t } = useI18n()
 const message = useMessage()
 
-const DEFAULT_SCRIPT_URL =
-  'https://raw.githubusercontent.com/superMC5657/YLink/main/deploy/install-agent.sh'
-const DEFAULT_TEMPLATE =
-  'curl -fsSL {{script_url}} | bash -s -- --endpoint {{endpoint}} --key {{node_key}}'
-
-const scriptUrl = ref(DEFAULT_SCRIPT_URL)
-const commandTemplate = ref(DEFAULT_TEMPLATE)
+const scriptUrl = ref(props.settings.install_script_url)
+const commandTemplate = ref(props.settings.install_command_template)
 const showConfig = ref(false)
-const saving = ref(false)
-const loading = ref(false)
 
-// 面板接口 base 地址
+// 外部设置落地(打开时加载/保存成功回写)同步到编辑区;保存成功(值与编辑一致)时收起配置面板
+watch(
+  () => props.settings,
+  (s) => {
+    if (
+      showConfig.value &&
+      s.install_script_url === scriptUrl.value &&
+      s.install_command_template === commandTemplate.value
+    ) {
+      showConfig.value = false
+    }
+    scriptUrl.value = s.install_script_url
+    commandTemplate.value = s.install_command_template
+  },
+  { immediate: true },
+)
+
+// 安装命令运行在节点机器上,端点必须是绝对地址;基址复用 http 层 resolveApiBase
+// (含运行时 apiBase 覆盖优先级,设置页改地址后命令随之变化),相对形式以面板源补全
 const apiBase = computed(() => {
-  const custom = import.meta.env.VITE_API_BASE_URL
-  if (custom && custom.startsWith('http')) return custom
-  return `${window.location.origin}/api/v1`
+  const base = resolveApiBase()
+  return base.startsWith('http') ? base : `${window.location.origin}${base}`
 })
 
 // 计算替换占位符后的部署命令
 const renderedCommand = computed(() => {
   if (!props.node) return ''
-  const tpl = commandTemplate.value || DEFAULT_TEMPLATE
-  const url = scriptUrl.value || DEFAULT_SCRIPT_URL
+  const tpl = commandTemplate.value || NODE_INSTALL_DEFAULTS.install_command_template
+  const url = scriptUrl.value || NODE_INSTALL_DEFAULTS.install_script_url
   return tpl
     .split('{{script_url}}')
     .join(url)
@@ -57,48 +71,16 @@ const renderedCommand = computed(() => {
     .join(String(props.node.id))
 })
 
-async function loadSettings() {
-  loading.value = true
-  try {
-    const res = await apiAdmin.settings()
-    const nodeItem = res.list.find((x) => x.key === 'node')
-    if (nodeItem && nodeItem.value) {
-      try {
-        const parsed: NodeSettings = JSON.parse(nodeItem.value)
-        if (parsed.install_script_url) scriptUrl.value = parsed.install_script_url
-        if (parsed.install_command_template) commandTemplate.value = parsed.install_command_template
-      } catch {
-        // 使用默认
-      }
-    }
-  } catch {
-    // 忽略加载失败，兜底用默认
-  } finally {
-    loading.value = false
-  }
-}
-
-async function saveSettings() {
-  saving.value = true
-  try {
-    const payload: NodeSettings = {
-      install_script_url: scriptUrl.value.trim() || DEFAULT_SCRIPT_URL,
-      install_command_template: commandTemplate.value.trim() || DEFAULT_TEMPLATE,
-    }
-    await apiAdmin.saveSetting({
-      key: 'node',
-      value: JSON.stringify(payload),
-    })
-    message.success(t('adminNodes.settingsSaved'))
-    showConfig.value = false
-  } finally {
-    saving.value = false
-  }
-}
-
 function resetDefaults() {
-  scriptUrl.value = DEFAULT_SCRIPT_URL
-  commandTemplate.value = DEFAULT_TEMPLATE
+  scriptUrl.value = NODE_INSTALL_DEFAULTS.install_script_url
+  commandTemplate.value = NODE_INSTALL_DEFAULTS.install_command_template
+}
+
+function saveSettings() {
+  emit('save', {
+    install_script_url: scriptUrl.value,
+    install_command_template: commandTemplate.value,
+  })
 }
 
 async function copyCommand() {
@@ -107,18 +89,9 @@ async function copyCommand() {
     await navigator.clipboard.writeText(renderedCommand.value)
     message.success(t('common.copied'))
   } catch {
-    message.error('复制失败，请手动选择复制')
+    message.error(t('adminNodes.copyFailed'))
   }
 }
-
-watch(
-  () => props.show,
-  (visible) => {
-    if (visible) {
-      void loadSettings()
-    }
-  },
-)
 </script>
 
 <template>
@@ -140,7 +113,8 @@ watch(
         </div>
         <div class="text-12 text-[var(--c-text-sub)]">
           ID: {{ node.id }} · NodeKey:
-          {{ node.node_key ? `${node.node_key.slice(0, 8)}****` : '未生成' }}
+          <template v-if="node.node_key">{{ node.node_key.slice(0, 8) }}****</template>
+          <template v-else>{{ t('adminNodes.nodeKeyNotGenerated') }}</template>
         </div>
       </div>
 
@@ -166,7 +140,7 @@ watch(
         </div>
 
         <div class="mt-2.5 flex items-center justify-between text-12 text-[var(--c-text-sub)]">
-          <span>💡 支持 Ubuntu 20+/Debian 11+/CentOS 8+ 等主流 Linux 系统</span>
+          <span>{{ t('adminNodes.installOsHint') }}</span>
           <button class="btn-primary h-8 px-4 text-13" @click="copyCommand">
             <AppIcon name="copy" :size="14" /> {{ t('adminNodes.copyCommand') }}
           </button>
@@ -213,7 +187,8 @@ watch(
             placeholder="curl -fsSL {{script_url}} | bash -s -- --endpoint {{endpoint}} --key {{node_key}}"
           />
           <span class="mt-1 block text-11 text-[var(--c-text-sub)]">
-            可用占位符: <code>&#123;&#123;script_url&#125;&#125;</code>,
+            {{ t('adminNodes.templatePlaceholders') }}:
+            <code>&#123;&#123;script_url&#125;&#125;</code>,
             <code>&#123;&#123;endpoint&#125;&#125;</code>,
             <code>&#123;&#123;node_key&#125;&#125;</code>,
             <code>&#123;&#123;node_id&#125;&#125;</code>

@@ -51,7 +51,7 @@ clampPageSize 支持 Standard/Audit 双档（ADR-0004），审计页选 100/页�
 
 mock 安装命令模板对齐 0009 规范、cssVar 回落值对齐令牌、流量导入日期统一 localDateKey、支付方式配置化、缺失 icon key。→ issues/11
 
-### [P1] 12 NodeInstallDialog 合规与 apiBase 复用
+### [P1] 12 NodeInstallDialog 合规与 apiBase 复用 ✅
 
 组件内 apiAdmin 直调下沉 useAdminNodes；apiBase 复用 resolveApiBase（尊重运行时覆盖）；文案全部 i18n 化。→ issues/12
 

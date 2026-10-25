@@ -1,6 +1,6 @@
 # [P1] NodeInstallDialog：数据层违规与 apiBase 漂移
 
-Status: ready-for-agent
+Status: resolved
 Type: task
 
 ## Finding
@@ -24,3 +24,6 @@ Type: task
 - 中英文 locale 均无硬编码中文残留；`pnpm test` 全绿。
 
 ## Comments
+
+- 2026-10-25: 已修复——① `resolveApiBase` 从 http.ts 导出，弹窗删除本地重实现直接复用（尊重运行时 apiBase 覆盖优先级；安装命令需绝对地址，相对基址以面板源补全——新增组件测试三断言：运行时覆盖生效/相对补全/无覆盖回落同源）；② 设置读写动作下沉 `useAdminNodes`（`nodeSettings` 状态 + `loadNodeSettings`/`saveNodeSettings`，默认值提为模块级 `NODE_INSTALL_DEFAULTS` 与 0009 种子同形，打开弹窗自动加载），弹窗改纯展示（props: settings/saving + emit: save），AdminNodesView 接线；组件不再 import `@/api/admin`（grep 校验通过）；③ 4 处硬编码文案补 `adminNodes.copyFailed/nodeKeyNotGenerated/installOsHint/templatePlaceholders` 键（zh/en 双语）。`pnpm lint`+`pnpm test`（242）+ e2e withdraw/admin（34）全绿。
+- 2026-10-25: 交互细节——保存成功后收起配置面板的时机改为「外部 settings 回写值与编辑区一致时」（emit 模式下组件不感知保存结果，借父层落状态间接确认）；保存失败 settings 不变、面板保持展开。

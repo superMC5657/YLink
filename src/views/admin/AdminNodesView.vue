@@ -67,6 +67,9 @@ const {
   installModal,
   installingNode,
   openInstallDialog,
+  nodeSettings,
+  nodeSettingsSaving,
+  saveNodeSettings,
 } = useAdminNodes()
 </script>
 
@@ -352,6 +355,12 @@ const {
     />
 
     <!-- F17 节点一键部署与配置弹窗 -->
-    <NodeInstallDialog v-model:show="installModal" :node="installingNode" />
+    <NodeInstallDialog
+      v-model:show="installModal"
+      :node="installingNode"
+      :settings="nodeSettings"
+      :saving="nodeSettingsSaving"
+      @save="saveNodeSettings"
+    />
   </div>
 </template>

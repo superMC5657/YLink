@@ -1,11 +1,13 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { nodesTransport } from '@/stores/admin/nodes'
+import { systemTransport } from '@/stores/admin/system'
 import type {
   AdminBatchServerResp,
   AdminServerGroupItem,
   AdminServerItem,
   AdminServerReq,
+  NodeSettings,
   ServerStatus,
 } from '@/types/api'
 import { useMessage, useDialog } from 'naive-ui'
@@ -17,6 +19,15 @@ import { useAdminList } from './useAdminList'
  * 纯逻辑与状态;弹窗呈现拆在 components/admin/*Dialog.vue,表格留在视图。
  * 列表骨架(取数/多选/批量汇总)归 useAdminList,本域只留语义(C3 收敛)。
  */
+
+/** 部署脚本默认值:与 0009 迁移种子同形(节点域唯一来源,弹窗/composable 共用) */
+export const NODE_INSTALL_DEFAULTS: NodeSettings = {
+  install_script_url:
+    'https://raw.githubusercontent.com/superMC5657/YLink/main/deploy/install-agent.sh',
+  install_command_template:
+    'curl -fsSL {{script_url}} | bash -s -- --endpoint {{endpoint}} --key {{node_key}}',
+}
+
 export function useAdminNodes() {
   const { t } = useI18n()
   const message = useMessage()
@@ -76,9 +87,62 @@ export function useAdminNodes() {
   const installModal = ref(false)
   const installingNode = ref<AdminServerItem | null>(null)
 
+  // ---- 部署脚本设置(F17):读写收口在本域,NodeInstallDialog 纯展示 ----
+  const nodeSettings = ref<NodeSettings>({ ...NODE_INSTALL_DEFAULTS })
+  const nodeSettingsLoading = ref(false)
+  const nodeSettingsSaving = ref(false)
+
+  async function loadNodeSettings() {
+    nodeSettingsLoading.value = true
+    try {
+      const res = await systemTransport.settings()
+      const item = res.list.find((x) => x.key === 'node')
+      if (item?.value) {
+        try {
+          const parsed: NodeSettings = JSON.parse(item.value)
+          nodeSettings.value = {
+            install_script_url:
+              parsed.install_script_url || NODE_INSTALL_DEFAULTS.install_script_url,
+            install_command_template:
+              parsed.install_command_template || NODE_INSTALL_DEFAULTS.install_command_template,
+          }
+        } catch {
+          // 坏 JSON 兜底默认
+        }
+      }
+    } catch {
+      // 加载失败兜底默认(http 层已 toast)
+    } finally {
+      nodeSettingsLoading.value = false
+    }
+  }
+
+  async function saveNodeSettings(s: NodeSettings): Promise<boolean> {
+    nodeSettingsSaving.value = true
+    try {
+      await systemTransport.saveSetting({
+        key: 'node',
+        value: JSON.stringify({
+          install_script_url:
+            s.install_script_url.trim() || NODE_INSTALL_DEFAULTS.install_script_url,
+          install_command_template:
+            s.install_command_template.trim() || NODE_INSTALL_DEFAULTS.install_command_template,
+        }),
+      })
+      nodeSettings.value = s
+      message.success(t('adminNodes.settingsSaved'))
+      return true
+    } catch {
+      return false
+    } finally {
+      nodeSettingsSaving.value = false
+    }
+  }
+
   function openInstallDialog(node: AdminServerItem) {
     installingNode.value = node
     installModal.value = true
+    void loadNodeSettings()
   }
 
   function statusText(status: ServerStatus): string {
@@ -438,9 +502,13 @@ export function useAdminNodes() {
     openGroupEdit,
     saveGroup,
     removeGroup,
-    // 部署
+    // 部署(脚本设置读写收口本域,弹窗纯展示)
     installModal,
     installingNode,
     openInstallDialog,
+    nodeSettings,
+    nodeSettingsLoading,
+    nodeSettingsSaving,
+    saveNodeSettings,
   }
 }

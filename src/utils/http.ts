@@ -40,8 +40,9 @@ export interface RefreshTokens {
  * 惰性解析 API 基址:每次请求时读取,而不是模块导入时。
  * 否则 Tauri 下 http.ts 被 import 时 initStorage() 尚未执行,持久化的自定义 apiBase 读不到,
  * 整个会话会错误地使用环境变量/默认地址(见 docs/reviews/review-0.6.0.md P1)。
+ * 优先级:运行时覆盖(localStorage apiBase) > 环境变量 > 同源相对 /api/v1。
  */
-function resolveApiBase(): string {
+export function resolveApiBase(): string {
   return getItem<string>('apiBase') ?? import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
 }
 

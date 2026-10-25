@@ -32,7 +32,7 @@ Vue 3.5 + TS + Vite 6 + pnpm(`<script setup>`,Node ≥ 20);UnoCSS(presetUno/Attr
 
 ### 2.5 桌面端(Tauri 2)
 
-Rust 工程 + 10 插件最小授权(http scope 限 https/localhost);平台适配层 `utils/platform.ts`(Web 自动降级,动态 import 保护);http 走 plugin-http 原生栈(不受 CORS 限制);深链接 `ylink://`(单实例转发已有实例)+ Android intent-filter;自动更新(updater 插件 + pubkey + Release 流水线产出 latest.json + 更新浮动卡片);本地通知(支付成功/工单回复/订阅到期,Tauri 与 Web Notification 降级);托盘 + 单实例;存储适配 plugin-store(预载与异步防抖落盘);NSIS 仅 Windows 打包(installer-hooks.nsh 必须保留,否则打包失败)。
+Rust 工程 + 10 插件最小授权(http scope 限 https/localhost,窗口操作全在 Rust 侧、不声明 core:window:*);平台适配层 `utils/platform.ts`(Web 自动降级,动态 import 保护);http 走 plugin-http 原生栈(不受 CORS 限制);深链接 `ylink://`(桌面 NSIS 注册表 + 运行时 register_all 双保险,单实例转发已有实例;Android intent-filter);自动更新(updater 插件 + pubkey + 端点 latest-cn.json 镜像优先/latest.json 直连兑底 + 更新浮动卡片);本地通知(支付成功/工单回复/订阅到期,Tauri 与 Web Notification 降级);托盘 + 单实例;存储适配 plugin-store(预载与异步防抖落盘);NSIS 仅 Windows 打包(installer-hooks.nsh 必须保留,否则打包失败)。
 
 ### 2.6 工程化与质量门禁
 

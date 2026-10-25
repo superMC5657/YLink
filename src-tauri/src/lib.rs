@@ -16,6 +16,11 @@ use tauri::{
     Emitter,
 };
 
+// 深链桌面运行时注册:仅 Windows/Linux 提供(写注册表 / .desktop 文件);
+// macOS 由打包期 Info.plist 声明,无运行时 API。
+#[cfg(any(windows, target_os = "linux"))]
+use tauri_plugin_deep_link::DeepLinkExt;
+
 /// 主题切换监听:前端 `theme-changed` 事件 → 设置窗口标题栏亮暗。
 /// 见 docs/frontend/desktop-tauri.md §4「主题跟随」。
 /// 窗口尺寸/位置由 window-state 插件自动持久化,无需手动调用。
@@ -42,9 +47,9 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![set_window_theme]);
 
-    // 深链接:桌面 + 移动端都注册(Android 经 manifest intent-filter 接收 ylink://,
-    // iOS 经 Info.plist CFBundleURLTypes;桌面 Windows 注册表协议由插件管理)。
-    // 移动端 scheme 见 tauri.conf.json plugins.deep-link.mobile。
+    // 深链接:桌面 + 移动端都注册(scheme 见 tauri.conf.json plugins.deep-link 的 desktop/mobile)。
+    // 桌面由 NSIS 安装器写注册表 + setup 内 register_all() 运行时双保险;
+    // Android 经 manifest intent-filter 接收,iOS 经 Info.plist CFBundleURLTypes。
     let builder = builder.plugin(tauri_plugin_deep_link::init());
 
     // 桌面专属插件:开机自启 / 窗口状态记忆
@@ -74,13 +79,20 @@ pub fn run() {
                 let _ = window.emit("deep-link://new-url", urls);
             }
         }
-        log::info!("second instance argv: {:?}", argv);
+        eprintln!("second instance argv: {argv:?}");
     }));
 
     builder
         .setup(|app| {
             #[cfg(not(desktop))]
             let _ = app;
+
+            // ylink:// 桌面协议注册:安装包场景由 NSIS 的 deep_link_protocols 块写注册表,
+            // 这里运行时再注册一次作双保险(便携/免安装直接运行 exe 也能唤起)。
+            #[cfg(any(windows, target_os = "linux"))]
+            if let Err(e) = app.deep_link().register_all() {
+                eprintln!("deep-link register_all failed: {e}");
+            }
 
             // 托盘:显示主窗口 / 退出(仅桌面;移动端无托盘,检查更新在 updater 接入后追加)
             #[cfg(desktop)]

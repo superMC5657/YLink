@@ -1,6 +1,6 @@
 # Review Fixes 3
 
-> 状态: 修复中——P0 完成 4/4；P1 完成 9/9（05-12），余 P2×5 / P3×3
+> 状态: 修复中——P0 完成 4/4；P1 完成 10/10（05-13），余 P2×5 / P3×3
 > 日期: 2026-10-25
 > 范围: 全量代码评审（review-round-09）产出的修复项——安全与启动稳定、并发/正确性、分层与契约合规、令牌化与文档对齐、死代码清理
 > 关联: 评审快照 `docs/reviews/review-round-09.md`；分段执行手册 `execution.md`（一次贴一段）；前两轮见 `.scratch/review-fixes/`、`.scratch/review-fixes-2/`
@@ -55,7 +55,7 @@ mock 安装命令模板对齐 0009 规范、cssVar 回落值对齐令牌、流�
 
 组件内 apiAdmin 直调下沉 useAdminNodes；apiBase 复用 resolveApiBase（尊重运行时覆盖）；文案全部 i18n 化。→ issues/12
 
-### [P1] 13 Tauri 深链与更新链路可达
+### [P1] 13 Tauri 深链与更新链路可达 ✅
 
 desktop schemes 注册（ylink:// 可用）、latest-cn.json 接入 updater endpoint、capabilities 最小授权、Cargo 冗余依赖清理。→ issues/13
 

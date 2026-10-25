@@ -29,7 +29,7 @@ src-tauri/
 | `app.security.csp` | `default-src 'self'; connect-src 'self' https: http://localhost:* http://127.0.0.1:*; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:; object-src 'none'; base-uri 'self'` | 接口走 http 插件（Rust 侧，CSP 不拦）；connect-src 为 webview 侧降级 fetch/本地后端兜底，object-src 'none' + base-uri 'self' 收紧注入面 |
 | `bundle.targets` | `"targets": "nsis"` | 仅 Windows NSIS，不产 MSI；Android APK 由 `tauri android build` 独立控制，不受此影响 |
 | `bundle.windows.nsis.installerHooks` | `nsis/installer-hooks.nsh` | NSIS 自定义安装/卸载钩子文件已入库（含 4 个 no-op 宏）；当前无自定义逻辑，文件必须保留否则 Windows NSIS 构建失败 |
-| `plugins.updater.endpoints` | 已配置（含 pubkey；endpoints 指向公开产物仓库 `superMC5657/ylink-release` 的 latest.json，gh-proxy.com 优先 + 直连兑底） | updater 与前端更新卡片已接入（见 §5） |
+| `plugins.updater.endpoints` | 已配置（含 pubkey；endpoints 指向公开产物仓库 `superMC5657/ylink-release` 的双清单：`latest-cn.json` gh-proxy 镜像优先 + `latest.json` 直连兑底） | updater 与前端更新卡片已接入（见 §5） |
 
 ## 3. 插件清单与用途
 
@@ -47,19 +47,19 @@ src-tauri/
 | `tauri-plugin-window-state` | 记忆窗口尺寸/位置（仅桌面） | 体验细节 |
 | `tauri-plugin-os` | 系统信息 | 关于页、埋点 UA |
 
-capabilities/default.json 采用最小授权：逐项声明上述插件权限，`http` 权限的 `scope` 实际为 `https://**` + `http://localhost:**` + `http://127.0.0.1:**`（而非文档示例的 `https://api.example.com/**`），深链接插件仅注册 `ylink` scheme。`https://**` 为**有意保留**：apiBase 运行时可在设置页改指任意自建站点（见 [README](../../README.md) 配置表），且发布流水线不烘焙 API 域名，静态收敛到单一域名会砍掉多站点客户端能力；updater 下载走 Rust 侧不受 http scope 约束（minisign pubkey 验签兜底），故 updater 域名无需进入该 scope。残余风险：打包 JS 供应链被篡改时理论上可借插件外发 HTTPS 请求，主防线为 CSP `script-src 'self'` + 不加载任何远程脚本。
+capabilities/default.json 采用最小授权：逐项声明上述插件权限，`http` 权限的 `scope` 实际为 `https://**` + `http://localhost:**` + `http://127.0.0.1:**`（而非文档示例的 `https://api.example.com/**`），深链接插件仅注册 `ylink` scheme。窗口操作全部在 Rust 侧完成（`set_window_theme` 自定义命令、托盘/单实例回调不走 capability 门控），故不声明任何 `core:window:*` 授权。`https://**` 为**有意保留**：apiBase 运行时可在设置页改指任意自建站点（见 [README](../../README.md) 配置表），且发布流水线不烘焙 API 域名，静态收敛到单一域名会砍掉多站点客户端能力；updater 下载走 Rust 侧不受 http scope 约束（minisign pubkey 验签兜底），故 updater 域名无需进入该 scope。残余风险：打包 JS 供应链被篡改时理论上可借插件外发 HTTPS 请求，主防线为 CSP `script-src 'self'` + 不加载任何远程脚本。
 
 ## 4. 窗口、托盘与系统行为
 
 - **窗口**：单主窗口；关闭即退出（未做最小化到托盘设置）；托盘菜单：显示主窗口 / 退出（检查更新入口在设置页/更新卡片，见 §5）。
 - **托盘**：由代码手动创建（`TrayIconBuilder::with_id("main-tray")` + 菜单），`tauri.conf.json` 不配 `app.trayIcon`——配置与代码各建一个会出现双图标，其一无菜单点击无反应。
 - **主题跟随**：监听前端主题切换事件（`emit` 到 Rust），调用窗口 `set_theme` 让标题栏亮暗一致；托盘图标按系统主题切换亮暗两套资源。
-- **单实例 + 深链接**：Rust 单实例回调把 argv 中的 `ylink://` URL 用 deep-link 插件同名事件 `deep-link://new-url`（payload 为 URL 数组）转发给已有实例，前端 `onOpenUrl`（`utils/platform.ts` onDeepLink）直接收到并路由跳转；`lib.rs` 单实例回调已落地。
+- **单实例 + 深链接**：Rust 单实例回调把 argv 中的 `ylink://` URL 用 deep-link 插件同名事件 `deep-link://new-url`（payload 为 URL 数组）转发给已有实例，前端 `onOpenUrl`（`utils/platform.ts` onDeepLink）直接收到并路由跳转；`lib.rs` 单实例回调已落地。桌面 scheme 注册双保险：NSIS 安装器的 `deep_link_protocols` 注册表块（由 `plugins.deep-link.desktop.schemes` 驱动）+ `setup` 内 `register_all()` 运行时注册（便携/免安装运行兜底，Windows/Linux；macOS 由 Info.plist 声明）。
 - **通知触发点**：前端统一封装 `utils/notify.ts`（Tauri 走 plugin-notification，Web 端 Notification API 自动降级）；触发点：订单支付成功（PaymentModal）、工单状态变为已回复（MainLayout 60s 轮询，状态快照去重）、订阅剩余 ≤3 天（窗口聚焦刷新时检测，按到期日去重）。
 
 ## 5. 自动更新
 
-> **updater 全链路已就绪**——`tauri-plugin-updater` 已注册（`src-tauri/Cargo.toml` + `lib.rs`），`tauri.conf.json` 已配 `plugins.updater`（pubkey 已写入，endpoints = gh-proxy.com 优先 + 直连兑底），capabilities 已补 `updater:default`，Release 流水线已配置（见 §7）。**前端更新卡片已实现**：`utils/updater.ts`（checkForUpdate / downloadAndInstall，动态 import，Web 端自动降级）+ `components/app/UpdateCard.vue`（右下角浮动卡片：版本号 + 更新日志 + 下载进度 + 立即更新/稍后；App.vue 挂载，启动静默检查）+ 设置页「检查更新」入口（`views/profile/ProfileView.vue`，仅 Tauri 显示，含当前版本号）。
+> **updater 全链路已就绪**——`tauri-plugin-updater` 已注册（`src-tauri/Cargo.toml` + `lib.rs`），`tauri.conf.json` 已配 `plugins.updater`（pubkey 已写入，endpoints = `latest-cn.json` gh-proxy 镜像优先 + `latest.json` 直连兑底），capabilities 已补 `updater:default`，Release 流水线已配置（见 §7）。**前端更新卡片已实现**：`utils/updater.ts`（checkForUpdate / downloadAndInstall，动态 import，Web 端自动降级）+ `components/app/UpdateCard.vue`（右下角浮动卡片：版本号 + 更新日志 + 下载进度 + 立即更新/稍后；App.vue 挂载，启动静默检查）+ 设置页「检查更新」入口（`views/profile/ProfileView.vue`，仅 Tauri 显示，含当前版本号）。
 
 降级策略：更新检查失败静默忽略，不打扰用户；Web 端无更新能力，全部动态 import 保证不进 Web 产物。
 
@@ -77,7 +77,7 @@ capabilities/default.json 采用最小授权：逐项声明上述插件权限，
 > `.github/workflows/ci.yml` 已含 `frontend-quality` + `frontend-e2e` + `rust`（cargo check）三个 job；Go 后端按项目决策不走 Actions。`.github/workflows/release-tauri.yml` 已配置公开产物仓库方案的 **Windows-only** Release（仅要求 Windows 打包）。
 
 - **PR/push CI**：仅发布 tag(`v*`) 触发：`frontend-quality`（lint→typecheck→format:check→test→build:web）+ `frontend-e2e`（Playwright · Mock，失败上传报告）+ `rust`（windows-latest，先 `pnpm build:web` 生成 dist → `cargo check`——打包仅支持 Windows，Rust 检查与打包平台一致）。日常开发检查走本地 `pnpm lint/typecheck/test/format:check`。Go 后端不走 GitHub Actions。
-- **Release（已配置，打 tag `v*` 或手动触发）**：`.github/workflows/release-tauri.yml`——guard（tag 格式校验）→ 单平台构建（windows-latest `pnpm tauri build --bundles nsis`，TAURI_SIGNING_PRIVATE_KEY 自动签名 .sig）→ `scripts/build-latest-json.mjs` 合并 `latest.json`（资产 url 加 `gh-proxy.com` 前缀）→ `gh release` 推送到**公开产物仓库**（`RELEASES_PAT` secret）。恢复 macOS/Linux 时往 build job 加回平台矩阵即可（文件内有注释）。
+- **Release（已配置，打 tag `v*` 或手动触发）**：`.github/workflows/release-tauri.yml`——guard（tag 格式校验）→ 平台矩阵构建（TAURI_SIGNING_PRIVATE_KEY 自动签名 .sig）→ `scripts/build-latest-json.mjs` 生成双清单（`latest.json` 海外直链 / `latest-cn.json` gh-proxy 镜像加速，均含 name/size/sha256 扩展字段）→ `gh release` 推送到**公开产物仓库**（`RELEASES_PAT` secret），updater 端点按 CN 优先直连兑底消费（见 §2/§5）。恢复 macOS 时往 build job 加回平台矩阵即可（文件内有注释）。
 - **产物仓库**：代码仓库 `superMC5657/YLink`（private，不开源）；产物发布到公开仓库 `superMC5657/ylink-release` 保证匿名下载 + gh-proxy 加速可行（publish job 与 `tauri.conf.json` updater endpoints 均已指向该仓库）。
 - **macOS 公证**（可选二期）：Apple 证书 + notarize 步骤；无证书时文档注明用户需在「安全性与隐私」中放行。⚠ 当前只打包 Windows，此条暂不适用，恢复 macOS 打包时再启用。
 - 版本号策略：语义化版本，`package.json`、`Cargo.toml`、`tauri.conf.json` 三处由脚本同步。

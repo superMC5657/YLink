@@ -13,7 +13,7 @@ import { useAdminList } from '@/composables/useAdminList'
 import type { AdminTrafficResetLogItem, TrafficImportItem, TrafficResetMode } from '@/types/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { useMessage, useDialog } from 'naive-ui'
-import { formatBytes, localDateKey } from '@/utils/format'
+import { formatBytes, formatTime, localDateKey } from '@/utils/format'
 
 const { t } = useI18n()
 const message = useMessage()
@@ -65,7 +65,7 @@ async function submit() {
     message.success(t('adminTrafficImport.imported', { count: rows.length }))
     rows.splice(0, rows.length, {
       user_id: 0,
-      date: new Date().toISOString().slice(0, 10),
+      date: localDateKey(new Date()),
       u: 0,
       d: 0,
     })
@@ -319,7 +319,7 @@ void applyLogFilters({ user_id: logUserId.value ?? '' })
                   <td class="num-font text-14">{{ formatBytes(l.before_transfer_enable) }}</td>
                   <td class="num-font text-14">{{ formatBytes(l.after_transfer_enable) }}</td>
                   <td class="text-14 text-[var(--c-text-sub)]">
-                    {{ new Date(l.created_at).toLocaleString() }}
+                    {{ formatTime(l.created_at) }}
                   </td>
                 </tr>
                 <tr v-if="!logsLoading && logs.length === 0">

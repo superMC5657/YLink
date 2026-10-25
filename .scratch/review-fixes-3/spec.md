@@ -47,7 +47,7 @@ clampPageSize 支持 Standard/Audit 双档（ADR-0004），审计页选 100/页�
 
 `void load()` 全部改为非抛出的 reload 语义。→ issues/10
 
-### [P1] 11 前端正确性批修
+### [P1] 11 前端正确性批修 ✅
 
 mock 安装命令模板对齐 0009 规范、cssVar 回落值对齐令牌、流量导入日期统一 localDateKey、支付方式配置化、缺失 icon key。→ issues/11
 

@@ -68,7 +68,7 @@ async function doCopy() {
         >
           <AppIcon
             :name="
-              opt.kind.includes('clash') ? 'zap' : opt.kind === 'sing-box' ? 'box' : 'download'
+              opt.kind.includes('clash') ? 'zap' : opt.kind === 'sing-box' ? 'server' : 'download'
             "
             :size="22"
           />

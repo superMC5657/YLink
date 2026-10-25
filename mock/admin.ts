@@ -752,12 +752,14 @@ const settings = [
     }),
   },
   {
+    // node 键与 0009 迁移种子/api.d.ts NodeSettings 同形(install_* 键名 + {{}} 占位符),
+    // 模板参数可被 deploy/install-agent.sh 接受(--endpoint/--key)
     key: 'node',
     value: JSON.stringify({
-      deploy_script_url:
+      install_script_url:
         'https://raw.githubusercontent.com/superMC5657/YLink/main/deploy/install-agent.sh',
-      command_template:
-        'curl -fsSL {script_url} | sudo bash -s -- --endpoint {api_url} --node-id {node_id} --node-key {node_key}',
+      install_command_template:
+        'curl -fsSL {{script_url}} | bash -s -- --endpoint {{endpoint}} --key {{node_key}}',
     }),
   },
 ]

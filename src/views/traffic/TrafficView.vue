@@ -117,7 +117,7 @@ async function renderChart() {
         type: 'bar',
         stack: 'traffic',
         data: user.trafficLogs.map((x) => x.d),
-        itemStyle: { color: cssVar('--c-pink', '#8B5CF6'), borderRadius: [3, 3, 0, 0] },
+        itemStyle: { color: cssVar('--c-pink', '#C2487B'), borderRadius: [3, 3, 0, 0] },
         barMaxWidth: 18,
       },
     ],

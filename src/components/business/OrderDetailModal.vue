@@ -12,9 +12,11 @@ import {
   formatTime,
   orderStatusBadge,
   orderStatusLabel,
+  payMethodLabel,
   periodLabel,
 } from '@/utils/format'
 import PaymentModal from './PaymentModal.vue'
+import PaymentMethodPicker from './PaymentMethodPicker.vue'
 import type { Order } from '@/types/api'
 
 const props = defineProps<{ show: boolean; orderNo: string | null }>()
@@ -128,17 +130,7 @@ function openPayment(method: string) {
           </div>
           <div class="flex justify-between text-14">
             <span class="text-[var(--c-text-sub)]">{{ t('order.payMethod') }}</span>
-            <span class="text-[var(--c-text)]">
-              {{
-                detail.pay_method
-                  ? detail.pay_method === 'balance'
-                    ? t('order.payMethodBalance')
-                    : detail.pay_method === 'epay_alipay'
-                      ? t('order.payMethodAlipay')
-                      : t('order.payMethodWxpay')
-                  : '-'
-              }}
-            </span>
+            <span class="text-[var(--c-text)]">{{ payMethodLabel(detail.pay_method) }}</span>
           </div>
           <div class="flex justify-between text-14">
             <span class="text-[var(--c-text-sub)]">{{ t('order.paidAt') }}</span>
@@ -150,42 +142,11 @@ function openPayment(method: string) {
           </div>
         </div>
 
-        <!-- 待支付:支付方式 + 操作 -->
+        <!-- 待支付:支付方式 + 操作(渠道来自 config,余额不足禁用并提示差额) -->
         <template v-if="detail.status === 0">
           <div class="mt-5">
             <div class="mb-2 text-14 font-500 text-[var(--c-text)]">{{ t('plan.payment') }}</div>
-            <div class="grid grid-cols-3 gap-2">
-              <button
-                v-for="m in [
-                  { code: 'epay_alipay', name: t('order.payMethodAlipay'), icon: 'credit' },
-                  { code: 'epay_wxpay', name: t('order.payMethodWxpay'), icon: 'credit' },
-                  { code: 'balance', name: t('order.payMethodBalance'), icon: 'wallet' },
-                ]"
-                :key="m.code"
-                class="flex cursor-pointer flex-col items-center gap-1 rounded-xl border py-3 transition-colors"
-                :class="
-                  payMethod === m.code
-                    ? 'border-[var(--c-primary)] bg-[var(--c-primary-soft)]'
-                    : 'border-[var(--c-border)] hover:bg-[var(--c-bg-hover)]'
-                "
-                @click="payMethod = m.code"
-              >
-                <AppIcon
-                  :name="m.icon"
-                  :size="18"
-                  :style="{
-                    color: payMethod === m.code ? 'var(--c-primary)' : 'var(--c-text-sub)',
-                  }"
-                />
-                <span
-                  class="text-14"
-                  :style="{
-                    color: payMethod === m.code ? 'var(--c-primary-text)' : 'var(--c-text-sub)',
-                  }"
-                  >{{ m.name }}</span
-                >
-              </button>
-            </div>
+            <PaymentMethodPicker v-model="payMethod" :amount="detail.pay_amount" />
           </div>
 
           <div class="mt-5 flex gap-2">

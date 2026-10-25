@@ -7,11 +7,11 @@
 import { computed, ref, watch } from 'vue'
 import { useOrderStore } from '@/stores/order'
 import { useUserStore } from '@/stores/user'
-import { useConfigStore } from '@/stores/config'
 import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import { formatMoney, planSavePercent } from '@/utils/format'
 import PaymentModal from './PaymentModal.vue'
+import PaymentMethodPicker from './PaymentMethodPicker.vue'
 import type { CouponItem, Plan, PlanPeriod } from '@/types/api'
 
 const props = defineProps<{
@@ -23,7 +23,6 @@ const emit = defineEmits<{ (e: 'update:show', v: boolean): void; (e: 'paid'): vo
 
 const orderStore = useOrderStore()
 const userStore = useUserStore()
-const config = useConfigStore()
 const message = useMessage()
 const { t } = useI18n()
 
@@ -53,14 +52,7 @@ const discount = computed(() =>
 )
 const payAmount = computed(() => Math.max(0, +(price.value - discount.value).toFixed(2)))
 
-const balance = computed(() => userStore.balance)
-const balanceEnough = computed(() => balance.value >= payAmount.value)
-
-const availableMethods = computed(() => {
-  const methods = config.paymentMethods.filter((m) => m.enabled)
-  return methods.map((m) => ({ ...m, disabled: m.code === 'balance' && !balanceEnough.value }))
-})
-
+// 支付方式选择(渠道列表/余额禁用/差额提示)收敛于 PaymentMethodPicker
 const idempotencyKey = ref('')
 
 function reset() {
@@ -262,41 +254,9 @@ async function submit() {
         </div>
       </div>
 
-      <!-- 3. 支付方式 -->
+      <!-- 3. 支付方式(渠道来自 config,余额不足禁用并提示差额) -->
       <div class="mt-5 mb-2 text-14 font-500 text-[var(--c-text)]">{{ t('plan.payment') }}</div>
-      <div class="grid grid-cols-3 gap-2">
-        <button
-          v-for="m in availableMethods"
-          :key="m.code"
-          class="flex cursor-pointer flex-col items-center gap-1 rounded-xl border py-3 transition-colors"
-          :class="[
-            payMethod === m.code
-              ? 'border-[var(--c-primary)] bg-[var(--c-primary-soft)]'
-              : 'border-[var(--c-border)]',
-            m.disabled ? 'cursor-not-allowed opacity-50' : 'hover:bg-[var(--c-bg-hover)]',
-          ]"
-          :disabled="m.disabled"
-          @click="payMethod = m.code"
-        >
-          <AppIcon
-            :name="m.icon === 'wallet' ? 'wallet' : 'credit'"
-            :size="18"
-            :style="{ color: payMethod === m.code ? 'var(--c-primary)' : 'var(--c-text-sub)' }"
-          />
-          <span
-            class="text-14"
-            :style="{ color: payMethod === m.code ? 'var(--c-primary-text)' : 'var(--c-text-sub)' }"
-          >
-            {{ m.name }}
-          </span>
-        </button>
-      </div>
-      <p
-        v-if="payMethod === 'balance' && !balanceEnough"
-        class="mt-1.5 text-14 text-[var(--c-danger)]"
-      >
-        {{ t('plan.balanceShort', { amount: formatMoney(Math.max(0, payAmount - balance)) }) }}
-      </p>
+      <PaymentMethodPicker v-model="payMethod" :amount="payAmount" />
 
       <!-- 4. 费用明细 -->
       <div class="mt-5 rounded-xl p-4" style="background-color: var(--c-bg-hover)">

@@ -3,7 +3,7 @@
  * 收银台弹窗:二维码/跳转链接 + 倒计时 + 每 3s 轮询订单状态,支付成功展示结果卡。
  * 数据:POST /orders/{no}/checkout、GET /orders/{no}(docs/api/README.md §10.3/§10.5)
  */
-import { computed, ref, watch, onBeforeUnmount } from 'vue'
+import { ref, watch, onBeforeUnmount } from 'vue'
 import { useOrderStore } from '@/stores/order'
 import { useUserStore } from '@/stores/user'
 import { useI18n } from 'vue-i18n'
@@ -11,7 +11,7 @@ import { useCountdown } from '@/composables/useCountdown'
 import { useQrCode } from '@/composables/useQrCode'
 import { openExternal } from '@/utils/platform'
 import { notify } from '@/utils/notify'
-import { formatMoney, formatTime } from '@/utils/format'
+import { formatMoney, formatTime, payMethodLabel } from '@/utils/format'
 import type { Order } from '@/types/api'
 
 const props = defineProps<{
@@ -43,21 +43,13 @@ function resolveCssVar(name: string, fallback: string): string {
   return v || fallback
 }
 
-const payMethodLabel = computed(() => {
-  const map: Record<string, string> = {
-    balance: t('order.payMethodBalance'),
-    epay_alipay: t('order.payMethodAlipay'),
-    epay_wxpay: t('order.payMethodWxpay'),
-  }
-  return map[props.method] ?? props.method
-})
-
 async function initCheckout() {
   if (!props.order) return
   phase.value = 'loading'
   try {
     const resp = await orderStore.checkout(props.order.order_no, { method: props.method })
-    payMethodName.value = payMethodLabel.value
+    // 渠道标签唯一来源 utils/format.payMethodLabel(未知渠道回退原始 code)
+    payMethodName.value = payMethodLabel(props.method)
     if (resp.type === 'paid') {
       phase.value = 'paid'
       emit('paid')

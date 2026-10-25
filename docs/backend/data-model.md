@@ -1,6 +1,6 @@
 # 后端开发文档 · 数据模型
 
-> PostgreSQL 16，金额字段一律 `BIGINT` 存「分」，流量字段一律 `BIGINT` 存「字节」。所有表含 `created_at` / `updated_at`（TIMESTAMP(3)），软删除仅在标注的表使用。迁移用 golang-migrate 顺序执行。
+> PostgreSQL 16，金额字段一律 `BIGINT` 存「分」，流量字段一律 `BIGINT` 存「字节」。业务主表含 `created_at` / `updated_at`（TIMESTAMP(3)）；例外：流水/日志类（ticket_messages、audit_logs、mail_logs、traffic_reset_logs）仅 `created_at`，traffic_logs 无时间戳列（以 `date` 为时间维度）；键值/模板/快照类（settings、mail_templates、subscription_templates、node_user_stats）仅 `updated_at`。软删除仅在标注的表使用。迁移用 golang-migrate 顺序执行。
 
 ## 1. ER 概览
 
@@ -302,4 +302,4 @@ audit_logs：id、admin_id、action（如 `adjust_balance/refund/ban_user`）、
 
 ## 4. 初始化数据
 
-迁移末尾插入：默认节点分组、演示套餐（白羊座 ¥10/300G 等四档，对齐截图）、默认 settings 行、首个管理员账号（密码哈希由环境变量注入，首次登录强制改密）。
+迁移末尾插入：默认节点分组、演示套餐（白羊座 ¥10/300G 等四档，对齐截图）、默认 settings 行（site/payment/invite/agent/order/templates，0009 追加 node 安装脚本键）。首个管理员与演示账号**不在迁移里**：由 api 启动时 `repo.EnsureAdmin` / `repo.EnsureDemoUser` 幂等创建（`ADMIN_EMAIL`/`ADMIN_PASSWORD`、`DEMO_EMAIL`/`DEMO_PASSWORD` 环境变量，见 cmd/server/main.go）。

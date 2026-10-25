@@ -15,7 +15,7 @@ Type: task
 ## Done
 
 - CSP 已补 connect-src/object-src 'none'/base-uri 'self'；`cargo check` 通过。
-- release-tauri.yml collect 步骤：`.sig` 缺失即失败（原来静默条件拷贝），与 build-latest-json.mjs 的签名校验双保险。
+- `.sig` 缺失即失败的卡点在 build-latest-json.mjs（生成清单时读不到 `.sig` 即 exit 1）；release-tauri.yml collect 步骤为静默条件拷贝，不在两处设卡。
 
 ## Comments
 

@@ -1,6 +1,6 @@
 # 前端开发文档 · Tauri 2 桌面集成与发布
 
-> Tauri 2 负责把同一套 Vue SPA 包装为 Windows 桌面应用（Android 见 §9），并提供原生能力。原则：**Rust 侧尽量薄**——只承担系统能力，业务逻辑全部在前端。
+> Tauri 2 负责把同一套 Vue SPA 包装为 Windows/Linux 桌面应用（Android 见 §9），并提供原生能力。原则：**Rust 侧尽量薄**——只承担系统能力，业务逻辑全部在前端。
 
 ## 1. 工程结构
 
@@ -27,7 +27,7 @@ src-tauri/
 | `beforeDevCommand` / `devUrl` | `pnpm dev` / `http://localhost:5174` | 开发联动 |
 | `beforeBuildCommand` / `frontendDist` | `pnpm build` / `../dist` | 打包联动 |
 | `app.security.csp` | `default-src 'self'; connect-src 'self' https: http://localhost:* http://127.0.0.1:*; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:; object-src 'none'; base-uri 'self'` | 接口走 http 插件（Rust 侧，CSP 不拦）；connect-src 为 webview 侧降级 fetch/本地后端兜底，object-src 'none' + base-uri 'self' 收紧注入面 |
-| `bundle.targets` | `"targets": "nsis"` | 仅 Windows NSIS，不产 MSI；Android APK 由 `tauri android build` 独立控制，不受此影响 |
+| `bundle.targets` | `["nsis"]` | 本地 `tauri build` 默认仅 Windows NSIS，不产 MSI；CI 双平台打包经 `--bundles` 显式传参（Windows `nsis` / Ubuntu `deb,appimage`）；Android APK 由 `tauri android build` 独立控制，不受此影响 |
 | `bundle.windows.nsis.installerHooks` | `nsis/installer-hooks.nsh` | NSIS 自定义安装/卸载钩子文件已入库（含 4 个 no-op 宏）；当前无自定义逻辑，文件必须保留否则 Windows NSIS 构建失败 |
 | `plugins.updater.endpoints` | 已配置（含 pubkey；endpoints 指向公开产物仓库 `superMC5657/ylink-release` 的双清单：`latest-cn.json` gh-proxy 镜像优先 + `latest.json` 直连兑底） | updater 与前端更新卡片已接入（见 §5） |
 
@@ -53,7 +53,7 @@ capabilities/default.json 采用最小授权：逐项声明上述插件权限，
 
 - **窗口**：单主窗口；关闭即退出（未做最小化到托盘设置）；托盘菜单：显示主窗口 / 退出（检查更新入口在设置页/更新卡片，见 §5）。
 - **托盘**：由代码手动创建（`TrayIconBuilder::with_id("main-tray")` + 菜单），`tauri.conf.json` 不配 `app.trayIcon`——配置与代码各建一个会出现双图标，其一无菜单点击无反应。
-- **主题跟随**：监听前端主题切换事件（`emit` 到 Rust），调用窗口 `set_theme` 让标题栏亮暗一致；托盘图标按系统主题切换亮暗两套资源。
+- **主题跟随**：监听前端主题切换事件（`emit` 到 Rust），调用窗口 `set_theme` 让标题栏亮暗一致；托盘图标使用应用默认图标（`default_window_icon`，静态单资源，不随主题切换）。
 - **单实例 + 深链接**：Rust 单实例回调把 argv 中的 `ylink://` URL 用 deep-link 插件同名事件 `deep-link://new-url`（payload 为 URL 数组）转发给已有实例，前端 `onOpenUrl`（`utils/platform.ts` onDeepLink）直接收到并路由跳转；`lib.rs` 单实例回调已落地。桌面 scheme 注册双保险：NSIS 安装器的 `deep_link_protocols` 注册表块（由 `plugins.deep-link.desktop.schemes` 驱动）+ `setup` 内 `register_all()` 运行时注册（便携/免安装运行兜底，Windows/Linux；macOS 由 Info.plist 声明）。
 - **通知触发点**：前端统一封装 `utils/notify.ts`（Tauri 走 plugin-notification，Web 端 Notification API 自动降级）；触发点：订单支付成功（PaymentModal）、工单状态变为已回复（MainLayout 60s 轮询，状态快照去重）、订阅剩余 ≤3 天（窗口聚焦刷新时检测，按到期日去重）。
 
@@ -74,12 +74,13 @@ capabilities/default.json 采用最小授权：逐项声明上述插件权限，
 
 ## 7. 构建与发布流水线（GitHub Actions）
 
-> `.github/workflows/ci.yml` 已含 `frontend-quality` + `frontend-e2e` + `rust`（cargo check）三个 job；Go 后端按项目决策不走 Actions。`.github/workflows/release-tauri.yml` 已配置公开产物仓库方案的 **Windows-only** Release（仅要求 Windows 打包）。
+> `.github/workflows/ci.yml` 含四个 job：`frontend-pr-gate`（仅 PR）、`frontend-quality`、`frontend-e2e`、`rust`；Go 后端按项目决策不走 Actions。`.github/workflows/release-tauri.yml` 已配置公开产物仓库的 **Windows/Linux 双平台** Release（矩阵并行打包经 artifacts 中转后统一发布）。
 
-- **PR/push CI**：仅发布 tag(`v*`) 触发：`frontend-quality`（lint→typecheck→format:check→test→build:web）+ `frontend-e2e`（Playwright · Mock，失败上传报告）+ `rust`（windows-latest，先 `pnpm build:web` 生成 dist → `cargo check`——打包仅支持 Windows，Rust 检查与打包平台一致）。日常开发检查走本地 `pnpm lint/typecheck/test/format:check`。Go 后端不走 GitHub Actions。
-- **Release（已配置，打 tag `v*` 或手动触发）**：`.github/workflows/release-tauri.yml`——guard（tag 格式校验）→ 平台矩阵构建（TAURI_SIGNING_PRIVATE_KEY 自动签名 .sig）→ `scripts/build-latest-json.mjs` 生成双清单（`latest.json` 海外直链 / `latest-cn.json` gh-proxy 镜像加速，均含 name/size/sha256 扩展字段）→ `gh release` 推送到**公开产物仓库**（`RELEASES_PAT` secret），updater 端点按 CN 优先直连兑底消费（见 §2/§5）。恢复 macOS 时往 build job 加回平台矩阵即可（文件内有注释）。
+- **PR CI**：PR 触发 `frontend-pr-gate`（ubuntu，lint → typecheck，快速反馈不拖慢开发）；日常开发检查走本地 `pnpm lint/typecheck/test/format:check`。Go 后端不走 GitHub Actions（推送 main 前入口：仓库根 `make check`）。
+- **tag 全量门禁（tag `v*` 触发）**：`frontend-quality`（lint → lint:css → typecheck → format:check → test → build:web）+ `frontend-e2e`（Playwright · Mock chromium，失败上传报告，needs quality）+ `rust`（**双 OS 矩阵** windows-latest / ubuntu-22.04：Linux 侧先装 webkit2gtk 等系统依赖并 `pnpm build:web` 生成 dist，再 `cargo clippy -D warnings` + `cargo test`）。
+- **Release（已配置，打 tag `v*` 或手动触发）**：`.github/workflows/release-tauri.yml` 三段——`ci`（复用 ci.yml 全量门禁，质量没通过绝不打包）→ `build`（**平台矩阵**：Windows NSIS + Ubuntu deb/AppImage，TAURI_SIGNING_PRIVATE_KEY 自动签名 .sig，产物上传 artifacts 中转）→ `publish`（合并产物后**发布内联校验**：tag 必须符合 SemVer + 配置外置于 `.github/release.env`（APP_NAME / RELEASES_REPO）；`scripts/build-latest-json.mjs` 生成双清单——`latest.json` 海外直链 / `latest-cn.json` gh-proxy 镜像加速，均含 name/size/sha256 扩展字段，产物缺 `.sig` 即 exit 1——再 `gh release` 推送到**公开产物仓库**（`RELEASES_PAT` secret）），updater 端点按 CN 优先直连兑底消费（见 §2/§5）。
 - **产物仓库**：代码仓库 `superMC5657/YLink`（private，不开源）；产物发布到公开仓库 `superMC5657/ylink-release` 保证匿名下载 + gh-proxy 加速可行（publish job 与 `tauri.conf.json` updater endpoints 均已指向该仓库）。
-- **macOS 公证**（可选二期）：Apple 证书 + notarize 步骤；无证书时文档注明用户需在「安全性与隐私」中放行。⚠ 当前只打包 Windows，此条暂不适用，恢复 macOS 打包时再启用。
+- **macOS 公证**（可选二期）：Apple 证书 + notarize 步骤；无证书时文档注明用户需在「安全性与隐私」中放行。⚠ 当前打包 Windows（NSIS）与 Linux（deb/AppImage），macOS 不打包，此条暂不适用，恢复 macOS 打包时再启用。
 - 版本号策略：语义化版本，`package.json`、`Cargo.toml`、`tauri.conf.json` 三处由脚本同步。
 
 ## 8. 与纯 Web 部署的关系

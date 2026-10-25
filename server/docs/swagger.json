@@ -9,6 +9,626 @@
     "host": "api.example.com",
     "basePath": "/api/v1",
     "paths": {
+        "/admin/audit-logs": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "审计日志分页查询（只读）",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "操作人用户 ID",
+                        "name": "admin_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "动作（如 ban_user/adjust_balance）",
+                        "name": "action",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "目标（如用户 ID 字符串）",
+                        "name": "target",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "起始日期 YYYY-MM-DD（含）",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "结束日期 YYYY-MM-DD（含）",
+                        "name": "to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页条数（≤100）",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/resp.Page"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/knowledge-categories": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "知识库分类列表（language 为空返回全部，含文档计数）",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "语言（zh-CN/en-US，空=全部）",
+                        "name": "language",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "list": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/definitions/model.AdminKnowledgeCategoryItem"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "新建知识库分类",
+                "parameters": [
+                    {
+                        "description": "请求",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.AdminKnowledgeCategoryReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.KnowledgeCategory"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/knowledge-categories/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "更新知识库分类（改名级联同步知识文档展示分类）",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "分类 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "请求",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.AdminKnowledgeCategoryUpdateReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "删除知识库分类（分类下仍有文档时拒绝）",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "分类 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/knowledges": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "知识库列表",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/model.AdminKnowledgeItem"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/knowledges/sort": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "知识库排序（items 按 sort 值更新，单事务）",
+                "parameters": [
+                    {
+                        "description": "请求",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.AdminSortReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/mail-templates": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "邮件模板列表（内置默认 + 自定义覆盖合并）",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "list": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/definitions/model.AdminMailTemplateItem"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/mail-templates/{name}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "保存邮件模板（Go template 语法，保存前校验可解析）",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "模板名（captcha/expire_remind/traffic_remind）",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "请求",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.AdminMailTemplateReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "恢复邮件模板默认文案（删除自定义行）",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "模板名",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/mail-templates/{name}/test": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "测试发送邮件模板（渲染示例内容走真实 SMTP）",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "模板名",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "请求",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.AdminMailTemplateTestReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/notices": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "公告列表",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/model.AdminNoticeItem"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/notices/sort": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "公告排序（items 按 sort 值更新，单事务）",
+                "parameters": [
+                    {
+                        "description": "请求",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.AdminSortReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/orders/{order_no}/close": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "关闭订单",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "订单号",
+                        "name": "order_no",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "请求",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.RefundReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/orders/{order_no}/refund": {
             "post": {
                 "security": [
@@ -54,6 +674,189 @@
                 }
             }
         },
+        "/admin/servers/batch": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "批量删除/更新节点公共字段（≤500 个，返回成功数与失败原因）",
+                "parameters": [
+                    {
+                        "description": "请求",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.AdminBatchServerReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.AdminBatchServerResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/servers/sort": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "批量更新节点排序（单事务，按展示顺序传 items）",
+                "parameters": [
+                    {
+                        "description": "请求",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.AdminSortServerReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/servers/{id}/copy": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "复制节点（全字段复制，名称追加 -copy，重新生成 node_key）",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "节点 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.AdminServerView"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/servers/{id}/node-key/reset": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "重置节点上报密钥",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "节点 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "node_key": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/admin/settings": {
             "put": {
                 "security": [
@@ -87,6 +890,50 @@
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/resp.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/stat/orders": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "订单/营收/退款日趋势（默认近 30 天，含无数据日补零）",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "天数（1-365，默认 30）",
+                        "name": "days",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.AdminStatOrdersResp"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -128,6 +975,395 @@
                 }
             }
         },
+        "/admin/stat/traffic": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "用户流量消耗 TopN（时间范围内）+ 节点流量分布 TopN（上报累计）",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "天数（1-365，默认 30，仅作用于用户 Top）",
+                        "name": "days",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.AdminStatTrafficResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/stat/users": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "注册趋势 + 套餐分布（默认近 30 天）",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "天数（1-365，默认 30）",
+                        "name": "days",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.AdminStatUsersResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/subscription-templates": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "订阅模板列表（内置生成器模板 + 自定义覆盖合并）",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "list": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/definitions/model.AdminSubscriptionTemplateItem"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/subscription-templates/{name}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "保存订阅模板（Go template 语法，保存前用示例数据渲染校验）",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "客户端类型（clash/sing-box/v2ray）",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "请求",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.AdminSubscriptionTemplateReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "恢复订阅模板内置生成器（删除自定义行）",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "客户端类型",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/subscription-templates/{name}/preview": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "预览订阅模板（按当前模板用示例数据渲染；v2ray 返回 base64 前文本）",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "客户端类型",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.AdminSubscriptionTemplatePreviewResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/telegram/webhook/setup": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "注册 Telegram webhook（调 setWebhook；webhook_secret 缺失时自动生成并保存）",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.AdminTelegramWebhookSetupResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/tickets/{id}/withdraw/pay": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "确认提现打款（线下打款由管理员线下执行，系统内记账并关闭工单）",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "提现工单 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "备注",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/model.AdminApproveReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/tickets/{id}/withdraw/reject": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "拒绝提现（自动退回佣金并关闭工单，写流水与审计）",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "提现工单 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "备注",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/model.AdminApproveReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/traffic/import": {
             "post": {
                 "security": [
@@ -161,6 +1397,244 @@
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/resp.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/traffic/reset": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "按用户批量重置流量（清零用量/重新给量，写重置记录与审计；保留节点上报快照防重复计费）",
+                "parameters": [
+                    {
+                        "description": "请求",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.AdminTrafficResetReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.AdminTrafficResetResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/traffic/resets": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "重置记录分页（可按用户筛选，联表取用户邮箱）",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "用户 ID",
+                        "name": "user_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页条数（≤100）",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/resp.Page"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/users/batch": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "批量封禁/解封/调整余额（≤500 人，返回成功数与失败原因）",
+                "parameters": [
+                    {
+                        "description": "请求",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.AdminBatchUserReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.AdminBatchUserResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/users/export": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "text/csv"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "用户 CSV 流式导出（按筛选，每批 500 分批写）",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "邮箱关键字",
+                        "name": "keyword",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/users/mail": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "向指定用户发邮件（≤100 人，写 mail_logs 与审计）",
+                "parameters": [
+                    {
+                        "description": "请求",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.AdminSendMailReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.AdminSendMailResp"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -206,6 +1680,92 @@
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/resp.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/users/{id}/sub-token/reset": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "管理端重置用户订阅 token（旧链接立即失效，写审计）",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "用户 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "subscribe_url": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/version": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "管理端"
+                ],
+                "summary": "版本检查 + 变更日志（配置 update.manifest_url 时远端拉取最新版本）",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.AdminVersionResp"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -620,6 +2180,56 @@
                 }
             }
         },
+        "/coupons/available": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "交易"
+                ],
+                "summary": "可用优惠券列表",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "套餐 ID（可选过滤）",
+                        "name": "plan_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "周期（可选过滤）",
+                        "name": "period",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.CouponAvailableResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/coupons/check": {
             "post": {
                 "security": [
@@ -741,6 +2351,45 @@
                                     }
                                 }
                             ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/invite/codes/{code}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "营销"
+                ],
+                "summary": "删除邀请码",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "邀请码",
+                        "name": "code",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
                         }
                     },
                     "400": {
@@ -888,6 +2537,112 @@
                 }
             }
         },
+        "/invite/withdraw": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "营销"
+                ],
+                "summary": "提交佣金提现工单（仅代理商；提交即扣减佣金，管理员手动确认发放/拒绝退回）",
+                "parameters": [
+                    {
+                        "description": "请求",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.WithdrawCreateReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.WithdrawItem"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/invite/withdraws": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "营销"
+                ],
+                "summary": "本人佣金提现记录（分页）",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页条数",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/resp.Page"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/knowledges": {
             "get": {
                 "produces": [
@@ -982,6 +2737,82 @@
                         "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/resp.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/node/report": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "节点"
+                ],
+                "summary": "节点流量上报(每用户累计值,幂等)",
+                "parameters": [
+                    {
+                        "description": "请求",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/service.NodeReportReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/service.NodeReportResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/node/users": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "节点"
+                ],
+                "summary": "节点用户同步(有效订阅用户与凭证)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/service.NodeUsersResp"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -1383,6 +3214,34 @@
                 }
             }
         },
+        "/telegram/webhook": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "Webhook"
+                ],
+                "summary": "Telegram bot webhook（X-Telegram-Bot-Api-Secret-Token 头校验；/bind、/unbind 命令）",
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/tickets": {
             "get": {
                 "security": [
@@ -1571,6 +3430,57 @@
                 }
             }
         },
+        "/tickets/{id}/reopen": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "工单"
+                ],
+                "summary": "重新打开工单",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "工单 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.TicketListItem"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/tickets/{id}/reply": {
             "post": {
                 "security": [
@@ -1667,6 +3577,40 @@
             }
         },
         "/user/profile": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "用户"
+                ],
+                "summary": "读取通知设置",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.UserProfileResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
             "put": {
                 "security": [
                     {
@@ -1711,6 +3655,89 @@
                                     }
                                 }
                             ]
+                        }
+                    }
+                }
+            }
+        },
+        "/user/sessions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "用户"
+                ],
+                "summary": "活跃会话列表（refresh 白名单维度，含设备/IP/时间，current 标记当前会话）",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "list": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/definitions/model.UserSessionItem"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/user/sessions/{jti}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "用户"
+                ],
+                "summary": "踢下线指定会话（该会话 access 立即失效，当前会话不可踢除）",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "会话标识（GET /user/sessions 返回的 jti）",
+                        "name": "jti",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
                         }
                     }
                 }
@@ -1848,6 +3875,66 @@
                 }
             }
         },
+        "/user/telegram/bind-code": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "用户"
+                ],
+                "summary": "获取 Telegram 绑定验证码（10 分钟内发送 /bind \u003ccode\u003e 给 bot）",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/resp.Body"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.TelegramBindCodeResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/user/telegram/unbind": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "用户"
+                ],
+                "summary": "解绑 Telegram（解绑后立即停止推送）",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/user/traffic-logs": {
             "get": {
                 "security": [
@@ -1925,6 +4012,289 @@
                 }
             }
         },
+        "model.AdminApproveReq": {
+            "type": "object",
+            "properties": {
+                "remark": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.AdminBatchFailedItem": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.AdminBatchServerReq": {
+            "type": "object",
+            "required": [
+                "action",
+                "ids"
+            ],
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": [
+                        "delete",
+                        "update"
+                    ]
+                },
+                "group_id": {
+                    "type": "integer"
+                },
+                "ids": {
+                    "type": "array",
+                    "maxItems": 500,
+                    "minItems": 1,
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "is_show": {
+                    "type": "boolean"
+                },
+                "rate": {
+                    "type": "number"
+                },
+                "status": {
+                    "type": "integer",
+                    "enum": [
+                        1,
+                        2,
+                        3
+                    ]
+                }
+            }
+        },
+        "model.AdminBatchServerResp": {
+            "type": "object",
+            "properties": {
+                "failed": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.AdminBatchFailedItem"
+                    }
+                },
+                "success": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.AdminBatchUserReq": {
+            "type": "object",
+            "required": [
+                "action",
+                "ids"
+            ],
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": [
+                        "ban",
+                        "unban",
+                        "adjust_balance"
+                    ]
+                },
+                "amount": {
+                    "description": "adjust_balance 必填（元，可正可负）",
+                    "type": "number"
+                },
+                "ids": {
+                    "type": "array",
+                    "maxItems": 500,
+                    "minItems": 1,
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "remark": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.AdminBatchUserResp": {
+            "type": "object",
+            "properties": {
+                "failed": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.AdminBatchFailedItem"
+                    }
+                },
+                "success": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.AdminKnowledgeCategoryItem": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "knowledge_count": {
+                    "type": "integer"
+                },
+                "language": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "sort": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.AdminKnowledgeCategoryReq": {
+            "type": "object",
+            "required": [
+                "language",
+                "name"
+            ],
+            "properties": {
+                "language": {
+                    "type": "string",
+                    "maxLength": 10
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 64
+                },
+                "sort": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.AdminKnowledgeCategoryUpdateReq": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "maxLength": 64
+                },
+                "sort": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.AdminKnowledgeItem": {
+            "type": "object",
+            "properties": {
+                "body": {
+                    "type": "string"
+                },
+                "category": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_show": {
+                    "type": "boolean"
+                },
+                "language": {
+                    "type": "string"
+                },
+                "sort": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.AdminMailTemplateItem": {
+            "type": "object",
+            "properties": {
+                "body": {
+                    "type": "string"
+                },
+                "is_custom": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "placeholders": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "remark": {
+                    "type": "string"
+                },
+                "subject": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.AdminMailTemplateReq": {
+            "type": "object",
+            "required": [
+                "body",
+                "subject"
+            ],
+            "properties": {
+                "body": {
+                    "type": "string"
+                },
+                "subject": {
+                    "type": "string",
+                    "maxLength": 255
+                }
+            }
+        },
+        "model.AdminMailTemplateTestReq": {
+            "type": "object",
+            "required": [
+                "to_email"
+            ],
+            "properties": {
+                "to_email": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.AdminNoticeItem": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_show": {
+                    "type": "boolean"
+                },
+                "sort": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
         "model.AdminOverviewResp": {
             "type": "object",
             "properties": {
@@ -1944,12 +4314,113 @@
                     "description": "今日实收（元）",
                     "type": "number"
                 },
+                "total_balance": {
+                    "description": "全体用户余额合计（元）",
+                    "type": "number"
+                },
                 "total_revenue": {
                     "description": "已完成订单实收合计（元）",
                     "type": "number"
                 },
                 "user_count": {
                     "type": "integer"
+                }
+            }
+        },
+        "model.AdminSendMailReq": {
+            "type": "object",
+            "required": [
+                "body",
+                "ids",
+                "subject"
+            ],
+            "properties": {
+                "body": {
+                    "type": "string",
+                    "maxLength": 10000
+                },
+                "ids": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "minItems": 1,
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "subject": {
+                    "type": "string",
+                    "maxLength": 200
+                }
+            }
+        },
+        "model.AdminSendMailResp": {
+            "type": "object",
+            "properties": {
+                "failed": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.AdminBatchFailedItem"
+                    }
+                },
+                "sent": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.AdminServerView": {
+            "type": "object",
+            "properties": {
+                "config": {
+                    "type": "string"
+                },
+                "group_id": {
+                    "type": "integer"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_online": {
+                    "type": "boolean"
+                },
+                "is_show": {
+                    "type": "boolean"
+                },
+                "last_heartbeat_at": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "node_key": {
+                    "description": "节点上报密钥(X-Node-Key)",
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "rate": {
+                    "type": "number"
+                },
+                "sort": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "integer"
+                },
+                "system": {
+                    "$ref": "#/definitions/model.NodeSystemStats"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "type": {
+                    "type": "string"
                 }
             }
         },
@@ -1965,6 +4436,311 @@
                 },
                 "value": {
                     "description": "JSON 字符串",
+                    "type": "string"
+                }
+            }
+        },
+        "model.AdminSortItem": {
+            "type": "object",
+            "required": [
+                "id"
+            ],
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "sort": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.AdminSortReq": {
+            "type": "object",
+            "required": [
+                "items"
+            ],
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "maxItems": 500,
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/model.AdminSortItem"
+                    }
+                }
+            }
+        },
+        "model.AdminSortServerReq": {
+            "type": "object",
+            "required": [
+                "items"
+            ],
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "maxItems": 500,
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/model.AdminSortItem"
+                    }
+                }
+            }
+        },
+        "model.AdminStatNodeTraffic": {
+            "type": "object",
+            "properties": {
+                "bytes": {
+                    "description": "上报累计值合计（未乘倍率，节点全周期）",
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "server_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.AdminStatOrderPoint": {
+            "type": "object",
+            "properties": {
+                "balance_refunded": {
+                    "description": "当日退款订单余额部分（元，按 updated_at 近似）",
+                    "type": "number"
+                },
+                "balance_used": {
+                    "description": "当日完成订单余额支付部分（元，按 paid_at）",
+                    "type": "number"
+                },
+                "completed_count": {
+                    "description": "当日完成订单数",
+                    "type": "integer"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "order_count": {
+                    "description": "当日创建订单数",
+                    "type": "integer"
+                },
+                "refunded": {
+                    "description": "当日退款现金部分（元，按 updated_at 近似）",
+                    "type": "number"
+                },
+                "revenue": {
+                    "description": "当日实收现金部分（元，按 paid_at）",
+                    "type": "number"
+                }
+            }
+        },
+        "model.AdminStatOrdersResp": {
+            "type": "object",
+            "properties": {
+                "days": {
+                    "type": "integer"
+                },
+                "items": {
+                    "description": "含无数据日补零，便于折线图",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.AdminStatOrderPoint"
+                    }
+                }
+            }
+        },
+        "model.AdminStatPlanSlice": {
+            "type": "object",
+            "properties": {
+                "plan_id": {
+                    "type": "integer"
+                },
+                "plan_name": {
+                    "type": "string"
+                },
+                "users": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.AdminStatTrafficResp": {
+            "type": "object",
+            "properties": {
+                "days": {
+                    "type": "integer"
+                },
+                "node_top": {
+                    "description": "节点流量分布 TopN",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.AdminStatNodeTraffic"
+                    }
+                },
+                "user_top": {
+                    "description": "流量消耗 TopN",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.AdminStatUserTraffic"
+                    }
+                }
+            }
+        },
+        "model.AdminStatUserPoint": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "date": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.AdminStatUserTraffic": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "total_bytes": {
+                    "description": "时间范围内 u+d 合计",
+                    "type": "integer"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.AdminStatUsersResp": {
+            "type": "object",
+            "properties": {
+                "days": {
+                    "type": "integer"
+                },
+                "plan_distribution": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.AdminStatPlanSlice"
+                    }
+                },
+                "register_trend": {
+                    "description": "含无数据日补零",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.AdminStatUserPoint"
+                    }
+                }
+            }
+        },
+        "model.AdminSubscriptionTemplateItem": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "is_custom": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "remark": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "variables": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "model.AdminSubscriptionTemplatePreviewResp": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.AdminSubscriptionTemplateReq": {
+            "type": "object",
+            "required": [
+                "content"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.AdminTelegramWebhookSetupResp": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "webhook_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.AdminTrafficResetReq": {
+            "type": "object",
+            "required": [
+                "mode",
+                "user_ids"
+            ],
+            "properties": {
+                "mode": {
+                    "type": "string",
+                    "enum": [
+                        "clear_usage",
+                        "reset_quota"
+                    ]
+                },
+                "user_ids": {
+                    "type": "array",
+                    "maxItems": 500,
+                    "minItems": 1,
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "model.AdminTrafficResetResp": {
+            "type": "object",
+            "properties": {
+                "failed": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.AdminBatchFailedItem"
+                    }
+                },
+                "success": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.AdminVersionResp": {
+            "type": "object",
+            "properties": {
+                "has_update": {
+                    "type": "boolean"
+                },
+                "latest": {
+                    "type": "string"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "version": {
                     "type": "string"
                 }
             }
@@ -2141,6 +4917,17 @@
                 }
             }
         },
+        "model.CouponAvailableResp": {
+            "type": "object",
+            "properties": {
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.CouponItem"
+                    }
+                }
+            }
+        },
         "model.CouponCheckReq": {
             "type": "object",
             "required": [
@@ -2181,6 +4968,46 @@
                 }
             }
         },
+        "model.CouponItem": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "ended_at": {
+                    "type": "string"
+                },
+                "min_spend": {
+                    "description": "元",
+                    "type": "number"
+                },
+                "plan_ids": {
+                    "description": "空=全部套餐",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "started_at": {
+                    "type": "string"
+                },
+                "type": {
+                    "description": "1=固定金额 2=百分比",
+                    "type": "integer"
+                },
+                "valid_periods": {
+                    "description": "空=不限周期",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "value": {
+                    "description": "type=1 为元；type=2 为百分比数值（如 10 表示 10%）",
+                    "type": "number"
+                }
+            }
+        },
         "model.CreateOrderReq": {
             "type": "object",
             "required": [
@@ -2209,7 +5036,6 @@
         "model.CreateTicketReq": {
             "type": "object",
             "required": [
-                "level",
                 "message",
                 "subject"
             ],
@@ -2280,6 +5106,7 @@
                     }
                 },
                 "register_url_prefix": {
+                    "description": "RegisterURLPrefix 注册链接路径后缀(如 /#/register?code=):不含域名,\n完整链接由前端按当前页面 origin 拼接;本字段仅为契约占位,前端不消费其值。",
                     "type": "string"
                 }
             }
@@ -2327,6 +5154,23 @@
                 }
             }
         },
+        "model.KnowledgeCategory": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "language": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "sort": {
+                    "type": "integer"
+                }
+            }
+        },
         "model.KnowledgeGroup": {
             "type": "object",
             "properties": {
@@ -2352,6 +5196,36 @@
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+        "model.NodeSystemStats": {
+            "type": "object",
+            "properties": {
+                "connections": {
+                    "description": "主机级 TCP 表项近似值，含系统噪声，不代表代理在线用户，仅供负载参考",
+                    "type": "integer"
+                },
+                "cpu_percent": {
+                    "type": "number"
+                },
+                "disk_percent": {
+                    "type": "number"
+                },
+                "memory_percent": {
+                    "type": "number"
+                },
+                "net_speed_in": {
+                    "description": "瞬时下行带宽(B/s)",
+                    "type": "integer"
+                },
+                "net_speed_out": {
+                    "description": "瞬时上行带宽(B/s)",
+                    "type": "integer"
+                },
+                "uptime": {
+                    "description": "开机时长(秒)",
+                    "type": "integer"
                 }
             }
         },
@@ -2505,6 +5379,10 @@
         "model.RefundReq": {
             "type": "object",
             "properties": {
+                "gateway_refund_id": {
+                    "description": "外部网关退款单号:现金支付需线下在网关侧退款后回填,仅审计留痕,系统不做网关调用",
+                    "type": "string"
+                },
                 "remark": {
                     "type": "string"
                 }
@@ -2573,6 +5451,10 @@
                         "type": "string"
                     }
                 },
+                "background_url": {
+                    "description": "品牌背景图 URL(空=默认,F19)",
+                    "type": "string"
+                },
                 "customer_service_url": {
                     "type": "string"
                 },
@@ -2594,6 +5476,10 @@
                         "$ref": "#/definitions/model.PaymentMethod"
                     }
                 },
+                "primary_color": {
+                    "description": "品牌主色(Hex,空=默认,F19)",
+                    "type": "string"
+                },
                 "register_enabled": {
                     "type": "boolean"
                 },
@@ -2608,6 +5494,20 @@
                 },
                 "telegram": {
                     "$ref": "#/definitions/model.TelegramInfo"
+                }
+            }
+        },
+        "model.TelegramBindCodeResp": {
+            "type": "object",
+            "properties": {
+                "bot_username": {
+                    "type": "string"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "ttl_minutes": {
+                    "type": "integer"
                 }
             }
         },
@@ -2640,11 +5540,25 @@
                         "$ref": "#/definitions/model.TicketMsgResp"
                     }
                 },
+                "reopen_count": {
+                    "type": "integer"
+                },
                 "status": {
                     "type": "integer"
                 },
                 "subject": {
                     "type": "string"
+                },
+                "type": {
+                    "type": "integer"
+                },
+                "withdraw": {
+                    "description": "Withdraw 提现工单附带的结构化提现信息（type=1 时非空，F02）",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.TicketWithdrawInfo"
+                        }
+                    ]
                 }
             }
         },
@@ -2663,11 +5577,18 @@
                 "level": {
                     "type": "integer"
                 },
+                "reopen_count": {
+                    "type": "integer"
+                },
                 "status": {
                     "type": "integer"
                 },
                 "subject": {
                     "type": "string"
+                },
+                "type": {
+                    "description": "0=普通 1=佣金提现(F02)",
+                    "type": "integer"
                 }
             }
         },
@@ -2684,6 +5605,39 @@
                     "type": "string"
                 },
                 "sender_type": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.TicketWithdrawInfo": {
+            "type": "object",
+            "properties": {
+                "account": {
+                    "type": "string"
+                },
+                "amount": {
+                    "type": "number"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "method": {
+                    "type": "string"
+                },
+                "review_remark": {
+                    "type": "string"
+                },
+                "reviewed_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "description": "0=处理中 1=已发放 2=已退回",
+                    "type": "integer"
+                },
+                "user_id": {
                     "type": "integer"
                 }
             }
@@ -2814,6 +5768,35 @@
                 },
                 "remind_traffic": {
                     "type": "boolean"
+                },
+                "role": {
+                    "description": "当前用户角色(0=普通,1=管理员,2=代理),前端守卫核实用",
+                    "type": "integer"
+                },
+                "telegram_bound": {
+                    "description": "F12 是否已绑定 Telegram",
+                    "type": "boolean"
+                }
+            }
+        },
+        "model.UserSessionItem": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "current": {
+                    "type": "boolean"
+                },
+                "ip": {
+                    "type": "string"
+                },
+                "jti": {
+                    "description": "会话标识（refresh 白名单索引，踢下线目标）",
+                    "type": "string"
+                },
+                "user_agent": {
+                    "type": "string"
                 }
             }
         },
@@ -2843,6 +5826,60 @@
                 }
             }
         },
+        "model.WithdrawCreateReq": {
+            "type": "object",
+            "required": [
+                "account",
+                "amount",
+                "method"
+            ],
+            "properties": {
+                "account": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "amount": {
+                    "type": "number"
+                },
+                "method": {
+                    "type": "string",
+                    "maxLength": 32
+                }
+            }
+        },
+        "model.WithdrawItem": {
+            "type": "object",
+            "properties": {
+                "account": {
+                    "type": "string"
+                },
+                "amount": {
+                    "type": "number"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "method": {
+                    "type": "string"
+                },
+                "review_remark": {
+                    "type": "string"
+                },
+                "reviewed_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "description": "0=处理中 1=已发放 2=已退回",
+                    "type": "integer"
+                },
+                "ticket_id": {
+                    "type": "integer"
+                }
+            }
+        },
         "resp.Body": {
             "type": "object",
             "properties": {
@@ -2867,6 +5904,105 @@
                 },
                 "total": {
                     "type": "integer"
+                }
+            }
+        },
+        "service.NodeReportItem": {
+            "type": "object",
+            "required": [
+                "uuid"
+            ],
+            "properties": {
+                "d": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "u": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
+        "service.NodeReportReq": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "maxItems": 1000,
+                    "items": {
+                        "$ref": "#/definitions/service.NodeReportItem"
+                    }
+                },
+                "system": {
+                    "description": "主机探针快照：Connections 为主机级 TCP 表项近似值，含系统噪声，不代表代理在线用户，仅供负载参考",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.NodeSystemStats"
+                        }
+                    ]
+                }
+            }
+        },
+        "service.NodeReportResp": {
+            "type": "object",
+            "properties": {
+                "accepted": {
+                    "type": "integer"
+                },
+                "skipped": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/service.NodeSkipItem"
+                    }
+                }
+            }
+        },
+        "service.NodeSkipItem": {
+            "type": "object",
+            "properties": {
+                "reason": {
+                    "type": "string"
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
+        "service.NodeUserItem": {
+            "type": "object",
+            "properties": {
+                "d": {
+                    "type": "integer"
+                },
+                "expired_at": {
+                    "description": "unix 秒,nil=不限期",
+                    "type": "integer"
+                },
+                "transfer_enable": {
+                    "type": "integer"
+                },
+                "u": {
+                    "type": "integer"
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
+        "service.NodeUsersResp": {
+            "type": "object",
+            "properties": {
+                "rate": {
+                    "type": "number"
+                },
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/service.NodeUserItem"
+                    }
                 }
             }
         },

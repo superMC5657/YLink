@@ -55,7 +55,7 @@
 |---|---|---|
 | 生产 compose 解析 | `cd server && ENV_FILE=.env.release docker compose -f docker-compose.yml -f docker-compose.prod.yml config` 无报错 | ☐ |
 | 前端生产构建 | `VITE_API_BASE_URL=https://{API域名}/api/v1 pnpm build`(产物进 ylink-web 镜像) | ☐ |
-| 迁移演练 | 本地/dev 库跑 `DB_URL='postgres://...' make migrate`(至 0004)确认无错 | ☐ |
+| 迁移演练 | 本地/dev 库跑 `DB_URL='postgres://...' make migrate`(至 0009)确认无错 | ☐ |
 | 支付沙箱 | staging:复制 `.env.release` 改网关为沙箱/0.01 元实测一笔全链路 | ☐ |
 | 节点 agent 联调 | 本地起后端 + `go run ./cmd/node-agent -key <node_key>`,核对 users.u/d 累加与 traffic_logs 日聚合 | ☐ |
 

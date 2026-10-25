@@ -46,14 +46,9 @@ log:
   level: info
   dir: ./logs
 
-# 站点运营规则（settings 表初始化同款）
-site:
-  site_name: "YLink"
-  invite_commission_rate: 30        # 普通用户佣金比例 %
-  agent_commission_rate: 40         # 代理商佣金比例 %
-  agent_required_valid_invites: 50  # 代理申请有效邀请数阈值
-  commission_confirm_days: 3        # 佣金确认期（天）
-  order_expire_minutes: 30          # 订单超时关闭（分钟）
+# 站点运营规则(站点名/邀请与代理佣金比例/代理条件/佣金确认期/订单超时)不在本文件维护:
+# 唯一来源是 settings 表(0001 迁移种子 + 管理端「站点设置」可改,运行时 Redis 缓存 60s),
+# 见 docs/backend/data-model.md §4 与 docs/backend/README.md §8。
 
 # 安全部署项（F22）：全部启动注入，生产环境优先用 APP_SECURITY_* 环境变量覆盖
 security:

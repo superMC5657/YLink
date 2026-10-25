@@ -19,7 +19,6 @@
 | 迁移 | golang-migrate | SQL 文件版本化迁移 |
 | 定时任务 | robfig/cron/v3 | 佣金确认、到期提醒、流量日结转 |
 | 邮件 | gomail（报文构建）+ net/smtp（自管传输，30s deadline） | 验证码、到期/流量提醒 |
-| 二维码 | skip2/go-qrcode | 支付二维码（若网关不返回图片） |
 | 测试 | testify + miniredis + go-sqlmock | 单测覆盖核心链路，测试数见 [progress.md](progress.md) |
 
 ## 2. 分层架构
@@ -65,10 +64,9 @@ server/
 │   ├── repo/                 # user_repo.go order_repo.go ...
 │   ├── model/                # 表结构 + DTO + 枚举
 │   └── pkg/
-│       ├── jwt/  redis/  mailer/  resp/  errs/  validate/
-│       ├── payment/          # Driver 接口 + epay/ 等实现 + notify 验签
-│       ├── subscribe/        # clash.go singbox.go v2ray.go（配置生成器）
-│       └── qrcode/
+│       ├── errs/  jwt/  logger/  mailer/  page/  passwd/  redis/  resp/  sanitize/  validate/
+│       ├── payment/          # Driver 接口 + epay.go 实现（含回调验签）
+│       └── subscribe/        # clash.go singbox.go v2ray.go + template.go（配置生成器与自定义模板）
 ├── migrations/               # 0001_init.up.sql / .down.sql ...
 ├── configs/config.yaml
 ├── docs/                     # swag 生成产物
@@ -115,7 +113,7 @@ type Driver interface {
 ## 7. 订阅生成器（`pkg/subscribe`）
 
 ```go
-type Generator interface { Format() string; Build(u *User, nodes []Server) ([]byte, string, error) }
+type Generator interface { Format() string; Build(u *User, nodes []Node) ([]byte, error) }
 // clash → YAML；sing-box → JSON；v2ray → base64 分享链接列表
 ```
 

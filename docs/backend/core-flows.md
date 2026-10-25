@@ -93,7 +93,7 @@ sequenceDiagram
     Note over S: 若订单退款: 对应佣金 status=0→2 撤销; 已发放的从 balance 扣回(可为负, 记录审计)
 ```
 
-- 佣金比例：默认取 settings `invite_commission_rate`（如 40%）；代理商（role=2）取 `agent_commission_rate`，可不同。
+- 佣金比例：默认取 settings `invite.commission_rate`（种子 40%，管理端可改）；代理商（role=2）取 `invite.agent_commission_rate`（种子 50%），可不同。
 - 循环佣金：被邀请人每次付费（含续费）都产生佣金，截图中「40%（循环）」即此语义。
 - **余额支付不产生佣金**：仅在线支付渠道（epay 等）支付成功后写佣金；`grantCommission` 对 `pay_method = balance` 的订单直接跳过。历史已产生的余额支付佣金不受影响。
 

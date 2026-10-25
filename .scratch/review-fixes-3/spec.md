@@ -1,6 +1,6 @@
 # Review Fixes 3
 
-> 状态: 修复中——P0 完成 4/4；P1 完成 10/10（05-13）；P2 完成 4/5（14-17），余 P2×1 / P3×3
+> 状态: 修复中——P0 完成 4/4；P1 完成 10/10（05-13）；P2 完成 5/5（14-18），余 P3×3
 > 日期: 2026-10-25
 > 范围: 全量代码评审（review-round-09）产出的修复项——安全与启动稳定、并发/正确性、分层与契约合规、令牌化与文档对齐、死代码清理
 > 关联: 评审快照 `docs/reviews/review-round-09.md`；分段执行手册 `execution.md`（一次贴一段）；前两轮见 `.scratch/review-fixes/`、`.scratch/review-fixes-2/`
@@ -75,7 +75,7 @@ ProfileView/useLocalNotifications 下沉 store、OrderConfirmModal silent:true�
 
 useMediaQuery 替换冻结宽度、侧边栏宽度以代码 200px/72px 为准更新 pages.md、ForgotView 表单对齐、AdminNodesView 调色板类令牌化、提现状态接入 statusMeta、小组件规范项。→ issues/17
 
-### [P2] 18 文档对齐批
+### [P2] 18 文档对齐批 ✅
 
 README §3/launch-checklist/deploy/data-model/desktop-tauri 等全部陈旧描述改为当前态；Makefile swag 输出目录；compose prod caddy !reset；邀请分成默认值单源化。→ issues/18
 

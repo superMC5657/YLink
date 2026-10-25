@@ -1,6 +1,6 @@
 # [P2] 文档对齐批（README/launch-checklist/deploy/data-model/desktop-tauri/Makefile/compose）
 
-Status: ready-for-agent
+Status: resolved
 Type: task
 Blocked by: 15, 16
 
@@ -33,3 +33,5 @@ Blocked by: 15, 16
 - 全部文档改动遵循「同一事实只在一处维护」。
 
 ## Comments
+
+- 2026-10-25: 已修复——backend README §1/§3/§7（删幽灵 `pkg/qrcode` 与 go-qrcode 选型行、pkg 目录树对齐实际包清单、Generator 签名改 `Build(u *User, nodes []Node) ([]byte, error)`）；launch-checklist 迁移演练至 0009、deploy §1.2 升级注记改 0007~0009；data-model 头部时间戳改为分类例外陈述、§4 管理员/演示账号改述为启动时 `repo.EnsureAdmin/EnsureDemoUser`（迁移不插账号，删未实现的「首登强制改密」）；desktop-tauri §2 targets/§4 托盘静态图标/§7 重写为 ci 四 job（PR 门禁 + tag 全量 + rust 双 OS 矩阵）与 release 三段（ci 复用 → 双平台 build → publish 内联 SemVer/release.env 校验 + 双清单）；Makefile swagger 落位 `docs/` 并再生成（本机无 swag 二进制，经 `go run github.com/swaggo/swag/cmd/swag@v1.16.6`（go.mod 锁定版本）执行等价命令验证，产物 diff 仅 server/docs/ 三件，为补齐入库陈旧产物，JSON 82 paths 含 /admin/audit-logs）；compose prod caddy `volumes: !override`（docker compose v5.1.3 config 实测仅剩 caddy_data:/data，无宿主 Caddyfile bind）；config.yaml 删除整段 `site:` 块收敛 settings 单源（cfg.Site 零消费，struct 删除归 #19）、core-flows 佣金键名对齐种子 `invite.commission_rate/agent_commission_rate`；spec 勘误 ×3（admin-console-split A3 18 项、A6 /403 收紧注记、opt-perf-sec 09 .sig 卡点归属 build-latest-json.mjs）。Acceptance grep 复验：docs/backend 剩余 0004 均为「迁移 0004 新增」列级溯源注记，非陈旧迁移计数。

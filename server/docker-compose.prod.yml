@@ -21,5 +21,8 @@ services:
       context: ..
       dockerfile: server/deploy/Dockerfile.web
     image: ylink-web:latest
-    volumes:
+    # !override 整体替换基座 volumes:去掉宿主 Caddyfile bind mount(不可变发布,
+    # 生产 Caddyfile 已 COPY 进镜像),仅保留数据卷;compose 对 volumes 默认按容器路径合
+    # 并,不重声明则基座 bind 仍会生效
+    volumes: !override
       - caddy_data:/data

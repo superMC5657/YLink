@@ -31,3 +31,28 @@ func (UserRepo) CountValidInvited(db *gorm.DB, inviterID int64, validDays int) (
 		Count(&n).Error
 	return n, err
 }
+
+// CountValidInvitedBatch 批量统计各邀请人的有效用户数（谓词与 CountValidInvited 一致），
+// 照 emailsOf 批量形状收敛逐人 Count 的 N+1。map 缺失的邀请人即 0。
+func (UserRepo) CountValidInvitedBatch(db *gorm.DB, inviterIDs []int64, validDays int) (map[int64]int64, error) {
+	out := map[int64]int64{}
+	if len(inviterIDs) == 0 {
+		return out, nil
+	}
+	var rows []struct {
+		InviterID int64 `gorm:"column:invite_by_id"`
+		Cnt       int64 `gorm:"column:c"`
+	}
+	err := db.Model(&model.User{}).
+		Select("invite_by_id, COUNT(*) AS c").
+		Where("invite_by_id IN ? AND (is_banned = false AND created_at < now() - (? * interval '1 day') "+
+			"OR EXISTS (SELECT 1 FROM orders o WHERE o.user_id = users.id AND o.status = 1))", inviterIDs, validDays).
+		Group("invite_by_id").Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range rows {
+		out[r.InviterID] = r.Cnt
+	}
+	return out, nil
+}

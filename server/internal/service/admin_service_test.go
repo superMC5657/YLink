@@ -468,9 +468,9 @@ func TestAdminListOrdersCommission(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "invite_user_id", "from_user_id", "order_no", "order_amount", "rate", "amount", "status", "confirmed_at", "created_at",
 		}).AddRow(1, 9, 7, "O2026", 1000, 40, 400, 0, nil, now))
-	// plan 名(GetByID 按主键查)
+	// plan 名(ListByIDs 批量按 ID 集合查,N+1 收敛)
 	p := &model.Plan{ID: 1, Name: "白羊座", TrafficGB: 300, CreatedAt: now, UpdatedAt: now}
-	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"plans\" WHERE \"plans\".\"id\" = $1 ORDER BY \"plans\".\"id\" LIMIT $2")).
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"plans\" WHERE id IN ($1)")).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "name", "content", "month_price", "quarter_price", "half_year_price", "year_price",
 			"onetime_price", "traffic_gb", "speed_limit", "device_limit", "group_ids", "is_show", "sort",

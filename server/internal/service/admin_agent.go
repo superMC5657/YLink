@@ -27,11 +27,10 @@ func (m *adminAgentModule) ListAgentApplies(ctx context.Context, status int, pag
 	}
 	emails := m.audit.emailsOf(ids)
 	_, validDays := agentPolicy(ctx, m.set)
-	validCounts := map[int64]int64{}
-	for _, uid := range ids {
-		if n, err := m.repos.User.CountValidInvited(m.db, uid, validDays); err == nil {
-			validCounts[uid] = n
-		}
+	// 批量统计有效邀请数（N+1 收敛：一次 GROUP BY，缺失者计 0）
+	validCounts, err := m.repos.User.CountValidInvitedBatch(m.db, ids, validDays)
+	if err != nil {
+		return nil, 0, err
 	}
 	out := make([]model.AdminAgentApplyItem, 0, len(list))
 	for _, a := range list {

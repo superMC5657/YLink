@@ -107,13 +107,22 @@ func (m *adminStatsModule) StatUsers(ctx context.Context, days int) (*model.Admi
 	if err != nil {
 		return nil, err
 	}
+	// 批量取套餐名（N+1 收敛：一次 IN 查询；已删除套餐名留空）
+	planIDs := make([]int64, 0, len(slices))
+	for _, r := range slices {
+		planIDs = append(planIDs, r.PlanID)
+	}
+	plans, err := m.repos.Plan.ListByIDs(m.db, planIDs)
+	if err != nil {
+		return nil, err
+	}
+	planNames := make(map[int64]string, len(plans))
+	for _, p := range plans {
+		planNames[p.ID] = p.Name
+	}
 	dist := make([]model.AdminStatPlanSlice, 0, len(slices))
 	for _, r := range slices {
-		name := ""
-		if p, err := m.repos.Plan.GetByID(m.db, r.PlanID); err == nil {
-			name = p.Name
-		}
-		dist = append(dist, model.AdminStatPlanSlice{PlanID: r.PlanID, PlanName: name, Users: r.Users})
+		dist = append(dist, model.AdminStatPlanSlice{PlanID: r.PlanID, PlanName: planNames[r.PlanID], Users: r.Users})
 	}
 	return &model.AdminStatUsersResp{Days: days, RegisterTrend: trend, PlanDistribution: dist}, nil
 }

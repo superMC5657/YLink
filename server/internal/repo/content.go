@@ -138,6 +138,16 @@ func (PlanRepo) GetByID(db *gorm.DB, id int64) (*model.Plan, error) {
 	return &p, nil
 }
 
+// ListByIDs 按 ID 集合批量查套餐（列表富化批量读，照 emailsOf 形状）。
+func (PlanRepo) ListByIDs(db *gorm.DB, ids []int64) ([]model.Plan, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	var list []model.Plan
+	err := db.Where("id IN ?", ids).Find(&list).Error
+	return list, err
+}
+
 // ServerRepo 节点数据访问。
 type ServerRepo struct{}
 

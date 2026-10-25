@@ -15,13 +15,14 @@ import (
 // 订单域 module：列表/关闭/退款 + 订阅收回。
 
 // ListOrders GET /admin/orders。
+// 富化全部走批量查询（邮箱 emailsOf / 佣金 ListByOrderNos / 套餐 ListByIDs），
+// 语句数不随页内行数增长。
 func (m *adminOrderModule) ListOrders(ctx context.Context, status *int, page, pageSize int) ([]model.AdminOrderItem, int64, error) {
 	list, total, err := m.repos.Order.ListByPage(m.db, status, page, pageSize)
 	if err != nil {
 		return nil, 0, err
 	}
 	emails := m.audit.emailsOf(userIDsOf(list))
-	planNames := map[int64]string{}
 	// 批量查佣金:order_no → amount(一个订单至多一条佣金记录,uniqueIndex)。
 	// 查询失败必须上抛,否则接口会以成功响应返回 commission_amount 全 null,
 	// 把数据缺失误表现为「无佣金」(review-0.5.0 P2)。
@@ -33,21 +34,31 @@ func (m *adminOrderModule) ListOrders(ctx context.Context, status *int, page, pa
 	for _, cl := range comms {
 		commissionByOrder[cl.OrderNo] = model.FenToYuan(cl.Amount)
 	}
+	// 批量查套餐名（N+1 收敛：先收集去重 ID，一次 IN 查询）
+	planIDs := make([]int64, 0, len(list))
+	seen := map[int64]struct{}{}
+	for _, o := range list {
+		if _, ok := seen[o.PlanID]; !ok {
+			seen[o.PlanID] = struct{}{}
+			planIDs = append(planIDs, o.PlanID)
+		}
+	}
+	plans, err := m.repos.Plan.ListByIDs(m.db, planIDs)
+	if err != nil {
+		return nil, 0, err
+	}
+	planNames := make(map[int64]string, len(plans))
+	for _, p := range plans {
+		planNames[p.ID] = p.Name
+	}
 	out := make([]model.AdminOrderItem, 0, len(list))
 	for _, o := range list {
-		name, ok := planNames[o.PlanID]
-		if !ok {
-			if p, err := m.repos.Plan.GetByID(m.db, o.PlanID); err == nil {
-				name = p.Name
-				planNames[o.PlanID] = name
-			}
-		}
 		var commission *float64
 		if v, has := commissionByOrder[o.OrderNo]; has {
 			commission = &v
 		}
 		out = append(out, model.AdminOrderItem{
-			OrderNo: o.OrderNo, UserID: o.UserID, UserEmail: emails[o.UserID], PlanName: name,
+			OrderNo: o.OrderNo, UserID: o.UserID, UserEmail: emails[o.UserID], PlanName: planNames[o.PlanID],
 			Period: o.Period, Amount: model.FenToYuan(o.Amount), DiscountAmount: model.FenToYuan(o.DiscountAmount),
 			BalanceUsed: model.FenToYuan(o.BalanceUsed), PayAmount: model.FenToYuan(o.PayAmount),
 			CommissionAmount: commission,

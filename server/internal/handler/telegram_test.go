@@ -7,7 +7,9 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/alicebob/miniredis/v2"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/postgres"
@@ -30,11 +32,14 @@ func newTelegramHandler(t *testing.T) (*Telegram, sqlmock.Sqlmock) {
 	require.NoError(t, err)
 	db, err := gorm.Open(postgres.New(postgres.Config{Conn: sqlDB, PreferSimpleProtocol: true}), &gorm.Config{})
 	require.NoError(t, err)
-	svc := service.NewTelegramService(db, nil, &repo.Repos{}, &config.Config{App: config.AppConfig{Name: "YLink"}})
+	// settings 经 SettingService 60s 缓存读取，需要真实（mini）Redis 客户端
+	mr := miniredis.RunT(t)
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	svc := service.NewTelegramService(db, rdb, &repo.Repos{}, &config.Config{App: config.AppConfig{Name: "YLink"}}, nil)
 	return NewTelegram(svc), mock
 }
 
-// expectSettingsRows 预置 n 次 settings 读取（secret 预检一次 + Webhook 内部一次）。
+// expectSettingsRows 预置 n 次 settings 读取（缓存未命中时查库一次，命中不查）。
 func expectSettingsRows(mock sqlmock.Sqlmock, n int, raw string) {
 	for i := 0; i < n; i++ {
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT "value" FROM "settings"`)).
@@ -97,10 +102,10 @@ func TestWebhookValidSecretBadJSONStillOK(t *testing.T) {
 }
 
 // 正确 secret + 合法更新（空 text，无命令分支）→ 200，不外呼 bot API。
-// settings 读取共 2 次：handler 预检一次、Webhook 内部一次。
+// settings 仅查库 1 次：handler 预检装入 60s 缓存，Webhook 内部读取命中缓存。
 func TestWebhookValidSecretValidBodyOK(t *testing.T) {
 	h, mock := newTelegramHandler(t)
-	expectSettingsRows(mock, 2, tgWebhookSettings)
+	expectSettingsRows(mock, 1, tgWebhookSettings)
 	w := callWebhook(h, "s3cret", `{"message":{"chat":{"id":1},"text":""}}`)
 	assert.Equal(t, 200, w.Code)
 	assert.Equal(t, "ok", w.Body.String())

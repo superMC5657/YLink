@@ -46,13 +46,17 @@ type TelegramService struct {
 	rdb   *redis.Client
 	repos *repo.Repos
 	cfg   *config.Config
+	set   *SettingService
 	http  *http.Client
 	// sendFn 可替换的 sendMessage 实现（测试注入，避免单测外呼真实 API）。
 	sendFn func(ctx context.Context, botToken string, chatID int64, text string) error
 }
 
-func NewTelegramService(db *gorm.DB, rdb *redis.Client, repos *repo.Repos, cfg *config.Config) *TelegramService {
-	return &TelegramService{db: db, rdb: rdb, repos: repos, cfg: cfg, http: &http.Client{Timeout: tgHTTPTimeout}}
+func NewTelegramService(db *gorm.DB, rdb *redis.Client, repos *repo.Repos, cfg *config.Config, set *SettingService) *TelegramService {
+	if set == nil {
+		set = NewSettingService(db, rdb, repos)
+	}
+	return &TelegramService{db: db, rdb: rdb, repos: repos, cfg: cfg, set: set, http: &http.Client{Timeout: tgHTTPTimeout}}
 }
 
 // doSend 发送前分流：测试注入 sendFn 时走注入实现。
@@ -63,11 +67,11 @@ func (s *TelegramService) doSend(ctx context.Context, botToken string, chatID in
 	return s.send(ctx, botToken, chatID, text)
 }
 
+// settings telegram 配置唯一读取口：经 SettingService 60s 缓存
+// （收敛前直读 DB，每条 webhook/绑定/通知都打一次库）。
 func (s *TelegramService) settings(ctx context.Context) telegramSettings {
 	var st telegramSettings
-	if raw, err := s.repos.Setting.Get(s.db, "telegram"); err == nil {
-		_ = json.Unmarshal([]byte(raw), &st)
-	}
+	_ = s.set.GetJSON(ctx, "telegram", &st)
 	return st
 }
 
@@ -270,6 +274,8 @@ func (s *TelegramService) SetupTelegramWebhook(ctx context.Context, adminID int6
 		if err := s.repos.Setting.Set(s.db, "telegram", string(raw)); err != nil {
 			return nil, err
 		}
+		// 写后失效缓存：否则 60s 内 webhook 校验仍读到空 secret
+		s.set.Invalidate(ctx, "telegram")
 	}
 	webhookURL := strings.TrimSuffix(s.cfg.App.BaseURL, "/") + tgWebhookAPIPath
 	payload, _ := json.Marshal(map[string]any{

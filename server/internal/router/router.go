@@ -110,7 +110,7 @@ func newApp(d Deps) *app {
 	ticketSvc := service.NewTicketService(d.DB, repos)
 	adminSeams := service.NewAdminSeams(d.DB, d.Redis, repos, d.Cfg, settingSvc, d.Mailer)
 	nodeSvc := service.NewNodeService(d.DB, d.Redis, repos)
-	tgSvc := service.NewTelegramService(d.DB, d.Redis, repos, d.Cfg)
+	tgSvc := service.NewTelegramService(d.DB, d.Redis, repos, d.Cfg, settingSvc)
 	return &app{
 		repos:      repos,
 		authSvc:    authSvc,

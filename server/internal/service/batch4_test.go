@@ -131,7 +131,7 @@ func (e *testEnv) expectSettings(raw string) {
 
 func newTgSvc(t *testing.T, e *testEnv) *TelegramService {
 	t.Helper()
-	return NewTelegramService(e.db, e.rdb, &repo.Repos{}, &config.Config{App: config.AppConfig{Name: "YLink"}})
+	return NewTelegramService(e.db, e.rdb, &repo.Repos{}, &config.Config{App: config.AppConfig{Name: "YLink"}}, nil)
 }
 
 // 未启用（settings 缺失）→ 拒绝签发验证码。
@@ -161,8 +161,7 @@ func TestTelegramBindCodeFlow(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "1", val)
 
-	// 重发间隔内第二次 → 429
-	e.expectSettings(tgSettingsJSON)
+	// 重发间隔内第二次 → 429（settings 已缓存，不再查库）
 	_, err = svc.BindCode(context.Background(), 1)
 	assert.Equal(t, 42900, codeOf(err))
 }

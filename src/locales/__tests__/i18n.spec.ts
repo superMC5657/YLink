@@ -51,4 +51,12 @@ describe('i18n 消息可编译', () => {
       expect(broken).toEqual([])
     })
   }
+
+  it('zh-CN 与 en-US 键树齐平(递归形状一致)', () => {
+    // 两份语言包必须同构:任一侧新增/删除键而另一侧未跟及时在此红,
+    // 防止语言切换后出现 missing 翻译回退
+    const zh = leafKeys(zhCN as MsgTree).sort()
+    const en = leafKeys(enUS as MsgTree).sort()
+    expect(en).toEqual(zh)
+  })
 })

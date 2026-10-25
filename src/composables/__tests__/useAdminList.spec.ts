@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { reportBatchResult, useAdminList } from '../useAdminList'
+import { useAdminList } from '../useAdminList'
 import type { PageResult } from '@/types/api'
 
 interface Row {
@@ -216,12 +216,5 @@ describe('useAdminList', () => {
   it('reportBatch 无 notify 为空操作', () => {
     const { reportBatch } = useAdminList<Row, Record<string, unknown>>({ fetch: vi.fn() })
     expect(() => reportBatch('t', { success: 1, failed: [] })).not.toThrow()
-  })
-
-  it('reportBatchResult 纯函数同形', () => {
-    const notify = { success: vi.fn(), warning: vi.fn() }
-    reportBatchResult(notify, 't', { success: 1, failed: [] }, '败')
-    expect(notify.success).toHaveBeenCalledWith('t: 1')
-    reportBatchResult(undefined, 't', { success: 1, failed: [] }, '败')
   })
 })

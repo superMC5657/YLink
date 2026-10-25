@@ -6,7 +6,6 @@ import type {
   PageResult,
   Ticket,
   TicketDetail,
-  TicketLevel,
   TicketReplyReq,
 } from '@/types/api'
 
@@ -90,9 +89,6 @@ export const useTicketStore = defineStore('ticket', {
         this.detail.reopen_count = updated.reopen_count
       }
       return updated
-    },
-    levelOf(t: Ticket | TicketDetail): TicketLevel {
-      return t.level
     },
   },
 })

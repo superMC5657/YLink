@@ -93,6 +93,3 @@ export const ADMIN_NAV_GROUPS: NavGroup[] = [
     ],
   },
 ]
-
-/** 展开导航所有路径,供路由激活匹配 */
-export const ALL_NAV_PATHS = NAV_GROUPS.flatMap((g) => g.items.map((i) => i.path))

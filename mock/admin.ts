@@ -2,6 +2,7 @@ import type { MockMethod } from 'vite-plugin-mock'
 import { verifyAdmin } from './auth'
 import { AdminSkeletons } from './admin.skeletons.generated'
 import { forbidden, ok, paged } from './_envelope'
+import { batchAuditTarget } from '../src/utils/adminList'
 
 // 管理端 Mock(契约 owner:server/internal/model/dto_admin.go + docs/api/README.md §16,
 // 决策见 ADR-002);vite-plugin-mock 按文件独立编译,模块级状态不跨文件共享,
@@ -174,7 +175,7 @@ const auditLogs = [
     admin_id: 1,
     admin_email: 'admin@example.com',
     action: 'traffic_reset',
-    target: 'batch:2',
+    target: batchAuditTarget(2),
     target_kind: 'users',
     target_display: 'alice@example.com, bob@example.com',
     detail: '{"mode":"clear_usage","success":2,"failed":0}',

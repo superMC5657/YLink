@@ -210,8 +210,8 @@ export function useAdminList<TItem, TQuery extends Record<string, unknown>>(
   }
 }
 
-/** 批量结果汇总提示:成功 n,失败列出原因(与收敛前两处文案同形) */
-export function reportBatchResult(
+/** 批量结果汇总提示:成功 n,失败列出原因(仅模块内经 reportBatch 使用) */
+function reportBatchResult(
   message: AdminListNotifier | undefined,
   title: string,
   resp: AdminBatchResult,

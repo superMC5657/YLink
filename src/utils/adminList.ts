@@ -61,7 +61,8 @@ export function withPageAudit<
 
 /**
  * 审计 target 摘要同形:批量动作 target 只存 `batch:<count>`(见 CONTEXT),
- * 完整 ID 列表进 detail JSON。mock 与前端拼摘要处经此一处。
+ * 完整 ID 列表进 detail JSON。前端无写入点,唯一消费方为 mock 演示数据
+ * (mock/admin.ts 审计日志条目),格式以此处为单源。
  */
 export function batchAuditTarget(count: number): string {
   return `batch:${count}`

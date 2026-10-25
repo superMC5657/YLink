@@ -25,6 +25,9 @@ stop_pid() {
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SERVER="$ROOT/server"
 RUN_DIR="$ROOT/.dev"
+# 镜像预拉函数与 dev-docker.sh 共用(scripts/lib/ensure-image.sh)
+# shellcheck source=scripts/lib/ensure-image.sh
+source "$ROOT/scripts/lib/ensure-image.sh"
 # 基础设施变量统一从 server/.env.dev 读取(与 docker-compose.yml 插值同源,compose 用 --env-file 显式指定);
 # .env.dev 缺失时用默认值兜底,保证脚本可运行。
 # 注意:.env.dev 含真实密钥已被 gitignore,模板见 server/.env.example(cp .env.example .env.dev)。
@@ -88,16 +91,6 @@ fi
 # ---------- 1. 基础设施(PostgreSQL/Redis 容器) ----------
 say "[1/4] 检查 Docker 与基础设施容器..."
 docker info >/dev/null 2>&1 || { echo "错误:Docker daemon 未运行,请先启动 Docker Desktop"; exit 1; }
-
-ensure_image() {
-  # 本地无镜像时优先走 daoCloud 加速源(直连 Docker Hub 常超时),再 tag 回标准名
-  local name="$1"
-  if ! docker image inspect "$name" >/dev/null 2>&1; then
-    echo "  拉取镜像 $name(经 daoCloud 加速)..."
-    docker pull "docker.m.daocloud.io/library/$name"
-    docker tag "docker.m.daocloud.io/library/$name" "$name"
-  fi
-}
 
 # 旧版 dev.sh 用 docker run 直接建容器(无 compose 标签),与 compose 编排不兼容;检测到则提示清理
 if docker inspect yl-backend-postgres >/dev/null 2>&1 || docker inspect yl-backend-redis >/dev/null 2>&1; then

@@ -8,14 +8,7 @@ import type {
   TicketDetail,
 } from '../src/types/api'
 import dayjs from 'dayjs'
-
-function ok(data: unknown) {
-  return { code: 0, message: 'ok', data }
-}
-
-function unauthorized() {
-  return { code: 40100, message: '未登录或 token 失效', data: null }
-}
+import { ok, unauthorized } from './_envelope'
 
 // ---------- 邀请与佣金 ----------
 

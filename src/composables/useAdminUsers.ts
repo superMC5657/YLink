@@ -222,15 +222,8 @@ export function useAdminUsers() {
         subject: mailSubject.value,
         body: mailBody.value,
       })
-      if (resp.failed.length === 0) {
-        message.success(t('adminUsers.mailSent', { sent: resp.sent }))
-      } else {
-        const detail = resp.failed.map((f) => `#${f.id} ${f.reason}`).join('; ')
-        message.warning(
-          t('adminUsers.mailPartial', { sent: resp.sent, failed: resp.failed.length }) +
-            ` — ${detail}`,
-        )
-      }
+      // 汇总文案与其它批量动作同形(成功 n / 失败列明细),不再手拼
+      reportBatch(t('adminUsers.mailDone'), { success: resp.sent, failed: resp.failed })
       mailModal.value = false
       clearSelection()
     } finally {

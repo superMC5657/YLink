@@ -150,13 +150,7 @@ async function request<T>(method: string, url: string, opts: HttpOptions = {}): 
   }
   if (tokens?.accessToken) headers.Authorization = `Bearer ${tokens.accessToken}`
 
-  const queryStr = opts.query
-    ? '?' +
-      Object.entries(opts.query)
-        .filter(([, v]) => v !== undefined && v !== null && v !== '')
-        .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
-        .join('&')
-    : ''
+  const queryStr = buildQueryStr(opts.query)
 
   let resp: Response
   const fetcher = await resolveFetcher()
@@ -243,7 +237,7 @@ export const http = {
   delete: <T>(url: string, opts?: HttpOptions) => request<T>('DELETE', url, opts),
 }
 
-/** 拼接查询串(与 request 内部一致) */
+/** 拼接查询串(request 与 download 共用;空值/空集返回空串,不产生尾随 ?) */
 function buildQueryStr(query?: HttpOptions['query']): string {
   if (!query) return ''
   const pairs = Object.entries(query).filter(([, v]) => v !== undefined && v !== null && v !== '')

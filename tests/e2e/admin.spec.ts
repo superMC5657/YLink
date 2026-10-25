@@ -1,5 +1,4 @@
-import { expect, test } from './fixtures'
-import type { Page } from '@playwright/test'
+import { expect, loginAs, enterPortal, openAdminMenu, test } from './fixtures'
 
 /**
  * 角色区分 E2E(管理端/用户端分拆布局):
@@ -9,31 +8,8 @@ import type { Page } from '@playwright/test'
  * - 普通用户不可见管理入口,访问 /admin/* 进 403 页(守卫经 /user/profile 核实 role),
  *   /portal 保持重定向 /dashboard;普通 token 调 /admin 接口后端返回 40300。
  * Mock 管理员:admin@example.com / Admin@123456(见 mock/auth.ts)。
+ * loginAs/enterPortal/openAdminMenu 归 fixtures(与 withdraw.spec 共用)。
  */
-async function loginAs(page: Page, email: string, password: string) {
-  await page.goto('/#/login')
-  await page.getByPlaceholder('邮箱').fill(email)
-  await page.getByPlaceholder('密码').fill(password)
-  await page.locator('button', { hasText: '登录' }).first().click()
-  // 管理员登录落点:门户分流页(spec admin-console-split §3.4)
-  await expect(page).toHaveURL(/#\/portal/)
-}
-
-/** 从门户页进入指定端(entryText = 卡片标题) */
-async function enterPortal(page: Page, entryText: string, urlPattern: RegExp) {
-  await page.getByText(entryText).click()
-  await expect(page).toHaveURL(urlPattern)
-}
-
-/**
- * 进入管理端页面:desktop 侧边栏常驻直接点菜单;mobile(视口 < 768)菜单在抽屉里,先开抽屉。
- */
-async function openAdminMenu(page: Page, menuText: string) {
-  if ((page.viewportSize()?.width ?? 1440) < 768) {
-    await page.locator('header button').first().click()
-  }
-  await page.getByText(menuText).first().click()
-}
 
 test.describe('角色区分(管理员)', () => {
   test.use({ viewport: { width: 1440, height: 900 } })

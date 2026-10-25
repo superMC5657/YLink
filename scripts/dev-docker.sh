@@ -86,15 +86,9 @@ if [ "$(pg_env REDIS_PASSWORD)" != "$(pg_env APP_REDIS_PASSWORD)" ]; then
 fi
 docker info >/dev/null 2>&1 || { echo "错误:Docker daemon 未运行,请先启动 Docker Desktop"; exit 1; }
 
-ensure_image() {
-  # 本地无镜像时优先走 daoCloud 加速源(直连 Docker Hub 常超时),再 tag 回标准名
-  local name="$1"
-  if ! docker image inspect "$name" >/dev/null 2>&1; then
-    echo "  拉取镜像 $name(经 daoCloud 加速)..."
-    docker pull "docker.m.daocloud.io/library/$name"
-    docker tag "docker.m.daocloud.io/library/$name" "$name"
-  fi
-}
+# 镜像预拉函数与 dev.sh 共用(scripts/lib/ensure-image.sh)
+# shellcheck source=scripts/lib/ensure-image.sh
+source "$ROOT/scripts/lib/ensure-image.sh"
 
 # ---------- 3. 预拉镜像(caddy/postgres/redis 运行镜像 + api/worker 构建基础镜像,避免 compose 构建/up 时直连 Docker Hub 超时) ----------
 say "[2/4] 预拉基础设施与构建基础镜像(daoCloud 加速)..."

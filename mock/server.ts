@@ -1,14 +1,7 @@
 import type { MockMethod } from 'vite-plugin-mock'
 import { verifyAccess } from './auth'
 import type { ServerListResp } from '../src/types/api'
-
-function ok(data: unknown) {
-  return { code: 0, message: 'ok', data }
-}
-
-function unauthorized() {
-  return { code: 40100, message: '未登录或 token 失效', data: null }
-}
+import { ok, unauthorized } from './_envelope'
 
 const servers: ServerListResp = {
   groups: [

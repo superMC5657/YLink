@@ -1,31 +1,12 @@
-import { expect, test } from './fixtures'
-import type { Page } from '@playwright/test'
+import { expect, loginAs, enterPortal, openAdminMenu, test } from './fixtures'
 
 /**
  * 提现/订阅关键路径 E2E(F02 提现闭环 + F10 订阅模板):
  * - 提交→审核→不可直接关单:全程行为断言(toast/按钮显隐/内容渲染),
  *   不直断 14003 错误码(死码断言)。
  * Mock 数据见 mock/business.ts(id=42 提现工单)与 mock/admin.ts(id=3 提现工单)。
+ * loginAs/enterPortal/openAdminMenu 归 fixtures(与 admin.spec 共用)。
  */
-async function loginAs(page: Page, email: string, password: string) {
-  await page.goto('/#/login')
-  await page.getByPlaceholder('邮箱').fill(email)
-  await page.getByPlaceholder('密码').fill(password)
-  await page.locator('button', { hasText: '登录' }).first().click()
-  await expect(page).toHaveURL(/#\/portal/)
-}
-
-async function enterPortal(page: Page, entryText: string, urlPattern: RegExp) {
-  await page.getByText(entryText).click()
-  await expect(page).toHaveURL(urlPattern)
-}
-
-async function openAdminMenu(page: Page, menuText: string) {
-  if ((page.viewportSize()?.width ?? 1440) < 768) {
-    await page.locator('header button').first().click()
-  }
-  await page.getByText(menuText).first().click()
-}
 
 test.describe('佣金提现(提交→审核→不可直接关单)', () => {
   test.use({ viewport: { width: 1440, height: 900 } })

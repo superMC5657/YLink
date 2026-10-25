@@ -1,15 +1,7 @@
 import type { MockMethod } from 'vite-plugin-mock'
 import { verifyAdmin } from './auth'
 import { AdminSkeletons } from './admin.skeletons.generated'
-
-function ok(data: unknown) {
-  return { code: 0, message: 'ok', data }
-}
-
-/** 非管理员调管理接口:与后端 RequireRole 一致返回 40300(而非 40100) */
-function forbidden() {
-  return { code: 40300, message: '无权限操作', data: null }
-}
+import { forbidden, ok, paged } from './_envelope'
 
 // 管理端 Mock(契约 owner:server/internal/model/dto_admin.go + docs/api/README.md §16,
 // 决策见 ADR-002);vite-plugin-mock 按文件独立编译,模块级状态不跨文件共享,
@@ -763,16 +755,6 @@ const settings = [
     }),
   },
 ]
-
-function paged<T>(list: T[], page: number, pageSize: number) {
-  const start = (page - 1) * pageSize
-  return {
-    list: list.slice(start, start + pageSize),
-    total: list.length,
-    page,
-    page_size: pageSize,
-  }
-}
 
 export default [
   {

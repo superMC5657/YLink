@@ -18,7 +18,7 @@
 | 接口文档 | swaggo/swag | 注解生成 Swagger，与契约文档互校验 |
 | 迁移 | golang-migrate | SQL 文件版本化迁移 |
 | 定时任务 | robfig/cron/v3 | 佣金确认、到期提醒、流量日结转 |
-| 邮件 | gomail（SMTP） | 验证码、到期/流量提醒 |
+| 邮件 | gomail（报文构建）+ net/smtp（自管传输，30s deadline） | 验证码、到期/流量提醒 |
 | 二维码 | skip2/go-qrcode | 支付二维码（若网关不返回图片） |
 | 测试 | testify + miniredis + go-sqlmock | 单测覆盖核心链路，测试数见 [progress.md](progress.md) |
 

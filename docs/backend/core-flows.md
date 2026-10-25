@@ -68,7 +68,7 @@ sequenceDiagram
 ### 2.3 关单与兜底
 
 - 订单 30 分钟未支付由 cron 关闭（status=2），关闭后不可再支付，需重新下单。
-- 回调丢失兜底：cron 每 10 分钟对「待支付 + 已创建 payment」的订单调 `Driver.Query` 主动查单，网关显示已支付则补走 MarkPaid。
+- 回调丢失兜底：cron 每 10 分钟对「待支付 + 已创建 payment」的订单调 `Driver.Query` 主动查单，网关显示已支付且返回金额与本地支付单一致（不一致拒绝入账并告警留人工对账）才补走 MarkPaid。
 - 前端任何「我已支付」声明都不被信任，以回调/查单为准。
 
 ## 3. 优惠券校验
@@ -142,7 +142,7 @@ sequenceDiagram
 | 任务 | 周期 | 内容 |
 |---|---|---|
 | close-expired-orders | 每 5 分钟 | 关闭 30 分钟未支付订单 |
-| reconcile-payments | 每 10 分钟 | 对待支付 payment 主动查单补账 |
+| reconcile-payments | 每 10 分钟 | 对待支付 payment 主动查单补账（网关金额与本地比对一致才入账） |
 | confirm-commissions | 每日 02:00 | 确认中佣金满 N 天转已发放并入 commission_balance |
 | expire-remind | 每日 10:00 | 到期前 3/1 天且开启提醒的用户发邮件 |
 | agent-audit | 每月 1 日 03:00 | 代理商有效人数复核降级 role=0 |

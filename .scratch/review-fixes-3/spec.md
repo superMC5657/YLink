@@ -83,7 +83,7 @@ README §3/launch-checklist/deploy/data-model/desktop-tauri 等全部陈旧描�
 
 零引用函数/字段/空壳结构体/pkg validate 整包删除（清单见 issue）。→ issues/19
 
-### [P3] 20 后端重复形状收敛
+### [P3] 20 后端重复形状收敛 ✅
 
 repo paginate helper、stdlib contains/min、settings 解析单源、sort helper 三合一、N+1 批查、service GORM 绕过回 repo、缓存旁路、审计失败记日志、魔法数字常量化。→ issues/20
 

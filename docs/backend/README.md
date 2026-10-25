@@ -101,7 +101,7 @@ type Driver interface {
     Name() string
     CreatePayment(ctx, p *Payment) (*CreateResult, error) // 返回跳转URL或二维码内容
     VerifyNotify(r *http.Request) (*NotifyResult, error)  // 验签+解析回调
-    Query(ctx, tradeNo string) (*QueryResult, error)      // 主动查单（兜底对账）
+    Query(ctx, tradeNo string) (*QueryResult, error)      // 主动查单（兜底对账）；QueryResult.Amount 为网关实收（分，0=未返回），查单入账前 service 与本地支付单金额比对，不一致拒绝入账
 }
 // 注册表：map[method_code]Driver，method_code 如 "epay_alipay" "epay_wxpay"
 ```

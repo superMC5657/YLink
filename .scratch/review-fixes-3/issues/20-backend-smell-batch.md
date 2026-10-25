@@ -1,6 +1,6 @@
 # [P3] 后端重复形状收敛与分层渗漏回收
 
-Status: ready-for-agent
+Status: resolved
 Type: task
 
 ## Finding
@@ -28,3 +28,11 @@ Type: task
 - Overview/订单列表 SQL 数量断言（sqlmock 期望语句数不随行数增长）。
 
 ## Comments
+
+- 2026-10-25: 已修复（5 commit 按组落地，`go build/vet/test ./...` 全绿 + `gofmt -l` 无输出）——
+  ①重复形状：repo 抽 `listPage` 收敛 11 处 Count+Order+Offset/Limit（含形状单测）；order_coupon 手写 contains/min 换 `slices.Contains`/内建 `min`；settings-JSON 整数项单 helper 单访问式 `SettingService.GetInt`（60s 缓存+默认值回退），commissionRateFor/codeLimit/agentPolicy/cronPolicy 五处收敛；SortNotices/Knowledges/Servers 三合一 `audit.sortBatch`；GB→bytes 入 `model.GBToBytes`。
+  ②分层渗漏：补 CouponRepo.ListAll/GetByID/UpdateMap、Notice/Knowledge.ListAll、Knowledge.RenameCategory、StatRepo.OverviewCounts（总览 8 查询组）、UserRepo.ClearTelegramID/BindTelegramID/ClearTelegramIDByChat、CommissionRepo.MarkWithdrawLogStatus，admin_crud/content_manage/stats/telegram/ticket_withdraw_lifecycle 全走注入 seam，零值 `(repo.X{}).Get` 消除；范围外残留直连点（cron 扫描/批量节点/审计富化/settings 整表读）加豁免注释（验收 grep 仅剩注释豁免点）。
+  ③缓存旁路：commissionRateFor 与 telegram settings() 走 SettingService 缓存路径（webhook/绑定/通知不再逐条打库；webhook secret 生成后 Invalidate），缓存缝测试断言语句数不随调用增长。
+  ④N+1：订单列表套餐名/代理申请有效邀请数/套餐分布报表改批量（PlanRepo.ListByIDs、UserRepo.CountValidInvitedBatch 一次 GROUP BY），sqlmock 精确语句数断言（订单 5 条/申请 4 条/总览 8 条，不随行数增长）。
+  ⑤杂项：工单状态/申请状态/消息发送方常量入 model 并全量替换；`rl:` key 走 redispkg.Key；middleware 角色常量删除（router 用 model.RoleAdmin）、gin context key 收敛 auth 常量；10 处 `_ = m.audit.write` 改 `audit.bestEffort`（失败记 Error 日志）；`payment.QueryResult` 补 `Amount`（epay 查单解析 money），cron 查单入账前与本地支付单金额比对、不一致拒绝入账并告警；resp.Bind 业务码取 errs.ErrParam.Code；adminTicketModule 自持 audit（不再 `m.withdraw.audit` 链式）；node rate≤0 回退 1 并告警（不再静默计费 0）；Report 受影响用户只留 SubToken 不拷全量 User；测试归位（TestSanitize→pkg/sanitize、下单券校验→order_service_test、TestServerListWithoutPlan→server_service_test、userRows 定义合一）。
+  契约同步：QueryResult.Amount 属后端 Go Driver 内部契约，未在 REST 面/前端类型暴露——已同步 docs/backend/README.md §6 与 core-flows.md §2.3/§9（docs/api/README.md 与 types/api.d.ts 无涉及，无需变更）。

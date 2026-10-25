@@ -92,11 +92,12 @@ func TestExpireWindowMatrix(t *testing.T) {
 
 func TestCronPolicyDefaults(t *testing.T) {
 	e := newTestEnv(t)
-	p := &cronPolicy{db: e.db, repos: &repo.Repos{}}
+	p := &cronPolicy{set: NewSettingService(e.db, e.rdb, &repo.Repos{})}
+	ctx := context.Background()
 	// settings 表无行 → 默认值（mock 返回 error）
 	e.mock.ExpectQuery("SELECT .* FROM \"settings\"").WillReturnError(assert.AnError)
-	assert.Equal(t, 30, p.orderExpireMinutes())
+	assert.Equal(t, 30, p.orderExpireMinutes(ctx))
 	e.mock.ExpectQuery("SELECT .* FROM \"settings\"").WillReturnError(assert.AnError)
-	assert.Equal(t, 3, p.commissionConfirmDays())
+	assert.Equal(t, 3, p.commissionConfirmDays(ctx))
 	require.NoError(t, e.mock.ExpectationsWereMet())
 }

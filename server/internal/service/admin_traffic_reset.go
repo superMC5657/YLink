@@ -70,7 +70,7 @@ func (m *adminTrafficModule) resetOneUserTraffic(adminID, userID int64, mode str
 			if err != nil {
 				return errs.ErrNotFound
 			}
-			afterTransfer = int64(plan.TrafficGB) * 1024 * 1024 * 1024
+			afterTransfer = model.GBToBytes(int64(plan.TrafficGB))
 			updates["transfer_enable"] = afterTransfer
 		}
 		if err := tx.Model(&model.User{}).Where("id = ?", userID).Updates(updates).Error; err != nil {

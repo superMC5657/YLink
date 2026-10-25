@@ -55,25 +55,35 @@ func (s *SettingService) Invalidate(ctx context.Context, key string) {
 	s.rdb.Del(ctx, redispkg.Key("cache", "settings", key))
 }
 
+// jsonIntOf settings-JSON 整数项解析唯一口：字段缺失/类型不符/解析失败/非正值
+// 一律回退默认值（收敛前 5 处各自「读 raw + Unmarshal + 回退」的两式访问）。
+func jsonIntOf(raw, field string, def int) int {
+	var m map[string]json.Number
+	if json.Unmarshal([]byte(raw), &m) != nil {
+		return def
+	}
+	v, err := m[field].Int64()
+	if err != nil || v <= 0 {
+		return def
+	}
+	return int(v)
+}
+
+// GetInt settings-JSON 整数项读取唯一口（Redis 60s 缓存 + 默认值回退）。
+// 读取失败（DB/Redis 异常）同样回退默认值，不阻断调用方主流程。
+func (s *SettingService) GetInt(ctx context.Context, key, field string, def int) int {
+	raw, err := s.GetString(ctx, key)
+	if err != nil {
+		return def
+	}
+	return jsonIntOf(raw, field, def)
+}
+
 // commissionRateFor 取佣金比例（代理商取 agent 比例；invite 配置缺失时回退默认值）。
 // order 下单与 invite 总览共用，避免两处重复实现。
-func commissionRateFor(db *gorm.DB, inviterRole int) int {
-	type inviteCfg struct {
-		CommissionRate      int `json:"commission_rate"`
-		AgentCommissionRate int `json:"agent_commission_rate"`
-	}
-	var cfg inviteCfg
-	if raw, err := (repo.SettingRepo{}).Get(db, "invite"); err == nil {
-		_ = json.Unmarshal([]byte(raw), &cfg)
-	}
-	if cfg.CommissionRate <= 0 {
-		cfg.CommissionRate = 40
-	}
-	if cfg.AgentCommissionRate <= 0 {
-		cfg.AgentCommissionRate = 50
-	}
+func commissionRateFor(ctx context.Context, set *SettingService, inviterRole int) int {
 	if inviterRole == model.RoleAgent {
-		return cfg.AgentCommissionRate
+		return set.GetInt(ctx, "invite", "agent_commission_rate", 50)
 	}
-	return cfg.CommissionRate
+	return set.GetInt(ctx, "invite", "commission_rate", 40)
 }

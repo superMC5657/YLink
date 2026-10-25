@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"slices"
 	"time"
 
 	"gorm.io/gorm"
@@ -73,19 +74,19 @@ func (m *orderTradeModule) scopeOf(c *model.Coupon) (planIDs []int64, periods []
 
 // planAllowed 套餐是否在券 scope 内（空=全部）。
 func (m *orderTradeModule) planAllowed(planIDs []int64, planID int64) bool {
-	return len(planIDs) == 0 || containsInt64(planIDs, planID)
+	return len(planIDs) == 0 || slices.Contains(planIDs, planID)
 }
 
 // periodAllowed 周期是否在券 scope 内（空=不限）。
 func (m *orderTradeModule) periodAllowed(periods []string, period string) bool {
-	return len(periods) == 0 || containsStr(periods, period)
+	return len(periods) == 0 || slices.Contains(periods, period)
 }
 
 // discountFor 券优惠唯一计算口：固定金额与百分比收敛一处并封顶。
 func (m *orderTradeModule) discountFor(c *model.Coupon, amount int64) int64 {
 	var discount int64
 	if c.Type == 1 { // 固定金额（Value 为分，直接与订单金额分比较）
-		discount = min64(c.Value, amount)
+		discount = min(c.Value, amount)
 	} else { // 百分比（Value 为「百分比×100」的分存储：10% 券存 1000 分 → /10000 还原百分比）
 		discount = amount * c.Value / 10000
 		if discount > amount {
@@ -268,29 +269,4 @@ func (s *OrderService) validateCoupon(db *gorm.DB, userID int64, code string, pl
 func releaseCoupon(db *gorm.DB, couponID, userID int64, orderNo string) error {
 	m := &orderTradeModule{db: db, repos: &repo.Repos{}, coupons: orderCouponRepoAdapter{repos: &repo.Repos{}}}
 	return m.release(db, couponID, userID, orderNo)
-}
-
-func containsInt64(list []int64, v int64) bool {
-	for _, x := range list {
-		if x == v {
-			return true
-		}
-	}
-	return false
-}
-
-func containsStr(list []string, v string) bool {
-	for _, x := range list {
-		if x == v {
-			return true
-		}
-	}
-	return false
-}
-
-func min64(a, b int64) int64 {
-	if a < b {
-		return a
-	}
-	return b
 }

@@ -105,13 +105,10 @@ func truncateServerName(name string) string {
 // SortServers F09 节点排序：按传入 items 更新 sort（前端按展示顺序生成），单事务 + 审计。
 func (m *adminNodeBatchModule) SortServers(ctx context.Context, adminID int64, items []model.AdminSortItem, ip string) error {
 	return repo.WithTx(m.db, func(tx *gorm.DB) error {
-		for _, it := range items {
-			if err := m.repos.Server.UpdateMap(tx, it.ID, map[string]any{"sort": it.Sort}); err != nil {
-				return err
-			}
-		}
-		return m.audit.write(tx, adminID, "sort_server", batchAuditTarget(len(items)), ip,
-			map[string]any{"count": len(items), "ids": sortItemIDs(items)})
+		return m.audit.sortBatch(tx, adminID, "sort_server", items, ip,
+			func(tx *gorm.DB, id int64, sort int) error {
+				return m.repos.Server.UpdateMap(tx, id, map[string]any{"sort": sort})
+			})
 	})
 }
 

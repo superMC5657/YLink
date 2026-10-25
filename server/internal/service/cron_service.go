@@ -24,13 +24,17 @@ type CronService struct {
 	rdb    *redis.Client
 	repos  *repo.Repos
 	cfg    *config.Config
+	set    *SettingService
 	mailer *mailer.Mailer
 	orders *OrderService
 	tg     *TelegramService
 }
 
-func NewCronService(db *gorm.DB, rdb *redis.Client, repos *repo.Repos, cfg *config.Config, m *mailer.Mailer, orders *OrderService, tg *TelegramService) *CronService {
-	return &CronService{db: db, rdb: rdb, repos: repos, cfg: cfg, mailer: m, orders: orders, tg: tg}
+func NewCronService(db *gorm.DB, rdb *redis.Client, repos *repo.Repos, cfg *config.Config, set *SettingService, m *mailer.Mailer, orders *OrderService, tg *TelegramService) *CronService {
+	if set == nil {
+		set = NewSettingService(db, rdb, repos)
+	}
+	return &CronService{db: db, rdb: rdb, repos: repos, cfg: cfg, set: set, mailer: m, orders: orders, tg: tg}
 }
 
 // WithLock 分布式锁包装：仅单实例执行任务。
@@ -43,7 +47,7 @@ func (s *CronService) WithLock(name string, fn func()) func() {
 // CloseExpiredOrders 关闭超时未支付订单（每 5 分钟）。
 // 关单窗口问策略 seam（order.expire_minutes，默认 30min）。
 func (s *CronService) CloseExpiredOrders(ctx context.Context) {
-	minutes := (&cronPolicy{db: s.db, repos: s.repos}).orderExpireMinutes()
+	minutes := (&cronPolicy{set: s.set}).orderExpireMinutes(ctx)
 	deadline := time.Now().Add(-time.Duration(minutes) * time.Minute)
 	orders, err := s.repos.Order.ListPendingBefore(s.db, deadline)
 	if err != nil {
@@ -121,7 +125,7 @@ func (s *CronService) ReconcilePayments(ctx context.Context) {
 // ConfirmCommissions 佣金确认：确认中满 N 天转已发放（每日 02:00）。
 // 确认窗口问策略 seam（invite.commission_confirm_days，默认 3d）。
 func (s *CronService) ConfirmCommissions(ctx context.Context) {
-	days := (&cronPolicy{db: s.db, repos: s.repos}).commissionConfirmDays()
+	days := (&cronPolicy{set: s.set}).commissionConfirmDays(ctx)
 	deadline := time.Now().Add(-time.Duration(days) * 24 * time.Hour)
 	list, err := s.repos.Commission.ListPendingConfirmBefore(s.db, deadline)
 	if err != nil {
@@ -221,7 +225,7 @@ func (s *CronService) TrafficDaily(ctx context.Context) {
 
 // AgentAudit 代理商月度复核（core-flows 第 5 节）：有效邀请人数不满足阈值 → 降级 role=0。
 func (s *CronService) AgentAudit(ctx context.Context) {
-	required, validDays := agentPolicy(s.db)
+	required, validDays := agentPolicy(ctx, s.set)
 	var agents []model.User
 	if err := s.db.Where("role = ?", model.RoleAgent).Find(&agents).Error; err != nil {
 		logger.L().Error("agent audit query", zapE(err))

@@ -46,10 +46,11 @@ func main() {
 	}
 
 	repos := &repo.Repos{}
-	orders := service.NewOrderService(db, rdb, repos, cfg, mailer.New(cfg.SMTP))
+	set := service.NewSettingService(db, rdb, repos)
+	orders := service.NewOrderService(db, rdb, repos, cfg, mailer.New(cfg.SMTP), set)
 	// F12：到期/流量提醒同步推送 Telegram（未配置 bot 时自动跳过，失败仅记日志）
 	tg := service.NewTelegramService(db, rdb, repos, cfg)
-	cronSvc := service.NewCronService(db, rdb, repos, cfg, mailer.New(cfg.SMTP), orders, tg)
+	cronSvc := service.NewCronService(db, rdb, repos, cfg, set, mailer.New(cfg.SMTP), orders, tg)
 
 	c := cron.New(cron.WithSeconds())
 

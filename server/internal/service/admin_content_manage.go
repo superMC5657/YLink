@@ -19,26 +19,20 @@ import (
 // SortNotices F15 公告排序：items 按 sort 值更新（前端按展示顺序生成），单事务 + 审计。
 func (m *adminContentModule) SortNotices(ctx context.Context, adminID int64, items []model.AdminSortItem, ip string) error {
 	return repo.WithTx(m.db, func(tx *gorm.DB) error {
-		for _, it := range items {
-			if err := m.repos.Notice.UpdateMap(tx, it.ID, map[string]any{"sort": it.Sort}); err != nil {
-				return err
-			}
-		}
-		return m.audit.write(tx, adminID, "sort_notice", batchAuditTarget(len(items)), ip,
-			map[string]any{"count": len(items), "ids": sortItemIDs(items)})
+		return m.audit.sortBatch(tx, adminID, "sort_notice", items, ip,
+			func(tx *gorm.DB, id int64, sort int) error {
+				return m.repos.Notice.UpdateMap(tx, id, map[string]any{"sort": sort})
+			})
 	})
 }
 
 // SortKnowledges F15 知识库排序：items 按 sort 值更新，单事务 + 审计。
 func (m *adminContentModule) SortKnowledges(ctx context.Context, adminID int64, items []model.AdminSortItem, ip string) error {
 	return repo.WithTx(m.db, func(tx *gorm.DB) error {
-		for _, it := range items {
-			if err := m.repos.Knowledge.UpdateMap(tx, it.ID, map[string]any{"sort": it.Sort}); err != nil {
-				return err
-			}
-		}
-		return m.audit.write(tx, adminID, "sort_knowledge", batchAuditTarget(len(items)), ip,
-			map[string]any{"count": len(items), "ids": sortItemIDs(items)})
+		return m.audit.sortBatch(tx, adminID, "sort_knowledge", items, ip,
+			func(tx *gorm.DB, id int64, sort int) error {
+				return m.repos.Knowledge.UpdateMap(tx, id, map[string]any{"sort": sort})
+			})
 	})
 }
 

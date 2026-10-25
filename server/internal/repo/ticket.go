@@ -22,14 +22,8 @@ func (TicketRepo) CreateMessage(db *gorm.DB, m *model.TicketMessage) error {
 }
 
 func (TicketRepo) ListByUser(db *gorm.DB, userID int64, page, pageSize int) ([]model.Ticket, int64, error) {
-	var list []model.Ticket
-	var total int64
 	q := db.Model(&model.Ticket{}).Where("user_id = ?", userID)
-	if err := q.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-	err := q.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
-	return list, total, err
+	return listPage[model.Ticket](q, page, pageSize, "")
 }
 
 func (TicketRepo) GetByIDAndUser(db *gorm.DB, id, userID int64) (*model.Ticket, error) {

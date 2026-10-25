@@ -54,6 +54,9 @@ const (
 // 订阅周期
 var Periods = []string{"month", "quarter", "half_year", "year", "onetime"}
 
+// GBToBytes 流量额度换算唯一口：GB（plans.traffic_gb）→ 字节（1GB = 1024^3）。
+func GBToBytes(gb int64) int64 { return gb * 1024 * 1024 * 1024 }
+
 // PeriodDuration 返回周期对应时长。
 func PeriodDuration(period string) time.Duration {
 	switch period {

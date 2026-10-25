@@ -114,7 +114,7 @@ func (s *OrderService) checkoutBalance(ctx context.Context, order *model.Order) 
 		if err := s.trade.apply(tx, locked); err != nil {
 			return err
 		}
-		return s.trade.grant(tx, locked, payAmount)
+		return s.trade.grant(ctx, tx, locked, payAmount)
 	})
 	if err != nil {
 		return nil, err
@@ -171,7 +171,7 @@ func (s *OrderService) HandleNotify(ctx context.Context, method string, nr *paym
 		if err := s.trade.apply(tx, order); err != nil {
 			return err
 		}
-		return s.trade.grant(tx, order, order.PayAmount)
+		return s.trade.grant(ctx, tx, order, order.PayAmount)
 	})
 	if err == nil {
 		middleware.PaySuccessInc(method)

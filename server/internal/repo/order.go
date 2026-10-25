@@ -52,17 +52,11 @@ func (OrderRepo) GetByIdempotencyKey(db *gorm.DB, key string, userID int64) (*mo
 
 // ListByUser 用户订单分页（status 可空）。
 func (OrderRepo) ListByUser(db *gorm.DB, userID int64, status *int, page, pageSize int) ([]model.Order, int64, error) {
-	var list []model.Order
-	var total int64
 	q := db.Model(&model.Order{}).Where("user_id = ?", userID)
 	if status != nil {
 		q = q.Where("status = ?", *status)
 	}
-	if err := q.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-	err := q.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
-	return list, total, err
+	return listPage[model.Order](q, page, pageSize, "")
 }
 
 func (OrderRepo) Save(db *gorm.DB, o *model.Order) error { return db.Save(o).Error }
@@ -240,27 +234,15 @@ func (CommissionRepo) ListByOrderNos(db *gorm.DB, orderNos []string) ([]model.Co
 }
 
 func (CommissionRepo) ListByInvite(db *gorm.DB, inviteUserID int64, page, pageSize int) ([]model.CommissionLog, int64, error) {
-	var list []model.CommissionLog
-	var total int64
 	q := db.Model(&model.CommissionLog{}).Where("invite_user_id = ?", inviteUserID)
-	if err := q.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-	err := q.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
-	return list, total, err
+	return listPage[model.CommissionLog](q, page, pageSize, "")
 }
 
 // ListByInviteStatus 佣金记录分页（按状态过滤，仅订单佣金；提现流水走 commission_withdraws 展示）。
 func (CommissionRepo) ListByInviteStatus(db *gorm.DB, inviteUserID int64, status int, page, pageSize int) ([]model.CommissionLog, int64, error) {
-	var list []model.CommissionLog
-	var total int64
 	q := db.Model(&model.CommissionLog{}).
 		Where("invite_user_id = ? AND status = ? AND biz_type = ?", inviteUserID, status, model.CommissionBizOrder)
-	if err := q.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-	err := q.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
-	return list, total, err
+	return listPage[model.CommissionLog](q, page, pageSize, "")
 }
 
 // SumAmount 佣金金额汇总（按状态，仅订单佣金；提现流水计入会虚增累计佣金）。
@@ -311,12 +293,6 @@ func (WithdrawRepo) GetByTicketIDForUpdate(db *gorm.DB, ticketID int64) (*model.
 
 // ListByUser 用户本人提现记录分页。
 func (WithdrawRepo) ListByUser(db *gorm.DB, userID int64, page, pageSize int) ([]model.CommissionWithdraw, int64, error) {
-	var list []model.CommissionWithdraw
-	var total int64
 	q := db.Model(&model.CommissionWithdraw{}).Where("user_id = ?", userID)
-	if err := q.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-	err := q.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
-	return list, total, err
+	return listPage[model.CommissionWithdraw](q, page, pageSize, "")
 }

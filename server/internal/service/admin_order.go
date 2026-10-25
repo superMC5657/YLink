@@ -169,7 +169,7 @@ func (m *adminOrderModule) revokeSubscriptionOnRefund(tx *gorm.DB, order *model.
 	if err != nil {
 		return err
 	}
-	trafficBytes := int64(plan.TrafficGB) * 1024 * 1024 * 1024
+	trafficBytes := model.GBToBytes(int64(plan.TrafficGB))
 
 	if order.Period == "onetime" {
 		// 一次性流量包：扣回本次流量

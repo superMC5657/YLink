@@ -54,7 +54,7 @@ func newOrderEnv(t *testing.T) (*testEnv, *OrderService) {
 	e := newTestEnv(t)
 	cfg := &config.Config{}
 	cfg.App.BaseURL = "https://api.example.com"
-	svc := NewOrderService(e.db, e.rdb, &repo.Repos{}, cfg, nil)
+	svc := NewOrderService(e.db, e.rdb, &repo.Repos{}, cfg, nil, nil)
 	return e, svc
 }
 
@@ -418,7 +418,7 @@ func TestGrantCommissionBalanceSkipped(t *testing.T) {
 	e, svc := newOrderEnv(t)
 	pm := "balance"
 	o := &model.Order{OrderNo: "O1", UserID: 7, PayMethod: &pm}
-	err := svc.grantCommission(e.db, o, 1000)
+	err := svc.grantCommission(context.Background(), e.db, o, 1000)
 	require.NoError(t, err)
 	require.NoError(t, e.mock.ExpectationsWereMet(), "余额支付不应产生任何 DB 查询(不写佣金)")
 }

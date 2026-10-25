@@ -41,6 +41,20 @@ func sortItemIDs(items []model.AdminSortItem) []int64 {
 	return ids
 }
 
+// sortBatch 排序批量更新唯一形状（公告/知识/节点三处收敛）：事务内逐项更新 sort +
+// 单条审计（target 摘要 batch:<count>，完整 ID 列表留痕 detail）。
+// update 由调用方绑定到对应仓储的 sort 列更新。
+func (m *adminAuditModule) sortBatch(tx *gorm.DB, adminID int64, action string, items []model.AdminSortItem, ip string,
+	update func(tx *gorm.DB, id int64, sort int) error) error {
+	for _, it := range items {
+		if err := update(tx, it.ID, it.Sort); err != nil {
+			return err
+		}
+	}
+	return m.write(tx, adminID, action, batchAuditTarget(len(items)), ip,
+		map[string]any{"count": len(items), "ids": sortItemIDs(items)})
+}
+
 // write 写审计日志（各域 module 经由 seam 复用）。
 func (m *adminAuditModule) write(tx *gorm.DB, adminID int64, action, target, ip string, detail any) error {
 	var detailStr *string

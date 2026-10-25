@@ -11,14 +11,8 @@ type NoticeRepo struct{}
 
 // ListByPage 上架公告分页（sort 升序优先，同序值按创建时间倒序；F15 排序即时生效）。
 func (NoticeRepo) ListByPage(db *gorm.DB, page, pageSize int) ([]model.Notice, int64, error) {
-	var list []model.Notice
-	var total int64
 	q := db.Model(&model.Notice{}).Where("is_show = true")
-	if err := q.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-	err := q.Order("sort ASC, created_at DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
-	return list, total, err
+	return listPage[model.Notice](q, page, pageSize, "sort ASC, created_at DESC")
 }
 
 // KnowledgeRepo 知识库数据访问。

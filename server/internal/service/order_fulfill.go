@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"time"
 
 	"gorm.io/gorm"
@@ -32,7 +33,7 @@ func (m *orderTradeModule) apply(tx *gorm.DB, order *model.Order) error {
 	if err != nil {
 		return err
 	}
-	trafficBytes := int64(plan.TrafficGB) * 1024 * 1024 * 1024
+	trafficBytes := model.GBToBytes(int64(plan.TrafficGB))
 	now := time.Now()
 
 	if order.Period == "onetime" {
@@ -69,7 +70,8 @@ func (m *orderTradeModule) apply(tx *gorm.DB, order *model.Order) error {
 // grant 佣金唯一口：下单支付后写佣金（确认中）。payAmount 为实际支付金额（余额支付为扣减前的应付额）。
 // 余额支付不产生佣金（2026-08-12 需求变更）：仅在线渠道写佣金。
 // 邀请人缺失不上抛（返回 nil 不阻塞支付主流程）；佣金缺失上抛语义由上层保持。
-func (m *orderTradeModule) grant(tx *gorm.DB, order *model.Order, payAmount int64) error {
+// 佣金比例经 SettingService 缓存读取（不在订单事务连接上直查 settings）。
+func (m *orderTradeModule) grant(ctx context.Context, tx *gorm.DB, order *model.Order, payAmount int64) error {
 	if !m.commissionEligible(order.PayMethod) {
 		return nil
 	}
@@ -84,7 +86,7 @@ func (m *orderTradeModule) grant(tx *gorm.DB, order *model.Order, payAmount int6
 	if err != nil {
 		return nil // 邀请人异常不阻塞支付
 	}
-	rate := commissionRateFor(tx, inviter.Role)
+	rate := commissionRateFor(ctx, m.set, inviter.Role)
 	amount := payAmount * int64(rate) / 100
 	if amount <= 0 {
 		return nil
@@ -106,6 +108,6 @@ func (s *OrderService) applySubscription(tx *gorm.DB, order *model.Order) error 
 }
 
 // grantCommission 存量薄 wrapper，实现收敛于 trade module。
-func (s *OrderService) grantCommission(tx *gorm.DB, order *model.Order, payAmount int64) error {
-	return s.trade.grant(tx, order, payAmount)
+func (s *OrderService) grantCommission(ctx context.Context, tx *gorm.DB, order *model.Order, payAmount int64) error {
+	return s.trade.grant(ctx, tx, order, payAmount)
 }

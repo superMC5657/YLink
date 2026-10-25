@@ -30,15 +30,19 @@ type OrderService struct {
 	repos  *repo.Repos
 	cfg    *config.Config
 	mailer *mailer.Mailer
+	set    *SettingService
 	trade  *orderTradeModule
 }
 
-func NewOrderService(db *gorm.DB, rdb *redis.Client, repos *repo.Repos, cfg *config.Config, mail *mailer.Mailer) *OrderService {
+func NewOrderService(db *gorm.DB, rdb *redis.Client, repos *repo.Repos, cfg *config.Config, mail *mailer.Mailer, set *SettingService) *OrderService {
 	if repos == nil {
 		repos = &repo.Repos{}
 	}
-	s := &OrderService{db: db, rdb: rdb, repos: repos, cfg: cfg, mailer: mail}
-	s.trade = &orderTradeModule{db: db, repos: repos, coupons: orderCouponRepoAdapter{repos: repos}}
+	if set == nil {
+		set = NewSettingService(db, rdb, repos)
+	}
+	s := &OrderService{db: db, rdb: rdb, repos: repos, cfg: cfg, mailer: mail, set: set}
+	s.trade = &orderTradeModule{db: db, repos: repos, coupons: orderCouponRepoAdapter{repos: repos}, set: set}
 	return s
 }
 
@@ -48,6 +52,7 @@ type orderTradeModule struct {
 	db      *gorm.DB
 	repos   *repo.Repos
 	coupons orderCouponSeam
+	set     *SettingService
 }
 
 // orderCouponSeam 券仓储窄 seam：trade module 依赖的唯一券读写口，经由 adapter 注入。

@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"crypto/rand"
-	"encoding/json"
 	"fmt"
 	"math/big"
 
@@ -22,10 +21,14 @@ type InviteService struct {
 	rdb   *redis.Client
 	repos *repo.Repos
 	cfg   *config.Config
+	set   *SettingService
 }
 
-func NewInviteService(db *gorm.DB, rdb *redis.Client, repos *repo.Repos, cfg *config.Config) *InviteService {
-	return &InviteService{db: db, rdb: rdb, repos: repos, cfg: cfg}
+func NewInviteService(db *gorm.DB, rdb *redis.Client, repos *repo.Repos, cfg *config.Config, set *SettingService) *InviteService {
+	if set == nil {
+		set = NewSettingService(db, rdb, repos)
+	}
+	return &InviteService{db: db, rdb: rdb, repos: repos, cfg: cfg, set: set}
 }
 
 // ---- 邀请总览 ----
@@ -50,25 +53,16 @@ func (s *InviteService) Summary(ctx context.Context, userID int64) (*model.Invit
 	}
 	return &model.InviteSummaryResp{
 		CommissionBalance: model.FenToYuan(user.CommissionBalance),
-		CommissionRate:    commissionRateFor(s.db, user.Role),
+		CommissionRate:    commissionRateFor(ctx, s.set, user.Role),
 		RegisteredCount:   registered,
 		TotalCommission:   model.FenToYuan(total),
 		PendingCommission: model.FenToYuan(pending),
 	}, nil
 }
 
-func (s *InviteService) codeLimit() int {
-	type inviteCfg struct {
-		InviteCodeLimit int `json:"invite_code_limit"`
-	}
-	var cfg inviteCfg
-	if raw, err := s.repos.Setting.Get(s.db, "invite"); err == nil {
-		_ = json.Unmarshal([]byte(raw), &cfg)
-	}
-	if cfg.InviteCodeLimit <= 0 {
-		return 5
-	}
-	return cfg.InviteCodeLimit
+// codeLimit 邀请码数量上限（invite.invite_code_limit，缺省 5）。
+func (s *InviteService) codeLimit(ctx context.Context) int {
+	return s.set.GetInt(ctx, "invite", "invite_code_limit", 5)
 }
 
 // ---- 邀请码 ----
@@ -87,7 +81,7 @@ func (s *InviteService) Codes(ctx context.Context, userID int64) (*model.InviteC
 	// 完整链接由前端按当前页面 origin 拼接(effectiveRegisterUrlPrefix),本字段仅供契约/占位。
 	return &model.InviteCodesResp{
 		List:              items,
-		Limit:             s.codeLimit(),
+		Limit:             s.codeLimit(ctx),
 		RegisterURLPrefix: "/#/register?code=",
 	}, nil
 }
@@ -98,7 +92,7 @@ func (s *InviteService) CreateCode(ctx context.Context, userID int64) (*model.In
 	if err != nil {
 		return nil, err
 	}
-	if count >= int64(s.codeLimit()) {
+	if count >= int64(s.codeLimit(ctx)) {
 		return nil, errs.ErrInviteMax
 	}
 	code, err := randomInviteCode()
@@ -262,7 +256,7 @@ func (s *InviteService) AgentStatus(ctx context.Context, userID int64) (*model.A
 	if err != nil {
 		return nil, errs.ErrNotFound
 	}
-	required, validDays := agentPolicy(s.db)
+	required, validDays := agentPolicy(ctx, s.set)
 	valid, err := s.repos.User.CountValidInvited(s.db, userID, validDays)
 	if err != nil {
 		return nil, err
@@ -295,30 +289,17 @@ func (s *InviteService) AgentStatus(ctx context.Context, userID int64) (*model.A
 	}, nil
 }
 
-// agentPolicy 读取代理商策略：required_valid_invites（默认 50）与 valid_invite_days（默认 3 天）。
-func agentPolicy(db *gorm.DB) (required, validDays int) {
-	required = 50
-	validDays = 3
-	type agentCfg struct {
-		RequiredValidInvites int `json:"required_valid_invites"`
-		ValidInviteDays      int `json:"valid_invite_days"`
-	}
-	var cfg agentCfg
-	if raw, err := (repo.SettingRepo{}).Get(db, "agent"); err == nil {
-		_ = json.Unmarshal([]byte(raw), &cfg)
-	}
-	if cfg.RequiredValidInvites > 0 {
-		required = cfg.RequiredValidInvites
-	}
-	if cfg.ValidInviteDays > 0 {
-		validDays = cfg.ValidInviteDays
-	}
+// agentPolicy 代理商策略唯一读取口：required_valid_invites（默认 50）与
+// valid_invite_days（默认 3 天），经 SettingService 缓存读取。
+func agentPolicy(ctx context.Context, set *SettingService) (required, validDays int) {
+	required = set.GetInt(ctx, "agent", "required_valid_invites", 50)
+	validDays = set.GetInt(ctx, "agent", "valid_invite_days", 3)
 	return
 }
 
 // ApplyAgent POST /agent/apply。
 func (s *InviteService) ApplyAgent(ctx context.Context, userID int64) (string, error) {
-	required, validDays := agentPolicy(s.db)
+	required, validDays := agentPolicy(ctx, s.set)
 	valid, err := s.repos.User.CountValidInvited(s.db, userID, validDays)
 	if err != nil {
 		return "", err

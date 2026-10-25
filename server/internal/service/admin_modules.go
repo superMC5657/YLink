@@ -52,6 +52,7 @@ type adminAgentModule struct {
 	db    *gorm.DB
 	rdb   *redis.Client
 	repos *repo.Repos
+	set   *SettingService
 	audit *adminAuditModule
 }
 
@@ -156,7 +157,7 @@ func NewAdminSeams(db *gorm.DB, rdb *redis.Client, repos *repo.Repos, cfg *confi
 	k := newAdminKernel(db, rdb, repos, cfg, set, ml)
 	audit := &adminAuditModule{db: k.db, repos: k.repos}
 	user := &adminUserModule{db: k.db, rdb: k.rdb, repos: k.repos, cfg: k.cfg, ml: k.ml, audit: audit}
-	agent := &adminAgentModule{db: k.db, rdb: k.rdb, repos: k.repos, audit: audit}
+	agent := &adminAgentModule{db: k.db, rdb: k.rdb, repos: k.repos, set: k.set, audit: audit}
 	order := &adminOrderModule{db: k.db, repos: k.repos, audit: audit}
 	catalog := &adminCatalogModule{db: k.db, rdb: k.rdb, repos: k.repos}
 	content := &adminContentModule{db: k.db, repos: k.repos, cfg: k.cfg, ml: k.ml, audit: audit}

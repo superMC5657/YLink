@@ -26,7 +26,7 @@ func (m *adminAgentModule) ListAgentApplies(ctx context.Context, status int, pag
 		ids = append(ids, a.UserID)
 	}
 	emails := m.audit.emailsOf(ids)
-	_, validDays := agentPolicy(m.db)
+	_, validDays := agentPolicy(ctx, m.set)
 	validCounts := map[int64]int64{}
 	for _, uid := range ids {
 		if n, err := m.repos.User.CountValidInvited(m.db, uid, validDays); err == nil {

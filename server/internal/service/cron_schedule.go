@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -17,7 +16,6 @@ import (
 	"ylink-backend/internal/pkg/logger"
 	"ylink-backend/internal/pkg/mailer"
 	redispkg "ylink-backend/internal/pkg/redis"
-	"ylink-backend/internal/repo"
 )
 
 // Cron 调度深 Module：时机（分布式锁 + 跳过语义）/ 策略（窗口数字唯一 owner）/
@@ -94,40 +92,20 @@ func (g *cronGuard) release(ctx context.Context, key, token string) {
 
 // ---- 策略：窗口数字唯一 owner ----
 
-// cronPolicy 策略 seam：settings-JSON 只在此解析，fallback 默认值只在此声明。
+// cronPolicy 策略 seam：settings-JSON 只经 SettingService.GetInt 读取
+// （60s 缓存），fallback 默认值只在此声明。
 type cronPolicy struct {
-	db    *gorm.DB
-	repos *repo.Repos
+	set *SettingService
 }
 
 // orderExpireMinutes 关单窗口（分）：order.expire_minutes，缺失/非法回退 30。
-func (p *cronPolicy) orderExpireMinutes() int {
-	minutes := 30
-	type orderCfg struct {
-		ExpireMinutes int `json:"expire_minutes"`
-	}
-	if raw, err := p.repos.Setting.Get(p.db, "order"); err == nil {
-		var c orderCfg
-		if json.Unmarshal([]byte(raw), &c) == nil && c.ExpireMinutes > 0 {
-			minutes = c.ExpireMinutes
-		}
-	}
-	return minutes
+func (p *cronPolicy) orderExpireMinutes(ctx context.Context) int {
+	return p.set.GetInt(ctx, "order", "expire_minutes", 30)
 }
 
 // commissionConfirmDays 佣金确认窗口（天）：invite.commission_confirm_days，缺失回退 3。
-func (p *cronPolicy) commissionConfirmDays() int {
-	days := 3
-	type inviteCfg struct {
-		CommissionConfirmDays int `json:"commission_confirm_days"`
-	}
-	if raw, err := p.repos.Setting.Get(p.db, "invite"); err == nil {
-		var c inviteCfg
-		if json.Unmarshal([]byte(raw), &c) == nil && c.CommissionConfirmDays > 0 {
-			days = c.CommissionConfirmDays
-		}
-	}
-	return days
+func (p *cronPolicy) commissionConfirmDays(ctx context.Context) int {
+	return p.set.GetInt(ctx, "invite", "commission_confirm_days", 3)
 }
 
 // expireWindow 到期提醒窗口分类：剩余 (48h,72h]→"3d"，(0,24h]→"1d"，其余→""（不提醒）。

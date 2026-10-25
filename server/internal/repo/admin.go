@@ -16,17 +16,11 @@ import (
 
 // ListByPage 用户分页（email 关键字可空）。
 func (UserRepo) ListByPage(db *gorm.DB, keyword string, page, pageSize int) ([]model.User, int64, error) {
-	var list []model.User
-	var total int64
 	q := db.Model(&model.User{})
 	if keyword != "" {
 		q = q.Where("email LIKE ?", "%"+keyword+"%")
 	}
-	if err := q.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-	err := q.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
-	return list, total, err
+	return listPage[model.User](q, page, pageSize, "")
 }
 
 // SetBanned 封禁/解封。
@@ -151,17 +145,11 @@ func (ServerRepo) DeleteGroup(db *gorm.DB, id int64) error {
 
 // ListByPage 全量订单分页（status 可空）。
 func (OrderRepo) ListByPage(db *gorm.DB, status *int, page, pageSize int) ([]model.Order, int64, error) {
-	var list []model.Order
-	var total int64
 	q := db.Model(&model.Order{})
 	if status != nil {
 		q = q.Where("status = ?", *status)
 	}
-	if err := q.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-	err := q.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
-	return list, total, err
+	return listPage[model.Order](q, page, pageSize, "")
 }
 
 // ---- 管理端 · 公告 / 知识库 ----
@@ -200,29 +188,17 @@ func (KnowledgeRepo) Delete(db *gorm.DB, id int64) error {
 
 // ListByPage 全量工单分页。
 func (TicketRepo) ListByPage(db *gorm.DB, page, pageSize int) ([]model.Ticket, int64, error) {
-	var list []model.Ticket
-	var total int64
-	if err := db.Model(&model.Ticket{}).Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-	err := db.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
-	return list, total, err
+	return listPage[model.Ticket](db.Model(&model.Ticket{}), page, pageSize, "")
 }
 
 // ---- 管理端 · 代理申请 ----
 
 func (AgentApplyRepo) ListByStatus(db *gorm.DB, status int, page, pageSize int) ([]model.AgentApply, int64, error) {
-	var list []model.AgentApply
-	var total int64
 	q := db.Model(&model.AgentApply{})
 	if status >= 0 {
 		q = q.Where("status = ?", status)
 	}
-	if err := q.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-	err := q.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
-	return list, total, err
+	return listPage[model.AgentApply](q, page, pageSize, "")
 }
 
 func (AgentApplyRepo) GetByID(db *gorm.DB, id int64) (*model.AgentApply, error) {
@@ -246,17 +222,11 @@ func (AgentApplyRepo) GetByIDForUpdate(db *gorm.DB, id int64) (*model.AgentApply
 // ---- 管理端 · 佣金日志 ----
 
 func (CommissionRepo) ListByPage(db *gorm.DB, status *int, page, pageSize int) ([]model.CommissionLog, int64, error) {
-	var list []model.CommissionLog
-	var total int64
 	q := db.Model(&model.CommissionLog{})
 	if status != nil {
 		q = q.Where("status = ?", *status)
 	}
-	if err := q.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-	err := q.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
-	return list, total, err
+	return listPage[model.CommissionLog](q, page, pageSize, "")
 }
 
 // ---- 管理端 · 审计 ----

@@ -174,8 +174,8 @@ func TestTicketReopenConcurrentUpdateZero(t *testing.T) {
 func TestConfirmCommissions(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
-	orders := NewOrderService(e.db, e.rdb, repos, &config.Config{}, nil)
-	cronSvc := NewCronService(e.db, e.rdb, repos, &config.Config{}, mailer.New(config.SMTPConfig{}), orders, nil)
+	orders := NewOrderService(e.db, e.rdb, repos, &config.Config{}, nil, nil)
+	cronSvc := NewCronService(e.db, e.rdb, repos, &config.Config{}, nil, mailer.New(config.SMTPConfig{}), orders, nil)
 	now := time.Now()
 	// settings invite（确认期 3 天）
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT \"value\" FROM \"settings\"")).
@@ -202,8 +202,8 @@ func TestConfirmCommissions(t *testing.T) {
 func TestCloseExpiredOrders(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
-	orders := NewOrderService(e.db, e.rdb, repos, &config.Config{}, nil)
-	cronSvc := NewCronService(e.db, e.rdb, repos, &config.Config{}, mailer.New(config.SMTPConfig{}), orders, nil)
+	orders := NewOrderService(e.db, e.rdb, repos, &config.Config{}, nil, nil)
+	cronSvc := NewCronService(e.db, e.rdb, repos, &config.Config{}, nil, mailer.New(config.SMTPConfig{}), orders, nil)
 
 	now := time.Now()
 	old := now.Add(-time.Hour)
@@ -226,8 +226,8 @@ func TestCloseExpiredOrders(t *testing.T) {
 func TestCloseExpiredOrdersReleasesCoupon(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
-	orders := NewOrderService(e.db, e.rdb, repos, &config.Config{}, nil)
-	cronSvc := NewCronService(e.db, e.rdb, repos, &config.Config{}, mailer.New(config.SMTPConfig{}), orders, nil)
+	orders := NewOrderService(e.db, e.rdb, repos, &config.Config{}, nil, nil)
+	cronSvc := NewCronService(e.db, e.rdb, repos, &config.Config{}, nil, mailer.New(config.SMTPConfig{}), orders, nil)
 
 	now := time.Now()
 	old := now.Add(-time.Hour)
@@ -252,7 +252,7 @@ func TestCloseExpiredOrdersReleasesCoupon(t *testing.T) {
 
 func TestCancelOrderConcurrentPaid(t *testing.T) {
 	e := newTestEnv(t)
-	svc := NewOrderService(e.db, e.rdb, &repo.Repos{}, &config.Config{}, nil)
+	svc := NewOrderService(e.db, e.rdb, &repo.Repos{}, &config.Config{}, nil, nil)
 
 	now := time.Now()
 	couponID := int64(9)

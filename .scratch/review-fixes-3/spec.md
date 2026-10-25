@@ -1,6 +1,6 @@
 # Review Fixes 3
 
-> 状态: 修复中——P0 完成 4/4；P1 完成 10/10（05-13）；P2 完成 5/5（14-18）；P3 完成 1/3（19），余 20/21
+> 状态: 已完成——P0 4/4；P1 10/10（05-13）；P2 5/5（14-18）；P3 3/3（19-21）
 > 日期: 2026-10-25
 > 范围: 全量代码评审（review-round-09）产出的修复项——安全与启动稳定、并发/正确性、分层与契约合规、令牌化与文档对齐、死代码清理
 > 关联: 评审快照 `docs/reviews/review-round-09.md`；分段执行手册 `execution.md`（一次贴一段）；前两轮见 `.scratch/review-fixes/`、`.scratch/review-fixes-2/`
@@ -87,6 +87,6 @@ README §3/launch-checklist/deploy/data-model/desktop-tauri 等全部陈旧描�
 
 repo paginate helper、stdlib contains/min、settings 解析单源、sort helper 三合一、N+1 批查、service GORM 绕过回 repo、缓存旁路、审计失败记日志、魔法数字常量化。→ issues/20
 
-### [P3] 21 前端重复形状与死代码收敛
+### [P3] 21 前端重复形状与死代码收敛 ✅
 
-CRUD 脚手架工厂、排序弹窗/ErrorPage/useEmailCode/formatDateTime 单源化、mock envelope、i18n 键齐平测试、死代码删除（清单见 issue）。→ issues/21
+CRUD 脚手架工厂（useAdminCrud/useSortDialog/SortDialog）、ErrorPage/邮箱验证码/formatDateTime 单源化、组件内小去重、mock envelope、i18n 键齐平测试、死代码删除（清单见 issue）。→ issues/21

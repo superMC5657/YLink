@@ -67,6 +67,7 @@ export const apiOrder = orderTransport
 | `useTrafficFormat` | 字节 → `100.00 G / 512.3 M`；速率 → `100 Mbps`；百分比计算 |
 | `formatMoney` | 元 number → `¥10.00`（千分位、两位小数） |
 | `formatTime` | RFC3339 → `YYYY/M/D HH:mm:ss`（截图风格）、相对时间（N 天前/已过期 N 天） |
+| `formatDateTime` | RFC3339 → `YYYY-MM-DD HH:mm[:ss]`（管理端表格用,带空值/无效值兜底） |
 | `useCountdown` | 验证码 60s、支付二维码有效期倒计时 |
 | 轮询（手写） | 订单/节点轮询在对应 store 内手写实现（`setInterval`），未提供通用 `usePolling`；订单 5s、节点 60s，路由离开时统一 stop |
 | `useMediaQuery` | 断点判断，驱动布局降级 |

@@ -145,3 +145,10 @@ export function statusLabel(domain: StatusDomain, status: number): string {
 export function statusBadge(domain: StatusDomain, status: number): StatusBadge {
   return statusMeta(domain, status).badge
 }
+
+/** 节点状态下拉选项(NodeFormDialog/NodeBatchDialog 共用,labelKey 同源 statusTable.server) */
+export function serverStatusOptions(): { label: string; value: number }[] {
+  return Object.entries(statusTable.server)
+    .map(([value, row]) => ({ label: tt(row.labelKey), value: Number(value) }))
+    .sort((a, b) => a.value - b.value)
+}

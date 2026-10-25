@@ -1,11 +1,12 @@
 <script setup lang="ts">
 /**
  * 主题切换:亮 / 暗 / 跟随系统 三态循环,线性动画切换。
- * 滑块位移按轨道几何精确计算:三态均分可用行程,第三态刚好贴右边缘,不超出胶囊。
+ * 滑块位移几何归 useSlideOffset(与语言切换共用)。
  */
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
+import { useSlideOffset } from '@/composables/useSlideOffset'
 import type { ThemeMode } from '@/utils/storage'
 
 const { t } = useI18n()
@@ -17,22 +18,12 @@ const modes: { value: ThemeMode; labelKey: string; icon: string }[] = [
   { value: 'system', labelKey: 'theme.system', icon: 'globe' },
 ]
 
-// 轨道几何:w-14=56px,滑块 w-7=28px(与语言切换滑块保持一致),左右对称余量 5px(border 1px + padding 4px)
-const TRACK_W = 56
-const SLIDER_W = 28
-const EDGE_GAP = 5
-
 const currentIndex = computed(() => {
   const idx = modes.findIndex((m) => m.value === app.themeMode)
   return idx >= 0 ? idx : 2
 })
 
-/** 滑块位移:3 态均分可用行程,首尾态分别贴左右边缘,中间态居中 */
-const slideOffset = computed(() => {
-  const usable = TRACK_W - EDGE_GAP * 2 - SLIDER_W
-  const steps = modes.length - 1
-  return ((usable / steps) * currentIndex.value).toFixed(1) + 'px'
-})
+const slideOffset = useSlideOffset(currentIndex, modes.length)
 
 function cycle() {
   const next = modes[(currentIndex.value + 1) % modes.length]

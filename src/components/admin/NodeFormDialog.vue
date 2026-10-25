@@ -7,6 +7,7 @@
  */
 import { useI18n } from 'vue-i18n'
 import type { AdminServerGroupItem, AdminServerReq } from '@/types/api'
+import { serverStatusOptions } from '@/utils/statusMeta'
 
 defineProps<{
   show: boolean
@@ -65,14 +66,7 @@ const PROTOCOLS = [
           <n-input-number v-model:value="form.port" :min="1" :max="65535" class="w-full" />
         </n-form-item>
         <n-form-item :label="t('adminNodes.status')">
-          <n-select
-            v-model:value="form.status"
-            :options="[
-              { label: t('node.normal'), value: 1 },
-              { label: t('node.busy'), value: 2 },
-              { label: t('node.maintenance'), value: 3 },
-            ]"
-          />
+          <n-select v-model:value="form.status" :options="serverStatusOptions()" />
         </n-form-item>
         <n-form-item :label="t('adminNodes.sort')">
           <n-input-number v-model:value="form.sort" class="w-full" />

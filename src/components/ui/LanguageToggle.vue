@@ -1,11 +1,12 @@
 <script setup lang="ts">
 /**
  * 语言切换:简体中文 ↔ English 滑动切换。
- * 滑块位移按轨道几何精确计算:两端对称,左右余量一致。
+ * 滑块位移几何归 useSlideOffset(与主题切换共用)。
  */
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useLocale } from '@/composables/useLocale'
+import { useSlideOffset } from '@/composables/useSlideOffset'
 
 const { t, locale } = useI18n()
 const { switchLocale } = useLocale()
@@ -15,22 +16,12 @@ const langs: { value: string; labelKey: string; shortKey: string }[] = [
   { value: 'en-US', labelKey: 'lang.enUS', shortKey: 'lang.enShort' },
 ]
 
-// 轨道几何:w-14=56px,滑块 w-7=28px(容纳 14px 文字),左右对称余量 5px(border 1px + padding 4px)
-const TRACK_W = 56
-const SLIDER_W = 28
-const EDGE_GAP = 5
-
 const currentIndex = computed(() => {
   const idx = langs.findIndex((l) => l.value === locale.value)
   return idx >= 0 ? idx : 0
 })
 
-/** 滑块位移:2 态均分可用行程,两端分别贴左右边缘 */
-const slideOffset = computed(() => {
-  const usable = TRACK_W - EDGE_GAP * 2 - SLIDER_W
-  const steps = langs.length - 1
-  return ((usable / steps) * currentIndex.value).toFixed(1) + 'px'
-})
+const slideOffset = useSlideOffset(currentIndex, langs.length)
 
 function cycle() {
   const next = langs[(currentIndex.value + 1) % langs.length]

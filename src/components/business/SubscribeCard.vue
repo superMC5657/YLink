@@ -29,6 +29,24 @@ const expireBadge = computed(() => {
   if (days <= 7) return { type: 'warning' as const, text: formatExpiry(s.expired_at, false) }
   return { type: 'success' as const, text: formatExpiry(s.expired_at, false) }
 })
+
+/** 五宫格单元格(与第 n 格模板顺序一致;value 均为现成文案) */
+const cells = computed(() => [
+  { label: t('dashboard.transferRemaining'), value: formatBytes(sub.value?.remaining), num: true },
+  { label: t('dashboard.speedLimit'), value: formatSpeed(sub.value?.speed_limit), num: true },
+  {
+    label: t('dashboard.deviceLimit'),
+    value: sub.value?.device_limit ?? '-',
+    num: true,
+  },
+  { label: t('dashboard.planName'), value: sub.value?.plan?.name ?? '-', num: false },
+  {
+    label: t('common.expired'),
+    value: sub.value?.is_expired ? t('common.yes') : t('common.no'),
+    num: false,
+    color: sub.value?.is_expired ? 'var(--c-danger)' : 'var(--c-success)',
+  },
+])
 </script>
 
 <template>
@@ -91,49 +109,18 @@ const expireBadge = computed(() => {
     <!-- 五宫格 -->
     <div class="mt-5 grid grid-cols-5 gap-2">
       <div
+        v-for="cell in cells"
+        :key="cell.label"
         class="flex flex-col items-center gap-0.5 rounded-xl py-2.5"
         style="background-color: var(--c-bg-hover)"
       >
-        <span class="text-14 text-[var(--c-text-sub)]">{{ t('dashboard.transferRemaining') }}</span>
-        <span class="num text-14 font-600 text-[var(--c-text)]">{{
-          formatBytes(sub?.remaining)
-        }}</span>
-      </div>
-      <div
-        class="flex flex-col items-center gap-0.5 rounded-xl py-2.5"
-        style="background-color: var(--c-bg-hover)"
-      >
-        <span class="text-14 text-[var(--c-text-sub)]">{{ t('dashboard.speedLimit') }}</span>
-        <span class="num text-14 font-600 text-[var(--c-text)]">{{
-          formatSpeed(sub?.speed_limit)
-        }}</span>
-      </div>
-      <div
-        class="flex flex-col items-center gap-0.5 rounded-xl py-2.5"
-        style="background-color: var(--c-bg-hover)"
-      >
-        <span class="text-14 text-[var(--c-text-sub)]">{{ t('dashboard.deviceLimit') }}</span>
-        <span class="num text-14 font-600 text-[var(--c-text)]">{{
-          sub?.device_limit ?? '-'
-        }}</span>
-      </div>
-      <div
-        class="flex flex-col items-center gap-0.5 rounded-xl py-2.5"
-        style="background-color: var(--c-bg-hover)"
-      >
-        <span class="text-14 text-[var(--c-text-sub)]">{{ t('dashboard.planName') }}</span>
-        <span class="text-14 font-600 text-[var(--c-text)]">{{ sub?.plan?.name ?? '-' }}</span>
-      </div>
-      <div
-        class="flex flex-col items-center gap-0.5 rounded-xl py-2.5"
-        style="background-color: var(--c-bg-hover)"
-      >
-        <span class="text-14 text-[var(--c-text-sub)]">{{ t('common.expired') }}</span>
+        <span class="text-14 text-[var(--c-text-sub)]">{{ cell.label }}</span>
         <span
           class="text-14 font-600"
-          :style="{ color: sub?.is_expired ? 'var(--c-danger)' : 'var(--c-success)' }"
+          :class="[cell.num ? 'num' : '', cell.color ? '' : 'text-[var(--c-text)]']"
+          :style="cell.color ? { color: cell.color } : undefined"
         >
-          {{ sub?.is_expired ? t('common.yes') : t('common.no') }}
+          {{ cell.value }}
         </span>
       </div>
     </div>

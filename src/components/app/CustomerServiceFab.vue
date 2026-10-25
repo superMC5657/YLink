@@ -2,7 +2,7 @@
 /**
  * 客服浮球:右下角外链客服(TG/网页),地址取站点配置。
  */
-import { ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useConfigStore } from '@/stores/config'
 import { openExternal } from '@/utils/platform'
@@ -11,15 +11,7 @@ const { t } = useI18n()
 const config = useConfigStore()
 const show = ref(false)
 
-const serviceUrl = ref('')
-
-watch(
-  () => config.config?.customer_service_url,
-  (url) => {
-    serviceUrl.value = url ?? ''
-  },
-  { immediate: true },
-)
+const serviceUrl = computed(() => config.config?.customer_service_url ?? '')
 
 function open() {
   if (serviceUrl.value) openExternal(serviceUrl.value)

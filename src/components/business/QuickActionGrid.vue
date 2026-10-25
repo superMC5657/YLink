@@ -29,6 +29,8 @@ interface Action {
   label: string
   color: string
   bg: string
+  /** 动作本体与条目同处记账,避免动作表 + switch 双份枚举 */
+  run: () => void
 }
 
 // 用 computed 包裹:vue-i18n 的 t() 依赖当前 locale,语言切换时需重新求值,
@@ -40,6 +42,7 @@ const actions = computed<Action[]>(() => [
     label: t('dashboard.viewTutorial'),
     color: 'var(--c-primary)',
     bg: 'var(--c-primary-soft)',
+    run: () => router.push('/docs'),
   },
   {
     key: 'invite',
@@ -47,6 +50,7 @@ const actions = computed<Action[]>(() => [
     label: t('dashboard.inviteEarn'),
     color: 'var(--c-pink)',
     bg: 'var(--c-pink-bg)',
+    run: () => router.push('/invite'),
   },
   {
     key: 'plans',
@@ -54,6 +58,7 @@ const actions = computed<Action[]>(() => [
     label: t('dashboard.buyPlan'),
     color: 'var(--c-warning)',
     bg: 'var(--c-warning-bg)',
+    run: () => router.push('/plans'),
   },
   {
     key: 'free-traffic',
@@ -61,6 +66,9 @@ const actions = computed<Action[]>(() => [
     label: t('dashboard.freeTraffic'),
     color: 'var(--c-success)',
     bg: 'var(--c-success-bg)',
+    run: () => {
+      showFreeTraffic.value = true
+    },
   },
   {
     key: 'download',
@@ -68,6 +76,9 @@ const actions = computed<Action[]>(() => [
     label: t('dashboard.appDownload'),
     color: 'var(--c-blue)',
     bg: 'var(--c-blue-bg)',
+    run: () => {
+      showDownload.value = true
+    },
   },
   {
     key: 'tickets',
@@ -75,6 +86,7 @@ const actions = computed<Action[]>(() => [
     label: t('dashboard.myTickets'),
     color: 'var(--c-olive)',
     bg: 'var(--c-olive-bg)',
+    run: () => router.push('/tickets'),
   },
   {
     key: 'profile',
@@ -82,6 +94,7 @@ const actions = computed<Action[]>(() => [
     label: t('dashboard.profile'),
     color: 'var(--c-pink)',
     bg: 'var(--c-pink-bg)',
+    run: () => router.push('/profile'),
   },
   {
     key: 'subscribe-link',
@@ -89,6 +102,9 @@ const actions = computed<Action[]>(() => [
     label: t('dashboard.subscribeLink'),
     color: 'var(--c-primary)',
     bg: 'var(--c-primary-soft)',
+    run: () => {
+      void copySubscribe()
+    },
   },
   {
     key: 'import',
@@ -96,39 +112,14 @@ const actions = computed<Action[]>(() => [
     label: t('dashboard.oneClickImport'),
     color: 'var(--c-danger)',
     bg: 'var(--c-danger-bg)',
+    run: () => {
+      showImport.value = true
+    },
   },
 ])
 
 function onAction(a: Action) {
-  switch (a.key) {
-    case 'docs':
-      router.push('/docs')
-      break
-    case 'invite':
-      router.push('/invite')
-      break
-    case 'plans':
-      router.push('/plans')
-      break
-    case 'free-traffic':
-      showFreeTraffic.value = true
-      break
-    case 'download':
-      showDownload.value = true
-      break
-    case 'tickets':
-      router.push('/tickets')
-      break
-    case 'profile':
-      router.push('/profile')
-      break
-    case 'subscribe-link':
-      void copySubscribe()
-      break
-    case 'import':
-      showImport.value = true
-      break
-  }
+  a.run()
 }
 
 async function copySubscribe() {
@@ -145,6 +136,13 @@ function openDownload(kind: 'windows' | 'macos' | 'android') {
   const url = config.config?.app_downloads?.[kind]
   if (url) openExternal(url)
 }
+
+/** APP 下载三平台(与 config.app_downloads 键同形) */
+const DOWNLOAD_KINDS: { kind: 'windows' | 'macos' | 'android'; label: string }[] = [
+  { kind: 'windows', label: 'Windows' },
+  { kind: 'macos', label: 'macOS' },
+  { kind: 'android', label: 'Android' },
+]
 </script>
 
 <template>
@@ -192,25 +190,13 @@ function openDownload(kind: 'windows' | 'macos' | 'android') {
     >
       <div class="grid grid-cols-3 gap-3">
         <button
+          v-for="d in DOWNLOAD_KINDS"
+          :key="d.kind"
           class="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-[var(--c-border)] py-5 transition-colors hover:bg-[var(--c-bg-hover)]"
-          @click="openDownload('windows')"
+          @click="openDownload(d.kind)"
         >
           <AppIcon name="download" :size="24" :style="{ color: 'var(--c-primary)' }" />
-          <span class="text-14 font-500">Windows</span>
-        </button>
-        <button
-          class="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-[var(--c-border)] py-5 transition-colors hover:bg-[var(--c-bg-hover)]"
-          @click="openDownload('macos')"
-        >
-          <AppIcon name="download" :size="24" :style="{ color: 'var(--c-primary)' }" />
-          <span class="text-14 font-500">macOS</span>
-        </button>
-        <button
-          class="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-[var(--c-border)] py-5 transition-colors hover:bg-[var(--c-bg-hover)]"
-          @click="openDownload('android')"
-        >
-          <AppIcon name="download" :size="24" :style="{ color: 'var(--c-primary)' }" />
-          <span class="text-14 font-500">Android</span>
+          <span class="text-14 font-500">{{ d.label }}</span>
         </button>
       </div>
     </n-modal>

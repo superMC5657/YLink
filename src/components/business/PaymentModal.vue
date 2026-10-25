@@ -9,6 +9,7 @@ import { useUserStore } from '@/stores/user'
 import { useI18n } from 'vue-i18n'
 import { useCountdown } from '@/composables/useCountdown'
 import { useQrCode } from '@/composables/useQrCode'
+import CountdownPill from './CountdownPill.vue'
 import { openExternal } from '@/utils/platform'
 import { notify } from '@/utils/notify'
 import { formatMoney, formatTime, payMethodLabel } from '@/utils/format'
@@ -163,15 +164,7 @@ onBeforeUnmount(stopPolling)
         />
       </div>
       <p class="text-14 text-[var(--c-text-sub)]">{{ t('plan.qrcodeTip') }}</p>
-      <div
-        class="flex items-center gap-1.5 rounded-full px-4 py-1.5"
-        style="background-color: var(--c-bg-hover)"
-      >
-        <AppIcon name="clock" :size="15" :style="{ color: 'var(--c-warning)' }" />
-        <span class="num text-14 font-600 text-[var(--c-text)]">
-          {{ Math.floor(remaining / 60) }}:{{ String(remaining % 60).padStart(2, '0') }}
-        </span>
-      </div>
+      <CountdownPill :remaining="remaining" />
     </div>
 
     <!-- 跳转 -->
@@ -186,15 +179,7 @@ onBeforeUnmount(stopPolling)
       <button class="btn-primary h-10 px-6 text-14" @click="goUrl">
         {{ t('plan.payNow') }} · {{ payMethodName }}
       </button>
-      <div
-        class="flex items-center gap-1.5 rounded-full px-4 py-1.5"
-        style="background-color: var(--c-bg-hover)"
-      >
-        <AppIcon name="clock" :size="15" :style="{ color: 'var(--c-warning)' }" />
-        <span class="num text-14 font-600 text-[var(--c-text)]">
-          {{ Math.floor(remaining / 60) }}:{{ String(remaining % 60).padStart(2, '0') }}
-        </span>
-      </div>
+      <CountdownPill :remaining="remaining" />
     </div>
 
     <!-- 成功 -->

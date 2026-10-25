@@ -4,6 +4,7 @@
  */
 import { useI18n } from 'vue-i18n'
 import type { AdminServerGroupItem, ServerStatus } from '@/types/api'
+import { serverStatusOptions } from '@/utils/statusMeta'
 
 defineProps<{
   show: boolean
@@ -42,11 +43,7 @@ const { t } = useI18n()
         <n-select
           v-model:value="status"
           clearable
-          :options="[
-            { label: t('node.normal'), value: 1 },
-            { label: t('node.busy'), value: 2 },
-            { label: t('node.maintenance'), value: 3 },
-          ]"
+          :options="serverStatusOptions()"
           :placeholder="t('adminNodes.batchUnchanged')"
         />
       </n-form-item>

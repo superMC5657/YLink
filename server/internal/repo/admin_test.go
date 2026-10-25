@@ -82,3 +82,20 @@ func TestEnsureSeedUsersIdempotent(t *testing.T) {
 	require.NoError(t, EnsureDemoUser(db, "demo@test.com", "Passw0rd"))
 	require.NoError(t, mock.ExpectationsWereMet())
 }
+
+// Upsert 走单语句 ON CONFLICT（模式 B 同日覆盖）：不再 Count→Update/Create——
+// 并发同日导入双插会撞 uk_traffic_user_date 唯一约束。重复调用保持同一形状。
+func TestTrafficUpsertSingleStatementOnConflict(t *testing.T) {
+	db, mock := newRepoTestDB(t)
+	upsert := func(u, d int64) {
+		t.Helper()
+		mock.ExpectBegin()
+		mock.ExpectQuery(`INSERT INTO "traffic_logs".*ON CONFLICT.*DO UPDATE SET`).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+		mock.ExpectCommit()
+		require.NoError(t, (TrafficLogRepo{}).Upsert(db, &model.TrafficLog{UserID: 1, Date: "2026-10-25", U: u, D: d}))
+	}
+	upsert(100, 200)
+	upsert(300, 400) // 同日重复导入：同一条单语句 upsert，无 Count 前置查询
+	require.NoError(t, mock.ExpectationsWereMet())
+}

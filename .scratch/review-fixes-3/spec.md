@@ -27,7 +27,7 @@ SetNX 错误与锁竞争分路径处理（Redis 故障不再静默跳过）；�
 
 user_service/subscribe_service 的全结构体陈旧快照更新改为按列条件更新（沿用 telegram.go 范式）。→ issues/05
 
-### [P1] 06 工单回复与流量导入的并发竞态
+### [P1] 06 工单回复与流量导入的并发竞态 ✅
 
 ReplyTicket 条件更新守卫（reopen-once 状态机）；TrafficLogRepo.Upsert 改 OnConflict；UpdateUser 包事务。→ issues/06
 

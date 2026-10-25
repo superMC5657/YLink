@@ -92,6 +92,7 @@ func (s *TicketService) Detail(ctx context.Context, userID int64, id int64) (*mo
 }
 
 // Reply POST /tickets/{id}/reply 用户回复：状态回到待回复。
+// 条件更新守卫（同 admin ReplyTicket）：检查后并发关闭的工单不写入回复、不翻回未关闭态。
 func (s *TicketService) Reply(ctx context.Context, userID int64, id int64, message string) error {
 	t, err := s.repos.Ticket.GetByIDAndUser(s.db, id, userID)
 	if err != nil {
@@ -103,10 +104,14 @@ func (s *TicketService) Reply(ctx context.Context, userID int64, id int64, messa
 	err = repo.WithTx(s.db, func(tx *gorm.DB) error {
 		now := time.Now()
 		msg := &model.TicketMessage{TicketID: id, SenderType: 0, SenderID: userID, Message: sanitize.Text(message)}
-		if err := s.repos.Ticket.CreateMessage(tx, msg); err != nil {
+		ok, err := s.repos.Ticket.UpdateStatusIfNotClosed(tx, id, 0)
+		if err != nil {
 			return err
 		}
-		if err := s.repos.Ticket.UpdateStatus(tx, id, 0); err != nil {
+		if !ok {
+			return errs.ErrTicketClosed
+		}
+		if err := s.repos.Ticket.CreateMessage(tx, msg); err != nil {
 			return err
 		}
 		return s.repos.Ticket.UpdateLastReplyAt(tx, id, now)

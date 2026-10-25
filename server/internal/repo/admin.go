@@ -319,15 +319,17 @@ func (AuditLogRepo) ListActions(db *gorm.DB) ([]string, error) {
 
 // ---- 管理端 · 流量 ----
 
-// Upsert 按 (user_id, date) 覆盖导入。
+// Upsert 按 (user_id, date) 覆盖导入（模式 B 同日覆盖语义不变）。
+// OnConflict 单语句替代 Count→Update/Create 的 check-then-write：
+// 并发同日导入双插会撞 uk_traffic_user_date 唯一约束（500）。
 func (TrafficLogRepo) Upsert(db *gorm.DB, t *model.TrafficLog) error {
-	var count int64
-	db.Model(&model.TrafficLog{}).Where("user_id = ? AND date = ?", t.UserID, t.Date).Count(&count)
-	if count > 0 {
-		return db.Model(&model.TrafficLog{}).Where("user_id = ? AND date = ?", t.UserID, t.Date).
-			Updates(map[string]any{"u": t.U, "d": t.D}).Error
-	}
-	return db.Create(t).Error
+	return db.Clauses(clause.OnConflict{
+		Columns: []clause.Column{{Name: "user_id"}, {Name: "date"}},
+		DoUpdates: clause.Assignments(map[string]any{
+			"u": t.U,
+			"d": t.D,
+		}),
+	}).Create(t).Error
 }
 
 // ---- 管理端 · 流量重置记录（F16） ----

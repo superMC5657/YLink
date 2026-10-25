@@ -1,6 +1,6 @@
 # [P1] 工单回复竞态、流量导入双插与 UpdateUser 事务
 
-Status: ready-for-agent
+Status: resolved
 Type: task
 
 ## Finding
@@ -23,3 +23,7 @@ Type: task
 - `go test ./internal/...` 全绿。
 
 ## Comments
+
+- 2026-10-25: 已修复——repo 新增 `TicketRepo.UpdateStatusIfNotClosed`（`WHERE status<>2` 条件更新、0 行=已关闭）；管理端 ReplyTicket 在事务内以条件更新为守卫（0 行走已关闭分支语义，回复/状态/last_reply_at 同事务）；`TrafficLogRepo.Upsert` 改 `clause.OnConflict`（user_id+date）单语句覆盖式 upsert（模式 B 语义不变）；UpdateUser 整体包 `repo.WithTx`，审计写纳入同一事务且不再 `_ =` 忽略，会话吊销（Redis 非事务资源）移至库事务成功后。测试：管理端/用户侧回复竞态关闭（0 行→回滚+14001）、同日重复导入断言单语句 ON CONFLICT 无 Count 前置、审计失败整体回滚且不 bump 会话版本。`go build/vet/test ./...` 全绿。
+- 2026-10-25: Finding 遗漏的同款竞态一并收敛（仍属本 ticket 回复竞态主题）：用户侧 `TicketService.Reply`（ticket_service.go）与管理端 ReplyTicket 存在相同的「检查后关闭」绕过 reopen-once 问题，已同范式加条件更新守卫。
+- 2026-10-25: 真实并发交错（两连接同库竞争）未做真实库演练——本机 Docker daemon 未运行；以 sqlmock 断言条件更新 SQL 形状（WHERE status<>2 + RowsAffected 分支）作为替代覆盖。

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -271,11 +272,9 @@ func TestAdminUpdateUserBanBumpsSessionVersion(t *testing.T) {
 	now := time.Now()
 	u := &model.User{ID: 5, Email: "u@b.com", Role: 0, IsBanned: false, CreatedAt: now, UpdatedAt: now}
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"users\"")).WillReturnRows(userRow(u))
-	// GORM 默认单写操作包事务：SetBanned 与审计各一个 BEGIN/COMMIT
+	// 写库与审计同一事务：SetBanned 与审计写共一个 BEGIN/COMMIT
 	e.mock.ExpectBegin()
 	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"users\"")).WillReturnResult(sqlmock.NewResult(0, 1))
-	e.mock.ExpectCommit()
-	e.mock.ExpectBegin()
 	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"audit_logs\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
@@ -298,11 +297,9 @@ func TestAdminUpdateUserRoleBumpsSessionVersion(t *testing.T) {
 	now := time.Now()
 	u := &model.User{ID: 6, Email: "r@b.com", Role: 0, IsBanned: false, CreatedAt: now, UpdatedAt: now}
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"users\"")).WillReturnRows(userRow(u))
-	// GORM 默认单写操作包事务：UpdateRole 与审计各一个 BEGIN/COMMIT
+	// 写库与审计同一事务：UpdateRole 与审计写共一个 BEGIN/COMMIT
 	e.mock.ExpectBegin()
 	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"users\"")).WillReturnResult(sqlmock.NewResult(0, 1))
-	e.mock.ExpectCommit()
-	e.mock.ExpectBegin()
 	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"audit_logs\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()
 
@@ -313,6 +310,70 @@ func TestAdminUpdateUserRoleBumpsSessionVersion(t *testing.T) {
 	n, err := e.rdb.Get(context.Background(), redispkg.SessionVersionKey(6)).Int64()
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), n)
+}
+
+// 审计写失败 → 整体回滚：无「已封禁未记审计」的部分状态，会话版本号也不 bump。
+func TestAdminUpdateUserAtomicRollback(t *testing.T) {
+	e := newTestEnv(t)
+	repos := &repo.Repos{}
+	set := NewSettingService(e.db, e.rdb, repos)
+	svc := NewAdminSeams(e.db, e.rdb, repos, nil, set, nil)
+
+	now := time.Now()
+	u := &model.User{ID: 5, Email: "u@b.com", Role: 0, IsBanned: false, CreatedAt: now, UpdatedAt: now}
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"users\"")).WillReturnRows(userRow(u))
+	e.mock.ExpectBegin()
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"users\"")).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"audit_logs\"")).WillReturnError(assert.AnError)
+	e.mock.ExpectRollback()
+
+	banned := true
+	err := svc.User.UpdateUser(context.Background(), 1, 5, &model.AdminUpdateUserReq{Banned: &banned}, "127.0.0.1")
+	require.Error(t, err)
+	require.NoError(t, e.mock.ExpectationsWereMet())
+	// 部分状态不产生副作用：会话版本号未 bump
+	rerr := e.rdb.Get(context.Background(), redispkg.SessionVersionKey(5)).Err()
+	assert.ErrorIs(t, rerr, redis.Nil)
+}
+
+// 管理端回复成功：条件更新守卫 → 写回复 → last_reply_at，同一事务。
+func TestAdminReplyTicketSuccess(t *testing.T) {
+	e := newTestEnv(t)
+	repos := &repo.Repos{}
+	set := NewSettingService(e.db, e.rdb, repos)
+	svc := NewAdminSeams(e.db, e.rdb, repos, nil, set, nil)
+	now := time.Now()
+
+	tk := &model.Ticket{ID: 7, UserID: 9, Subject: "s", Level: 1, Status: 0, CreatedAt: now}
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"tickets\"")).WillReturnRows(withdrawTicketRows(tk))
+	e.mock.ExpectBegin()
+	e.mock.ExpectExec(`UPDATE "tickets" SET "status".* WHERE id = .* AND status <> 2`).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"ticket_messages\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(2))
+	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"tickets\"")).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectCommit()
+
+	require.NoError(t, svc.Ticket.ReplyTicket(context.Background(), 1, 7, "客服回复"))
+	require.NoError(t, e.mock.ExpectationsWereMet())
+}
+
+// 读时未关闭、写入时已被并发关闭（条件更新 0 行）→ 不写回复、回滚、14001，
+// 已关闭工单不可能出现「新回复且状态=已回复」。
+func TestAdminReplyTicketRacedClosed(t *testing.T) {
+	e := newTestEnv(t)
+	repos := &repo.Repos{}
+	set := NewSettingService(e.db, e.rdb, repos)
+	svc := NewAdminSeams(e.db, e.rdb, repos, nil, set, nil)
+	now := time.Now()
+
+	tk := &model.Ticket{ID: 7, UserID: 9, Subject: "s", Level: 1, Status: 1, CreatedAt: now}
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"tickets\"")).WillReturnRows(withdrawTicketRows(tk))
+	e.mock.ExpectBegin()
+	e.mock.ExpectExec(`UPDATE "tickets" SET "status".* WHERE id = .* AND status <> 2`).WillReturnResult(sqlmock.NewResult(0, 0))
+	e.mock.ExpectRollback()
+
+	err := svc.Ticket.ReplyTicket(context.Background(), 1, 7, "客服回复")
+	assert.Equal(t, 14001, codeOf(err))
+	require.NoError(t, e.mock.ExpectationsWereMet())
 }
 
 func TestAdminRefundRevokesOnetimeTraffic(t *testing.T) {
@@ -616,14 +677,12 @@ func TestBatchUsersBanAndMissing(t *testing.T) {
 	u8 := &model.User{ID: 8, Email: "u8@y.link", SubToken: "t8", UUID: "uuid-8"}
 	_ = u8
 
-	// 用户 7：查询 + 封禁更新（gorm 单写包事务）+ 审计（同样包事务）
+	// 用户 7：查询 + 封禁更新与审计同一事务（UpdateUser 包 WithTx）
 	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
 		WillReturnRows(userRow(u7))
 	e.mock.ExpectBegin()
 	e.mock.ExpectExec(regexp.QuoteMeta(`UPDATE "users" SET`)).
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	e.mock.ExpectCommit()
-	e.mock.ExpectBegin()
 	e.mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "audit_logs"`)).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	e.mock.ExpectCommit()

@@ -56,6 +56,8 @@ func (m *adminTicketModule) GetTicketDetail(ctx context.Context, id int64) (*mod
 }
 
 // ReplyTicket POST /admin/tickets/{id}/reply（客服回复 → 状态已回复）。
+// 条件更新守卫：仅未关闭工单可写回复——检查后并发关闭的工单不会被写入回复
+// 并翻回「已回复」（0 行=已关闭），reopen-once 状态机不被绕过。
 func (m *adminTicketModule) ReplyTicket(ctx context.Context, adminID, id int64, message string) error {
 	t, err := m.repos.Ticket.GetByID(m.db, id)
 	if err != nil {
@@ -66,12 +68,16 @@ func (m *adminTicketModule) ReplyTicket(ctx context.Context, adminID, id int64, 
 	}
 	return repo.WithTx(m.db, func(tx *gorm.DB) error {
 		now := time.Now()
+		ok, err := m.repos.Ticket.UpdateStatusIfNotClosed(tx, id, 1)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return errs.ErrTicketClosed
+		}
 		if err := m.repos.Ticket.CreateMessage(tx, &model.TicketMessage{
 			TicketID: id, SenderType: 1, SenderID: adminID, Message: sanitize.Text(message),
 		}); err != nil {
-			return err
-		}
-		if err := m.repos.Ticket.UpdateStatus(tx, id, 1); err != nil {
 			return err
 		}
 		return m.repos.Ticket.UpdateLastReplyAt(tx, id, now)

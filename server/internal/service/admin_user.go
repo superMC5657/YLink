@@ -39,6 +39,7 @@ func (m *adminUserModule) ListUsers(ctx context.Context, keyword string, page, p
 }
 
 // UpdateUser PUT /admin/users/{id}（封禁/角色）。
+// 写库与审计同事务：中途失败无「已封禁未改角色/未记审计」的部分状态残留。
 func (m *adminUserModule) UpdateUser(ctx context.Context, adminID, userID int64, req *model.AdminUpdateUserReq, ip string) error {
 	if adminID == userID {
 		return errs.ErrForbidden // 不允许操作自己（防锁死）
@@ -49,27 +50,38 @@ func (m *adminUserModule) UpdateUser(ctx context.Context, adminID, userID int64,
 	}
 	changed := false
 	reason := RevokeReasonBan
-	if req.Banned != nil && *req.Banned != user.IsBanned {
-		if err := m.repos.User.SetBanned(m.db, userID, *req.Banned); err != nil {
-			return err
+	err = repo.WithTx(m.db, func(tx *gorm.DB) error {
+		if req.Banned != nil && *req.Banned != user.IsBanned {
+			if err := m.repos.User.SetBanned(tx, userID, *req.Banned); err != nil {
+				return err
+			}
+			changed = true
+			reason = RevokeReasonBan
+			if err := m.audit.write(tx, adminID, "ban_user", fmt.Sprint(userID), ip, map[string]any{
+				"email": user.Email, "banned": *req.Banned,
+			}); err != nil {
+				return err
+			}
 		}
-		changed = true
-		reason = RevokeReasonBan
-		_ = m.audit.write(m.db, adminID, "ban_user", fmt.Sprint(userID), ip, map[string]any{
-			"email": user.Email, "banned": *req.Banned,
-		})
-	}
-	if req.Role != nil && *req.Role != user.Role {
-		if err := m.repos.User.UpdateRole(m.db, userID, *req.Role); err != nil {
-			return err
+		if req.Role != nil && *req.Role != user.Role {
+			if err := m.repos.User.UpdateRole(tx, userID, *req.Role); err != nil {
+				return err
+			}
+			changed = true
+			reason = RevokeReasonRoleChange
+			if err := m.audit.write(tx, adminID, "update_role", fmt.Sprint(userID), ip, map[string]any{
+				"email": user.Email, "role": *req.Role,
+			}); err != nil {
+				return err
+			}
 		}
-		changed = true
-		reason = RevokeReasonRoleChange
-		_ = m.audit.write(m.db, adminID, "update_role", fmt.Sprint(userID), ip, map[string]any{
-			"email": user.Email, "role": *req.Role,
-		})
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 	// 封禁/解封/角色变更 → 经会话吊销深 Module 全量吊销：已签发 access 立即失效
+	// （Redis 非事务资源，库事务成功后再执行）
 	if changed {
 		_ = NewSessionRevoker(m.rdb, 0).RevokeAll(ctx, userID, reason)
 	}

@@ -58,6 +58,19 @@ func (TicketRepo) UpdateStatus(db *gorm.DB, id int64, status int) error {
 	return db.Model(&model.Ticket{}).Where("id = ?", id).Update("status", status).Error
 }
 
+// UpdateStatusIfNotClosed 仅在未关闭（status<>2）时置目标状态，返回是否实际更新
+// （0 行=已被并发关闭）。回复路径的守卫：防「检查后关闭」交错把已关闭工单
+// 写入新回复并翻回未关闭态，绕过 reopen-once 状态机。
+func (TicketRepo) UpdateStatusIfNotClosed(db *gorm.DB, id int64, status int) (bool, error) {
+	res := db.Model(&model.Ticket{}).
+		Where("id = ? AND status <> 2", id).
+		Update("status", status)
+	if res.Error != nil {
+		return false, res.Error
+	}
+	return res.RowsAffected > 0, nil
+}
+
 // UpdateReopen 重开工单:状态回「待回复」、reopen_count+1、刷新最近回复时间。
 // 带条件原子更新(status=2 且 reopen_count=0),并发下只允许一次成功,
 // 返回是否实际更新(0 行=已被并发重开/已重开过)。

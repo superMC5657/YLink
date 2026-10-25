@@ -97,13 +97,29 @@ func TestTicketReply(t *testing.T) {
 	tk := &model.Ticket{ID: 7, UserID: 1, Subject: "s", Level: 1, Status: 1, LastReplyAt: &lastReply, CreatedAt: now}
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"tickets\"")).WillReturnRows(ticketRow(tk))
 	e.mock.ExpectBegin()
+	// 条件更新守卫先行（status<>2），随后写回复与 last_reply_at
+	e.mock.ExpectExec(`UPDATE "tickets" SET "status".* WHERE id = .* AND status <> 2`).WillReturnResult(sqlmock.NewResult(0, 1))
 	e.mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO \"ticket_messages\"")).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(2))
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"tickets\"")).WillReturnResult(sqlmock.NewResult(0, 1))
 	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"tickets\"")).WillReturnResult(sqlmock.NewResult(0, 1))
 	e.mock.ExpectCommit()
 
 	err := svc.Reply(context.Background(), 1, 7, "补充说明")
 	require.NoError(t, err)
+}
+
+// 读时未关闭、写入时已被并发关闭（条件更新 0 行）→ 不写回复、整体回滚、14001。
+func TestTicketReplyRacedClosed(t *testing.T) {
+	e, svc := newTicketEnv(t)
+	now := time.Now()
+	tk := &model.Ticket{ID: 7, UserID: 1, Subject: "s", Level: 1, Status: 1, CreatedAt: now}
+	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"tickets\"")).WillReturnRows(ticketRow(tk))
+	e.mock.ExpectBegin()
+	e.mock.ExpectExec(`UPDATE "tickets" SET "status".* WHERE id = .* AND status <> 2`).WillReturnResult(sqlmock.NewResult(0, 0))
+	e.mock.ExpectRollback()
+
+	err := svc.Reply(context.Background(), 1, 7, "补充说明")
+	assert.Equal(t, 14001, codeOf(err))
+	require.NoError(t, e.mock.ExpectationsWereMet())
 }
 
 func TestTicketReopen(t *testing.T) {

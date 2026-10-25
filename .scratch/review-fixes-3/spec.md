@@ -1,6 +1,6 @@
 # Review Fixes 3
 
-> 状态: 待修复（P0×4 / P1×9 / P2×5 / P3×3，共 21 张 ticket）
+> 状态: 修复中——P0 已完成 4/4（安全与启动稳定），余 P1×9 / P2×5 / P3×3
 > 日期: 2026-10-25
 > 范围: 全量代码评审（review-round-09）产出的修复项——安全与启动稳定、并发/正确性、分层与契约合规、令牌化与文档对齐、死代码清理
 > 关联: 评审快照 `docs/reviews/review-round-09.md`；分段执行手册 `execution.md`（一次贴一段）；前两轮见 `.scratch/review-fixes/`、`.scratch/review-fixes-2/`

@@ -262,8 +262,9 @@ func (m *adminUserModule) ResetUserSubToken(ctx context.Context, adminID, userID
 		return "", errs.ErrNotFound
 	}
 	oldToken := user.SubToken
-	user.SubToken = uuid.NewString()
-	if err := m.repos.User.Update(m.db, user); err != nil {
+	newToken := uuid.NewString()
+	// 只更新 token 列：user 为读出的快照，全结构体 Updates 会覆盖并发写（同 telegram.go 范式）
+	if err := m.repos.User.UpdateSubToken(m.db, userID, newToken); err != nil {
 		return "", err
 	}
 	// 清除旧 token 缓存（userinfo / 限流计数），与用户端自助重置一致
@@ -272,5 +273,5 @@ func (m *adminUserModule) ResetUserSubToken(ctx context.Context, adminID, userID
 	_ = m.audit.write(m.db, adminID, "reset_sub_token", fmt.Sprint(userID), ip, map[string]any{
 		"email": user.Email,
 	})
-	return m.cfg.App.BaseURL + "/api/v1/" + m.cfg.Security.SubscribePathOrDefault() + "/subscribe/" + user.SubToken, nil
+	return m.cfg.App.BaseURL + "/api/v1/" + m.cfg.Security.SubscribePathOrDefault() + "/subscribe/" + newToken, nil
 }

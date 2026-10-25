@@ -87,8 +87,9 @@ func (s *UserService) ChangePassword(ctx context.Context, userID int64, jti stri
 	if err != nil {
 		return err
 	}
-	user.PasswordHash = hash
-	if err := s.repos.User.Update(s.db, user); err != nil {
+	// 只更新密码列：user 是请求开始读出的快照，全结构体 Updates 会覆盖
+	// 操作期间并发的余额/流量等写入（telegram.go 同款按列更新范式）。
+	if err := s.repos.User.UpdatePasswordHash(s.db, userID, hash); err != nil {
 		return err
 	}
 	return s.auth.revokeOtherSessions(ctx, userID, jti)

@@ -80,6 +80,17 @@ func (UserRepo) Update(db *gorm.DB, u *model.User) error {
 	return db.Model(u).Updates(u).Error
 }
 
+// UpdatePasswordHash 只更新密码列——u 为请求开始读出的快照，
+// 全结构体 Updates 会把并发写入的余额/流量等一并回写覆盖。
+func (UserRepo) UpdatePasswordHash(db *gorm.DB, id int64, hash string) error {
+	return db.Model(&model.User{}).Where("id = ?", id).Update("password_hash", hash).Error
+}
+
+// UpdateSubToken 只更新订阅 token 列（理由同 UpdatePasswordHash：避免陈旧快照覆盖并发写）。
+func (UserRepo) UpdateSubToken(db *gorm.DB, id int64, token string) error {
+	return db.Model(&model.User{}).Where("id = ?", id).Update("sub_token", token).Error
+}
+
 // UpdateProfile 更新通知设置（map 更新，支持 false 值持久化）。
 func (UserRepo) UpdateProfile(db *gorm.DB, id int64, remindExpire, remindTraffic *bool) error {
 	updates := map[string]any{}

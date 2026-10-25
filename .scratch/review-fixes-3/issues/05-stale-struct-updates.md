@@ -1,6 +1,6 @@
 # [P1] 改密/重置订阅不得覆盖并发写
 
-Status: ready-for-agent
+Status: resolved
 Type: task
 
 ## Finding
@@ -21,3 +21,6 @@ Type: task
 - `go test ./internal/service/...` 全绿；core-flows.md 相关流程描述如有「全量保存」语句改为按列更新。
 
 ## Comments
+
+- 2026-10-25: 已修复——repo 新增 `UpdatePasswordHash`/`UpdateSubToken` 按列更新；用户端改密与重置订阅改走按列更新；测试以锚定正则断言 UPDATE 仅含目标列（+gorm 自动 updated_at），全结构体回写会因首列不匹配而失败。core-flows.md 无「全量保存」类语句，无需变更；`go build/vet/test ./...` 全绿。
+- 2026-10-25: Finding 遗漏的同语义调用点一并收敛（仍属本 ticket「改密/重置订阅」主题）：`auth_service.Forgot`（忘记密码改密）与 `admin_user.ResetUserSubToken`（管理端重置订阅密钥）此前的全结构体 Updates 同款陈旧快照风险，已同范式改按列更新。至此 `repos.User.Update`（全结构体）在 service 层无非测试调用方。

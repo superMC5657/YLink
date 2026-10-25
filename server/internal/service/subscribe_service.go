@@ -109,8 +109,9 @@ func (s *SubscribeService) ResetSubscribe(ctx context.Context, userID int64, pas
 	}
 	newToken := newUUID()
 	oldToken := user.SubToken
-	user.SubToken = newToken
-	if err := s.repos.User.Update(s.db, user); err != nil {
+	// 只更新 token 列：user 是请求开始读出的快照，全结构体 Updates 会覆盖
+	// 操作期间并发的余额/流量等写入（telegram.go 同款按列更新范式）。
+	if err := s.repos.User.UpdateSubToken(s.db, userID, newToken); err != nil {
 		return nil, err
 	}
 	// 清除旧 token 缓存（userinfo / 限流计数）

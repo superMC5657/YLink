@@ -89,10 +89,11 @@ func TestResetSubscribe(t *testing.T) {
 	hash, _ := hashPassword("Passw0rd!")
 	u := &model.User{ID: 1, Email: "a@b.com", PasswordHash: hash, SubToken: "old-token", CreatedAt: time.Now(), UpdatedAt: time.Now()}
 
-	// 查用户 + 更新
+	// 查用户 + 更新（锚定整条 UPDATE：仅 sub_token + gorm 自动的 updated_at，不含 balance 等其他列）
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"users\"")).WillReturnRows(userRow(u))
 	e.mock.ExpectBegin()
-	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"users\"")).WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectExec(`^UPDATE "users" SET "sub_token"=.+"updated_at"=.+ WHERE id = .+$`).
+		WillReturnResult(sqlmock.NewResult(0, 1))
 	e.mock.ExpectCommit()
 
 	url, err := svc.ResetSubscribe(context.Background(), 1, "Passw0rd!")

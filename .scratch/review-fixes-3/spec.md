@@ -23,7 +23,7 @@ EnsureAdmin/EnsureDemoUser 填充 `users.uuid`，消除唯一约束冲突与模�
 
 SetNX 错误与锁竞争分路径处理（Redis 故障不再静默跳过）；锁删除带属主 token 防误删继任者。→ issues/04
 
-### [P1] 05 改密/重置订阅不得覆盖并发写
+### [P1] 05 改密/重置订阅不得覆盖并发写 ✅
 
 user_service/subscribe_service 的全结构体陈旧快照更新改为按列条件更新（沿用 telegram.go 范式）。→ issues/05
 

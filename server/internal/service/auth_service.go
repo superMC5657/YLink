@@ -249,8 +249,8 @@ func (s *AuthService) Forgot(ctx context.Context, req *model.ForgotReq) error {
 	if err != nil {
 		return err
 	}
-	user.PasswordHash = hash
-	if err := s.repos.User.Update(s.db, user); err != nil {
+	// 只更新密码列：user 为读出的快照，全结构体 Updates 会覆盖并发写（同 telegram.go 范式）
+	if err := s.repos.User.UpdatePasswordHash(s.db, user.ID, hash); err != nil {
 		return err
 	}
 	return s.revokeAllSessions(ctx, user.ID)

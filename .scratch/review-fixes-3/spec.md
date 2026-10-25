@@ -35,7 +35,7 @@ ReplyTicket 条件更新守卫（reopen-once 状态机）；TrafficLogRepo.Upser
 
 验证码 GetDel、issueSession 不忽略 Set 错误、rand.Int 错误传播、异步邮件 recover、mailer 超时、epay 签名常量时间比较。→ issues/07
 
-### [P1] 08 迁移回滚对称性
+### [P1] 08 迁移回滚对称性 ✅
 
 0007/0008 down 迁移修复（提现行残留、settings.telegram 种子行清理）。→ issues/08
 

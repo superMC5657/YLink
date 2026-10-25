@@ -1,5 +1,5 @@
 import { computed, ref } from 'vue'
-import { clampPage, clampPageSize } from '@/utils/adminList'
+import { clampPage, clampPageSizeFor, pageTier } from '@/utils/adminList'
 import type { PageResult } from '@/types/api'
 
 /**
@@ -44,7 +44,12 @@ export interface AdminListOptions<TItem, TQuery extends Record<string, unknown>>
   fetch: AdminListFetch<TItem, TQuery>
   /** 首取与 load() 的筛选(不含分页键);缺省空对象 */
   initialQuery?: TQuery
-  /** 默认 10;钳制规则与后端同形 */
+  /**
+   * 分页档位:standard(缺省 10/上限 50,覆盖全部列表) / audit(缺省 20/上限 100,
+   * 审计日志与流量重置记录,ADR-0004);钳制数字与后端 pkg/page 同值
+   */
+  tier?: 'standard' | 'audit'
+  /** 显式条数;缺省取档位缺省值(10/20),仍按档钳制 */
   pageSize?: number
   /** 多选键;缺省读条目 id(非数字 id 会抛错,防静默错选) */
   getId?: (item: TItem) => number
@@ -66,19 +71,21 @@ export function useAdminList<TItem, TQuery extends Record<string, unknown>>(
   options: AdminListOptions<TItem, TQuery>,
 ) {
   const { fetch, getId = defaultGetId, notify, failedWord = '', onResponse } = options
+  const tier = options.tier ?? 'standard'
 
   const loading = ref(false)
   const list = ref<TItem[]>([])
   const total = ref(0)
   const page = ref(1)
-  const pageSize = ref(clampPageSize(options.pageSize ?? 10))
+  const pageSize = ref(clampPageSizeFor(tier, options.pageSize ?? pageTier[tier].defaultSize))
   const lastQuery = ref<TQuery>({ ...((options.initialQuery ?? {}) as TQuery) })
 
   // ref 解包后的条目再断回 TItem,供 getId 消费(运行时同一对象)
   const keyOf = (item: unknown): number => getId(item as TItem)
 
   function assign(res: PageResult<TItem> | { list: TItem[] }) {
-    list.value = res.list ?? []
+    // 直接赋值:后端 PageOK 保证 list 非 null(ADR-0001),前端不再自备回退
+    list.value = res.list
     total.value =
       typeof (res as PageResult<TItem>).total === 'number'
         ? (res as PageResult<TItem>).total
@@ -127,7 +134,7 @@ export function useAdminList<TItem, TQuery extends Record<string, unknown>>(
   }
 
   function setPageSize(ps: number) {
-    pageSize.value = clampPageSize(ps)
+    pageSize.value = clampPageSizeFor(tier, ps)
     page.value = 1
     return fetchPage()
   }

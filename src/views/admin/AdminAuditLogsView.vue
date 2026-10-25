@@ -37,7 +37,7 @@ const {
   }
 >({
   fetch: (q) => apiAdmin.auditLogs(q),
-  pageSize: 20,
+  tier: 'audit',
   onResponse: (res) => {
     const acts = (res as AdminAuditLogsResp).actions
     if (acts?.length) actions.value = acts

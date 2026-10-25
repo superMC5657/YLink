@@ -1,5 +1,5 @@
 import { http } from '@/utils/http'
-import { withPage } from '@/utils/adminList'
+import { withPageAudit } from '@/utils/adminList'
 import { adminPath as ap } from './path'
 import type {
   AdminAuditLogsResp,
@@ -25,7 +25,7 @@ import type {
  * (C3 transport-core 收敛,决策见 ADR-0003)。
  */
 export const systemTransport = {
-  // 审计日志(F08 只读)
+  // 审计日志(F08 只读,ADR-0004 Audit 档:缺省 20/上限 100)
   auditLogs: (query: {
     page?: number
     page_size?: number
@@ -34,7 +34,7 @@ export const systemTransport = {
     target?: string
     from?: string
     to?: string
-  }) => http.get<AdminAuditLogsResp>(ap('audit-logs'), { query: withPage(query) }),
+  }) => http.get<AdminAuditLogsResp>(ap('audit-logs'), { query: withPageAudit(query) }),
 
   // 流量导入(模式 B)
   importTraffic: (body: TrafficImportReq) => http.post<null>(ap('traffic/import'), { body }),
@@ -44,7 +44,7 @@ export const systemTransport = {
     http.post<AdminTrafficResetResp>(ap('traffic/reset'), { body }),
   trafficResets: (query: { page?: number; page_size?: number; user_id?: number | '' }) =>
     http.get<PageResult<AdminTrafficResetLogItem>>(ap('traffic/resets'), {
-      query: withPage(query),
+      query: withPageAudit(query),
     }),
 
   // 邮件模板（F11）

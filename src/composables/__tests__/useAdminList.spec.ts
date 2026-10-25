@@ -68,6 +68,23 @@ describe('useAdminList', () => {
     expect(page.value).toBe(1)
   })
 
+  // ADR-0004 审计档:缺省 20/上限 100——审计页选 100/页必须真的拉 100 条。
+  it('audit 档:默认 20,选 100 透传,越上限回落 20', async () => {
+    const fetch = vi.fn(async () => pageOf([], 0))
+    const { pageSize, load, setPageSize } = useAdminList<Row, Record<string, unknown>>({
+      fetch,
+      tier: 'audit',
+    })
+    expect(pageSize.value).toBe(20)
+    await load()
+    expect(fetch).toHaveBeenLastCalledWith({ page: 1, page_size: 20 })
+    await setPageSize(100)
+    expect(pageSize.value).toBe(100)
+    expect(fetch).toHaveBeenLastCalledWith({ page: 1, page_size: 100 })
+    await setPageSize(101)
+    expect(pageSize.value).toBe(20)
+  })
+
   it('失败保留旧表,loading 复位,错误重抛', async () => {
     const fetch = vi
       .fn<() => Promise<PageResult<Row>>>()

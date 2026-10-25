@@ -133,6 +133,7 @@ const {
   applyFilters: applyLogFilters,
 } = useAdminList<AdminTrafficResetLogItem, { user_id: number | '' }>({
   fetch: (q) => apiAdmin.trafficResets(q),
+  tier: 'audit',
 })
 
 function searchLogs() {

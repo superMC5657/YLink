@@ -39,7 +39,7 @@ ReplyTicket 条件更新守卫（reopen-once 状态机）；TrafficLogRepo.Upser
 
 0007/0008 down 迁移修复（提现行残留、settings.telegram 种子行清理）。→ issues/08
 
-### [P1] 09 审计分页档位钳制正确
+### [P1] 09 审计分页档位钳制正确 ✅
 
 clampPageSize 支持 Standard/Audit 双档（ADR-0004），审计页选 100/页真实生效。→ issues/09
 

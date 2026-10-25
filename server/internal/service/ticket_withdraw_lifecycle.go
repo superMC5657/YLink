@@ -53,11 +53,11 @@ func guardAdminCloseWithdraw(t *model.Ticket) error {
 
 // withdrawInfo 提现工单附带的结构化提现信息唯一读 seam：
 // 非提现工单返回 nil，查询失败降级为 nil 不阻断详情。
-func withdrawInfo(db *gorm.DB, t *model.Ticket) *model.TicketWithdrawInfo {
+func withdrawInfo(db *gorm.DB, repos *repo.Repos, t *model.Ticket) *model.TicketWithdrawInfo {
 	if t.Type != model.TicketTypeWithdraw {
 		return nil
 	}
-	w, err := (repo.WithdrawRepo{}).GetByTicketID(db, t.ID)
+	w, err := repos.Withdraw.GetByTicketID(db, t.ID)
 	if err != nil {
 		return nil
 	}
@@ -180,9 +180,7 @@ func reviewWithdrawTx(tx *gorm.DB, repos *repo.Repos, ticketID, adminID int64, a
 		return nil, err
 	}
 	// 提现流水同步三态（biz_type=1 行 status 0→1/2）
-	if err := tx.Model(&model.CommissionLog{}).
-		Where("order_no = ? AND biz_type = ?", fmt.Sprintf("w%d", w.ID), model.CommissionBizWithdraw).
-		Updates(map[string]any{"status": w.Status, "confirmed_at": now}).Error; err != nil {
+	if err := repos.Commission.MarkWithdrawLogStatus(tx, w.ID, w.Status, now); err != nil {
 		return nil, err
 	}
 	// 关闭工单 + 系统消息留痕

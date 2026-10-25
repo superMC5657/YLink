@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -261,6 +262,14 @@ func (CommissionRepo) ListPendingConfirmBefore(db *gorm.DB, paidBefore interface
 	err := db.Where("status = ? AND biz_type = ? AND created_at < ?",
 		model.CommissionPending, model.CommissionBizOrder, paidBefore).Find(&list).Error
 	return list, err
+}
+
+// MarkWithdrawLogStatus 提现流水三态同步：biz_type=1 行（order_no='w<提现单ID>'）
+// status 置目标态并补 confirmed_at（审核打款/拒绝共用）。
+func (CommissionRepo) MarkWithdrawLogStatus(db *gorm.DB, withdrawID int64, status int, confirmedAt time.Time) error {
+	return db.Model(&model.CommissionLog{}).
+		Where("order_no = ? AND biz_type = ?", fmt.Sprintf("w%d", withdrawID), model.CommissionBizWithdraw).
+		Updates(map[string]any{"status": status, "confirmed_at": confirmedAt}).Error
 }
 
 // WithdrawRepo 佣金提现单数据访问（F02）。

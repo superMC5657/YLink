@@ -106,7 +106,7 @@ func (s *TelegramService) Unbind(ctx context.Context, userID int64) error {
 	if user.TelegramID == nil {
 		return errs.New(40000, "尚未绑定 Telegram")
 	}
-	return s.db.Model(&model.User{}).Where("id = ?", userID).Update("telegram_id", nil).Error
+	return s.repos.User.ClearTelegramID(s.db, userID)
 }
 
 // telegramUpdate webhook 请求体（仅解析所需字段）。
@@ -192,15 +192,13 @@ func (s *TelegramService) handleBind(ctx context.Context, botToken string, chatI
 	}
 	// 条件更新只写 telegram_id，避免 stale 快照覆盖并发修改的余额等字段；
 	// 0008 唯一索引冲突在此落库报错：该 chat 已绑定其他账号。
-	res := s.db.Model(&model.User{}).
-		Where("id = ? AND is_banned = ?", userID, false).
-		Update("telegram_id", chatID)
-	if res.Error != nil {
-		logger.L().Warn("telegram bind save", zapS("user_id", fmt.Sprint(userID)), zapE(res.Error))
+	affected, err := s.repos.User.BindTelegramID(s.db, userID, chatID)
+	if err != nil {
+		logger.L().Warn("telegram bind save", zapS("user_id", fmt.Sprint(userID)), zapE(err))
 		s.reply(ctx, botToken, chatID, "绑定失败：该 Telegram 可能已绑定其他账号。")
 		return
 	}
-	if res.RowsAffected == 0 {
+	if affected == 0 {
 		s.reply(ctx, botToken, chatID, "账号状态已变更，绑定失败。")
 		return
 	}
@@ -209,8 +207,8 @@ func (s *TelegramService) handleBind(ctx context.Context, botToken string, chatI
 
 // handleUnbindCommand bot 侧 /unbind：按 chatID 反查解绑。
 func (s *TelegramService) handleUnbindCommand(ctx context.Context, botToken string, chatID int64) {
-	res := s.db.Model(&model.User{}).Where("telegram_id = ?", chatID).Update("telegram_id", nil)
-	if res.Error != nil || res.RowsAffected == 0 {
+	affected, err := s.repos.User.ClearTelegramIDByChat(s.db, chatID)
+	if err != nil || affected == 0 {
 		s.reply(ctx, botToken, chatID, "该 Telegram 未绑定任何账号。")
 		return
 	}

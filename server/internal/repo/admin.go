@@ -184,6 +184,49 @@ func (KnowledgeRepo) Delete(db *gorm.DB, id int64) error {
 	return db.Delete(&model.Knowledge{}, id).Error
 }
 
+// ListAll 全部公告（含隐藏，管理端）。
+func (NoticeRepo) ListAll(db *gorm.DB) ([]model.Notice, error) {
+	var list []model.Notice
+	err := db.Order("id DESC").Find(&list).Error
+	return list, err
+}
+
+// ListAll 全部知识文档（含隐藏，管理端）。
+func (KnowledgeRepo) ListAll(db *gorm.DB) ([]model.Knowledge, error) {
+	var list []model.Knowledge
+	err := db.Order("id DESC").Find(&list).Error
+	return list, err
+}
+
+// RenameCategory 分类改名级联：归属该分类的知识文档展示分类字符串同步更新
+// （用户端按字符串分组）。
+func (KnowledgeRepo) RenameCategory(db *gorm.DB, categoryID int64, name string) error {
+	return db.Model(&model.Knowledge{}).Where("category_id = ?", categoryID).
+		Update("category", name).Error
+}
+
+// ---- 管理端 · 优惠券 ----
+
+// ListAll 全部优惠券（含停用，管理端）。
+func (CouponRepo) ListAll(db *gorm.DB) ([]model.Coupon, error) {
+	var list []model.Coupon
+	err := db.Order("id DESC").Find(&list).Error
+	return list, err
+}
+
+func (CouponRepo) GetByID(db *gorm.DB, id int64) (*model.Coupon, error) {
+	var c model.Coupon
+	if err := db.First(&c, id).Error; err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
+// UpdateMap 按 ID 更新指定列（map 更新，支持 false/空值落库）。
+func (CouponRepo) UpdateMap(db *gorm.DB, id int64, updates map[string]any) error {
+	return db.Model(&model.Coupon{}).Where("id = ?", id).Updates(updates).Error
+}
+
 // ---- 管理端 · 工单 ----
 
 // ListByPage 全量工单分页。

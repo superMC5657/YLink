@@ -109,6 +109,27 @@ func (UserRepo) UpdateProfile(db *gorm.DB, id int64, remindExpire, remindTraffic
 // Save 全字段保存（用于余额等可能为 0 的字段）。
 func (UserRepo) Save(db *gorm.DB, u *model.User) error { return db.Save(u).Error }
 
+// ClearTelegramID 清除用户 Telegram 绑定（置 NULL；Updates(struct) 跳过零值，须显式 map 更新）。
+func (UserRepo) ClearTelegramID(db *gorm.DB, userID int64) error {
+	return db.Model(&model.User{}).Where("id = ?", userID).Update("telegram_id", nil).Error
+}
+
+// BindTelegramID 绑定 Telegram：条件更新只写 telegram_id，避免 stale 快照覆盖
+// 并发修改的余额等字段；返回受影响行数（0=账号状态已变更）。
+// 0008 唯一索引冲突在此落库报错：该 chat 已绑定其他账号。
+func (UserRepo) BindTelegramID(db *gorm.DB, userID, chatID int64) (int64, error) {
+	res := db.Model(&model.User{}).
+		Where("id = ? AND is_banned = ?", userID, false).
+		Update("telegram_id", chatID)
+	return res.RowsAffected, res.Error
+}
+
+// ClearTelegramIDByChat 按 chat 反查解绑，返回受影响行数（0=未绑定任何账号）。
+func (UserRepo) ClearTelegramIDByChat(db *gorm.DB, chatID int64) (int64, error) {
+	res := db.Model(&model.User{}).Where("telegram_id = ?", chatID).Update("telegram_id", nil)
+	return res.RowsAffected, res.Error
+}
+
 // ExistsEmail 邮箱是否已存在。
 func (UserRepo) ExistsEmail(db *gorm.DB, email string) (bool, error) {
 	var n int64

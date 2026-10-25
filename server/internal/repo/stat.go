@@ -183,3 +183,51 @@ func (StatRepo) NodeTrafficTop(db *gorm.DB, limit int) ([]statNodeTrafficRow, er
 		Order("total DESC").Limit(limit).Scan(&rows).Error
 	return rows, err
 }
+
+// OverviewCounts 总览聚合结果（金额单位：分）。
+type OverviewCounts struct {
+	Users           int64
+	Agents          int64
+	Orders          int64
+	CompletedOrders int64
+	Plans           int64
+	RevenueTotal    int64
+	RevenueToday    int64
+	BalanceTotal    int64
+}
+
+// OverviewCounts 总览 8 条固定查询的唯一执行口（管理端 Overview，
+// service 不得逐条手拼）。实收按 status=completed；今日营收按 paid_at 当日。
+func (StatRepo) OverviewCounts(db *gorm.DB) (*OverviewCounts, error) {
+	out := &OverviewCounts{}
+	today := time.Now().Format("2006-01-02")
+	queries := []func() error{
+		func() error { return db.Model(&model.User{}).Count(&out.Users).Error },
+		func() error {
+			return db.Model(&model.User{}).Where("role = ?", model.RoleAgent).Count(&out.Agents).Error
+		},
+		func() error { return db.Model(&model.Order{}).Count(&out.Orders).Error },
+		func() error {
+			return db.Model(&model.Order{}).Where("status = ?", model.OrderCompleted).Count(&out.CompletedOrders).Error
+		},
+		func() error { return db.Model(&model.Plan{}).Count(&out.Plans).Error },
+		func() error {
+			return db.Model(&model.Order{}).Where("status = ?", model.OrderCompleted).
+				Select("COALESCE(SUM(pay_amount),0)").Scan(&out.RevenueTotal).Error
+		},
+		func() error {
+			return db.Model(&model.Order{}).Where("status = ? AND paid_at::date = ?", model.OrderCompleted, today).
+				Select("COALESCE(SUM(pay_amount),0)").Scan(&out.RevenueToday).Error
+		},
+		func() error {
+			return db.Model(&model.User{}).
+				Select("COALESCE(SUM(balance),0)").Scan(&out.BalanceTotal).Error
+		},
+	}
+	for _, q := range queries {
+		if err := q(); err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
+}

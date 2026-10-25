@@ -270,8 +270,8 @@ func srvFromReq(req *model.AdminServerReq) *model.Server {
 
 // ListAllCoupons 优惠券列表。
 func (m *adminCatalogModule) ListAllCoupons(ctx context.Context) ([]model.AdminCouponView, error) {
-	var list []model.Coupon
-	if err := m.db.Order("id DESC").Find(&list).Error; err != nil {
+	list, err := m.repos.Coupon.ListAll(m.db)
+	if err != nil {
 		return nil, err
 	}
 	out := make([]model.AdminCouponView, 0, len(list))
@@ -328,8 +328,7 @@ func (m *adminCatalogModule) CreateCoupon(ctx context.Context, req *model.AdminC
 }
 
 func (m *adminCatalogModule) UpdateCoupon(ctx context.Context, id int64, req *model.AdminCouponReq) error {
-	var exist model.Coupon
-	if err := m.db.First(&exist, id).Error; err != nil {
+	if _, err := m.repos.Coupon.GetByID(m.db, id); err != nil {
 		return errs.ErrNotFound
 	}
 	value, ok := model.CheckedBoundedYuanToFen(req.Value)
@@ -365,7 +364,7 @@ func (m *adminCatalogModule) UpdateCoupon(ctx context.Context, id int64, req *mo
 		str := string(b)
 		updates["plan_ids"] = &str
 	}
-	return m.db.Model(&model.Coupon{}).Where("id = ?", id).Updates(updates).Error
+	return m.repos.Coupon.UpdateMap(m.db, id, updates)
 }
 
 func (m *adminCatalogModule) DeleteCoupon(ctx context.Context, id int64) error {

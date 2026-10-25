@@ -39,8 +39,8 @@ func (s *TicketService) List(ctx context.Context, userID int64, page, pageSize i
 }
 
 // ticketWithdrawInfo 薄 adapter：转发到提现工单生命周期深 Module 的读 seam。
-func ticketWithdrawInfo(db *gorm.DB, t *model.Ticket) *model.TicketWithdrawInfo {
-	return withdrawInfo(db, t)
+func ticketWithdrawInfo(db *gorm.DB, repos *repo.Repos, t *model.Ticket) *model.TicketWithdrawInfo {
+	return withdrawInfo(db, repos, t)
 }
 
 // Create POST /tickets（首条消息为用户发送）。
@@ -85,7 +85,7 @@ func (s *TicketService) Detail(ctx context.Context, userID int64, id int64) (*mo
 	}
 	return &model.TicketDetailResp{
 		ID: t.ID, Subject: t.Subject, Level: t.Level, Type: t.Type, Status: t.Status, ReopenCount: t.ReopenCount,
-		CreatedAt: t.CreatedAt, Messages: msgs, Withdraw: ticketWithdrawInfo(s.db, t),
+		CreatedAt: t.CreatedAt, Messages: msgs, Withdraw: ticketWithdrawInfo(s.db, s.repos, t),
 	}, nil
 }
 

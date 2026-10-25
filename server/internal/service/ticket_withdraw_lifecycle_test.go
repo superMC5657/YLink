@@ -29,7 +29,7 @@ func TestLifecycleGuards(t *testing.T) {
 
 	// 读 seam：非提现 nil，提现查询失败降级 nil
 	e := newTestEnv(t)
-	assert.Nil(t, withdrawInfo(e.db, normal))
+	assert.Nil(t, withdrawInfo(e.db, &repo.Repos{}, normal))
 }
 
 // TestAdminCloseWithdrawTicketRejected 管理端直接關提现工单被拒（14003），

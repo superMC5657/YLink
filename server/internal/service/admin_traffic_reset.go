@@ -73,6 +73,7 @@ func (m *adminTrafficModule) resetOneUserTraffic(adminID, userID int64, mode str
 			afterTransfer = model.GBToBytes(int64(plan.TrafficGB))
 			updates["transfer_enable"] = afterTransfer
 		}
+		// 直连豁免：清零须以 map 显式写零值（Updates(struct) 跳过零值），repo 无零值清列形状。
 		if err := tx.Model(&model.User{}).Where("id = ?", userID).Updates(updates).Error; err != nil {
 			return err
 		}

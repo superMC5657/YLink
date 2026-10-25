@@ -33,5 +33,5 @@ func (m *adminWithdrawModule) ReviewWithdraw(ctx context.Context, adminID, ticke
 // withdrawDetail 供工单详情复用的读 seam：转发到生命周期深 Module。
 // 查询失败降级为 nil，不阻断详情主流程。
 func (m *adminWithdrawModule) withdrawDetail(t *model.Ticket) *model.TicketWithdrawInfo {
-	return withdrawInfo(m.db, t)
+	return withdrawInfo(m.db, m.repos, t)
 }

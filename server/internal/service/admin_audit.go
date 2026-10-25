@@ -71,6 +71,7 @@ func (m *adminAuditModule) write(tx *gorm.DB, adminID int64, action, target, ip 
 }
 
 // emailsOf 批量取用户邮箱。
+// 直连豁免：列表富化批量读（两列投影、单条 IN 语句），N+1 批量查询的参照形状。
 func (m *adminAuditModule) emailsOf(ids []int64) map[int64]string {
 	out := map[int64]string{}
 	if len(ids) == 0 {
@@ -234,6 +235,7 @@ func (m *adminAuditModule) enrichAuditTargets(list []model.AdminAuditLogItem) {
 }
 
 // serverNamesOf 批量查节点名（id → name），查询失败返回空 map（不阻断展示）。
+// 直连豁免：同 emailsOf 的富化批量读形状（两列投影、单条 IN 语句）。
 func (m *adminAuditModule) serverNamesOf(ids []int64) map[int64]string {
 	out := map[int64]string{}
 	if len(ids) == 0 {
@@ -250,6 +252,7 @@ func (m *adminAuditModule) serverNamesOf(ids []int64) map[int64]string {
 }
 
 // categoryNamesOf 批量查知识分类名（id → name），查询失败返回空 map（不阻断展示）。
+// 直连豁免：同 emailsOf 的富化批量读形状（两列投影、单条 IN 语句）。
 func (m *adminAuditModule) categoryNamesOf(ids []int64) map[int64]string {
 	out := map[int64]string{}
 	if len(ids) == 0 {

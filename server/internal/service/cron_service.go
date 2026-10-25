@@ -167,6 +167,7 @@ func (s *CronService) ExpireRemind(ctx context.Context) {
 	var users []model.User
 	now := time.Now()
 	// 两个窗口：剩余 (48h, 72h] 视为「3 天」；(0, 24h] 视为「1 天」
+	// 直连豁免：提醒窗口复合谓词属调度域一次性扫描（repo 无对应形状）。
 	if err := s.db.Where("remind_expire = true AND expired_at IS NOT NULL AND is_banned = false AND "+
 		"((expired_at > ? AND expired_at <= ?) OR (expired_at > ? AND expired_at <= ?))",
 		now.Add(48*time.Hour), now.Add(72*time.Hour), now, now.Add(24*time.Hour)).
@@ -197,6 +198,7 @@ func (s *CronService) ExpireRemind(ctx context.Context) {
 // TrafficRemind 流量提醒（每日 10:00）：用量 ≥80% 且开启提醒。
 func (s *CronService) TrafficRemind(ctx context.Context) {
 	var users []model.User
+	// 直连豁免：提醒候选一次性扫描（百分比过滤在内存，repo 无对应形状）。
 	if err := s.db.Where("remind_traffic = true AND transfer_enable > 0 AND is_banned = false").Find(&users).Error; err != nil {
 		logger.L().Error("traffic remind query", zapE(err))
 		return
@@ -227,6 +229,7 @@ func (s *CronService) TrafficDaily(ctx context.Context) {
 func (s *CronService) AgentAudit(ctx context.Context) {
 	required, validDays := agentPolicy(ctx, s.set)
 	var agents []model.User
+	// 直连豁免：复核候选一次性扫描（repo 无对应形状）。
 	if err := s.db.Where("role = ?", model.RoleAgent).Find(&agents).Error; err != nil {
 		logger.L().Error("agent audit query", zapE(err))
 		return

@@ -40,6 +40,7 @@ func (m *adminNodeBatchModule) BatchServers(ctx context.Context, adminID int64, 
 		}
 	}
 	resp := &model.AdminBatchServerResp{Failed: make([]model.AdminBatchFailedItem, 0)}
+	// 直连豁免：逐节点条件更新/删除须拿 RowsAffected 做单节点成败统计（repo 形状不支持半批失败语义）。
 	err := repo.WithTx(m.db, func(tx *gorm.DB) error {
 		for _, id := range req.IDs {
 			var res *gorm.DB

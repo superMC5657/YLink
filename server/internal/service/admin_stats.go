@@ -34,46 +34,20 @@ func statDayRange(days int) (time.Time, []string) {
 
 // Overview GET /admin/stat/overview。
 func (m *adminStatsModule) Overview(ctx context.Context) (*model.AdminOverviewResp, error) {
-	out := &model.AdminOverviewResp{}
-	today := time.Now().Format("2006-01-02")
-	var usr, agent, order, completed, plan int64
-	var revTotal, revToday, balance int64
-	if err := m.db.Model(&model.User{}).Count(&usr).Error; err != nil {
+	c, err := m.repos.Stat.OverviewCounts(m.db)
+	if err != nil {
 		return nil, err
 	}
-	if err := m.db.Model(&model.User{}).Where("role = ?", model.RoleAgent).Count(&agent).Error; err != nil {
-		return nil, err
-	}
-	if err := m.db.Model(&model.Order{}).Count(&order).Error; err != nil {
-		return nil, err
-	}
-	if err := m.db.Model(&model.Order{}).Where("status = ?", model.OrderCompleted).Count(&completed).Error; err != nil {
-		return nil, err
-	}
-	if err := m.db.Model(&model.Plan{}).Count(&plan).Error; err != nil {
-		return nil, err
-	}
-	if err := m.db.Model(&model.Order{}).Where("status = ?", model.OrderCompleted).
-		Select("COALESCE(SUM(pay_amount),0)").Scan(&revTotal).Error; err != nil {
-		return nil, err
-	}
-	if err := m.db.Model(&model.Order{}).Where("status = ? AND paid_at::date = ?", model.OrderCompleted, today).
-		Select("COALESCE(SUM(pay_amount),0)").Scan(&revToday).Error; err != nil {
-		return nil, err
-	}
-	if err := m.db.Model(&model.User{}).
-		Select("COALESCE(SUM(balance),0)").Scan(&balance).Error; err != nil {
-		return nil, err
-	}
-	out.UserCount = usr
-	out.AgentCount = agent
-	out.OrderCount = order
-	out.CompletedOrders = completed
-	out.PlanCount = plan
-	out.TotalRevenue = model.FenToYuan(revTotal)
-	out.TodayRevenue = model.FenToYuan(revToday)
-	out.TotalBalance = model.FenToYuan(balance)
-	return out, nil
+	return &model.AdminOverviewResp{
+		UserCount:       c.Users,
+		AgentCount:      c.Agents,
+		OrderCount:      c.Orders,
+		CompletedOrders: c.CompletedOrders,
+		PlanCount:       c.Plans,
+		TotalRevenue:    model.FenToYuan(c.RevenueTotal),
+		TodayRevenue:    model.FenToYuan(c.RevenueToday),
+		TotalBalance:    model.FenToYuan(c.BalanceTotal),
+	}, nil
 }
 
 // StatOrders GET /admin/stat/orders：订单/营收/退款日趋势（含无数据日补零）。

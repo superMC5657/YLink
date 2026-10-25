@@ -111,8 +111,7 @@ func (m *adminContentModule) UpdateKnowledgeCategory(ctx context.Context, adminI
 		}
 		// 改名级联：归属该分类的知识文档展示分类字符串同步更新（用户端按字符串分组）
 		if name != kc.Name {
-			if err := tx.Model(&model.Knowledge{}).Where("category_id = ?", id).
-				Update("category", name).Error; err != nil {
+			if err := m.repos.Knowledge.RenameCategory(tx, id, name); err != nil {
 				return err
 			}
 		}
@@ -265,8 +264,8 @@ func (m *adminContentModule) DeleteKnowledge(ctx context.Context, id int64) erro
 
 // ListAllNotices GET /admin/notices（含隐藏,创建时间倒序）。
 func (m *adminContentModule) ListAllNotices(ctx context.Context) ([]model.AdminNoticeItem, error) {
-	var list []model.Notice
-	if err := m.db.Order("id DESC").Find(&list).Error; err != nil {
+	list, err := m.repos.Notice.ListAll(m.db)
+	if err != nil {
 		return nil, err
 	}
 	out := make([]model.AdminNoticeItem, 0, len(list))
@@ -280,8 +279,8 @@ func (m *adminContentModule) ListAllNotices(ctx context.Context) ([]model.AdminN
 
 // ListAllKnowledges GET /admin/knowledges（含隐藏）。
 func (m *adminContentModule) ListAllKnowledges(ctx context.Context) ([]model.AdminKnowledgeItem, error) {
-	var list []model.Knowledge
-	if err := m.db.Order("id DESC").Find(&list).Error; err != nil {
+	list, err := m.repos.Knowledge.ListAll(m.db)
+	if err != nil {
 		return nil, err
 	}
 	out := make([]model.AdminKnowledgeItem, 0, len(list))

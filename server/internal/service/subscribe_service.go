@@ -216,7 +216,7 @@ func (s *SubscribeService) Generate(ctx context.Context, token, flag, userAgent 
 // 回退只在模块内发生一次，adapter 侧对 fellBack 做一次 warn。
 func (s *SubscribeService) renderWithHints(gen subscribe.Generator, u *subscribe.User, nodes []subscribe.Node, hints []string, siteName, userInfo string) ([]byte, error) {
 	format := gen.Format()
-	custom, err := (repo.SubscriptionTemplateRepo{}).Get(s.db, format)
+	custom, err := s.repos.SubscriptionTemplate.Get(s.db, format)
 	customContent := ""
 	if err == nil && custom != nil {
 		customContent = custom.Content

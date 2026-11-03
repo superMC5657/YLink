@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { http } from '@/utils/http'
+import { withLoading } from '@/composables/withLoading'
 import type { Plan, PlanListResp } from '@/types/api'
 
 /**
@@ -25,14 +26,12 @@ export const usePlanStore = defineStore('plan', {
   actions: {
     async fetch(force = false) {
       if (this.loaded && !force) return
-      this.loading = true
-      try {
+      // ADR-0001：service 层 make() 保证 list 非空，直接赋值
+      await withLoading(this, async () => {
         const data = await planTransport.fetch()
-        this.list = data?.list ?? []
+        this.list = data.list
         this.loaded = true
-      } finally {
-        this.loading = false
-      }
+      })
     },
     findById(id: number): Plan | undefined {
       return this.list.find((p) => p.id === id)

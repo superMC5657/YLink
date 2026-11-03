@@ -81,13 +81,14 @@ export const useUserStore = defineStore('user', {
       this.subscribe = await userTransport.subscribe()
     },
     async fetchTrafficLogs(from: string, to: string) {
+      // ADR-0001：list 非空保证在后端（PageOK/repo 非.nil），前端直接赋值不再兜底
       const data = await userTransport.trafficLogs(from, to)
-      this.trafficLogs = data?.list ?? []
+      this.trafficLogs = data.list
     },
     // 会话管理（F14）与 Telegram 绑定（F12）：一次性动作，无跨页共享态，结果由页面局部持有
     async fetchSessions() {
       const data = await userTransport.sessions()
-      return data?.list ?? []
+      return data.list
     },
     async revokeSession(jti: string) {
       return userTransport.revokeSession(jti)

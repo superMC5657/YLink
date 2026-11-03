@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { http } from '@/utils/http'
+import { withLoading } from '@/composables/withLoading'
 import type { Notice, PageQuery, PageResult } from '@/types/api'
 
 /**
@@ -25,14 +26,12 @@ export const useNoticeStore = defineStore('notice', {
   }),
   actions: {
     async fetch(pageSize = 5) {
-      this.loading = true
-      try {
+      // ADR-0001：/notices 走 PageOK，list 非空保证在后端，直接赋值
+      await withLoading(this, async () => {
         const data = await noticeTransport.fetch({ page: 1, page_size: pageSize })
-        this.list = data?.list ?? []
+        this.list = data.list
         this.total = data.total
-      } finally {
-        this.loading = false
-      }
+      })
     },
   },
 })

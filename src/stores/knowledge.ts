@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { http } from '@/utils/http'
+import { withLoading } from '@/composables/withLoading'
 import type { KnowledgeDetail, KnowledgeGroup, KnowledgeListResp } from '@/types/api'
 
 /**
@@ -32,8 +33,7 @@ export const useKnowledgeStore = defineStore('knowledge', {
   }),
   actions: {
     async fetch(params: { language?: string; keyword?: string } = {}) {
-      this.loading = true
-      try {
+      await withLoading(this, async () => {
         if (params.language !== undefined) this.language = params.language
         if (params.keyword !== undefined) this.keyword = params.keyword
         const data = await knowledgeTransport.fetch({
@@ -43,9 +43,7 @@ export const useKnowledgeStore = defineStore('knowledge', {
         // 后端可能返回 groups:null(数据库无文档),必须兜底为数组,
         // 否则模板里 groups.length 对 null 抛 TypeError → 渲染崩溃 → 转圈卡死
         this.groups = data?.groups ?? []
-      } finally {
-        this.loading = false
-      }
+      })
     },
     async fetchDetail(id: number) {
       this.detail = await knowledgeTransport.detail(id)

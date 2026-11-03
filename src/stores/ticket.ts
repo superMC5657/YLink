@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { http } from '@/utils/http'
+import { withLoading } from '@/composables/withLoading'
 import type {
   CreateTicketReq,
   PageQuery,
@@ -43,14 +44,12 @@ export const useTicketStore = defineStore('ticket', {
   }),
   actions: {
     async fetch(page = 1, pageSize = 10) {
-      this.loading = true
-      try {
+      // ADR-0001：/tickets 走 PageOK，list 非空保证在后端，直接赋值
+      await withLoading(this, async () => {
         const data = await ticketTransport.fetch({ page, page_size: pageSize })
-        this.list = data?.list ?? []
+        this.list = data.list
         this.total = data.total
-      } finally {
-        this.loading = false
-      }
+      })
     },
     /** 状态快照轮询（useLocalNotifications 后台通知）：只取数不落列表/加载态，避免掀翻列表视图 */
     async fetchStatusSnapshot(page = 1, pageSize = 10) {

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { http } from '@/utils/http'
+import { withLoading } from '@/composables/withLoading'
 import type {
   CheckoutReq,
   CheckoutResp,
@@ -67,20 +68,18 @@ export const useOrderStore = defineStore('order', {
   }),
   actions: {
     async fetch(query: PageQuery & { status?: OrderStatus | '' } & { append?: boolean } = {}) {
-      this.loading = true
-      try {
+      // ADR-0001：/orders 走 PageOK，list 非空保证在后端，直接赋值
+      await withLoading(this, async () => {
         const data = await orderTransport.fetch({
           page: query.page ?? this.page,
           page_size: query.page_size ?? this.pageSize,
           status: query.status,
         })
         // append：移动端「加载更多」追加下一页；否则覆盖当前列表
-        this.list = query.append ? [...this.list, ...(data?.list ?? [])] : (data?.list ?? [])
+        this.list = query.append ? [...this.list, ...data.list] : data.list
         this.total = data.total
         this.page = data.page
-      } finally {
-        this.loading = false
-      }
+      })
     },
     async fetchDetail(orderNo: string) {
       this.detail = await orderTransport.detail(orderNo)
@@ -99,8 +98,9 @@ export const useOrderStore = defineStore('order', {
     },
     /** 拉取当前用户可用优惠券（按套餐/周期过滤） */
     async fetchAvailableCoupons(planID: number, period?: PlanPeriod) {
+      // ADR-0001：service 层 make() 保证 list 非空，直接赋值
       const data = await couponTransport.available({ plan_id: planID, period })
-      this.availableCoupons = data?.list ?? []
+      this.availableCoupons = data.list
       return this.availableCoupons
     },
     async cancel(orderNo: string) {

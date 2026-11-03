@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { http } from '@/utils/http'
+import { withLoading } from '@/composables/withLoading'
 import type { ServerGroup, ServerListResp } from '@/types/api'
 
 /**
@@ -26,15 +27,12 @@ export const useServerStore = defineStore('server', {
   }),
   actions: {
     async fetch() {
-      this.loading = true
-      try {
+      await withLoading(this, async () => {
         const data = await serverTransport.fetch()
         // 兜底 null:后端空数据时避免模板 groups.length 崩溃
         this.groups = data?.groups ?? []
         this.lastUpdated = Date.now()
-      } finally {
-        this.loading = false
-      }
+      })
     },
     /** 60s 静默轮询 */
     startPolling() {

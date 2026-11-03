@@ -20,7 +20,7 @@ import (
 
 func newWithdrawEnv(t *testing.T) (*testEnv, *InviteService) {
 	e := newTestEnv(t)
-	svc := NewInviteService(e.db, e.rdb, &repo.Repos{}, nil, nil)
+	svc := NewInviteService(e.db, e.rdb, &repo.Repos{}, nil, NewSettingService(e.db, e.rdb, &repo.Repos{}))
 	return e, svc
 }
 

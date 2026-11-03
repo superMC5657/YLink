@@ -25,9 +25,6 @@ type InviteService struct {
 }
 
 func NewInviteService(db *gorm.DB, rdb *redis.Client, repos *repo.Repos, cfg *config.Config, set *SettingService) *InviteService {
-	if set == nil {
-		set = NewSettingService(db, rdb, repos)
-	}
 	return &InviteService{db: db, rdb: rdb, repos: repos, cfg: cfg, set: set}
 }
 

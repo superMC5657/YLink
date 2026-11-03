@@ -17,7 +17,7 @@ import (
 
 func newInviteEnv(t *testing.T) (*testEnv, *InviteService) {
 	e := newTestEnv(t)
-	svc := NewInviteService(e.db, e.rdb, &repo.Repos{}, &config.Config{App: config.AppConfig{BaseURL: "https://panel.example.com"}}, nil)
+	svc := NewInviteService(e.db, e.rdb, &repo.Repos{}, &config.Config{App: config.AppConfig{BaseURL: "https://panel.example.com"}}, NewSettingService(e.db, e.rdb, &repo.Repos{}))
 	return e, svc
 }
 

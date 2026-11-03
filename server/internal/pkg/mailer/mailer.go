@@ -88,6 +88,9 @@ func (m *Mailer) Send(to, subject, htmlBody string) error {
 			return err
 		}
 	}
+	// 信封 MAIL FROM 用 SMTP 登录账号而非收件人可见的 From 头：多数服务商
+	// （QQ/163/企业邮）要求信封发件人与认证身份一致，否则拒信或 SPF/DMARC 对齐失败；
+	// 可见 From 头（含 fromName 显示名）在上方 SetHeader 单独设置。
 	if err := c.Mail(m.username); err != nil {
 		return err
 	}

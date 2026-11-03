@@ -175,7 +175,7 @@ func TestConfirmCommissions(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	orders := NewOrderService(e.db, e.rdb, repos, &config.Config{}, nil, nil)
-	cronSvc := NewCronService(e.db, e.rdb, repos, &config.Config{}, nil, mailer.New(config.SMTPConfig{}), orders, nil)
+	cronSvc := NewCronService(e.db, e.rdb, repos, &config.Config{}, NewSettingService(e.db, e.rdb, repos), mailer.New(config.SMTPConfig{}), orders, nil)
 	now := time.Now()
 	// settings invite（确认期 3 天）
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT \"value\" FROM \"settings\"")).
@@ -203,7 +203,7 @@ func TestCloseExpiredOrders(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	orders := NewOrderService(e.db, e.rdb, repos, &config.Config{}, nil, nil)
-	cronSvc := NewCronService(e.db, e.rdb, repos, &config.Config{}, nil, mailer.New(config.SMTPConfig{}), orders, nil)
+	cronSvc := NewCronService(e.db, e.rdb, repos, &config.Config{}, NewSettingService(e.db, e.rdb, repos), mailer.New(config.SMTPConfig{}), orders, nil)
 
 	now := time.Now()
 	old := now.Add(-time.Hour)
@@ -227,7 +227,7 @@ func TestCloseExpiredOrdersReleasesCoupon(t *testing.T) {
 	e := newTestEnv(t)
 	repos := &repo.Repos{}
 	orders := NewOrderService(e.db, e.rdb, repos, &config.Config{}, nil, nil)
-	cronSvc := NewCronService(e.db, e.rdb, repos, &config.Config{}, nil, mailer.New(config.SMTPConfig{}), orders, nil)
+	cronSvc := NewCronService(e.db, e.rdb, repos, &config.Config{}, NewSettingService(e.db, e.rdb, repos), mailer.New(config.SMTPConfig{}), orders, nil)
 
 	now := time.Now()
 	old := now.Add(-time.Hour)

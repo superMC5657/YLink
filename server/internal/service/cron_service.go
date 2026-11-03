@@ -31,9 +31,6 @@ type CronService struct {
 }
 
 func NewCronService(db *gorm.DB, rdb *redis.Client, repos *repo.Repos, cfg *config.Config, set *SettingService, m *mailer.Mailer, orders *OrderService, tg *TelegramService) *CronService {
-	if set == nil {
-		set = NewSettingService(db, rdb, repos)
-	}
 	return &CronService{db: db, rdb: rdb, repos: repos, cfg: cfg, set: set, mailer: m, orders: orders, tg: tg}
 }
 

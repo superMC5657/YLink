@@ -10,6 +10,7 @@ import { useAppStore } from '@/stores/app'
 import { useI18n } from 'vue-i18n'
 import { formatBytes } from '@/utils/format'
 import { useEcharts } from '@/composables/useEcharts'
+import { TOKEN_VALUES } from '@/styles/tokenValues'
 import dayjs from 'dayjs'
 
 const user = useUserStore()
@@ -109,7 +110,10 @@ async function renderChart() {
         type: 'bar',
         stack: 'traffic',
         data: user.trafficLogs.map((x) => x.u),
-        itemStyle: { color: cssVar('--c-primary', '#6558F5'), borderRadius: [3, 3, 0, 0] },
+        itemStyle: {
+          color: cssVar('--c-primary', TOKEN_VALUES.primary),
+          borderRadius: [3, 3, 0, 0],
+        },
         barMaxWidth: 18,
       },
       {
@@ -117,7 +121,7 @@ async function renderChart() {
         type: 'bar',
         stack: 'traffic',
         data: user.trafficLogs.map((x) => x.d),
-        itemStyle: { color: cssVar('--c-pink', '#C2487B'), borderRadius: [3, 3, 0, 0] },
+        itemStyle: { color: cssVar('--c-pink', TOKEN_VALUES.pink), borderRadius: [3, 3, 0, 0] },
         barMaxWidth: 18,
       },
     ],

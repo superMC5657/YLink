@@ -12,6 +12,7 @@ import { useI18n } from 'vue-i18n'
 import { useQrCode } from '@/composables/useQrCode'
 import { copyText } from '@/utils/platform'
 import { useConfigStore } from '@/stores/config'
+import { TOKEN_VALUES } from '@/styles/tokenValues'
 
 const props = defineProps<{
   show: boolean
@@ -164,8 +165,8 @@ async function onDownloadImage() {
 
   // 品牌渐变背景(令牌随主题:暗色取暗色变体,与面板卡片一致)
   const grad = ctx.createLinearGradient(0, 0, IMG_W, IMG_H)
-  grad.addColorStop(0, cssColor('--c-primary', '#6558F5'))
-  grad.addColorStop(1, cssColor('--c-primary-grad-end', '#8B5CF6'))
+  grad.addColorStop(0, cssColor('--c-primary', TOKEN_VALUES.primary))
+  grad.addColorStop(1, cssColor('--c-primary-grad-end', TOKEN_VALUES.primaryGradEnd))
   ctx.fillStyle = grad
   roundRectPath(ctx, 0, 0, IMG_W, IMG_H, 28)
   ctx.fill()

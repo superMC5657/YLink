@@ -43,8 +43,7 @@ export default defineConfig({
       md: '1024px',
       lg: '1280px',
     },
-    colors: {
-      primary: '#6558F5',
-    },
+    // 不声明 colors.primary:无 text-primary/bg-primary 类用法(颜色一律走 --c-* 令牌),
+    // 留着只会在主题色调整时多一处漂移源(品牌 hex 门禁 check-brand-hex.mjs 同样盯这里)
   },
 })

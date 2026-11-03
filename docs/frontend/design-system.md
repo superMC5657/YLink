@@ -100,6 +100,7 @@
 
 - 主按钮/关键数字可用主色渐变：`linear-gradient(135deg, #6558F5, #8B5CF6)`（暗色 `#7C72FF → #A78BFA`）。已令牌化为 `linear-gradient(135deg, var(--c-primary), var(--c-primary-grad-end))`，暗色主题自动切换变体（tokens.css）。
 - 语义渐变同理令牌化：danger 渐变 `linear-gradient(<angle>, var(--c-danger), var(--c-danger-grad-end))`（离线横幅）、amber 渐变 `linear-gradient(135deg, var(--c-amber-icon), var(--c-amber-grad-end))`（公告铃铛），组件不得再写死渐变端点。
+- **JS 侧回落值单源**：canvas/ECharts 等读不到 CSS 变量的场景，从 `src/styles/tokenValues.ts` 引 `TOKEN_VALUES`，不得再写字面量（与 tokens.css 的同步、品牌 hex 大小写变体由 `scripts/check-brand-hex.mjs` 挂 lint 链强制；tokens.css / theme.ts / tokenValues.ts / index.html 是仅存的字面量定义点）。
 - 仪表板 Banner 卡保留背景插画；暗色模式叠加 `rgba(10,12,20,.45)` 遮罩保证文字可读，或使用暗色专属插画。
 - 内容区底可加极低透明度（3%–5%）的品牌纹理/几何插画，暗色下同图降透明度至 2%。
 - 卡片可选 `backdrop-filter: blur(12px)` 毛玻璃（仅顶栏、抽屉、移动底栏等浮层使用，普通卡片保持实色以保性能）。

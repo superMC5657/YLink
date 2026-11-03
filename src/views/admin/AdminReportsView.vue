@@ -12,6 +12,7 @@ import type { AdminStatOrdersResp, AdminStatTrafficResp, AdminStatUsersResp } fr
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { useEcharts } from '@/composables/useEcharts'
 import { formatBytes } from '@/utils/format'
+import { TOKEN_VALUES } from '@/styles/tokenValues'
 
 const app = useAppStore()
 const { t } = useI18n()
@@ -62,7 +63,7 @@ function axisStyles() {
 
 /** 图表占位 loading:数据未到(或 echarts chunk 首次下载)时给出可见反馈,替代空白卡片 */
 function chartLoading() {
-  return { color: cssVar('--c-primary', '#6558F5'), fontSize: 12 }
+  return { color: cssVar('--c-primary', TOKEN_VALUES.primary), fontSize: 12 }
 }
 
 function renderAll() {
@@ -125,7 +126,7 @@ async function renderRevenue() {
         type: 'line',
         smooth: true,
         data: orders.value.items.map((x) => x.revenue),
-        itemStyle: { color: cssVar('--c-olive', '#7C9A3D') },
+        itemStyle: { color: cssVar('--c-olive', TOKEN_VALUES.olive) },
         lineStyle: { width: 2 },
         areaStyle: { opacity: 0.08 },
       },
@@ -134,7 +135,7 @@ async function renderRevenue() {
         type: 'line',
         smooth: true,
         data: orders.value.items.map((x) => x.refunded),
-        itemStyle: { color: cssVar('--c-danger', '#E5484D') },
+        itemStyle: { color: cssVar('--c-danger', TOKEN_VALUES.danger) },
         lineStyle: { width: 2 },
       },
       {
@@ -142,7 +143,7 @@ async function renderRevenue() {
         type: 'line',
         smooth: true,
         data: orders.value.items.map((x) => x.balance_used),
-        itemStyle: { color: cssVar('--c-primary', '#6558F5') },
+        itemStyle: { color: cssVar('--c-primary', TOKEN_VALUES.primary) },
         lineStyle: { width: 2, type: 'dashed' },
       },
       {
@@ -150,7 +151,7 @@ async function renderRevenue() {
         type: 'line',
         smooth: true,
         data: orders.value.items.map((x) => x.balance_refunded),
-        itemStyle: { color: cssVar('--c-pink', '#C2487B') },
+        itemStyle: { color: cssVar('--c-pink', TOKEN_VALUES.pink) },
         lineStyle: { width: 2, type: 'dashed' },
       },
     ],
@@ -188,7 +189,10 @@ async function renderRegister() {
         name: t('adminReports.registers'),
         type: 'bar',
         data: users.value.register_trend.map((x) => x.count),
-        itemStyle: { color: cssVar('--c-primary', '#6558F5'), borderRadius: [3, 3, 0, 0] },
+        itemStyle: {
+          color: cssVar('--c-primary', TOKEN_VALUES.primary),
+          borderRadius: [3, 3, 0, 0],
+        },
         barMaxWidth: 18,
       },
     ],
@@ -227,7 +231,10 @@ async function renderPlan() {
         name: t('adminReports.activeUsers'),
         type: 'bar',
         data: dist.map((x) => x.users),
-        itemStyle: { color: cssVar('--c-warning', '#D98E04'), borderRadius: [0, 3, 3, 0] },
+        itemStyle: {
+          color: cssVar('--c-warning', TOKEN_VALUES.warning),
+          borderRadius: [0, 3, 3, 0],
+        },
         barMaxWidth: 18,
       },
     ],
@@ -265,7 +272,7 @@ async function renderUserTop() {
         name: t('adminReports.usedTraffic'),
         type: 'bar',
         data: top.map((x) => x.total_bytes),
-        itemStyle: { color: cssVar('--c-blue', '#4B8FE5'), borderRadius: [0, 3, 3, 0] },
+        itemStyle: { color: cssVar('--c-blue', TOKEN_VALUES.blue), borderRadius: [0, 3, 3, 0] },
         barMaxWidth: 18,
       },
     ],
@@ -303,7 +310,7 @@ async function renderNodeTop() {
         name: t('adminReports.reportedTraffic'),
         type: 'bar',
         data: top.map((x) => x.bytes),
-        itemStyle: { color: cssVar('--c-pink', '#C2487B'), borderRadius: [0, 3, 3, 0] },
+        itemStyle: { color: cssVar('--c-pink', TOKEN_VALUES.pink), borderRadius: [0, 3, 3, 0] },
         barMaxWidth: 18,
       },
     ],

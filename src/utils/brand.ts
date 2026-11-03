@@ -4,6 +4,7 @@
  * /config 下发后在此统一应用:CSS 设计令牌覆盖(tokens.css 变量)+ Naive 主题主色。
  * 校验失败(非法颜色/空值)回退默认主题,不影响渲染。
  */
+import { TOKEN_VALUES } from '@/styles/tokenValues'
 
 /** 校验 Hex 颜色(#RGB/#RRGGBB/#RRGGBBAA) */
 export function isHexColor(value: string | undefined | null): value is string {
@@ -62,7 +63,7 @@ export function applyPrimaryColor(color: string | undefined | null): void {
   el.style.setProperty('--c-primary-hover', mixHex(color, '#ffffff', 0.14))
   el.style.setProperty('--c-primary-soft', soft)
   el.style.setProperty('--c-primary-text', mixHex(color, '#000000', 0.2))
-  el.style.setProperty('--c-primary-grad-end', mixHex(color, '#8B5CF6', 0.3))
+  el.style.setProperty('--c-primary-grad-end', mixHex(color, TOKEN_VALUES.primaryGradEnd, 0.3))
 }
 
 /** 应用品牌背景图(body 层,空值清除) */

@@ -64,7 +64,7 @@ func (g *cronGuard) run(name string, fn func()) func() {
 			middleware.CronJobInc(name, "skipped")
 			return
 		}
-		defer g.release(ctx, key, token)
+		defer g.release(ctx, name, token)
 		logger.L().Info("cron job start", zapS("job", name))
 		start := time.Now()
 		func() {
@@ -84,9 +84,10 @@ func (g *cronGuard) run(name string, fn func()) func() {
 }
 
 // release 属主校验释放（Lua 单原子）；失败只记日志，等锁 TTL 自然过期兜底。
-func (g *cronGuard) release(ctx context.Context, key, token string) {
+func (g *cronGuard) release(ctx context.Context, name, token string) {
+	key := redispkg.Key("cron", "lock", name)
 	if err := cronUnlockLua.Run(ctx, g.rdb, []string{key}, token).Err(); err != nil {
-		logger.L().Error("cron lock release failed", zapS("job", key), zapE(err))
+		logger.L().Error("cron lock release failed", zapS("job", name), zapE(err))
 	}
 }
 

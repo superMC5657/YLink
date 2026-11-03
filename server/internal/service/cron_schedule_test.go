@@ -55,12 +55,12 @@ func TestCronLockReleaseOwnership(t *testing.T) {
 	key := redispkg.Key("cron", "lock", "ut-owner")
 
 	require.NoError(t, rdb.Set(ctx, key, "successor-token", time.Minute).Err())
-	g.release(ctx, key, "my-token")
+	g.release(ctx, "ut-owner", "my-token")
 	got, err := rdb.Get(ctx, key).Result()
 	require.NoError(t, err)
 	assert.Equal(t, "successor-token", got, "不得误删继任实例持有的锁")
 
-	g.release(ctx, key, "successor-token")
+	g.release(ctx, "ut-owner", "successor-token")
 	assert.False(t, mr.Exists(key), "属主匹配时应删除锁")
 }
 

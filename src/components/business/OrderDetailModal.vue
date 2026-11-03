@@ -5,6 +5,7 @@
  */
 import { computed, ref, watch } from 'vue'
 import { useOrderStore } from '@/stores/order'
+import { useConfigStore } from '@/stores/config'
 import { useMessage, useDialog } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import {
@@ -23,6 +24,7 @@ const props = defineProps<{ show: boolean; orderNo: string | null }>()
 const emit = defineEmits<{ (e: 'update:show', v: boolean): void; (e: 'changed'): void }>()
 
 const orderStore = useOrderStore()
+const configStore = useConfigStore()
 const message = useMessage()
 const dialog = useDialog()
 const { t } = useI18n()
@@ -30,12 +32,15 @@ const { t } = useI18n()
 const detail = ref<Order | null>(null)
 const loading = ref(false)
 const showPayment = ref(false)
-const payMethod = ref('epay_alipay')
+// 打开时重置为首个启用渠道（config.payment_methods 驱动）；
+// 硬编码 'epay_alipay' 在该渠道被禁用时会落空
+const payMethod = ref('')
 
 watch(
   () => props.show,
   async (v) => {
     if (v && props.orderNo) {
+      payMethod.value = configStore.defaultPayMethod
       loading.value = true
       try {
         detail.value = await orderStore.fetchDetail(props.orderNo)

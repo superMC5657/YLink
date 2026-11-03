@@ -7,6 +7,7 @@
 import { computed, ref, watch } from 'vue'
 import { useOrderStore } from '@/stores/order'
 import { useUserStore } from '@/stores/user'
+import { useConfigStore } from '@/stores/config'
 import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import { formatMoney, planSavePercent } from '@/utils/format'
@@ -23,6 +24,7 @@ const emit = defineEmits<{ (e: 'update:show', v: boolean): void; (e: 'paid'): vo
 
 const orderStore = useOrderStore()
 const userStore = useUserStore()
+const configStore = useConfigStore()
 const message = useMessage()
 const { t } = useI18n()
 
@@ -33,7 +35,9 @@ const couponResult = ref<{ discount_amount: number; pay_amount: number } | null>
 const couponError = ref('')
 const availableCoupons = ref<CouponItem[]>([])
 const couponsLoading = ref(false)
-const payMethod = ref('epay_alipay')
+// 默认选中首个启用渠道（config.payment_methods 驱动）；打开时 reset() 重算，
+// 硬编码 'epay_alipay' 在该渠道被禁用时会落空
+const payMethod = ref(configStore.defaultPayMethod)
 const submitting = ref(false)
 
 const createdOrder = ref<Awaited<ReturnType<typeof orderStore.create>> | null>(null)
@@ -63,7 +67,7 @@ function reset() {
   couponError.value = ''
   availableCoupons.value = []
   couponsLoading.value = false
-  payMethod.value = 'epay_alipay'
+  payMethod.value = configStore.defaultPayMethod
   createdOrder.value = null
   showPayment.value = false
   // 幂等键:弹窗生命周期内复用(契约 §1.5)

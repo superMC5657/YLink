@@ -34,6 +34,17 @@ export const useConfigStore = defineStore('config', {
   getters: {
     siteName: (s) => s.config?.site_name ?? import.meta.env.VITE_APP_NAME ?? 'YLink',
     paymentMethods: (s) => s.config?.payment_methods ?? [],
+    /**
+     * 缺省选中渠道：优先首个启用的在线渠道——余额是显式选择面（余额不足时该渠道
+     * 呈禁用态），默认选中会在用户未察觉时把资金路径切到划扣；仅余额可用（全新
+     * 部署后端种子的唯一渠道）时才回退余额。渠道全部禁用时为空串。
+     */
+    defaultPayMethod: (s) => {
+      const ms = s.config?.payment_methods ?? []
+      return (
+        (ms.find((m) => m.enabled && m.code !== 'balance') ?? ms.find((m) => m.enabled))?.code ?? ''
+      )
+    },
     registerEnabled: (s) => s.config?.register_enabled ?? true,
     inviteCodeRequired: (s) => s.config?.invite_code_required ?? false,
   },

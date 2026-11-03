@@ -27,9 +27,3 @@ Type: task
 - SMTP 不可达时登录/支付回调仍正常返回，无 goroutine 泄漏（可用 goleak 或超时断言）。
 - epay verify 单元测试不变全绿（行为等价、实现单一）。
 - `go test ./...` 全绿。
-
-## Comments
-
-- 2026-10-25: 已修复——① `verifyCaptcha` 改 `GetDel` 原子取删（一次性语义：校验失败同样消费，core-flows 原文即「校验并删除（一次性）」，实现向契约对齐；并发 8 goroutine 重复使用仅一次成功有测试）；② `issueSession` 检查白名单 Set 错误并返回；③ `randomInviteCode` 熵源失败显式报错；④ `sendReceiptMailAsync` goroutine 补 recover（同 deliverAsync 政策）；⑤ mailer 传输层重写为自管 net/smtp + `SetDeadline` 绝对 30s deadline（gomail 的 `netDialTimeout` 为不可覆盖的包内变量且仅覆盖拨号，无法注入 deadline——报文构建仍用 gomail，465 隐式 TLS/587 STARTTLS/PLAIN AUTH 行为保持），挂起 SMTP 在 deadline 内返回错误（fake SMTP 全链路测试 + 挂起服务器 deadline 测试）；⑥ epay `verify` 改 `subtle.ConstantTimeCompare` 并复用 `sign()` 单一实现（新增 verify 等价性测试）。`go build/vet/test ./...` 全绿，core-flows.md 无需变更。
-- 2026-10-25: 范围外发现（未修）：`auth_service.randomCode` 验证码生成对 `rand.Int` 失败静默回退固定值 `"000000"`——熵源故障时全员验证码可预测，建议后续与 rand 卫生一并处理。
-- 2026-10-25: 行为变化提示：验证码输错即消费（此前输错可重试），需重新获取——一次性语义的预期代价，与 tg-bind 验证码行为一致。

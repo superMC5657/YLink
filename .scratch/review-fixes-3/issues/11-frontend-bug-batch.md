@@ -25,8 +25,3 @@ Type: task
 - 断网/异常时图表与文案不再出现偏色的回落色。
 - 流量导入在 UTC+8 早 8 点前默认日期正确；三个支付入口的渠道列表均来自 config。
 - `pnpm test` + e2e（withdraw/admin）全绿；check-error-toast / check-admin-contract 通过。
-
-## Comments
-
-- 2026-10-25: 已修复——① mock node 设置整键对齐 0009 契约：`install_script_url`/`install_command_template`（原 mock 用陈旧键名 `deploy_script_url`/`command_template`，对话框根本读不到）+ 默认模板逐字取 0009 种子值（`{{}}` 占位符、`--endpoint/--key` 参数，可被 install-agent.sh 参数解析接受）；② cssVar 回落色对齐令牌字面量（pink `#C2487B`×2、olive `#7C9A3D`、warning `#D98E04`、blue `#4B8FE5`）；③ AdminTrafficImportView 重置行默认日期改 `localDateKey`、重置记录时间改 `formatTime`；④ 新增共享 `PaymentMethodPicker`（渠道唯一来源 config.payment_methods、余额按应付额禁用+差额提示），OrderConfirmModal/OrderDetailModal 接入（OrderDetailModal 此前硬编码三渠道），PaymentModal 与 OrderDetailModal 的展示标签统一走 `utils/format.payMethodLabel`；⑤ ImportClientSheet 的 sing-box 图标 `box`（PATHS 无此键）改映射 `server`。docs/api §16 node 设置键陈旧描述同步为 install_* 形态；`pnpm lint`+`pnpm test`（239）+ e2e withdraw/admin（34）全绿。
-- 2026-10-25: 范围外发现（未修）：OrderConfirmModal/OrderDetailModal 的 payMethod 缺省值硬编码 `'epay_alipay'`，若该渠道被禁用则无默认选中项；建议后续改为「首个可用渠道」。

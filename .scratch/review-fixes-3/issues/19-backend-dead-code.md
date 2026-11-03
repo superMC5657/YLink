@@ -28,7 +28,3 @@ Type: task
 
 - `go build ./...`、`go vet ./...`、`go test ./...` 全绿。
 - `grep -rn "sendExpireMail\|couponCode\|bumpSessionVersion\|pkg/validate" server/` 零命中。
-
-## Comments
-
-2026-10-25: 已修复——清单 12 项全删（sendExpireMail、couponCode、priceOf/planPrices 存量 wrapper、orderTradeSeam 空壳接口、bumpSessionVersion、toNode、renderSubscription（测试内联进 batch4_test）、subscriptionVisibility 空壳结构体、Server/Ticket 服务 rdb 与 Order 服务 set 注入未用字段、RevokeAll 走删参数并连带移除 RevocationReason 类型与六常量、pkg/validate 整包、payment.Available、Node.Cipher、SiteConfig）；`go build/vet/test` 全绿、`gofmt -l` 无输出、Acceptance grep 零命中。

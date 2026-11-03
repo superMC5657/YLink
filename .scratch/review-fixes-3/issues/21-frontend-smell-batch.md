@@ -25,7 +25,3 @@ Type: task
 - `pnpm test` + e2e 全绿；删重复后行数净减（排序弹窗/CRUD 各收敛为一份实现）。
 - i18n 键齐平测试落位且当前通过（或先落测试暴露差异并补齐缺失键）。
 - `grep -rn "ALL_NAV_PATHS\|levelOf" src/` 零命中。
-
-## Comments
-
-- 2026-10-25: 已修复，按 6 组各一 commit（b122739/0a74b93/d5601be/89432e2/b475221/14e9058）：① 排序弹窗数据域 `useSortDialog` + 呈现 `SortDialog`（NodeSortDialog 更名参数化，节点/公告/知识库三份归一）、非分页 CRUD 四视图迁 `useAdminCrud`（emptyForm 单源，分类联动走 onOpen/beforeSave 钩子，净减 132 行）② `ui/ErrorPage` 收敛 404/403、`useEmailCode`+`views/auth/EmailCodeField` 收敛注册/找回验证码块、`formatDateTime` 替换 Orders/Tickets 五处 slice 原语 ③ `useSlideOffset` 收敛主题/语言滑块、SubscribeCard 五格 v-for、`CountdownPill` 收敛倒计时胶囊、QuickActionGrid 动作 run 入表删 switch + 下载按钮 v-for、CustomerServiceFab watch→computed、`serverStatusOptions` 收敛节点状态选项两处内联 ④ `mock/_envelope.ts`（ok/unauthorized/forbidden/paged ×6 文件）、e2e loginAs/enterPortal/openAdminMenu 入 fixtures、`scripts/lib/ensure-image.sh` 抽出 dev.sh/dev-docker.sh 重复、http.ts request() 复用 buildQueryStr、useAdminUsers 发邮件汇总复用 reportBatch（文案与批量动作同形，mailSent/mailPartial→mailDone）⑤ 死代码：ALL_NAV_PATHS/levelOf 删除、reportBatchResult 收私有（删冗余直测用例）、batchAuditTarget 采纳进 mock（注释声明现成立）⑥ i18n zh↔en 键树齐平测试落位（当前两份语言包同构，一次通过）。验证：pnpm lint/typecheck/test（244 绿）+ pnpm exec playwright test（66 绿，浏览器环境已跑）+ grep ALL_NAV_PATHS/levelOf 零命中。未做项：stores 六份手写 loading/try/assign 列表骨架（Finding 提及但 Plan 六组未分配，抽象收益低）；ProfileView/InviteView 拆卡片组件（可选项，按票不做）。

@@ -20,11 +20,11 @@ Vue 3.5 + TS + Vite 6 + pnpm(`<script setup>`,Node ≥ 20);UnoCSS(presetUno/Attr
 
 ### 2.2 布局与设计系统
 
-设计令牌 tokens.css(亮/暗两套 CSS 变量)+ Naive UI theme.ts 真实色值 overrides(**双源必须同步**);品牌渐变/语义渐变(danger、amber)与 Pagination/Switch 激活色全量令牌化,业务代码零硬编码色值,暗色主题自动切换变体;桌面 200px 侧边栏(折叠 72px)+ 毛玻璃吸顶顶栏;平板/手机 `<768px` 底栏 4 Tab + 抽屉菜单、768-1024 迷你侧边栏;AuthLayout 全局壳、客服浮球、toast 桥接;基础 UI 组件全局注册(AppIcon/UiCard/StatNumber/StatusBadge/PriceText/EmptyState/PageHeader/CopyText 等);桌面内容区 max-w-1440 + 窄桌面自动折叠侧边栏 + 表格 overflow 适配。
+设计令牌 tokens.css(亮/暗两套 CSS 变量)+ Naive UI theme.ts 真实色值 overrides(**双源必须同步**);品牌渐变/语义渐变(danger、amber)与 Pagination/Switch 激活色全量令牌化,业务代码零硬编码色值,暗色主题自动切换变体;JS 侧图表/画布回落值单源 `styles/tokenValues.ts`(与 tokens.css 同步 + 品牌 hex 大小写变体由 `check-brand-hex` 门禁盯住,字面量仅存于四个定义点);桌面 200px 侧边栏(折叠 72px)+ 毛玻璃吸顶顶栏;平板/手机 `<768px` 底栏 4 Tab + 抽屉菜单、768-1024 迷你侧边栏;AuthLayout 全局壳、客服浮球、toast 桥接;基础 UI 组件全局注册(AppIcon/UiCard/StatNumber/StatusBadge/PriceText/EmptyState/PageHeader/CopyText 等);桌面内容区 max-w-1440 + 窄桌面自动折叠侧边栏 + 表格 overflow 适配。
 
 ### 2.3 用户端页面
 
-仪表板(统计卡/订阅卡/公告 markdown + 优惠码高亮复制/快捷操作)、使用文档(搜索/分类分组/markdown)、我的订单(表格/卡片双视图/详情弹窗/待支付轮询)、套餐购买(周期切换/优惠券试算与点选[试算失败仅内联提示,transport silent]/可用券列表/收银台二维码/余额直付;支付方式三入口[下单确认/订单详情/收银台]同源 config.payment_methods,共享 `PaymentMethodPicker`+`payMethodLabel`,余额按应付额禁用)、一键导入(10 款客户端 scheme + 复制兜底)、邀请赚钱(统计卡/划转/邀请码/注册链接/提现入口与记录,F02)、申请代理、节点状态(60s 静默轮询,不暴露 host/port)、个人信息(改密/通知开关/Telegram 绑定卡片 F12/会话管理 F14/重置订阅)、工单(列表/对话流/回复关闭，提现单关/重开入口隐藏）、流量明细(ECharts)、门户分流页 `/portal`(管理员双卡分流,admin-console-split)。
+仪表板(统计卡/订阅卡/公告 markdown + 优惠码高亮复制/快捷操作)、使用文档(搜索/分类分组/markdown)、我的订单(表格/卡片双视图/详情弹窗/待支付轮询)、套餐购买(周期切换/优惠券试算与点选[试算失败仅内联提示,transport silent]/可用券列表/收银台二维码/余额直付;支付方式选择两入口[下单确认/订单详情]同源 config.payment_methods,共享 `PaymentMethodPicker`(渠道/余额禁用/差额提示)且缺省选中首个启用的在线渠道(`config.defaultPayMethod`,仅余额可用时回退余额,不默认划扣),渠道展示名单源 `payMethodLabel`,收银台弹窗为执行面(method 经 props 注入,无选择 UI))、一键导入(10 款客户端 scheme + 复制兜底)、邀请赚钱(统计卡/划转/邀请码/注册链接/提现入口与记录,F02)、申请代理、节点状态(60s 静默轮询,不暴露 host/port)、个人信息(改密/通知开关/Telegram 绑定卡片 F12/会话管理 F14/重置订阅)、工单(列表/对话流/回复关闭，提现单关/重开入口隐藏）、流量明细(ECharts)、门户分流页 `/portal`(管理员双卡分流,admin-console-split)。
 
 ### 2.4 管理后台
 
@@ -32,7 +32,7 @@ Vue 3.5 + TS + Vite 6 + pnpm(`<script setup>`,Node ≥ 20);UnoCSS(presetUno/Attr
 
 ### 2.5 桌面端(Tauri 2)
 
-Rust 工程 + 10 插件最小授权(http scope 限 https/localhost,窗口操作全在 Rust 侧、不声明 core:window:*);平台适配层 `utils/platform.ts`(Web 自动降级,动态 import 保护);http 走 plugin-http 原生栈(不受 CORS 限制);深链接 `ylink://`(桌面 NSIS 注册表 + 运行时 register_all 双保险,单实例转发已有实例;Android intent-filter);自动更新(updater 插件 + pubkey + 端点 latest-cn.json 镜像优先/latest.json 直连兑底 + 更新浮动卡片);本地通知(支付成功/工单回复/订阅到期,Tauri 与 Web Notification 降级);托盘 + 单实例;存储适配 plugin-store(预载与异步防抖落盘);NSIS 仅 Windows 打包(installer-hooks.nsh 必须保留,否则打包失败)。
+Rust 工程 + 13 插件注册最小授权(http scope 限 https/localhost,窗口操作全在 Rust 侧、不声明 core:window:*;log 插件 Stdout+LogDir+Webview 三目标,发布版无 stderr 时 Rust 侧故障经日志文件可查,仅 Rust 侧 `log` 宏写入故无 capability);平台适配层 `utils/platform.ts`(Web 自动降级,动态 import 保护);http 走 plugin-http 原生栈(不受 CORS 限制);深链接 `ylink://`(桌面 NSIS 注册表 + 运行时 register_all 双保险,单实例转发已有实例;Android intent-filter);自动更新(updater 插件 + pubkey + 端点 latest-cn.json 镜像优先/latest.json 直连兑底 + 更新浮动卡片);本地通知(支付成功/工单回复/订阅到期,Tauri 与 Web Notification 降级);托盘 + 单实例;存储适配 plugin-store(预载与异步防抖落盘);NSIS 仅 Windows 打包(installer-hooks.nsh 必须保留,否则打包失败);桌面实机验证通过(NSIS 安装/`ylink://` 唤起/更新实装)。
 
 ### 2.6 工程化与质量门禁
 

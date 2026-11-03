@@ -20,8 +20,3 @@ Type: task
 - DB 不可达时 `/readyz` 在 2s 内返回，且响应体不含 DSN/主机名等内部细节。
 - 错误/缺失 secret 的任意 body → 403；正确 secret + 坏 JSON → 原有 bind 错误行为。
 - handler 测试覆盖上述分支；`go test ./internal/handler/...` 全绿；docs/api §19 无需变更（实现对齐契约）。
-
-## Comments
-
-- 2026-10-25: 已修复——`dbPing` 改 `PingContext` 并接收 `/readyz` 派生的请求 ctx（DB/Redis 同受 2s 超时约束）；失败响应统一 `{"status":"unavailable"}` 通用文案，错误细节（含 DSN/主机）只进 Error 日志；Telegram Webhook 的 secret 校验提前到 body 读取之前（service 新增 `CheckWebhookSecret`，Webhook 内部复用同一纯校验函数、仍只读一次 settings），坏/缺 secret 的任意 body 一律 403，正确 secret + 坏 JSON 维持静默 200。新增 handler 测试：挂起 DB（自造 driver，Ping 阻塞到 ctx 取消）下 503 于截止期内返回、Redis 拒连时响应不含地址/错误原文、secret 四分支（缺失/错误/未配置/正确+坏 JSON/正确+合法体）。`go build/vet/test ./...` 全绿，docs/api §19 契约无需变更。
-- 2026-10-25: 测试实现备注——gorm.Open 初始化阶段自身会发起一次 Ping（Background ctx），挂起 driver 需对不可取消 ctx 放行，否则测试初始化即挂死。

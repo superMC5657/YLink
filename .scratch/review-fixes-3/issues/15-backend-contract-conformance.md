@@ -24,8 +24,3 @@ Type: task
 - 新增测试：上述批量动作的审计 target=`batch:<N>`、detail 含 ids（照 TestSendMailAuditTargetSummary 形状）。
 - `grep -n "ParseInt(c.Param" server/internal/handler` 仅剩 helper.go 一处。
 - `go test ./...` 全绿；data-model.md 与迁移/结构体三方一致（抽查六处索引）。
-
-## Comments
-
-- 范围外备忘（未顺手修）：单列普通索引 `agent_applies(status)`、`commission_logs(biz_type)` 在 models.go tag 中仍未声明（本次对齐范围为唯一/复合索引）；`auditTargetKind` 未收录 `batch_server_*`/`sort_*`/`traffic_import`，这些动作的 `batch:<N>` target 在审计列表原样展示（kind=null，不影响主查询）。
-- 2026-10-25: 已修复 批量审计 target 统一 `batch:<count>`（batch_server_delete/update、sort_server/notice/knowledge、traffic_import 共 5 处，完整 ID 列表入 detail JSON，新增 TestBatchActionsAuditTargetBatchSummary）；ticket.go×4 + content.go×1 改走 `IDParam`（grep 仅剩 helper.go 一处 ParseInt）；models.go tag 对齐迁移（users/orders 复合、coupon_usages 唯一、knowledge_categories `(language,name)`、traffic_logs `UNIQUE(user_id,date)`、mail_logs/traffic_reset_logs/commission_withdraws/knowledges 复合完整声明，order_no 注释改部分唯一表述）；data-model.md 补 agent_applies 小节与 Coupon.used_count；metrics 未匹配路由 path label 归一常量 `unmatched`。go build/vet/test 全绿，gofmt 无输出。

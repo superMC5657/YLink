@@ -73,7 +73,7 @@ handler 按业务域组织于 `internal/handler/admin/` 子包:`admin.go`(Admin 
 | Redis 7 | 本地 `127.0.0.1:6379`(默认无密码);生产必须设密码 |
 | 一键编排 | `bash scripts/dev.sh`:compose 起 postgres+redis,api/worker 为宿主机进程;`-stop` 只停基础设施容器 |
 | 全容器联调 | `bash scripts/dev-docker.sh`:api/worker 也跑 compose,前端 `pnpm build` 产物由 Caddy 容器托管(`http://localhost` 静态 + `/api/*` 同域反代);`-stop` 停基础设施。**env 以 `server/.env.dev` 为唯一来源,缺失即报错**(提示 `cp server/.env.example server/.env.dev`,必需基础设施变量缺失同样报错)。Windows 构建前端需 `MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/v1 pnpm build`(防 Git Bash 路径转换写坏产物默认 apiBase) |
-| 环境文件 | `server/.env.dev`(本地联调,含真实密钥,不入库)/ `server/.env.release`(生产,密钥占位待填),均 gitignore;`.env.example` 为无敏感模板;compose 经 `${ENV_FILE:-.env.dev}` 选择,生产 `ENV_FILE=.env.release docker compose up -d` |
+| 环境文件 | `server/.env.dev`(本地联调,含真实密钥,不入库)/ `server/.env.release`(生产,密钥占位待填),均 gitignore;`.env.example` 为无敏感模板;compose 经 `${ENV_FILE:-.env.dev}` 选择,生产 `ENV_FILE=.env.release docker compose up -d`;`APP_ENV`/`APP_BASE_URL` 短名经 config.Load 显式 BindEnv 生效(模板与脚本统一用短名,长名 `APP_APP_*` 兼容) |
 | 迁移 | `DB_URL='...' make migrate`,或 compose 首启前执行 |
 | SMTP | 验证码/提醒邮件需要;未配置时**注册/找回流程无法完成**(发送失败仅记日志) |
 | 管理员账号 | 启动时经环境变量 `ADMIN_EMAIL`/`ADMIN_PASSWORD` 幂等创建首个 role=1 用户 |

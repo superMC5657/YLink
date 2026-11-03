@@ -121,10 +121,14 @@ func Load(path string) (*Config, error) {
 	v.SetEnvPrefix("APP")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
-	// app.* 经 AutomaticEnv 映射为 APP_APP_*，而部署模板与 dev 脚本统一用 APP_ENV 短名；
-	// 不显式绑定则生产 env 标识被静默忽略（env 一直是文件里的 development）。
-	if err := v.BindEnv("app.env", "APP_ENV"); err != nil {
-		return nil, err
+	// app.env / app.base_url 经 AutomaticEnv 映射为 APP_APP_*，而部署模板与 dev 脚本
+	// 统一用 APP_ENV / APP_BASE_URL 短名；不显式绑定则生产 env 标识与站点地址被静默
+	// 忽略（env 一直是文件里的 development，base_url 会拼出 config.yaml 默认值的订阅
+	// 链接/支付回调）。APP_APP_ENV/APP_APP_BASE_URL 长名仍兼容。
+	for _, b := range [][2]string{{"app.env", "APP_ENV"}, {"app.base_url", "APP_BASE_URL"}} {
+		if err := v.BindEnv(b[0], b[1]); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := v.ReadInConfig(); err != nil {

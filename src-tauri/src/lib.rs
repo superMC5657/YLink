@@ -2,7 +2,8 @@
 //! 见 docs/frontend/desktop-tauri.md §3-4。
 //!
 //! 插件注册:http / store / clipboard / opener / single-instance / autostart /
-//! notification / process / window-state / os / deep-link / updater(签名与端点见 tauri.conf.json plugins.updater)。
+//! notification / process / window-state / os / deep-link / updater(签名与端点见 tauri.conf.json plugins.updater) /
+//! log(Stdout+LogDir+Webview 三目标:发布版无 stderr,Rust 侧故障经日志文件可查)。
 //! 桌面专属能力(托盘/菜单/单实例/自启/窗口状态记忆)以 `#[cfg(desktop)]` 隔离,
 //! 移动端(Android/iOS)构建时自动排除,见 docs/frontend/desktop-tauri.md §9。
 
@@ -37,6 +38,9 @@ fn set_window_theme(window: tauri::Window, dark: bool) {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default()
+        // 日志插件最先注册,后续插件/深链注册的日志才能被捕获。
+        // 默认三目标:Stdout(开发)+ LogDir(发布现场排查)+ Webview(devtools)。
+        .plugin(tauri_plugin_log::Builder::new().build())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_clipboard_manager::init())
@@ -79,7 +83,7 @@ pub fn run() {
                 let _ = window.emit("deep-link://new-url", urls);
             }
         }
-        eprintln!("second instance argv: {argv:?}");
+        log::info!("second instance argv: {argv:?}");
     }));
 
     builder
@@ -91,7 +95,7 @@ pub fn run() {
             // 这里运行时再注册一次作双保险(便携/免安装直接运行 exe 也能唤起)。
             #[cfg(any(windows, target_os = "linux"))]
             if let Err(e) = app.deep_link().register_all() {
-                eprintln!("deep-link register_all failed: {e}");
+                log::warn!("deep-link register_all failed: {e}");
             }
 
             // 托盘:显示主窗口 / 退出(仅桌面;移动端无托盘,检查更新在 updater 接入后追加)

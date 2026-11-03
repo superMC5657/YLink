@@ -28,5 +28,9 @@ tauri-plugin-window-state = "2"
 tauri-plugin-os = "2"
 tauri-plugin-deep-link = "2"
 tauri-plugin-updater = "2"
+# 日志后端(Stdout+LogDir+Webview 三目标):发布版 windows_subsystem=windows 无 stderr,
+# Rust 侧故障(深链注册/单实例)经日志文件现场可查;log 宏为 Rust 侧记录入口
+tauri-plugin-log = "2"
+log = "0.4"
 # generate_context! 宏展开直接引用 ::serde_json(解析 tauri.conf.json/capabilities),必须保留为直接依赖
 serde_json = "1"

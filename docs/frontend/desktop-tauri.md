@@ -46,6 +46,7 @@ src-tauri/
 | `tauri-plugin-updater` + `tauri-plugin-process` | 检查更新、下载安装、重启（✅ 已接入） | 启动时静默检查 + 设置页手动检查（更新卡片，见 §5） |
 | `tauri-plugin-window-state` | 记忆窗口尺寸/位置（仅桌面） | 体验细节 |
 | `tauri-plugin-os` | 系统信息 | 关于页、埋点 UA |
+| `tauri-plugin-log` | 日志后端（Stdout+LogDir+Webview 三目标，仅 Rust 侧 `log` 宏写入，前端不调用故无 capability） | 发布版（windows_subsystem=windows 无 stderr）深链注册/单实例等 Rust 侧故障经日志文件现场可查 |
 
 capabilities/default.json 采用最小授权：逐项声明上述插件权限，`http` 权限的 `scope` 实际为 `https://**` + `http://localhost:**` + `http://127.0.0.1:**`（而非文档示例的 `https://api.example.com/**`），深链接插件仅注册 `ylink` scheme。窗口操作全部在 Rust 侧完成（`set_window_theme` 自定义命令、托盘/单实例回调不走 capability 门控），故不声明任何 `core:window:*` 授权。`https://**` 为**有意保留**：apiBase 运行时可在设置页改指任意自建站点（见 [README](../../README.md) 配置表），且发布流水线不烘焙 API 域名，静态收敛到单一域名会砍掉多站点客户端能力；updater 下载走 Rust 侧不受 http scope 约束（minisign pubkey 验签兜底），故 updater 域名无需进入该 scope。残余风险：打包 JS 供应链被篡改时理论上可借插件外发 HTTPS 请求，主防线为 CSP `script-src 'self'` + 不加载任何远程脚本。
 

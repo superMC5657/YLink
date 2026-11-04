@@ -20,10 +20,6 @@ function issueTokens(_userId: number) {
   }
 }
 
-export function issueTokensFor(userId: number) {
-  return issueTokens(userId)
-}
-
 export function verifyAccess(headers: Record<string, string>): number | null {
   const auth = headers?.authorization ?? headers?.Authorization ?? ''
   // 管理员 token(mock-admin-access-*)同样是有效会话:用户域接口(含守卫用的

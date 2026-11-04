@@ -16,7 +16,7 @@ import { isTauri } from './platform'
 const PREFIX = 'app:'
 
 /** 同步读写接口(与 persistedstate StorageLike 兼容) */
-export interface StorageLike {
+interface StorageLike {
   getItem(key: string): string | null
   setItem(key: string, value: string): void
   removeItem(key: string): void

@@ -26,13 +26,13 @@ export type StatusDomain =
   | 'adminRole'
   | 'server'
 
-export interface StatusRow {
+interface StatusRow {
   labelKey: string
   badge?: StatusBadge
   color?: string
 }
 
-export interface StatusMeta {
+interface StatusMeta {
   labelKey: string
   badge: StatusBadge
   color?: string
@@ -83,7 +83,7 @@ export const statusTable: Record<StatusDomain, Record<number, StatusRow>> = {
     1: { labelKey: 'ticket.replied', badge: 'success' },
     2: { labelKey: 'ticket.closed', badge: 'neutral' },
   },
-  // 用户端工单级别(徽标形态与 adminTicketLevel 一致;此前无 badge 函数,属对称补齐)
+  // 用户端工单级别(徽标形态与 adminTicketLevel 一致)
   ticketLevel: {
     0: { labelKey: 'ticket.low', badge: 'neutral' },
     1: { labelKey: 'ticket.medium', badge: 'warning' },
@@ -95,7 +95,7 @@ export const statusTable: Record<StatusDomain, Record<number, StatusRow>> = {
     1: { labelKey: 'adminUsers.roleAdmin' },
     2: { labelKey: 'adminUsers.roleAgent' },
   },
-  // 节点状态(1/2/3;label + 徽标 + 着色三元同行,不再从色值反推徽标)
+  // 节点状态(1/2/3;label + 徽标 + 着色三元同行)
   server: {
     1: { labelKey: 'node.normal', badge: 'success', color: 'var(--c-success)' },
     2: { labelKey: 'node.busy', badge: 'warning', color: 'var(--c-warning)' },

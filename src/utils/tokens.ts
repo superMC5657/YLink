@@ -82,7 +82,7 @@ export function clearTokens(): void {
 }
 
 /** 会话令牌对(http 传输适配注入刷新结果用) */
-export interface SessionPair {
+interface SessionPair {
   accessToken: string
   refreshToken: string
 }

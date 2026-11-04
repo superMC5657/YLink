@@ -16,7 +16,7 @@ import type {
 /**
  * user module 的传输核：本域 URL 与响应形态的唯一归属。
  * store 动作与 `@/api/user` 适配缝共用同一核（一处修改，N 处调用）；
- * 适配缝只走传输核、不写 store 异步态，直接调用方保持原有行为。
+ * 适配缝只走传输核、不写 store 异步态。
  */
 export const captchaTransport = {
   sendEmail: (body: CaptchaSendReq) => http.post<CaptchaSendResp>('/captcha/email', { body }),

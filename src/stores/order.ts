@@ -18,7 +18,6 @@ import type {
 
 /**
  * order module 的传输核：本域（含券核销）URL 与响应形态的唯一归属。
- * store 动作与 `@/api/order` 适配缝共用同一核（一处修改，N 处调用）。
  */
 export const couponTransport = {
   // 试算失败由调用方内联展示（OrderConfirmModal 券错误文案），http 层不再 toast

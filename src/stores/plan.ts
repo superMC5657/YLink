@@ -5,7 +5,6 @@ import type { Plan, PlanListResp } from '@/types/api'
 
 /**
  * plan module 的传输核：本域 URL 与响应形态的唯一归属。
- * store 动作与 `@/api/plan` 适配缝共用同一核（一处修改，N 处调用）。
  */
 export const planTransport = {
   fetch: () => http.get<PlanListResp>('/plans'),

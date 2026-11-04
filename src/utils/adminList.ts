@@ -12,7 +12,7 @@ export const pageTier = {
   audit: { defaultSize: 20, maxSize: 100 },
 } as const
 
-export type PageTier = keyof typeof pageTier
+type PageTier = keyof typeof pageTier
 
 /** 后端分页钳制同形:page<1 回落 1(视图只表意图,不再各写一遍) */
 export function clampPage(page: number): number {

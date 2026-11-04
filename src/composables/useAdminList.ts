@@ -24,23 +24,23 @@ export interface AdminBatchFailedItem {
 }
 
 /** 批量结果汇总(与收敛前 useAdminSelection 同形) */
-export interface AdminBatchResult {
+interface AdminBatchResult {
   success: number
   failed: AdminBatchFailedItem[]
 }
 
-export interface AdminListNotifier {
+interface AdminListNotifier {
   success: (msg: string) => void
   warning: (msg: string) => void
 }
 
-export interface AdminListFetch<TItem, TQuery extends Record<string, unknown>> {
+interface AdminListFetch<TItem, TQuery extends Record<string, unknown>> {
   (
     query: TQuery & { page: number; page_size: number },
   ): Promise<PageResult<TItem> | { list: TItem[] }>
 }
 
-export interface AdminListOptions<TItem, TQuery extends Record<string, unknown>> {
+interface AdminListOptions<TItem, TQuery extends Record<string, unknown>> {
   fetch: AdminListFetch<TItem, TQuery>
   /** 首取与 load() 的筛选(不含分页键);缺省空对象 */
   initialQuery?: TQuery
@@ -84,7 +84,7 @@ export function useAdminList<TItem, TQuery extends Record<string, unknown>>(
   const keyOf = (item: unknown): number => getId(item as TItem)
 
   function assign(res: PageResult<TItem> | { list: TItem[] }) {
-    // 直接赋值:后端 PageOK 保证 list 非 null(ADR-0001),前端不再自备回退
+    // 直接赋值:后端 PageOK 保证 list 非 null(ADR-0001),前端不自备回退
     list.value = res.list
     total.value =
       typeof (res as PageResult<TItem>).total === 'number'

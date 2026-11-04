@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import { inviteTransport, useInviteStore } from '../invite'
-import { apiInvite } from '@/api/invite'
+import { useInviteStore } from '../invite'
 import { http } from '@/utils/http'
 import { isTauri } from '@/utils/platform'
 import type { InviteCode, InviteCodeListResp, InviteSummary, TransferResp } from '@/types/api'
@@ -24,10 +23,6 @@ describe('useInviteStore', () => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
     vi.mocked(isTauri).mockReturnValue(false)
-  })
-
-  it('适配缝与传输核同一实现', () => {
-    expect(apiInvite).toBe(inviteTransport)
   })
 
   it('fetchSummary 写入统计', async () => {

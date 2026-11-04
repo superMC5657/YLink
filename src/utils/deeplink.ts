@@ -17,7 +17,7 @@ export type ClientKind =
   | 'surge'
   | 'loon'
 
-export interface ClientOption {
+interface ClientOption {
   kind: ClientKind
   name: string
   platforms: string[]
@@ -55,11 +55,7 @@ function b64encode(s: string): string {
  * @param siteName 站点名
  * @returns scheme URL;若该客户端仅支持「复制链接 + 引导」则返回 null
  */
-export function buildImportUrl(
-  client: ClientKind,
-  subscribeUrl: string,
-  siteName: string,
-): string | null {
+function buildImportUrl(client: ClientKind, subscribeUrl: string, siteName: string): string | null {
   const enc = encodeURIComponent(subscribeUrl)
   const name = encodeURIComponent(siteName || i18n.global.t('common.defaultSubName'))
   switch (client) {

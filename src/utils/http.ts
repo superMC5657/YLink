@@ -22,7 +22,7 @@ function tt(key: string, params?: Record<string, unknown>): string {
   return i18n.global.t(key, params ?? {})
 }
 
-export interface HttpOptions {
+interface HttpOptions {
   query?: Record<string, string | number | boolean | null | undefined>
   body?: unknown
   signal?: AbortSignal
@@ -31,7 +31,7 @@ export interface HttpOptions {
   headers?: Record<string, string>
 }
 
-export interface RefreshTokens {
+interface RefreshTokens {
   accessToken: string
   refreshToken: string
 }
@@ -47,7 +47,7 @@ export function resolveApiBase(): string {
 }
 
 /** 令牌读取:access 仅内存、refresh 经 utils/tokens.ts 收口(内存+最小持久化) */
-export function readTokens(): RefreshTokens | null {
+function readTokens(): RefreshTokens | null {
   if (!getAccessToken() && !getRefreshToken()) return null
   return { accessToken: getAccessToken(), refreshToken: getRefreshToken() }
 }

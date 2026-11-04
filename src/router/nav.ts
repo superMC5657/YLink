@@ -3,14 +3,14 @@
  * 规范见 docs/frontend/pages.md §1-2。
  */
 
-export interface NavItem {
+interface NavItem {
   /** i18n key(渲染时用 t(name) 取当前语言文案) */
   name: string
   path: string
   icon: string
 }
 
-export interface NavGroup {
+interface NavGroup {
   /** i18n key(分组标题) */
   label: string
   items: NavItem[]
@@ -49,7 +49,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
 ]
 
-export interface TabItem {
+interface TabItem {
   /** i18n key(渲染时用 t(name) 取当前语言文案) */
   name: string
   path: string

@@ -5,7 +5,6 @@ import type { Notice, PageQuery, PageResult } from '@/types/api'
 
 /**
  * notice module 的传输核：本域 URL 与响应形态的唯一归属。
- * store 动作与 `@/api/notice` 适配缝共用同一核（一处修改，N 处调用）。
  */
 export const noticeTransport = {
   fetch: (q: PageQuery = {}) =>

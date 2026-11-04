@@ -7,7 +7,7 @@
  */
 import { ref } from 'vue'
 
-export interface QrCodeOptions {
+interface QrCodeOptions {
   /** 输出图片边长(px),默认 512(分享导出清晰度) */
   width?: number
   /** 码点颜色,默认 #1F2430(白底深色码,扫码可靠性最佳) */

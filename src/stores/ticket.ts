@@ -12,7 +12,6 @@ import type {
 
 /**
  * ticket module 的传输核：本域 URL 与响应形态的唯一归属。
- * store 动作与 `@/api/ticket` 适配缝共用同一核（一处修改，N 处调用）；
  * 后台状态快照轮询走 fetchStatusSnapshot，不写列表/加载态，不掀翻列表视图。
  */
 export const ticketTransport = {

@@ -24,12 +24,9 @@ export const orderTransport = {
     http.post<Order>('/orders', { body, headers: { 'Idempotency-Key': idempotencyKey } }),
   fetch: (q: PageQuery) => http.get<PageResult<Order>>('/orders', { query: q }),
 }
-
-// api/order.ts —— 契约名适配缝：既有引入路径与导出名稳定，不新增逻辑
-export const apiOrder = orderTransport
 ```
 
-- 传输核（`xxxTransport`）归 `stores/<domain>.ts`，只做参数拼装与类型标注，不写业务逻辑；store 动作与 api 适配缝共用同一核（一处修改，N 处调用）；唯一例外 `api/auth.ts` 自持实现（ADR-0006）。
+- 传输核（`xxxTransport`）归 `stores/<domain>.ts`，只做参数拼装与类型标注，不写业务逻辑；`src/api/` 仅存三个仍有调用方的模块：`api/admin.ts`（管理端视图直调的适配缝，ADR-0003）、`api/auth.ts`（自持实现，ADR-0006）、`api/user.ts`（`stores/auth`/`stores/config` 消费）；其余域一律直接 import store 传输核。
 - 所有类型在 `types/api.d.ts` 定义，与契约文档保持同步（契约变更先改类型；管理端 DTO 形状走 `contract:gen` 生成，见 ADR-002）。
 
 ## 2. 状态管理（Pinia）
@@ -49,7 +46,7 @@ export const apiOrder = orderTransport
 | `useAppStore` | 侧边栏折叠、语言、主题模式、后端地址 | 是 |
 
 约定：
-- store 是唯一 transport 持有者：各域传输核（URL 与响应形态）定义在 `stores/<domain>.ts`，api 模块只是契约名适配缝（re-export，ADR-0006）；页面组件与 composable 读写 store，不直接发请求。一次性动作（改密、重置订阅、会话管理、Telegram 绑定）也走 store actions，结果由页面局部持有。
+- store 是唯一 transport 持有者：各域传输核（URL 与响应形态）定义在 `stores/<domain>.ts`；页面组件与 composable 读写 store，不直接发请求。一次性动作（改密、重置订阅、会话管理、Telegram 绑定）也走 store actions，结果由页面局部持有。
 - 轮询/定时器句柄存放在对应 store，路由离开时统一清理（`$reset` 或显式 stop）。
 - 例外（务实决策）：管理后台视图（`views/admin/*`）直接调用 `apiAdmin`（纯适配缝，实现归 `stores/admin/*` 各域传输核，ADR-0003）不经 store 中转——管理端数据一次性拉取、无跨页共享状态；认证视图（注册/找回的验证码、忘记密码）直调 `apiCaptcha`/`apiAuth`——会话建立前的引导页。用户端业务视图与 composable 一律经 store（Profile、下单弹窗、本地通知轮询已按此约定收敛）。
 

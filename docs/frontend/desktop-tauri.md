@@ -41,7 +41,6 @@ src-tauri/
 | `tauri-plugin-opener` | 打开外部 URL 与自定义 scheme | TG 链接、支付跳转、一键导入 |
 | `tauri-plugin-deep-link` | 注册 `ylink://` 协议 | 从网页/TG 唤起 App 并定位页面（如 `ylink://plans`） |
 | `tauri-plugin-single-instance` | 单实例运行（仅桌面） | 重复启动聚焦已有窗口并转发深链接参数 |
-| `tauri-plugin-autostart` | 开机自启（仅桌面） | 已注册但**前端不暴露开关** |
 | `tauri-plugin-notification` | 系统通知 | 订阅到期、工单回复提醒（轮询发现变化时触发） |
 | `tauri-plugin-updater` + `tauri-plugin-process` | 检查更新、下载安装、重启（✅ 已接入） | 启动时静默检查 + 设置页手动检查（更新卡片，见 §5） |
 | `tauri-plugin-window-state` | 记忆窗口尺寸/位置（仅桌面） | 体验细节 |
@@ -87,7 +86,7 @@ capabilities/default.json 采用最小授权：逐项声明上述插件权限，
 ## 8. 与纯 Web 部署的关系
 
 - `pnpm build` 产物即完整 Web 版，可独立部署到任意静态托管（Nginx/Caddy/对象存储 + CDN）。
-- Web 版隐藏桌面专属入口（托盘/自启/更新卡片），其余功能一致；一键导入、复制等能力自动降级（见 [data-layer.md](data-layer.md)）。
+- Web 版隐藏桌面专属入口（托盘/更新卡片），其余功能一致；一键导入、复制等能力自动降级（见 [data-layer.md](data-layer.md)）。
 - Web 部署需后端开启 CORS（允许 Web 域名），Tauri 版无此要求。
 
 ## 9. 移动端策略（Tauri 2 Mobile）
@@ -129,9 +128,9 @@ capabilities/default.json 采用最小授权：逐项声明上述插件权限，
 
 ### 9.3 平台差异与适配
 
-- **Rust 侧桌面专属能力已用 `#[cfg(desktop)]` 隔离**（见 `src-tauri/src/lib.rs`）：托盘/菜单、单实例、开机自启、窗口状态记忆。移动端构建自动排除，不影响桌面行为。深链接插件注册在 desktop-only 之外（桌面 + 移动端都注册，Android 经 manifest intent-filter 接收 `ylink://`）。
+- **Rust 侧桌面专属能力已用 `#[cfg(desktop)]` 隔离**（见 `src-tauri/src/lib.rs`）：托盘/菜单、单实例、窗口状态记忆。移动端构建自动排除，不影响桌面行为。深链接插件注册在 desktop-only 之外（桌面 + 移动端都注册，Android 经 manifest intent-filter 接收 `ylink://`）。
 - **移动端入口**：`run()` 标注 `#[cfg_attr(mobile, tauri::mobile_entry_point)]`，由 `MainActivity` 经 JNI 调用；桌面入口仍在 `main.rs`。
-- **前端能力适配**：`utils/platform.ts` 已抽象，`isTauri()` 分支覆盖剪贴板/打开链接/深链接；桌面专属入口（托盘/自启/更新卡片）在移动端自动隐藏。`set_window_theme` 在移动端为 no-op（无标题栏）。
+- **前端能力适配**：`utils/platform.ts` 已抽象，`isTauri()` 分支覆盖剪贴板/打开链接/深链接；桌面专属入口（托盘/更新卡片）在移动端自动隐藏。`set_window_theme` 在移动端为 no-op（无标题栏）。
 - **后端 API 走 `tauri-plugin-http`**（原生栈），Android 无需 CORS；manifest 已含 `INTERNET` 权限，debug 构建允许明文流量（`usesCleartextTraffic`），release 关闭。
 
 ### 9.4 Release 签名（上架必需）

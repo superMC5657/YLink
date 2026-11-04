@@ -16,7 +16,7 @@
 
 ### 2.1 工程骨架
 
-Vue 3.5 + TS + Vite 6 + pnpm(`<script setup>`,Node ≥ 20);UnoCSS(presetUno/Attributify/Icons + 自定义 shortcuts);Vue Router 4 hash 模式(用户端 + `/admin` 管理端双布局 + guest/登录/admin 三类守卫 + 页面标题);Pinia + persistedstate(12 个业务 store);api/ 为契约名适配缝(既有引入路径与导出名稳定),各域传输核唯一归 `stores/*`,用户端视图/composable 一律经 store(auth 域例外,ADR-0006);vue-i18n@11 zh-CN/en-US 按模块命名空间、语言包懒加载;vite-plugin-mock 按契约造数(含 401/错误码/支付自动完成);`public/theme.js` 首帧防闪烁;运行时可改后端地址并持久化。
+Vue 3.5 + TS + Vite 6 + pnpm(`<script setup>`,Node ≥ 20);UnoCSS(presetUno/Attributify/Icons + 自定义 shortcuts);Vue Router 4 hash 模式(用户端 + `/admin` 管理端双布局 + guest/登录/admin 三类守卫 + 页面标题);Pinia + persistedstate(12 个业务 store);api/ 仅存仍有调用方的三模块适配缝(admin/auth/user),各域传输核唯一归 `stores/*`,用户端视图/composable 一律经 store(auth 域例外,ADR-0006);vue-i18n@11 zh-CN/en-US 按模块命名空间、语言包懒加载;vite-plugin-mock 按契约造数(含 401/错误码/支付自动完成);`public/theme.js` 首帧防闪烁;运行时可改后端地址并持久化。
 
 ### 2.2 布局与设计系统
 
@@ -28,7 +28,7 @@ Vue 3.5 + TS + Vite 6 + pnpm(`<script setup>`,Node ≥ 20);UnoCSS(presetUno/Attr
 
 ### 2.4 管理后台
 
-独立 `AdminLayout` + `AdminSidebar`(唯一菜单源,移动端汉堡抽屉),登录落点按角色分流(`/portal`);模块全量:总览(统计卡 + 按运营频率分组的 8 快捷入口，含余额合计 `total_balance`，类型与 mock 已对账)、用户管理(多选批量/CSV 导出/发邮件/重置订阅)、套餐、节点管理(多选批量/复制/排序/node_key/机器在线状态与硬件探针气泡卡片/一键安装与中台脚本配置 F17,安装命令端点复用 http 层 `resolveApiBase`[含运行时 apiBase 覆盖],脚本设置读写收口 `useAdminNodes`、弹窗纯展示)、订单(本地化枚举文案/退款)、工单(提现工单审核 F02，详情 `type`/`reopen_count` 已对账，提现单关闭按钮隐藏只能 pay/reject，直接調接口与管理端直接關同样 14003)、优惠券(含一键公告)、公告/知识库(排序弹窗/分类管理 F15)、代理审批、佣金日志(提现流水徽章)、流量管理(导入/重置/重置记录三标签 F16)、统计报表(ECharts 五图 + 余额四系列 F04)、审计日志(可读化 target，批量摘要 `batch:<count>` 与 mock 同形,分页 Audit 档 {20,100} 生效)、站点设置(含 telegram 与节点部署脚本键)、邮件模板(F11)、订阅模板(F10)、版本检查(F20)。管理端列表机械收敛(仅逻辑,视觉不动):多选与批量汇总同源 `composables/useAdminList`、分页钳制唯一归后端 `pkg/page`（前端 `utils/adminList` 为薄适配,双档 Standard{10,50}/Audit{20,100} 同值,ADR-0004;变更后刷新走非抛出的 `reload()` 消除未处理拒绝）与 `batch:<count>` 摘要同源 `utils/adminList`（视图无手写钳制，统一走 api 层）、角色/节点状态与各域标签/徽标同源 `utils/statusMeta` 唯一表（用户/管理工单徽标对称由断言锁定,节点状态下拉选项同源 `serverStatusOptions`）、locales 中英键齐平由单测锁定（递归键树比对 + 消息编译回归）、mock 审计 target 经 `batchAuditTarget` 与后端摘要同形。非分页 CRUD 四视图（套餐/优惠券/公告/知识库）脚手架同源 `composables/useAdminCrud`（loading/list/modal/editingId/saving/open*/save/remove 一处归属,表单缺省 `emptyForm` 单源不再写两遍）；排序弹窗数据域同源 `composables/useSortDialog`、呈现同源 `components/admin/SortDialog`（节点/公告/知识库共用）。管理端契约 single-owner（形状归 `dto_admin.go`、语义归契约 §16，经 `pnpm contract:gen` 发射 TS 片段/mock 骨架/机器快照，`check-admin-contract` 串入 lint 守护，ADR-002）。管理端传输收敛（各域传输核归 `stores/admin/*`、`api/admin.ts` 为纯适配缝，列表/多选/批量骨架归 `composables/useAdminList`，组合单测全绿，ADR-0003）。状态元收敛（标签/徽标映射归 `utils/statusMeta` 唯一表，`format.ts` 只剩委托，色值反推徽标的泄漏已删，表测试全绿）。
+独立 `AdminLayout` + `AdminSidebar`(唯一菜单源,移动端汉堡抽屉),登录落点按角色分流(`/portal`);模块全量:总览(统计卡 + 按运营频率分组的 8 快捷入口，含余额合计 `total_balance`，类型与 mock 已对账)、用户管理(多选批量/CSV 导出/发邮件/重置订阅)、套餐、节点管理(多选批量/复制/排序/node_key/机器在线状态与硬件探针气泡卡片/一键安装与中台脚本配置 F17,安装命令端点复用 http 层 `resolveApiBase`[含运行时 apiBase 覆盖],脚本设置读写收口 `useAdminNodes`、弹窗纯展示)、订单(本地化枚举文案/退款)、工单(提现工单审核 F02，详情 `type`/`reopen_count` 已对账，提现单关闭按钮隐藏只能 pay/reject，直接調接口与管理端直接關同样 14003)、优惠券(含一键公告)、公告/知识库(排序弹窗/分类管理 F15)、代理审批、佣金日志(提现流水徽章)、流量管理(导入/重置/重置记录三标签 F16)、统计报表(ECharts 五图 + 余额四系列 F04)、审计日志(可读化 target，批量摘要 `batch:<count>` 与 mock 同形,分页 Audit 档 {20,100} 生效)、站点设置(含 telegram 与节点部署脚本键)、邮件模板(F11)、订阅模板(F10)、版本检查(F20)。管理端列表机械收敛(仅逻辑,视觉不动):多选与批量汇总同源 `composables/useAdminList`、分页钳制唯一归后端 `pkg/page`（前端 `utils/adminList` 为薄适配,双档 Standard{10,50}/Audit{20,100} 同值,ADR-0004;变更后刷新走非抛出的 `reload()` 消除未处理拒绝）与 `batch:<count>` 摘要同源 `utils/adminList`（视图无手写钳制，统一走 api 层）、角色/节点状态与各域标签/徽标同源 `utils/statusMeta` 唯一表（用户/管理工单徽标对称由断言锁定,节点状态下拉选项同源 `serverStatusOptions`）、locales 中英键齐平由单测锁定（递归键树比对 + 消息编译回归）、mock 审计 target 经 `batchAuditTarget` 与后端摘要同形。非分页 CRUD 四视图（套餐/优惠券/公告/知识库）脚手架同源 `composables/useAdminCrud`（loading/list/modal/editingId/saving/open*/save/remove 一处归属,表单缺省 `emptyForm` 单源不再写两遍）；排序弹窗数据域同源 `composables/useSortDialog`、呈现同源 `components/admin/SortDialog`（节点/公告/知识库共用）。管理端契约 single-owner（形状归 `dto_admin.go`、语义归契约 §16，经 `pnpm contract:gen` 发射 TS 片段/mock 骨架/机器快照，`check-admin-contract` 串入 lint 守护，ADR-002）。管理端传输收敛（各域传输核归 `stores/admin/*`、`api/admin.ts` 为纯适配缝，列表/多选/批量骨架归 `composables/useAdminList`，组合单测全绿，ADR-0003）。状态元收敛（标签/徽标映射归 `utils/statusMeta` 唯一表，`format.ts` 只剩委托，表测试全绿）。
 
 ### 2.5 桌面端(Tauri 2)
 
@@ -42,7 +42,7 @@ ESLint 9 flat config + Prettier 3 + Stylelint 17(接入 lint-staged);husky pre-c
 
 | 项 | 状态 |
 |---|---|
-| 开机自启开关 | ❌ 需求已移除:autostart 插件仍注册于 Rust 侧,前端不暴露入口 |
+| 开机自启开关 | ❌ 不做:未接入自启插件(Rust 侧未注册、前端无入口) |
 | Go 后端 CI | ❌ 不接入(项目决策);前端 CI 仅发布 tag 触发,日常检查走本地门禁 |
 | 总览快捷操作「待办计数」 | 暂缓:接口无待办数据,需后端先行 |
 | 移动端 App 打包 | 未启动(Tauri 移动端策略见 desktop-tauri.md;Android 构建为本地行为,gen/ 不入库) |

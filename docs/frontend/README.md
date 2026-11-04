@@ -7,7 +7,7 @@
 ### 目标
 - 1:1 还原并美化截图中的面板 UI（浅色毛玻璃卡片风格），完整支持 **暗色模式**。
 - 桌面、平板、手机三端体验完整：桌面为「侧边栏 + 顶栏」，手机为「顶栏 + 底部标签栏 + 抽屉菜单」（详见 [design-system.md](design-system.md) 第 6 节）。
-- 桌面端由 Tauri 2 承载，提供托盘、深链接一键导入、本地通知与自动更新等原生能力（见 desktop-tauri.md §4/§5；开机自启需求已移除）。
+- 桌面端由 Tauri 2 承载，提供托盘、深链接一键导入、本地通知与自动更新等原生能力（见 desktop-tauri.md §4/§5；不含开机自启）。
 - 与 Go/Gin 后端通过 [../api/README.md](../api/README.md) 契约对接。
 
 ### 非目标（一期不做）
@@ -44,7 +44,7 @@ views/ 页面 ──► components/ 业务组件 ──► composables/ 逻辑�
      │                │                       │
      └────────────────┴─────────► stores/（Pinia：业务域状态 + 各域传输核）
                                       │  ▲
-                                      │  └── api/ 契约名适配缝 re-export（ADR-0006）
+                                      │  └── api/ 仅存三模块：admin / auth / user（ADR-0006）
                               utils/http.ts（统一封装）
                                 │               │
                     isTauri() ? tauri-plugin-http : window.fetch
@@ -53,7 +53,7 @@ views/ 页面 ──► components/ 业务组件 ──► composables/ 逻辑�
 ```
 
 分层约束：
-1. **页面不直接发请求**：views 只读写 store；各域传输核（URL 与响应形态）归 `stores/<domain>.ts`，store 动作与 `api/` 契约名适配缝共用同一核（ADR-0006）；适配缝只依赖 http 封装与契约类型，不新增逻辑。
+1. **页面不直接发请求**：views 只读写 store；各域传输核（URL 与响应形态）归 `stores/<domain>.ts`（ADR-0006）。`src/api/` 仅保留仍有调用方的三模块：`api/admin.ts`（管理端视图直调，ADR-0003）、`api/auth.ts`（自持实现）、`api/user.ts`（`stores/auth`/`stores/config` 消费），不新增逻辑。
 2. **接口类型集中**：`types/api.d.ts` 与契约文档一一对应，后端字段变更先改契约再改类型（管理端 DTO 形状走 `contract:gen` 生成，见 ADR-002）。
 3. **平台能力适配层**：`utils/platform.ts` 暴露 `copyText / openExternal / importToClient` 等能力，内部按 Tauri/浏览器自动降级，业务代码不感知平台差异。
 
@@ -62,9 +62,7 @@ views/ 页面 ──► components/ 业务组件 ──► composables/ 逻辑�
 ```
 YLink/
 ├── src/
-│   ├── api/                  # 契约名适配缝（re-export stores 传输核，ADR-0006）：
-│   │                         #   admin agent auth invite knowledge notice
-│   │                         #   order plan server ticket user
+│   ├── api/                  # admin / auth / user（仍有调用方的适配缝，ADR-0006）
 │   ├── assets/               # banner 图、logo、插画（暗色模式专用图单独命名）
 │   ├── components/           # 通用组件
 │   │   ├── app/              #   AppSidebar AppHeader MobileTabBar DrawerMenu
@@ -109,7 +107,7 @@ YLink/
 | 打开外部链接 | plugin-opener | `window.open` |
 | 一键导入客户端 | 直接打开 `clash://` 等 scheme | 同左（浏览器同样支持唤起） |
 | 持久化 | plugin-store（JSON 文件） | localStorage |
-| 系统能力 | 托盘、本地通知、自动更新（均已接入，见 desktop-tauri.md §4/§5；自启需求已移除） | 无（功能入口自动隐藏或降级） |
+| 系统能力 | 托盘、本地通知、自动更新（均已接入，见 desktop-tauri.md §4/§5；不含自启） | 无（功能入口自动隐藏或降级） |
 
 `utils/platform.ts` 提供 `isTauri()` 与统一能力接口，所有降级逻辑收敛在此。
 

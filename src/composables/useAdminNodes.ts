@@ -152,7 +152,7 @@ export function useAdminNodes() {
   }
 
   function statusType(status: ServerStatus): 'success' | 'warning' | 'neutral' {
-    // 徽标直读表,不再从色值字符串反推(旧泄漏点已删)
+    // 徽标直读表,不从色值字符串反推
     return statusBadge('server', status) as 'success' | 'warning' | 'neutral'
   }
 

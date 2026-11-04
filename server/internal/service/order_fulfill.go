@@ -101,13 +101,3 @@ func (m *orderTradeModule) grant(ctx context.Context, tx *gorm.DB, order *model.
 		Status:       model.CommissionPending,
 	})
 }
-
-// applySubscription 存量薄 wrapper，实现收敛于 trade module。
-func (s *OrderService) applySubscription(tx *gorm.DB, order *model.Order) error {
-	return s.trade.apply(tx, order)
-}
-
-// grantCommission 存量薄 wrapper，实现收敛于 trade module。
-func (s *OrderService) grantCommission(ctx context.Context, tx *gorm.DB, order *model.Order, payAmount int64) error {
-	return s.trade.grant(ctx, tx, order, payAmount)
-}

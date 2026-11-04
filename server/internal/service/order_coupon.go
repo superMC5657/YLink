@@ -259,11 +259,6 @@ func (s *OrderService) AvailableCoupons(ctx context.Context, userID, planID int6
 	return s.trade.available(s.db, userID, planID, period)
 }
 
-// validateCoupon 校验优惠券并返回优惠金额（分）。存量薄 wrapper，实现收敛于 trade module。
-func (s *OrderService) validateCoupon(db *gorm.DB, userID int64, code string, plan *model.Plan, period string, amount int64) (*model.Coupon, int64, error) {
-	return s.trade.validate(db, userID, code, plan, period, amount)
-}
-
 // releaseCoupon 存量薄 wrapper：实现收敛于 trade module 的 release。
 // 存量调用方（管理关单/退款、超时关单）未经理门面注入，故以直连 adapter 承接同一释放序列。
 func releaseCoupon(db *gorm.DB, couponID, userID int64, orderNo string) error {

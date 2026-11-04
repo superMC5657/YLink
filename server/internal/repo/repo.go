@@ -46,12 +46,3 @@ func NewDB(cfg config.DatabaseConfig) (*gorm.DB, error) {
 	sqlDB.SetConnMaxLifetime(time.Hour)
 	return db, nil
 }
-
-// Ping 探测数据库连通（供 /readyz）。
-func Ping(db *gorm.DB) error {
-	sqlDB, err := db.DB()
-	if err != nil {
-		return err
-	}
-	return sqlDB.Ping()
-}

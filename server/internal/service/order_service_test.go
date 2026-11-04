@@ -194,7 +194,7 @@ func TestApplySubscriptionSamePlanRenewal(t *testing.T) {
 	e.mock.ExpectCommit()
 
 	order := &model.Order{OrderNo: "O1", UserID: 7, PlanID: 1, Period: "month"}
-	err := svc.applySubscription(e.db, order)
+	err := svc.trade.apply(e.db, order)
 	require.NoError(t, err)
 	// 断言通过 mock 记录的 SQL 更新了 expired_at/transfer_enable（此处验证无错误 + u/d 不清零路径执行）
 	assert.NoError(t, err)
@@ -217,14 +217,14 @@ func TestHandleNotifyIdempotent(t *testing.T) {
 	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"payments\"")).WillReturnResult(sqlmock.NewResult(0, 1))
 	// Save order（UPDATE）
 	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"orders\"")).WillReturnResult(sqlmock.NewResult(0, 1))
-	// applySubscription: 查用户
+	// trade.apply: 查用户
 	u := &model.User{ID: 7, Email: "u@b.com", PlanID: nil, ExpiredAt: nil, CreatedAt: now, UpdatedAt: now}
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"users\"")).WillReturnRows(userRow(u))
 	// 查套餐
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"plans\"")).WillReturnRows(planRow(&model.Plan{ID: 1, Name: "p", TrafficGB: 300, CreatedAt: now, UpdatedAt: now}))
 	// Save user
 	e.mock.ExpectExec(regexp.QuoteMeta("UPDATE \"users\"")).WillReturnResult(sqlmock.NewResult(0, 1))
-	// grantCommission: 查下单用户（无邀请人 → 结束）
+	// trade.grant: 查下单用户（无邀请人 → 结束）
 	e.mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"users\"")).WillReturnRows(userRow(&model.User{ID: 7, Email: "u@b.com", PlanID: nil, InviteByID: nil, CreatedAt: now, UpdatedAt: now}))
 	e.mock.ExpectCommit()
 
@@ -412,13 +412,13 @@ func TestCreateOrderCouponPerUserLimit(t *testing.T) {
 	assert.Equal(t, 12001, codeOf(err), "同一用户同一张券 limit_per_user=1 时第二次下单必须被拒")
 }
 
-// TestGrantCommissionBalanceSkipped:余额支付订单不产生佣金(grantCommission 直接跳过,
+// TestGrantCommissionBalanceSkipped:余额支付订单不产生佣金(trade.grant 直接跳过,
 // 不做任何用户/佣金查询;sqlmock 未设期望,若有查询会报 unexpected call 而失败)。
 func TestGrantCommissionBalanceSkipped(t *testing.T) {
 	e, svc := newOrderEnv(t)
 	pm := "balance"
 	o := &model.Order{OrderNo: "O1", UserID: 7, PayMethod: &pm}
-	err := svc.grantCommission(context.Background(), e.db, o, 1000)
+	err := svc.trade.grant(context.Background(), e.db, o, 1000)
 	require.NoError(t, err)
 	require.NoError(t, e.mock.ExpectationsWereMet(), "余额支付不应产生任何 DB 查询(不写佣金)")
 }

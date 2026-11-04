@@ -118,6 +118,3 @@ func fieldMessage(fe validator.FieldError) string {
 		return field + " 校验失败(" + fe.Tag() + ")"
 	}
 }
-
-// Engine 暴露底层 validator，供自定义校验注册。
-func Engine() *validator.Validate { return validatorEngine }

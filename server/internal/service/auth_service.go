@@ -267,7 +267,7 @@ func (s *AuthService) Logout(ctx context.Context, userID int64, jti string) erro
 
 // ---- 会话 ----
 
-// refreshMeta refresh 白名单值（F14 会话管理元数据；历史版本为字符串 "1"，解析失败按未知会话展示）。
+// refreshMeta refresh 白名单值（F14 会话管理元数据；解析失败按未知会话展示）。
 type refreshMeta struct {
 	IP        string    `json:"ip"`
 	UserAgent string    `json:"ua"`

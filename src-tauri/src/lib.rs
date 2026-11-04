@@ -1,7 +1,7 @@
 //! 用户端壳 —— 原则:Rust 侧尽量薄,只承担系统能力,业务逻辑全部在前端。
 //! 见 docs/frontend/desktop-tauri.md §3-4。
 //!
-//! 插件注册:http / store / clipboard / opener / single-instance / autostart /
+//! 插件注册:http / store / clipboard / opener / single-instance /
 //! notification / process / window-state / os / deep-link / updater(签名与端点见 tauri.conf.json plugins.updater) /
 //! log(Stdout+LogDir+Webview 三目标:发布版无 stderr,Rust 侧故障经日志文件可查)。
 //! 桌面专属能力(托盘/菜单/单实例/自启/窗口状态记忆)以 `#[cfg(desktop)]` 隔离,
@@ -56,13 +56,9 @@ pub fn run() {
     // Android 经 manifest intent-filter 接收,iOS 经 Info.plist CFBundleURLTypes。
     let builder = builder.plugin(tauri_plugin_deep_link::init());
 
-    // 桌面专属插件:开机自启 / 窗口状态记忆
+    // 桌面专属插件:窗口状态记忆
     #[cfg(desktop)]
     let builder = builder
-        .plugin(tauri_plugin_autostart::init(
-            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
-            None,
-        ))
         .plugin(tauri_plugin_window_state::Builder::default().build());
 
     // 单实例:第二个实例启动时聚焦已有窗口,并把 argv 中的深链接 URL 转发给已有实例。
@@ -98,7 +94,7 @@ pub fn run() {
                 log::warn!("deep-link register_all failed: {e}");
             }
 
-            // 托盘:显示主窗口 / 退出(仅桌面;移动端无托盘,检查更新在 updater 接入后追加)
+            // 托盘:显示主窗口 / 退出(仅桌面;移动端无托盘)
             #[cfg(desktop)]
             {
                 let show_i = MenuItem::with_id(app, "show", "显示主窗口", true, None::<&str>)?;

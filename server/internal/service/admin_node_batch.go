@@ -6,6 +6,7 @@ import (
 
 	"gorm.io/gorm"
 
+	"ylink-backend/internal/middleware"
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/errs"
 	redispkg "ylink-backend/internal/pkg/redis"
@@ -63,6 +64,11 @@ func (m *adminNodeBatchModule) BatchServers(ctx context.Context, adminID int64, 
 	})
 	if err != nil {
 		return nil, err
+	}
+	if m.rdb != nil {
+		for _, id := range req.IDs {
+			m.rdb.Del(ctx, middleware.UniProxyTokenCacheKey(id))
+		}
 	}
 	action := "batch_server_update"
 	if req.Action == "delete" {
@@ -125,9 +131,10 @@ func (m *adminNodeBatchModule) ResetNodeKey(ctx context.Context, adminID, server
 		return "", err
 	}
 	m.audit.bestEffort(m.db, adminID, "reset_node_key", fmt.Sprint(serverID), ip, map[string]any{})
-	// 旧密钥的鉴权缓存立即失效(NodeAuth 中间件 node:key:{k})
+	// 旧密钥的鉴权缓存立即失效(NodeAuth 与 UniProxyAuth 中间件)
 	if oldKey != "" {
 		m.rdb.Del(ctx, redispkg.Key("node", "key", oldKey))
 	}
+	m.rdb.Del(ctx, middleware.UniProxyTokenCacheKey(serverID))
 	return newKey, nil
 }

@@ -53,6 +53,8 @@
 | [backend/deploy.md](backend/deploy.md) | 后端：配置、Docker 部署、运维 |
 | [backend/progress.md](backend/progress.md) | 后端：开发进度追踪（已完成 / 未完成 / 前置条件） |
 | [backend/node-agent-guide.md](backend/node-agent-guide.md) | 后端：节点 agent（Xray 流量上报）部署对接说明 |
+| [backend/uniproxy-v2bx-spec.md](backend/uniproxy-v2bx-spec.md) | 后端：V2Board / UniProxy 协议兼容与 V2bX 节点守护对接规范 |
+| [backend/v2bx-deployment-guide.md](backend/v2bx-deployment-guide.md) | 后端：V2bX 节点守护程序部署与联调运维指南 |
 | [backend/launch-checklist.md](backend/launch-checklist.md) | 后端：上线前置检查清单（域名/环境/第三方账号/预演） |
 | [api/README.md](api/README.md) | 接口契约：通用约定、错误码、全量端点定义 |
 | [reviews/](reviews/) | 代码评审记录（review-round-01 起，按评审批次冻结的历史快照） |

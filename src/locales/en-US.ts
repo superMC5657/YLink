@@ -856,6 +856,15 @@ export default {
     sortSave: 'Save Order',
     sortSaved: 'Order saved',
     install: 'Deploy',
+    v2bxTab: 'V2bX Daemon (Recommended)',
+    nodeAgentTab: 'Native Node Agent',
+    v2bxConfigLabel: 'V2bX Configuration (/etc/V2bX/config.json)',
+    v2bxInstallCmdLabel: 'V2bX Official Install Command',
+    v2bxConfigPathHint:
+      '💡 Save the configuration above to /etc/V2bX/config.json on your VPS, then run "v2bx restart" to start the daemon.',
+    v2bxHint:
+      '💡 Save the configuration above to /etc/V2bX/config.json on your VPS, then run "v2bx restart" to start the daemon.',
+    copyConfig: 'Copy Config',
     installModalTitle: 'Node Connection & Deployment',
     installCommandLabel: 'One-Click Deploy Command (Bash)',
     copyCommand: 'Copy Command',

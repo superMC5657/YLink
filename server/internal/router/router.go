@@ -44,6 +44,7 @@ type app struct {
 	inviteSvc  *service.InviteService
 	ticketSvc  *service.TicketService
 	nodeSvc    *service.NodeService
+	uniProxySvc *service.UniProxyService
 	tgSvc      *service.TelegramService
 
 	authH    *handler.Auth
@@ -56,6 +57,7 @@ type app struct {
 	ticketH  *handler.Ticket
 	adminH   *admin.Admin
 	nodeH    *handler.Node
+	uniProxyH *handler.UniProxy
 	tgH      *handler.Telegram
 }
 
@@ -93,6 +95,7 @@ func New(d Deps) *gin.Engine {
 	registerClient(api, d, a)  // 订阅下发（免登录，路径段可经 security.subscribe_path 定制）
 	registerWebhook(api, d, a) // 支付回调（免登录）
 	registerNode(api, d, a)    // 节点上报（X-Node-Key）
+	registerUniProxy(api, d, a) // 节点上报（UniProxy 协议兼容 / V2bX 对接）
 
 	return r
 }
@@ -111,6 +114,7 @@ func newApp(d Deps) *app {
 	ticketSvc := service.NewTicketService(d.DB, repos)
 	adminSeams := service.NewAdminSeams(d.DB, d.Redis, repos, d.Cfg, settingSvc, d.Mailer)
 	nodeSvc := service.NewNodeService(d.DB, d.Redis, repos)
+	uniProxySvc := service.NewUniProxyService(d.DB, d.Redis, repos)
 	tgSvc := service.NewTelegramService(d.DB, d.Redis, repos, d.Cfg, settingSvc)
 	return &app{
 		repos:      repos,
@@ -123,6 +127,7 @@ func newApp(d Deps) *app {
 		inviteSvc:  inviteSvc,
 		ticketSvc:  ticketSvc,
 		nodeSvc:    nodeSvc,
+		uniProxySvc: uniProxySvc,
 		tgSvc:      tgSvc,
 		authH:      handler.NewAuth(authSvc),
 		userH:      handler.NewUser(userSvc),
@@ -134,6 +139,7 @@ func newApp(d Deps) *app {
 		ticketH:    handler.NewTicket(ticketSvc),
 		adminH:     admin.NewAdmin(adminSeams, tgSvc),
 		nodeH:      handler.NewNode(nodeSvc),
+		uniProxyH:  handler.NewUniProxy(uniProxySvc),
 		tgH:        handler.NewTelegram(tgSvc),
 	}
 }
@@ -348,4 +354,15 @@ func registerNode(g *gin.RouterGroup, d Deps, a *app) {
 	node.Use(middleware.NodeAuth(a.nodeSvc.ServerIDByKey, d.Redis))
 	node.GET("/users", a.nodeH.Users)
 	node.POST("/report", a.nodeH.Report)
+}
+
+// registerUniProxy 注册 V2Board / UniProxy 协议兼容端点（对接 V2bX）。
+func registerUniProxy(g *gin.RouterGroup, d Deps, a *app) {
+	uni := g.Group("/server/UniProxy")
+	uni.Use(middleware.UniProxyAuth(a.uniProxySvc.ServerByID, d.Redis))
+	{
+		uni.GET("/config", a.uniProxyH.Config)
+		uni.GET("/user", a.uniProxyH.User)
+		uni.POST("/push", a.uniProxyH.Push)
+	}
 }

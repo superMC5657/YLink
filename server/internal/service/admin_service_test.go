@@ -16,6 +16,7 @@ import (
 	"gorm.io/gorm"
 
 	"ylink-backend/internal/config"
+	"ylink-backend/internal/middleware"
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/mailer"
 	redispkg "ylink-backend/internal/pkg/redis"
@@ -935,4 +936,90 @@ func TestExportUsersStreamsBatches(t *testing.T) {
 	assert.Equal(t, "白羊座", got[0][4])
 	assert.Equal(t, "100", got[0][6], "流量导出为字节")
 	assert.Equal(t, "inviter@y.link", got[0][10])
+}
+
+func TestServerUniProxyTokenCacheInvalidation(t *testing.T) {
+	e := newTestEnv(t)
+	set := NewSettingService(e.db, e.rdb, &repo.Repos{})
+	svc := NewAdminSeams(e.db, e.rdb, &repo.Repos{}, nil, set, nil)
+	ctx := context.Background()
+
+	// 1. UpdateServer 清除缓存
+	cacheKey10 := middleware.UniProxyTokenCacheKey(10)
+	require.NoError(t, e.rdb.Set(ctx, cacheKey10, "token-10", time.Minute).Err())
+
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "servers"`)).
+		WillReturnRows(serverRow(&model.Server{ID: 10, Name: "HK", Type: "vless"}))
+	e.mock.ExpectBegin()
+	e.mock.ExpectExec(regexp.QuoteMeta(`UPDATE "servers" SET`)).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectCommit()
+
+	err := svc.Catalog.UpdateServer(ctx, 10, &model.AdminServerReq{
+		Name: "HK-Updated",
+		Type: "vless",
+		Host: "hk.example.com",
+		Port: 443,
+	})
+	require.NoError(t, err)
+	val, _ := e.rdb.Get(ctx, cacheKey10).Result()
+	assert.Empty(t, val, "UpdateServer 必须清除 UniProxy Token 缓存")
+
+	// 2. DeleteServer 清除缓存
+	cacheKey20 := middleware.UniProxyTokenCacheKey(20)
+	require.NoError(t, e.rdb.Set(ctx, cacheKey20, "token-20", time.Minute).Err())
+
+	e.mock.ExpectBegin()
+	e.mock.ExpectExec(regexp.QuoteMeta(`DELETE FROM "servers"`)).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectCommit()
+
+	err = svc.Catalog.DeleteServer(ctx, 20)
+	require.NoError(t, err)
+	val, _ = e.rdb.Get(ctx, cacheKey20).Result()
+	assert.Empty(t, val, "DeleteServer 必须清除 UniProxy Token 缓存")
+
+	// 3. ResetNodeKey 清除缓存
+	cacheKey30 := middleware.UniProxyTokenCacheKey(30)
+	require.NoError(t, e.rdb.Set(ctx, cacheKey30, "token-30", time.Minute).Err())
+
+	e.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "servers"`)).
+		WillReturnRows(serverRow(&model.Server{ID: 30, Name: "SG", Type: "trojan", NodeKey: "old-key"}))
+	e.mock.ExpectBegin()
+	e.mock.ExpectExec(regexp.QuoteMeta(`UPDATE "servers" SET`)).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectCommit()
+	e.mock.ExpectBegin()
+	e.mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "audit_logs"`)).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	e.mock.ExpectCommit()
+
+	_, err = svc.Node.ResetNodeKey(ctx, 1, 30, "127.0.0.1")
+	require.NoError(t, err)
+	val, _ = e.rdb.Get(ctx, cacheKey30).Result()
+	assert.Empty(t, val, "ResetNodeKey 必须清除 UniProxy Token 缓存")
+
+	// 4. BatchServers 清除缓存
+	cacheKey40 := middleware.UniProxyTokenCacheKey(40)
+	require.NoError(t, e.rdb.Set(ctx, cacheKey40, "token-40", time.Minute).Err())
+
+	e.mock.ExpectBegin()
+	e.mock.ExpectExec(regexp.QuoteMeta(`UPDATE "servers" SET`)).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	e.mock.ExpectCommit()
+	e.mock.ExpectBegin()
+	e.mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "audit_logs"`)).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	e.mock.ExpectCommit()
+
+	status := 1
+	bResp, err := svc.Node.BatchServers(ctx, 1, &model.AdminBatchServerReq{
+		IDs:    []int64{40},
+		Action: "update",
+		Status: &status,
+	}, "127.0.0.1")
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), bResp.Success)
+	val, _ = e.rdb.Get(ctx, cacheKey40).Result()
+	assert.Empty(t, val, "BatchServers 必须清除 UniProxy Token 缓存")
 }

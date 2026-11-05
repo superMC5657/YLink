@@ -27,6 +27,9 @@ func TestAdminUserRouteCollisions(t *testing.T) {
 		http.MethodGet + " /api/v1/admin/audit-logs",
 		http.MethodGet + " /api/v1/client/subscribe/:token",
 		http.MethodGet + " /api/v1/admin/users",
+		http.MethodGet + " /api/v1/server/UniProxy/config",
+		http.MethodGet + " /api/v1/server/UniProxy/user",
+		http.MethodPost + " /api/v1/server/UniProxy/push",
 	}
 	for _, w := range want {
 		assert.True(t, set[w], "路由未注册: %s", w)

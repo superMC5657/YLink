@@ -1164,6 +1164,159 @@ definitions:
       commission_balance:
         type: number
     type: object
+  model.UniProxyBaseConfig:
+    properties:
+      pull_interval:
+        type: integer
+      push_interval:
+        type: integer
+    type: object
+  model.UniProxyConfigData:
+    properties:
+      base_config:
+        $ref: '#/definitions/model.UniProxyBaseConfig'
+      cipher:
+        description: Shadowsocks 专属
+        type: string
+      down_mbps:
+        type: integer
+      flow:
+        type: string
+      host:
+        type: string
+      network:
+        type: string
+      network_settings:
+        additionalProperties: {}
+        type: object
+      obfs:
+        type: string
+      protocol:
+        type: string
+      routes:
+        description: 规则或路由（可选扩展）
+        items: {}
+        type: array
+      server_key:
+        type: string
+      server_name:
+        description: Trojan 专属
+        type: string
+      server_port:
+        type: integer
+      tls:
+        type: integer
+      tls_settings:
+        $ref: '#/definitions/model.UniProxyTLSSettings'
+      up_mbps:
+        description: Hysteria / Hysteria2 专属
+        type: integer
+    type: object
+  model.UniProxyConfigResp:
+    properties:
+      base_config:
+        $ref: '#/definitions/model.UniProxyBaseConfig'
+      cipher:
+        description: Shadowsocks 专属
+        type: string
+      data:
+        $ref: '#/definitions/model.UniProxyConfigData'
+      down_mbps:
+        type: integer
+      flow:
+        type: string
+      host:
+        type: string
+      network:
+        type: string
+      network_settings:
+        additionalProperties: {}
+        type: object
+      obfs:
+        type: string
+      protocol:
+        type: string
+      routes:
+        description: 规则或路由（可选扩展）
+        items: {}
+        type: array
+      server_key:
+        type: string
+      server_name:
+        description: Trojan 专属
+        type: string
+      server_port:
+        type: integer
+      tls:
+        type: integer
+      tls_settings:
+        $ref: '#/definitions/model.UniProxyTLSSettings'
+      up_mbps:
+        description: Hysteria / Hysteria2 专属
+        type: integer
+    type: object
+  model.UniProxyPushResp:
+    properties:
+      data:
+        type: boolean
+    type: object
+  model.UniProxyRealitySettings:
+    properties:
+      dest:
+        type: string
+      private_key:
+        type: string
+      server_names:
+        items:
+          type: string
+        type: array
+      short_ids:
+        items:
+          type: string
+        type: array
+      show:
+        type: boolean
+    type: object
+  model.UniProxyTLSSettings:
+    properties:
+      private_key:
+        type: string
+      reality_settings:
+        $ref: '#/definitions/model.UniProxyRealitySettings'
+      server_name:
+        type: string
+      server_port:
+        type: string
+      short_id:
+        type: string
+    type: object
+  model.UniProxyUserData:
+    properties:
+      users:
+        items:
+          $ref: '#/definitions/model.UniProxyUserItem'
+        type: array
+    type: object
+  model.UniProxyUserItem:
+    properties:
+      device_limit:
+        type: integer
+      id:
+        type: integer
+      speed_limit:
+        type: integer
+      uuid:
+        type: string
+    type: object
+  model.UniProxyUserResp:
+    properties:
+      data:
+        $ref: '#/definitions/model.UniProxyUserData'
+      users:
+        items:
+          $ref: '#/definitions/model.UniProxyUserItem'
+        type: array
+    type: object
   model.UpdateProfileReq:
     properties:
       remind_expire:
@@ -2449,6 +2602,114 @@ paths:
       summary: 代理状态
       tags:
       - 营销
+  /api/v1/server/UniProxy/config:
+    get:
+      parameters:
+      - description: 节点 ID
+        in: query
+        name: node_id
+        required: true
+        type: integer
+      - description: 节点密钥
+        in: query
+        name: token
+        type: string
+      - description: 协议类型
+        in: query
+        name: node_type
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.UniProxyConfigResp'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/resp.Body'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/resp.Body'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/resp.Body'
+      summary: 节点配置下发（V2Board UniProxy 协议兼容）
+      tags:
+      - UniProxy
+  /api/v1/server/UniProxy/push:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 节点 ID
+        in: query
+        name: node_id
+        required: true
+        type: integer
+      - description: 节点密钥
+        in: query
+        name: token
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.UniProxyPushResp'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/resp.Body'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/resp.Body'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/resp.Body'
+      summary: 节点增量流量上报（V2Board UniProxy 协议兼容）
+      tags:
+      - UniProxy
+  /api/v1/server/UniProxy/user:
+    get:
+      parameters:
+      - description: 节点 ID
+        in: query
+        name: node_id
+        required: true
+        type: integer
+      - description: 节点密钥
+        in: query
+        name: token
+        type: string
+      - description: 协议类型
+        in: query
+        name: node_type
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.UniProxyUserResp'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/resp.Body'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/resp.Body'
+      summary: 节点有效用户凭证列表下发（V2Board UniProxy 协议兼容）
+      tags:
+      - UniProxy
   /auth/forgot:
     post:
       consumes:

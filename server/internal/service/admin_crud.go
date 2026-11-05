@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 
+	"ylink-backend/internal/middleware"
 	"ylink-backend/internal/model"
 	"ylink-backend/internal/pkg/errs"
 	"ylink-backend/internal/pkg/sanitize"
@@ -232,11 +233,23 @@ func (m *adminCatalogModule) UpdateServer(ctx context.Context, id int64, req *mo
 	if req.IsShow != nil {
 		updates["is_show"] = *req.IsShow
 	}
-	return m.repos.Server.UpdateMap(m.db, id, updates)
+	if err := m.repos.Server.UpdateMap(m.db, id, updates); err != nil {
+		return err
+	}
+	if m.rdb != nil {
+		m.rdb.Del(ctx, middleware.UniProxyTokenCacheKey(id))
+	}
+	return nil
 }
 
 func (m *adminCatalogModule) DeleteServer(ctx context.Context, id int64) error {
-	return m.repos.Server.Delete(m.db, id)
+	if err := m.repos.Server.Delete(m.db, id); err != nil {
+		return err
+	}
+	if m.rdb != nil {
+		m.rdb.Del(ctx, middleware.UniProxyTokenCacheKey(id))
+	}
+	return nil
 }
 
 // newNodeKey 生成 32 位十六进制节点上报密钥。

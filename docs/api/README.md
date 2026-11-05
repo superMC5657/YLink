@@ -739,14 +739,40 @@ status：1=正常 2=拥挤 3=维护。**不返回** host/port/密码等连接参
 
 ---
 
-## 18. 契约变更管理
+## 18. UniProxy 兼容接口（V2bX 节点守护对接，`/api/v1/server/UniProxy`）
+
+兼容社区主流节点守护程序 **V2bX**，支持开箱即用对接 Xray-core / Sing-box / Hysteria2，支持 ACME 证书续期、动态增删凭证与审计。
+
+### 鉴权机制与错误码
+- 支持 URL Query 参数 `?node_id={id}&token={node_key}`
+- 或 HTTP Header `Token: {node_key}` / `X-Token` / `X-Node-Key`
+- 鉴权结果经 Redis 缓存 60s（`node:uniproxy:token:{id}`）。Redis 命中但 Token 不匹配时立即返回 401（Fail-fast 不回源 DB）。未命中时校验 `servers` 表中 `node_key` 与正常/拥挤状态（`status == 1 || status == 2`）。
+- 鉴权失败一律返回 HTTP 401，响应体为标准错误 Envelope：`{"code": 40100, "message": "unauthorized", "data": null}`。
+
+### 端点清单
+1. `GET /api/v1/server/UniProxy/config?node_id=&token=&node_type=`：下发端口、网络、TLS/Reality 伪装密钥及轮询周期。
+   - `node_type` 参数（如 `v2ray`/`hysteria2`/`trojan`）若提供，服务端会校验其与节点配置协议是否匹配，不匹配返回 HTTP 400。
+   - 响应格式具备双重兼容包裹（顶层与 `data` 均提供配置字段，适配不同 V2bX/V2Board 版本解析器）。
+   - 响应支持 ETag 缓存（客户端带 `If-None-Match` 且未修改时返回 HTTP 304）。
+2. `GET /api/v1/server/UniProxy/user?node_id=&token=&node_type=`：下发归属该节点分组的有效未到期订阅用户凭证列表（ID、UUID、限速、设备数）。
+   - 响应同样具备双重兼容包裹，且支持 ETag / HTTP 304 缓存。
+3. `POST /api/v1/server/UniProxy/push?node_id=&token=`：接收节点上报的**增量（Delta）字节流量**并计费入账。
+   - 请求格式兼容 JSON 数组 `[{"user_id": 1001, "u": 1024, "d": 2048}]` 及 V2bX 原生 Map 报文 `{"1001": [1024, 2048]}`。
+   - 流量按节点倍率 `server.rate` 乘算后累加至 `users.u/d` 与日明细 `traffic_logs`，并失效用户 `sub:userinfo` 缓存与刷新节点在线心跳。
+   - 响应格式：`{"data": true}`。
+
+详细部署指南与 VPS 配置指引见 `docs/backend/v2bx-deployment-guide.md`。
+
+---
+
+## 19. 契约变更管理
 
 1. 任何端点新增/字段变更先提本文档 PR，标注 `Added/Changed/Deprecated`，双方评审通过后实现。
 2. 破坏性变更（删字段、改语义）走版本化：并行暴露 `/api/v2/...`，v1 保留至少一个版本周期。
 3. 后端 Swagger 注解与本文档同步更新；CI 校验 Swagger 可构建。前端 `types/api.d.ts` 与本文档同步更新（管理端 DTO 部分由生成与脚本审计保障，见 §16 与 ADR-002）。
 4. 管理端字段变更走 DTO 单一事实来源：先改 `server/internal/model/dto_admin.go` + 本文档 §16 → 跑 `pnpm contract:gen` 同步三处生成产物（TS 片段/mock 骨架/机器快照）→ `pnpm contract:check` 全绿；跳过生成即漂移失败，不做人工全量对账。
 
-## 19. Telegram Webhook（F12，`POST /api/v1/telegram/webhook`，免登录）
+## 20. Telegram Webhook（F12，`POST /api/v1/telegram/webhook`，免登录）
 
 Telegram 服务端回调。请求头 `X-Telegram-Bot-Api-Secret-Token` 必须等于 settings `telegram.webhook_secret`（未配置或为空一律 403，防伪造）。请求体为 Telegram Update JSON（仅消费 `message`）：
 

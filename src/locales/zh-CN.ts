@@ -848,6 +848,15 @@ export default {
     sortSave: '保存排序',
     sortSaved: '排序已保存',
     install: '部署',
+    v2bxTab: 'V2bX 节点守护 (推荐)',
+    nodeAgentTab: '原生 Node Agent',
+    v2bxConfigLabel: 'V2bX 配置文件 (/etc/V2bX/config.json)',
+    v2bxInstallCmdLabel: 'V2bX 官方一键安装命令',
+    v2bxConfigPathHint:
+      '💡 将上述配置粘贴保存至 VPS 的 /etc/V2bX/config.json，随后执行 v2bx restart 启动守护程序。',
+    v2bxHint:
+      '💡 将上述配置粘贴保存至 VPS 的 /etc/V2bX/config.json，随后执行 v2bx restart 启动守护程序。',
+    copyConfig: '复制配置',
     installModalTitle: '节点对接与一键部署',
     installCommandLabel: '一键部署命令 (Bash)',
     copyCommand: '复制命令',

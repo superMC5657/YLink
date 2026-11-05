@@ -25,11 +25,11 @@ const node = {
   type: 'shadowsocks',
 } as AdminServerItem
 
-async function mountDialog() {
+async function mountDialog(customNode?: AdminServerItem) {
   setActivePinia(createPinia())
   await useZhCN()
   return mount(NodeInstallDialog, {
-    props: { show: true, node, settings: { ...NODE_INSTALL_DEFAULTS } },
+    props: { show: true, node: customNode ?? node, settings: { ...NODE_INSTALL_DEFAULTS } },
     global: {
       plugins: [i18n],
       components: { AppIcon },
@@ -62,5 +62,86 @@ describe('NodeInstallDialog', () => {
     localStorage.removeItem('app:apiBase')
     const w = await mountDialog()
     expect(commandText(w)).toContain(`--endpoint ${window.location.origin}/api/v1`)
+  })
+
+  it('切换到 V2bX Tab 展示 /etc/V2bX/config.json 配置', async () => {
+    localStorage.setItem('app:apiBase', 'https://ylink.example.com/api/v1')
+    const w = await mountDialog()
+    const tabs = w.findAll('.modal-stub button')
+    const v2bxTab = tabs.find((b) => b.text().includes('V2bX'))
+    expect(v2bxTab).toBeDefined()
+    await v2bxTab!.trigger('click')
+
+    const codeBlocks = w.findAll('.modal-stub .font-mono')
+    const configBlock = codeBlocks.find((b) => b.text().includes('"Nodes"'))
+    expect(configBlock).toBeDefined()
+    const content = configBlock!.text()
+    expect(content).toContain('"ApiHost": "https://ylink.example.com"')
+    expect(content).toContain('"ApiKey": "a1b2c3d4e5f6a7b8"')
+    expect(content).toContain('"NodeID": 7')
+    expect(content).toContain('"NodeType": "shadowsocks"')
+    expect(content).toContain('"Core": "xray"')
+    localStorage.removeItem('app:apiBase')
+  })
+
+  it('V2bX 配置生成: hysteria2 节点 Core 为 hysteria2', async () => {
+    const hysteriaNode = {
+      id: 8,
+      node_key: 'hysteria2-key',
+      name: 'US-Hy2',
+      type: 'hysteria2',
+    } as AdminServerItem
+
+    const w = await mountDialog(hysteriaNode)
+    const tabs = w.findAll('.modal-stub button')
+    const v2bxTab = tabs.find((b) => b.text().includes('V2bX'))
+    expect(v2bxTab).toBeDefined()
+    await v2bxTab!.trigger('click')
+
+    const codeBlocks = w.findAll('.modal-stub .font-mono')
+    const configBlock = codeBlocks.find((b) => b.text().includes('"Nodes"'))
+    expect(configBlock).toBeDefined()
+    const content = configBlock!.text()
+    expect(content).toContain('"Core": "hysteria2"')
+    expect(content).toContain('"NodeType": "hysteria"')
+    expect(content).toContain('"ApiKey": "hysteria2-key"')
+    expect(content).toContain('"NodeID": 8')
+  })
+
+  it('V2bX 配置生成: hysteria 节点 Core 亦为 hysteria2', async () => {
+    const hysteriaNode = {
+      id: 9,
+      node_key: 'hysteria-key',
+      name: 'US-Hy',
+      type: 'hysteria',
+    } as AdminServerItem
+
+    const w = await mountDialog(hysteriaNode)
+    const tabs = w.findAll('.modal-stub button')
+    const v2bxTab = tabs.find((b) => b.text().includes('V2bX'))
+    expect(v2bxTab).toBeDefined()
+    await v2bxTab!.trigger('click')
+
+    const codeBlocks = w.findAll('.modal-stub .font-mono')
+    const configBlock = codeBlocks.find((b) => b.text().includes('"Nodes"'))
+    expect(configBlock).toBeDefined()
+    const content = configBlock!.text()
+    expect(content).toContain('"Core": "hysteria2"')
+    expect(content).toContain('"NodeType": "hysteria"')
+  })
+
+  it('点击复制按钮调用统一的 copyText 剪贴板写入', async () => {
+    const writeTextSpy = vi.fn().mockResolvedValue(undefined)
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: writeTextSpy,
+      },
+    })
+
+    const w = await mountDialog()
+    const copyBtn = w.findAll('.modal-stub button').find((b) => b.text().includes('复制命令'))
+    expect(copyBtn).toBeDefined()
+    await copyBtn!.trigger('click')
+    expect(writeTextSpy).toHaveBeenCalled()
   })
 })

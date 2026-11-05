@@ -1854,6 +1854,171 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/server/UniProxy/config": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "UniProxy"
+                ],
+                "summary": "节点配置下发（V2Board UniProxy 协议兼容）",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "节点 ID",
+                        "name": "node_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "节点密钥",
+                        "name": "token",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "协议类型",
+                        "name": "node_type",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.UniProxyConfigResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/server/UniProxy/push": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "UniProxy"
+                ],
+                "summary": "节点增量流量上报（V2Board UniProxy 协议兼容）",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "节点 ID",
+                        "name": "node_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "节点密钥",
+                        "name": "token",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.UniProxyPushResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/server/UniProxy/user": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "UniProxy"
+                ],
+                "summary": "节点有效用户凭证列表下发（V2Board UniProxy 协议兼容）",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "节点 ID",
+                        "name": "node_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "节点密钥",
+                        "name": "token",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "协议类型",
+                        "name": "node_type",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.UniProxyUserResp"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/resp.Body"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/forgot": {
             "post": {
                 "consumes": [
@@ -5738,6 +5903,234 @@ const docTemplate = `{
                 },
                 "commission_balance": {
                     "type": "number"
+                }
+            }
+        },
+        "model.UniProxyBaseConfig": {
+            "type": "object",
+            "properties": {
+                "pull_interval": {
+                    "type": "integer"
+                },
+                "push_interval": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.UniProxyConfigData": {
+            "type": "object",
+            "properties": {
+                "base_config": {
+                    "$ref": "#/definitions/model.UniProxyBaseConfig"
+                },
+                "cipher": {
+                    "description": "Shadowsocks 专属",
+                    "type": "string"
+                },
+                "down_mbps": {
+                    "type": "integer"
+                },
+                "flow": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "network": {
+                    "type": "string"
+                },
+                "network_settings": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "obfs": {
+                    "type": "string"
+                },
+                "protocol": {
+                    "type": "string"
+                },
+                "routes": {
+                    "description": "规则或路由（可选扩展）",
+                    "type": "array",
+                    "items": {}
+                },
+                "server_key": {
+                    "type": "string"
+                },
+                "server_name": {
+                    "description": "Trojan 专属",
+                    "type": "string"
+                },
+                "server_port": {
+                    "type": "integer"
+                },
+                "tls": {
+                    "type": "integer"
+                },
+                "tls_settings": {
+                    "$ref": "#/definitions/model.UniProxyTLSSettings"
+                },
+                "up_mbps": {
+                    "description": "Hysteria / Hysteria2 专属",
+                    "type": "integer"
+                }
+            }
+        },
+        "model.UniProxyConfigResp": {
+            "type": "object",
+            "properties": {
+                "base_config": {
+                    "$ref": "#/definitions/model.UniProxyBaseConfig"
+                },
+                "cipher": {
+                    "description": "Shadowsocks 专属",
+                    "type": "string"
+                },
+                "data": {
+                    "$ref": "#/definitions/model.UniProxyConfigData"
+                },
+                "down_mbps": {
+                    "type": "integer"
+                },
+                "flow": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "network": {
+                    "type": "string"
+                },
+                "network_settings": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "obfs": {
+                    "type": "string"
+                },
+                "protocol": {
+                    "type": "string"
+                },
+                "routes": {
+                    "description": "规则或路由（可选扩展）",
+                    "type": "array",
+                    "items": {}
+                },
+                "server_key": {
+                    "type": "string"
+                },
+                "server_name": {
+                    "description": "Trojan 专属",
+                    "type": "string"
+                },
+                "server_port": {
+                    "type": "integer"
+                },
+                "tls": {
+                    "type": "integer"
+                },
+                "tls_settings": {
+                    "$ref": "#/definitions/model.UniProxyTLSSettings"
+                },
+                "up_mbps": {
+                    "description": "Hysteria / Hysteria2 专属",
+                    "type": "integer"
+                }
+            }
+        },
+        "model.UniProxyPushResp": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "model.UniProxyRealitySettings": {
+            "type": "object",
+            "properties": {
+                "dest": {
+                    "type": "string"
+                },
+                "private_key": {
+                    "type": "string"
+                },
+                "server_names": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "short_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "show": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "model.UniProxyTLSSettings": {
+            "type": "object",
+            "properties": {
+                "private_key": {
+                    "type": "string"
+                },
+                "reality_settings": {
+                    "$ref": "#/definitions/model.UniProxyRealitySettings"
+                },
+                "server_name": {
+                    "type": "string"
+                },
+                "server_port": {
+                    "type": "string"
+                },
+                "short_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.UniProxyUserData": {
+            "type": "object",
+            "properties": {
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.UniProxyUserItem"
+                    }
+                }
+            }
+        },
+        "model.UniProxyUserItem": {
+            "type": "object",
+            "properties": {
+                "device_limit": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "speed_limit": {
+                    "type": "integer"
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.UniProxyUserResp": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/model.UniProxyUserData"
+                },
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.UniProxyUserItem"
+                    }
                 }
             }
         },

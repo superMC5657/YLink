@@ -296,6 +296,7 @@ audit_logs：id、admin_id、action（如 `adjust_balance/refund/ban_user`）、
 | `remind:expire:{uid}:{expUnix}:{window}` | String+NX，30d | 到期提醒窗口去重（window=3d/1d，owner：Cron 调度深 Module） |
 | `remind:traffic:{uid}` | String+NX，30d | 流量提醒去重（用量≥80%，owner：Cron 调度深 Module） |
 | `node:key:{node_key}` | String(server_id)，60s | 节点密钥 → 节点 id 缓存（X-Node-Key 鉴权；重置密钥即删） |
+| `node:uniproxy:token:{id}` | String(node_key)，60s | UniProxy / V2bX 通信鉴权缓存（重置密钥、更新节点、启停状态或删除节点时即时失效） |
 | `node:heartbeat:{id}` | String(unix 秒)，90s | 在线状态深 Module 写 seam：节点上报心跳；存在即在线，过期即离线（形状/TTL 的 owner 见 `node_presence.go`） |
 | `node:stats:{id}` | String(NodeSystemStats JSON)，180s | 在线状态深 Module 写 seam：负载快照（`model.NodeSystemStats` 形状唯一来源）；解析失败读端降级 nil |
 | `cron:lock:{job}` | String+NX（属主 token），15min | 定时任务分布式锁（占不到即跳过并打点；值为随机属主 token，释放走 Lua 比对属主，防误删继任实例的锁。owner：Cron 调度深 Module） |

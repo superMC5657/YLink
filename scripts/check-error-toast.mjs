@@ -8,7 +8,7 @@
  * message.error(错误对象.message) 会让同一错误弹两次 —— 2026-08-30 前该
  * 反模式在全项目累积 25 处(详见 docs/frontend/progress.md 同日小节)。
  *
- * 本脚本扫描并拦截该反模式,已串入 `pnpm lint`(本地与 CI 同时覆盖):
+ * 本脚本扫描并拦截该反模式,已串入 `pnpm check`(本地与 CI 同时覆盖):
  *   禁止  message.error((e as Error).message) / message.error(e.message)
  *         / message.error(err.message) 等转发异常对象 message 的调用;
  *   放行  message.error(t('…')) —— 本地错误(剪贴板/canvas/前端校验等,

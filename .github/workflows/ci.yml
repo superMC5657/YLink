@@ -1,15 +1,16 @@
-# CI:前端 quality + e2e、Rust/Tauri 双平台检查门禁
-# 骨架对齐 z-viewer(双系统矩阵 windows+ubuntu-22.04、apt 段、pnpm+node22、clippy+test)，
-# 并保留 YLink 独有功能:
-# 触发:
-#   - PR → 轻量门禁(frontend-pr-gate:lint + typecheck)，快速反馈不拖慢开发
-#   - workflow_call/workflow_dispatch → 全量 quality/e2e/rust(tag 全量检查只走 release-tauri.yml 开头复用的那次，避免双跑)
-# 注:Go 后端按项目决策不走 GitHub Actions，推送检查走根目录 Makefile(make go-vet / go-test)，
-#     见 docs/backend/README.md §9
+# CI: 前端质量 + E2E 回归 + Rust/Tauri 跨平台门禁
+#
+# 架构原则:
+# 1. PR 与 main 绝对同轨: 提 PR 与合并到 main 执行完全相同的检查 (quality + e2e)
+# 2. 产物单源复用: quality 产出 frontend-dist 供后置 Job 直接下载, 杜绝重复编译
+# 3. 按需全量门禁: PR 与 main 快速反馈，支持 workflow_call / workflow_dispatch 手动触发 Rust 跨平台检查
 name: CI
 
 on:
   pull_request:
+    branches: [main]
+  push:
+    branches: [main]
   workflow_call:
   workflow_dispatch:
 
@@ -19,75 +20,15 @@ concurrency:
 
 permissions:
   contents: read
-  actions: write # upload-artifact(e2e 失败报告)
+  actions: write # e2e 失败报告上传
 
 jobs:
-  # ---------- 前端:PR 轻量门禁(仅 PR 触发,lint+typecheck 快速反馈) ----------
-  frontend-pr-gate:
-    name: Frontend PR gate
-    if: github.event_name == 'pull_request'
+  # =========================================================================
+  # 阶段 1: 前端核心质量门禁与生产打包 (PR / main / 发版 必跑, 约 25 秒)
+  # =========================================================================
+  quality:
+    name: Frontend Quality & Build
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: pnpm/action-setup@v6
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22 # package.json engines >=20
-          cache: pnpm
-
-      - name: Install deps
-        run: pnpm install --frozen-lockfile
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-  # ---------- 前端:quality(仅 tag;YLink 增强:lint+lint:css+typecheck+format:check+test,build:web 代替 build) ----------
-  frontend-quality:
-    name: Frontend quality
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: pnpm/action-setup@v6
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22 # package.json engines >=20
-          cache: pnpm
-
-      - name: Install deps
-        run: pnpm install --frozen-lockfile
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Stylelint
-        run: pnpm lint:css
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Format check
-        run: pnpm format:check
-
-      - name: Unit tests
-        run: pnpm test
-
-      - name: Build
-        run: pnpm build:web
-
-  # ---------- 前端:e2e(固定 Mock 环境,仅 tag) ----------
-  frontend-e2e:
-    name: Frontend e2e
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    needs: [frontend-quality]
     steps:
       - uses: actions/checkout@v7
 
@@ -98,14 +39,49 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - name: Install deps
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # playwright.config.ts 在 CI 下用内置 chromium(channel 未设置)
-      - name: Install Playwright chromium
+      # 一步全量体检: 契约守护 + ESLint + Stylelint + vue-tsc 类型 + Prettier 格式 + Vitest 单测
+      - name: Code Quality & Unit Tests
+        run: pnpm check
+
+      # 一步生产打包: 验证 Rollup / Vite 生产构建正确性
+      - name: Production Build
+        run: pnpm build
+
+      # 上传产物供 E2E / Rust 复用, 避免后置 Job 重复构建
+      - name: Cache frontend dist
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-dist
+          path: dist
+          retention-days: 1
+
+  # =========================================================================
+  # 阶段 2: 前端 E2E 端到端回归测试 (PR / main / 发版 必跑, 约 40 秒)
+  # =========================================================================
+  e2e:
+    name: Frontend E2E (Playwright)
+    runs-on: ubuntu-latest
+    needs: [quality]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Run e2e
+      - name: Run E2E tests
         run: pnpm e2e
 
       - name: Upload report on failure
@@ -118,10 +94,14 @@ jobs:
             test-results/
           retention-days: 7
 
-  # ---------- Rust / Tauri(仅 tag;对齐 z-viewer:双系统 clippy+test,替代原单 windows check) ----------
+  # =========================================================================
+  # 阶段 3: Tauri / Rust 跨平台编译门禁 (发版 Tag 或手动触发时执行, 约 1~2 分钟)
+  # =========================================================================
   rust:
-    name: Rust (Tauri) check (${{ matrix.os }})
-    if: startsWith(github.ref, 'refs/tags/v')
+    name: Rust Check (${{ matrix.os }})
+    # PR 与常规 main push 专注于快速反馈; 仅在发版调用 (workflow_call) 或手动触发时启动双平台虚拟机
+    if: github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch'
+    needs: [quality]
     strategy:
       fail-fast: false
       matrix:
@@ -130,26 +110,18 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Tauri v2 Linux 编译所需系统依赖 (与发版机保持一致)
-      - name: Install Tauri Linux system dependencies
+      - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file patchelf libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
 
-      - uses: pnpm/action-setup@v6
-
-      - uses: actions/setup-node@v7
+      # 直接复用 quality 产出的 dist, 彻底免去在双系统上安装 Node/pnpm 与重复构建
+      - name: Download frontend dist
+        uses: actions/download-artifact@v7
         with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Install deps
-        run: pnpm install --frozen-lockfile
-
-      # tauri build.rs 校验 frontendDist(../dist) 存在,需先生成前端产物
-      - name: Build frontend dist
-        run: pnpm build:web
+          name: frontend-dist
+          path: dist
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -162,5 +134,5 @@ jobs:
       - name: Rust Clippy
         run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
 
-      - name: Cargo tests
+      - name: Cargo Tests
         run: cargo test --manifest-path src-tauri/Cargo.toml

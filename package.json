@@ -10,30 +10,12 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
-    "build:web": "vite build",
-    "build:linux": "APPIMAGE_EXTRACT_AND_RUN=1 tauri build --bundles deb,appimage",
-    "analyze": "vite build --mode analyze",
-    "preview": "vite preview",
-    "typecheck": "vue-tsc --noEmit",
-    "lint": "node scripts/check-error-toast.mjs && node scripts/check-tokens-sync.mjs && node scripts/check-brand-hex.mjs && node scripts/check-admin-contract.mjs && eslint . --max-warnings 0",
-    "lint:fix": "eslint . --fix",
-    "lint:css": "stylelint \"src/styles/*.css\" \"src/**/*.vue\"",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "build": "vite build",
+    "check": "node scripts/check-error-toast.mjs && node scripts/check-tokens-sync.mjs && node scripts/check-brand-hex.mjs && node scripts/check-admin-contract.mjs && eslint . --max-warnings 0 && stylelint \"src/styles/*.css\" \"src/**/*.vue\" && vue-tsc --noEmit && prettier --check . && vitest run",
+    "fix": "eslint . --fix && stylelint --fix \"src/**/*.{css,vue}\" && prettier --write .",
+    "e2e": "playwright test",
     "bump": "node scripts/bump-version.mjs",
     "contract:gen": "node scripts/gen-admin-contract.mjs",
-    "contract:check": "node scripts/check-admin-contract.mjs",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "e2e": "playwright test",
-    "tauri": "tauri",
-    "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build",
-    "tauri:android:dev": "tauri android dev",
-    "tauri:android:build": "tauri android build --apk",
-    "tauri:android:build:aab": "tauri android build --aab",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -46,6 +28,98 @@
     ],
     "*.{css,vue}": [
       "stylelint --fix"
+    ]
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "printWidth": 100,
+    "trailingComma": "all",
+    "tabWidth": 2,
+    "vueIndentScriptAndStyle": false
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ],
+    "rules": {
+      "type-enum": [
+        2,
+        "always",
+        [
+          "feat",
+          "fix",
+          "docs",
+          "style",
+          "refactor",
+          "perf",
+          "test",
+          "build",
+          "ci",
+          "chore",
+          "revert"
+        ]
+      ]
+    }
+  },
+  "stylelint": {
+    "extends": [
+      "stylelint-config-standard"
+    ],
+    "overrides": [
+      {
+        "files": [
+          "**/*.vue"
+        ],
+        "customSyntax": "postcss-html"
+      }
+    ],
+    "rules": {
+      "comment-empty-line-before": null,
+      "rule-empty-line-before": null,
+      "declaration-empty-line-before": null,
+      "no-empty-source": null,
+      "custom-property-empty-line-before": null,
+      "selector-class-pattern": null,
+      "keyframes-name-pattern": null,
+      "media-feature-range-notation": null,
+      "import-notation": null,
+      "length-zero-no-unit": null,
+      "color-hex-length": null,
+      "color-function-notation": null,
+      "color-function-alias-notation": null,
+      "alpha-value-notation": null,
+      "hue-degree-notation": null,
+      "font-family-name-quotes": null,
+      "property-no-vendor-prefix": null,
+      "selector-pseudo-class-no-unknown": [
+        true,
+        {
+          "ignorePseudoClasses": [
+            "deep",
+            "global",
+            "slotted"
+          ]
+        }
+      ],
+      "at-rule-no-unknown": [
+        true,
+        {
+          "ignoreAtRules": [
+            "tailwind",
+            "unocss",
+            "apply",
+            "screen"
+          ]
+        }
+      ]
+    },
+    "ignoreFiles": [
+      "dist/**",
+      "node_modules/**",
+      "coverage/**",
+      "src-tauri/**",
+      "server/**"
     ]
   },
   "dependencies": {

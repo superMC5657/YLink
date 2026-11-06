@@ -4,7 +4,7 @@
  *
  * 背景:naive-ui 主题覆盖(theme.ts)不支持 CSS 变量字符串,必须写真实色值,
  * 与 src/styles/tokens.css 的设计令牌形成双源,历史上靠人工保持同步。
- * 本脚本把两边的映射固化为断言,漂移即报错退出(挂在 pnpm lint 链上)。
+ * 本脚本把两边的映射固化为断言,漂移即报错退出(挂在 pnpm check 链上)。
  *
  * 映射表(vars → theme.ts 的 GlobalThemeOverrides common 键,亮/暗各一套):
  *   --c-primary      → primaryColor / primaryColorSuppl / infoColor / itemColorActive / railColorActive

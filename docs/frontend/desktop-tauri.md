@@ -74,11 +74,11 @@ capabilities/default.json 采用最小授权：逐项声明上述插件权限，
 
 ## 7. 构建与发布流水线（GitHub Actions）
 
-> `.github/workflows/ci.yml` 含四个 job：`frontend-pr-gate`（仅 PR）、`frontend-quality`、`frontend-e2e`、`rust`；Go 后端按项目决策不走 Actions。`.github/workflows/release-tauri.yml` 已配置公开产物仓库的 **Windows/Linux 双平台** Release（矩阵并行打包经 artifacts 中转后统一发布）。
+> `.github/workflows/ci.yml` 含三个 job：`quality`、`e2e`、`rust`；PR 与 main 同轨运行 quality+e2e，发版时追加跨平台 rust 检查。Go 后端按项目决策不走 Actions。`.github/workflows/release-tauri.yml` 已配置公开产物仓库的 **Windows/Linux 双平台** Release（矩阵并行打包经 artifacts 中转后统一发布）。
 
-- **PR CI**：PR 触发 `frontend-pr-gate`（ubuntu，lint → typecheck，快速反馈不拖慢开发）；日常开发检查走本地 `pnpm lint/typecheck/test/format:check`。Go 后端不走 GitHub Actions（推送 main 前入口：仓库根 `make check`）。
-- **tag 全量门禁（tag `v*` 触发）**：`frontend-quality`（lint → lint:css → typecheck → format:check → test → build:web）+ `frontend-e2e`（Playwright · Mock chromium，失败上传报告，needs quality）+ `rust`（**双 OS 矩阵** windows-latest / ubuntu-22.04：Linux 侧先装 webkit2gtk 等系统依赖并 `pnpm build:web` 生成 dist，再 `cargo clippy -D warnings` + `cargo test`）。
-- **Release（已配置，打 tag `v*` 或手动触发）**：`.github/workflows/release-tauri.yml` 三段——`ci`（复用 ci.yml 全量门禁，质量没通过绝不打包）→ `build`（**平台矩阵**：Windows NSIS + Ubuntu deb/AppImage，TAURI_SIGNING_PRIVATE_KEY 自动签名 .sig，产物上传 artifacts 中转）→ `publish`（合并产物后**发布内联校验**：tag 必须符合 SemVer + 配置外置于 `.github/release.env`（APP_NAME / RELEASES_REPO）；`scripts/build-latest-json.mjs` 生成双清单——`latest.json` 海外直链 / `latest-cn.json` gh-proxy 镜像加速，均含 name/size/sha256 扩展字段，产物缺 `.sig` 即 exit 1——再 `gh release` 推送到**公开产物仓库**（`RELEASES_PAT` secret）），updater 端点按 CN 优先直连兑底消费（见 §2/§5）。
+- **日常 CI（PR 与 main 同轨）**：触发 `quality`（ubuntu，`pnpm check` + `pnpm build`，上传 `frontend-dist`，约 25 秒）+ `e2e`（Playwright · Mock chromium，约 40 秒）。
+- **发版与手动全量门禁**：复用 quality 与 e2e，并追加 `rust` 跨平台编译检查（**双 OS 矩阵** windows-latest / ubuntu-22.04：直接复用已打包的 `frontend-dist` 免去安装 Node/pnpm 与二次构建，再 `cargo clippy -D warnings` + `cargo test`）。
+- **Release（已配置，打 tag `v*` 或手动触发）**：`.github/workflows/release-tauri.yml` 两段（代码质量门禁已由 `ci.yml` 在 PR 与 main 上保障，发版流水线直通构建）——`build`（**平台矩阵**：Windows NSIS + Ubuntu deb/AppImage，TAURI_SIGNING_PRIVATE_KEY 自动签名 .sig，产物上传 artifacts 中转）→ `publish`（合并产物后**发布内联校验**：tag 必须符合 SemVer + 配置外置于 `.github/release.env`（APP_NAME / RELEASES_REPO）；`scripts/build-latest-json.mjs` 生成双清单——`latest.json` 海外直链 / `latest-cn.json` gh-proxy 镜像加速，均含 name/size/sha256 扩展字段，产物缺 `.sig` 即 exit 1——再 `gh release` 推送到**公开产物仓库**（`RELEASES_PAT` secret）），updater 端点按 CN 优先直连兑底消费（见 §2/§5）。
 - **产物仓库**：代码仓库 `superMC5657/YLink`（private，不开源）；产物发布到公开仓库 `superMC5657/ylink-release` 保证匿名下载 + gh-proxy 加速可行（publish job 与 `tauri.conf.json` updater endpoints 均已指向该仓库）。
 - **macOS 公证**（可选二期）：Apple 证书 + notarize 步骤；无证书时文档注明用户需在「安全性与隐私」中放行。⚠ 当前打包 Windows（NSIS）与 Linux（deb/AppImage），macOS 不打包，此条暂不适用，恢复 macOS 打包时再启用。
 - 版本号策略：语义化版本，`package.json`、`Cargo.toml`、`tauri.conf.json` 三处由脚本同步。
@@ -120,9 +120,9 @@ capabilities/default.json 采用最小授权：逐项声明上述插件权限，
 
 | 命令 | 说明 |
 |---|---|
-| `pnpm tauri:android:dev` | 真机/模拟器热更新调试（需 `adb` 已连接设备） |
-| `pnpm tauri:android:build` | 构建 release APK（默认构建全部 4 个 ABI；`--target aarch64` 可只打 arm64） |
-| `pnpm tauri:android:build:aab` | 构建 AAB（上架 Google Play 用） |
+| `pnpm tauri android dev` | 真机/模拟器热更新调试（需 `adb` 已连接设备） |
+| `pnpm tauri android build --apk` | 构建 release APK（默认构建全部 4 个 ABI；`--target aarch64` 可只打 arm64） |
+| `pnpm tauri android build --aab` | 构建 AAB（上架 Google Play 用） |
 
 产物在 `src-tauri/gen/android/app/build/outputs/apk/`（或 `.../bundle/`）。
 

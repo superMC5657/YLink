@@ -1,6 +1,6 @@
 # CD: Tauri 双平台(Windows/Linux)打包与双清单发布
 #
-# 架构: 矩阵并行打包经 artifacts 中转后统一发布;配置严格外置于 release.env,门禁先行调用 ci.yml。
+# 架构: 矩阵并行打包经 artifacts 中转后统一发布;配置严格外置于 release.env;代码质量门禁由 ci.yml 在 PR/main 保障。
 #
 # 需要配置的 repository secrets:
 #   TAURI_SIGNING_PRIVATE_KEY          = 私钥(base64)
@@ -22,18 +22,9 @@ permissions:
   contents: read
 
 jobs:
-  # 步骤 1: 先跑 CI 质量门禁 (质量没通过绝不浪费时间打包)
-  ci:
-    name: Run CI Verification
-    permissions:
-      contents: read
-      actions: write
-    uses: ./.github/workflows/ci.yml
-
-  # 步骤 2: CI 通过后，Windows/Linux 并行打包 (签名后上传 artifacts)
+  # 步骤 1: Windows/Linux 并行打包 (签名后上传 artifacts)
   build:
     name: Build ${{ matrix.platform }}
-    needs: [ci]
     strategy:
       fail-fast: false
       matrix:
@@ -123,7 +114,7 @@ jobs:
           path: artifacts
           if-no-files-found: error
 
-  # 步骤 3: 统一发布 — 合并双平台产物，一次生成 latest.json 并原子发布
+  # 步骤 2: 统一发布 — 合并双平台产物，一次生成 latest.json 并原子发布
   publish:
     name: Publish Release
     needs: [build]

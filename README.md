@@ -27,7 +27,7 @@
 ```bash
 pnpm install
 pnpm dev            # http://localhost:5174（默认 VITE_USE_MOCK=true）
-pnpm test           # Vitest 单测
+pnpm check          # 规范、类型与单测全量体检
 pnpm e2e            # Playwright E2E（固定 Mock 环境）
 ```
 
@@ -46,13 +46,13 @@ make run                     # API 服务（:8081）
 ### Tauri 桌面端
 
 ```bash
-pnpm tauri:dev       # 开发联动
-pnpm tauri:build     # Windows 打包（nsis，含签名）
+pnpm tauri dev       # 开发联动
+pnpm tauri build     # Windows 打包（nsis，含签名）
 ```
 
 ## CI / CD
 
-- `.github/workflows/ci.yml`：仅发布 tag（`v*`）触发——`frontend-quality`（lint→typecheck→format:check→test→build:web）+ `frontend-e2e` + `rust`（cargo check，windows-latest）；日常检查走本地 `pnpm lint/typecheck/test/format:check`；Go 后端按项目决策不走 GitHub Actions
+- `.github/workflows/ci.yml`：PR 与 main 分支同轨触发——`quality`（pnpm check + build）+ `e2e`（Playwright）；发版与手动触发追加 `rust`（双系统 cargo check/test）；日常推送走本地 `pnpm check`；Go 后端按项目决策不走 GitHub Actions
 - `.github/workflows/release-tauri.yml`：打 tag `v*` 触发 Windows 打包签名（nsis）→ `latest.json` 合并（gh-proxy.com 加速前缀）→ 发布到公开产物仓库，供公网下载与 Tauri 自动更新
 
 ## 目录结构

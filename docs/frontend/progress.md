@@ -76,7 +76,7 @@ CSS 变量在 `tokens.css`,Naive UI overrides 在 `theme.ts`(亮/暗两套真实
 
 ### 4.5 Tauri 桌面端
 
-Rust ≥ 1.77(本机已验证)+ WebView2(Win);`pnpm tauri:dev` 联动开发,`pnpm tauri:build` 打包;首次 cargo 编译约 5 分钟(`cargo check` 可快速验证);改品牌后以 1024x1024 PNG 源图执行 `pnpm tauri icon <path-to-png>` 重新生成图标;发布前需注册 `ylink://` 协议与 updater 签名密钥(见 desktop-tauri.md §5/§7)。
+Rust ≥ 1.77(本机已验证)+ WebView2(Win);`pnpm tauri dev` 联动开发,`pnpm tauri build` 打包;首次 cargo 编译约 5 分钟(`cargo check` 可快速验证);改品牌后以 1024x1024 PNG 源图执行 `pnpm tauri icon <path-to-png>` 重新生成图标;发布前需注册 `ylink://` 协议与 updater 签名密钥(见 desktop-tauri.md §5/§7)。
 
 ### 4.6 上线(生产)
 

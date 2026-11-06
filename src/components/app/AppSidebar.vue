@@ -42,12 +42,7 @@ function go(path: string) {
       class="flex h-16 shrink-0 items-center gap-3 px-5"
       :class="collapsed ? 'justify-center px-0' : ''"
     >
-      <span
-        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white"
-        style="background: linear-gradient(135deg, var(--c-primary), var(--c-primary-grad-end))"
-      >
-        <AppIcon name="zap" :size="20" />
-      </span>
+      <AppLogo :size="36" />
       <span v-if="!collapsed" class="truncate text-16 font-700 text-[var(--c-text)]">
         {{ config.siteName }}
       </span>

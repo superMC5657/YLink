@@ -20,7 +20,7 @@ Vue 3.5 + TS + Vite 6 + pnpm(`<script setup>`,Node ≥ 20);UnoCSS(presetUno/Attr
 
 ### 2.2 布局与设计系统
 
-设计令牌 tokens.css(亮/暗两套 CSS 变量)+ Naive UI theme.ts 真实色值 overrides(**双源必须同步**);品牌渐变/语义渐变(danger、amber)与 Pagination/Switch 激活色全量令牌化,业务代码零硬编码色值,暗色主题自动切换变体;JS 侧图表/画布回落值单源 `styles/tokenValues.ts`(与 tokens.css 同步 + 品牌 hex 大小写变体由 `check-brand-hex` 门禁盯住,字面量仅存于四个定义点);桌面 200px 侧边栏(折叠 72px)+ 毛玻璃吸顶顶栏;平板/手机 `<768px` 底栏 4 Tab + 抽屉菜单、768-1024 迷你侧边栏;AuthLayout 全局壳、客服浮球、toast 桥接;基础 UI 组件全局注册(AppIcon/UiCard/StatNumber/StatusBadge/PriceText/EmptyState/PageHeader/CopyText 等);桌面内容区 max-w-1440 + 窄桌面自动折叠侧边栏 + 表格 overflow 适配。
+设计令牌 tokens.css(亮/暗两套 CSS 变量)+ Naive UI theme.ts 真实色值 overrides(**双源必须同步**);品牌渐变/语义渐变(danger、amber)与 Pagination/Switch 激活色全量令牌化,业务代码零硬编码色值,暗色主题自动切换变体;JS 侧图表/画布回落值单源 `styles/tokenValues.ts`(与 tokens.css 同步 + 品牌 hex 大小写变体由 `check-brand-hex` 门禁盯住,字面量仅存于四个定义点);桌面 200px 侧边栏(折叠 72px)+ 毛玻璃吸顶顶栏;平板/手机 `<768px` 底栏 4 Tab + 抽屉菜单、768-1024 迷你侧边栏;AuthLayout 全局壳、客服浮球、toast 桥接;基础 UI 组件全局注册(AppIcon/AppLogo/UiCard/StatNumber/StatusBadge/PriceText/EmptyState/PageHeader/CopyText 等);品牌资产规范(瑞士包豪斯互锁 Y-Link 白底极简微质感设计,包含 AppLogo 组件、SVG favicon 与 Tauri/PWA 多尺寸应用图标);桌面内容区 max-w-1440 + 窄桌面自动折叠侧边栏 + 表格 overflow 适配。
 
 ### 2.3 用户端页面
 

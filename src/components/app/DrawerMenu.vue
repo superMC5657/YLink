@@ -59,12 +59,7 @@ function onLogout() {
     <div class="flex h-full flex-col">
       <!-- Logo -->
       <div class="flex h-16 shrink-0 items-center gap-3 border-b border-[var(--c-border)] px-5">
-        <span
-          class="flex h-9 w-9 items-center justify-center rounded-xl text-white"
-          style="background: linear-gradient(135deg, var(--c-primary), var(--c-primary-grad-end))"
-        >
-          <AppIcon name="zap" :size="20" />
-        </span>
+        <AppLogo :size="36" />
         <span class="text-16 font-700 text-[var(--c-text)]">{{ config.siteName }}</span>
       </div>
 

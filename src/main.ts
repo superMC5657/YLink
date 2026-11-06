@@ -39,6 +39,7 @@ import { setHttpLanguage } from './utils/http'
 import { onDeepLink } from './utils/platform'
 import { initStorage } from './utils/storage'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import AppLogo from '@/components/ui/AppLogo.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import CopyText from '@/components/ui/CopyText.vue'
@@ -88,6 +89,7 @@ app.use(naive)
 
 // 全局注册基础 UI 组件(业务组件大量直接使用而未局部 import)
 app.component('AppIcon', AppIcon)
+app.component('AppLogo', AppLogo)
 app.component('StatusBadge', StatusBadge)
 app.component('EmptyState', EmptyState)
 app.component('CopyText', CopyText)

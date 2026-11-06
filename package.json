@@ -15,6 +15,7 @@
     "fix": "eslint . --fix && stylelint --fix \"src/**/*.{css,vue}\" && prettier --write .",
     "e2e": "playwright test",
     "bump": "node scripts/bump-version.mjs",
+    "release": "node scripts/release.mjs",
     "contract:gen": "node scripts/gen-admin-contract.mjs",
     "prepare": "husky"
   },
